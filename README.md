@@ -39,7 +39,7 @@
 
 ### 1. 安装
 ```bash
-git clone [https://github.com/YourUsername/MY-DOGE-MICRO.git](https://github.com/YourUsername/MY-DOGE-MICRO.git)
+git clone https://github.com/wsman/MY-DOGE-MICRO.git
 cd MY-DOGE-MICRO
 pip install -r requirements.txt
 ```
