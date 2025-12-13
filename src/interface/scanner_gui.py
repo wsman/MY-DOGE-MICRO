@@ -277,9 +277,41 @@ class ScannerWidget(QWidget):
         except Exception as e:
             print(f"保存设置失败: {e}")
 
+    def on_macro_finished(self):
+        """宏观分析完成后的回调：解锁界面"""
+        self.btn_cn.setEnabled(True)
+        self.btn_us.setEnabled(True)
+        self.btn_macro.setEnabled(True)
+        self.log_view.append("🔓 宏观分析结束，界面解锁。")
+
     def start_scan(self, mode):
-        # 1. 保存当前路径 (只要用户点击开始，就视为有效尝试)
+        # 1. 保存当前路径 (新增功能)
         self.save_settings() 
         
         tdx_root = self.tdx_path_edit.text()
-        # ... (原有代码保持不变) ...
+        # 自动决定数据库路径
+        db_name = "market_data_cn.db" if mode == 'CN' else "market_data_us.db"
+        
+        # 路径回退逻辑：先找 ../../data，找不到就用当前目录 data
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+        data_dir = os.path.join(project_root, 'data')
+        if not os.path.exists(data_dir):
+            os.makedirs(data_dir, exist_ok=True)
+            
+        db_path = os.path.join(data_dir, db_name)
+        
+        # 2. 界面锁定
+        self.btn_cn.setEnabled(False)
+        self.btn_us.setEnabled(False)
+        self.btn_macro.setEnabled(False) # 同时也锁定宏观按钮
+        self.log_view.append(f"🔒 锁定界面，开始 {mode} 扫描...")
+        
+        # 3. 发送信号
+        self.scan_started_signal.emit(mode)
+        
+        self.worker = ScannerWorker(mode, tdx_root, db_path)
+        self.worker.log_signal.connect(self.log_view.append)
+        self.worker.progress_signal.connect(self.update_progress)
+        self.worker.scan_finished_signal.connect(lambda: self.on_worker_finished(mode))
+        self.worker.start()
