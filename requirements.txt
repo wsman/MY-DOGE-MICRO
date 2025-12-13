@@ -2,3 +2,4 @@ yfinance
 pandas
 tqdm
 PyQt6
+openai
