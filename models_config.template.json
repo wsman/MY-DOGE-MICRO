@@ -1,0 +1,45 @@
+{
+    "profiles": [
+        {
+            "name": "🚀 DeepSeek Chat (Standard)",
+            "base_url": "https://api.deepseek.com",
+            "model": "deepseek-chat",
+            "api_key": "YOUR_API_KEY_HERE"
+        },
+        {
+            "name": "🧠 DeepSeek Reasoner (R1 - Pro)",
+            "base_url": "https://api.deepseek.com",
+            "model": "deepseek-reasoner",
+            "api_key": "YOUR_API_KEY_HERE"
+        },
+        {
+            "name": "🏠 LM Studio (Local)",
+            "base_url": "http://localhost:1234/v1",
+            "model": "local-model",
+            "api_key": "lm-studio"
+        }
+    ],
+    "default_profile": "🚀 DeepSeek Chat (Standard)",
+    "macro_settings": {
+        "lookback_days": 120,
+        "volatility_window": 20
+    },
+    "assets": {
+        "tech": {
+            "symbol": "QQQ",
+            "name": "科技股(纳指)"
+        },
+        "safe": {
+            "symbol": "GLD",
+            "name": "避险黄金"
+        },
+        "crypto": {
+            "symbol": "BTC-USD",
+            "name": "数字货币"
+        },
+        "target": {
+            "symbol": "000300.SS",
+            "name": "A股核心(沪深300)"
+        }
+    }
+}

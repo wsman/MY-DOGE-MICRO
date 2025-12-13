@@ -1,0 +1,32 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual Environment
+venv/
+env/
+.env
+
+# Configuration with Secrets
+models_config.json
+
+# Local Databases (Heavy files)
+data/*.db
+data/*.sqlite
+
+# Generated Reports & Data
+macro_report/*.md
+micro_report/*.csv
+research_report/*.md
+
+# Logs
+logs/
+*.log
+
+# IDE settings
+.vscode/
+.idea/
+
+# OS specific
+.DS_Store
+Thumbs.db
