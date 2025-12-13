@@ -56,7 +56,7 @@ cp models_config.template.json models_config.json
 
 请确保您已安装通达信金融终端，并下载了完整的日线数据。
 
-默认路径通常为 D:\New_TDX\vipdoc。
+默认选择路径为根目录，如 D:/New_TDX
 
 ### 4. 启动指挥官系统
 ```bash
