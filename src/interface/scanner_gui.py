@@ -133,11 +133,11 @@ class ScannerWidget(QWidget):
         
         # 创建界面
         self.create_ui()
-        
+        self.load_settings() # <--- 新增：启动时加载设置
+
     def create_ui(self):
         layout = QVBoxLayout(self) # 直接应用到 self
         
-        # 1. 基础配置
         config_group = QGroupBox("基础配置")
         config_layout = QVBoxLayout()
         
@@ -239,8 +239,47 @@ class ScannerWidget(QWidget):
         self.macro_worker.finished_signal.connect(self.on_macro_finished)
         self.macro_worker.start()
 
-    def on_macro_finished(self):
-        self.btn_cn.setEnabled(True)
-        self.btn_us.setEnabled(True)
-        self.btn_macro.setEnabled(True)
-        self.log_view.append("✅ 宏观分析完成，界面解锁。")
+    def load_settings(self):
+        """加载用户设置"""
+        import json
+        settings_path = os.path.join(project_root, 'user_settings.json')
+        if os.path.exists(settings_path):
+            try:
+                with open(settings_path, 'r', encoding='utf-8') as f:
+                    settings = json.load(f)
+                    last_tdx = settings.get('tdx_path', '')
+                    if last_tdx and os.path.exists(last_tdx):
+                        self.tdx_path_edit.setText(last_tdx)
+                        self.log_view.append(f"ℹ️ 已加载上次使用的路径: {last_tdx}")
+            except Exception as e:
+                print(f"加载设置失败: {e}")
+
+    def save_settings(self):
+        """保存用户设置"""
+        import json
+        settings_path = os.path.join(project_root, 'user_settings.json')
+        current_tdx = self.tdx_path_edit.text()
+        
+        # 读取现有设置以防覆盖其他配置
+        settings = {}
+        if os.path.exists(settings_path):
+            try:
+                with open(settings_path, 'r', encoding='utf-8') as f:
+                    settings = json.load(f)
+            except:
+                pass
+        
+        settings['tdx_path'] = current_tdx
+        
+        try:
+            with open(settings_path, 'w', encoding='utf-8') as f:
+                json.dump(settings, f, indent=4, ensure_ascii=False)
+        except Exception as e:
+            print(f"保存设置失败: {e}")
+
+    def start_scan(self, mode):
+        # 1. 保存当前路径 (只要用户点击开始，就视为有效尝试)
+        self.save_settings() 
+        
+        tdx_root = self.tdx_path_edit.text()
+        # ... (原有代码保持不变) ...

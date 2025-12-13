@@ -30,3 +30,6 @@ logs/
 # OS specific
 .DS_Store
 Thumbs.db
+
+# User specific settings
+user_settings.json

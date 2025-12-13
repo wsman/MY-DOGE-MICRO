@@ -103,9 +103,20 @@ class CommandCenter(QMainWindow):
             self.tabs.setCurrentWidget(self.us_editor_tab)
 
 if __name__ == "__main__":
+    # 1. 在启动 app 前执行数据库自检
+    try:
+        from src.micro.database import initialize_system_dbs
+    except ImportError:
+        # 路径回退处理
+        sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'src', 'micro'))
+        from database import initialize_system_dbs
+
+    initialize_system_dbs()
+    
     app = QApplication(sys.argv)
-    # 设置全局字体
-    font = QFont("Microsoft YaHei", 10)
+    
+    # 设置全局字体 (可选优化)
+    font = QFont("Microsoft YaHei", 9)
     app.setFont(font)
     
     window = CommandCenter()

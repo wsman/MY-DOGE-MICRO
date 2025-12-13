@@ -85,4 +85,3 @@ python src/interface/dashboard.py
 
 本项目基于 Apache License 2.0 开源。允许商业使用、修改和分发，但必须保留原始版权声明。详情请参阅 LICENSE 文件。
 
-Powered by MY-DOGE Team | Data driven, AI empowered.

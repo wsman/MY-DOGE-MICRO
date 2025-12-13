@@ -361,3 +361,67 @@ def add_relationship(source, target, relation, insight_id):
         print(f"❌ 添加关系时出错: {e}")
     finally:
         conn.close()
+
+def initialize_system_dbs():
+    """
+    系统冷启动初始化：确保所有必要的数据库文件和表结构存在
+    """
+    import os
+    
+    # 1. 确定数据目录
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(os.path.dirname(current_dir))
+    data_dir = os.path.join(project_root, 'data')
+    os.makedirs(data_dir, exist_ok=True)
+    
+    print(f"🛠️ 系统自检: 正在检查数据库完整性 ({data_dir})...")
+
+    # 2. 初始化 A股/美股 数据库 (如果不存在)
+    # 即使是空的，也先建立连接以生成文件
+    for db_name in ['market_data_cn.db', 'market_data_us.db']:
+        db_path = os.path.join(data_dir, db_name)
+        if not os.path.exists(db_path):
+            print(f"   ⚠️ 未找到 {db_name}，正在初始化...")
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            # 创建基础表结构 (stock_prices)
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS stock_prices (
+                    ticker TEXT,
+                    date TEXT,
+                    open REAL, high REAL, low REAL, close REAL,
+                    volume INTEGER, amount REAL,
+                    PRIMARY KEY (ticker, date)
+                )
+            ''')
+            conn.commit()
+            conn.close()
+            print(f"   ✅ {db_name} 创建完成")
+
+    # 3. 初始化 研报智库 (包含自动迁移逻辑)
+    # 调用现有的 save_research_report 逻辑来触发建表，或者直接建表
+    research_db = os.path.join(data_dir, 'research_insights.db')
+    conn = sqlite3.connect(research_db)
+    cursor = conn.cursor()
+    
+    # 建表：Macro Reports
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS macro_reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT, timestamp TEXT, tags TEXT, analyst TEXT,
+            risk_signal TEXT, volatility TEXT, content TEXT
+        )
+    ''')
+    
+    # 建表：Research Reports
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS research_reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT, timestamp TEXT, tags TEXT, analyst TEXT,
+            title TEXT, content TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+    print("   ✅ 研报数据库 (Research DB) 检查完毕")
+    print("🚀 系统数据库就绪")
