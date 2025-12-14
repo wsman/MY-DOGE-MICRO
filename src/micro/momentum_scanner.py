@@ -165,10 +165,10 @@ def main():
     ranker = MomentumRanker()
     
     # A股 (1亿 RMB)
-    ranker.analyze_market('CN', 'market_data_cn.db', 100000000)
+    ranker.analyze_market('CN', 'market_data_cn.db', 200000000)
     
     # 美股 (1000万 USD)
-    ranker.analyze_market('US', 'market_data_us.db', 10000000)
+    ranker.analyze_market('US', 'market_data_us.db', 20000000)
 
 if __name__ == "__main__":
     main()
