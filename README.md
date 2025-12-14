@@ -67,7 +67,7 @@ python src/interface/dashboard.py
 
 ### 市场扫描 (Tab 1):
 
-输入通达信 VIPDOC 路径，点击“启动扫描”。系统将自动建立 market_data_cn.db 和 market_data_us.db。
+输入通达信路径，点击“启动扫描”。系统将自动建立 market_data_cn.db 和 market_data_us.db。
 
 ### 宏观分析:
 
