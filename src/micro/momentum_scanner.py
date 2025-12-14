@@ -109,10 +109,10 @@ class MomentumRanker:
             
             change_pct = (p_curr - p_prev) / p_prev * 100
             
-            # --- 4. 虚假暴涨熔断 (收紧至 200%) ---
+            # --- 4. 虚假暴涨熔断 (收紧至 400%) ---
             # 过滤掉因反向拆股 (Reverse Split) 导致的不复权数据暴涨
             # 仅对美股应用此过滤器
-            if market_type == 'US' and change_pct > 200: 
+            if market_type == 'US' and change_pct > 400: 
                 continue
             
             results.append({
