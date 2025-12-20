@@ -41,5 +41,9 @@
             "symbol": "000300.SS",
             "name": "A股核心(沪深300)"
         }
+    },
+    "proxy_settings": {
+        "enabled": false,
+        "url": "http://127.0.0.1:7890"
     }
 }

@@ -2,6 +2,7 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import logging
+from typing import Optional
 from .config import MacroConfig
 
 logger = logging.getLogger(__name__)
@@ -11,7 +12,7 @@ class GlobalMacroLoader:
         self.config = config
         logger.info(f"初始化数据加载器，配置: {config}")
 
-    def fetch_combined_data(self) -> pd.DataFrame:
+    def fetch_combined_data(self) -> Optional[pd.DataFrame]:
         """
         获取并清洗全球核心资产的历史价格数据。
 
@@ -21,7 +22,8 @@ class GlobalMacroLoader:
         4. 截取指定数量的最近交易日数据作为最终输出。
 
         Returns:
-            pd.DataFrame: 包含所有资产价格的历史数据，按交易日对齐并截取最新 lookback_days 行。
+            Optional[pd.DataFrame]: 包含所有资产价格的历史数据，按交易日对齐并截取最新 lookback_days 行。
+            如果下载失败则返回 None。
         """
         tickers = [
             self.config.tech_proxy,
@@ -35,6 +37,12 @@ class GlobalMacroLoader:
 
         logger.info(f"📡 正在从全球市场同步数据: {tickers} ...")
 
+        # 配置代理
+        proxy = None
+        if self.config.proxy_enabled and self.config.proxy_url:
+            proxy = self.config.proxy_url
+            logger.info(f"🔗 使用代理: {proxy}")
+
         try:
             # 获取足够长的数据以确保 lookback window 有效（超额获取）
             fetch_days = int(self.config.lookback_days * 1.65) + 20
@@ -43,10 +51,11 @@ class GlobalMacroLoader:
                 period=f"{fetch_days}d",
                 interval="1d",
                 auto_adjust=True,
-                progress=False
+                progress=False,
+                proxy=proxy
             )
 
-            if data.empty:
+            if data is None or data.empty:
                 logger.error("下载的数据为空")
                 return None
 

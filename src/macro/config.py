@@ -31,6 +31,10 @@ class MacroConfig:
     base_url: str = "https://api.deepseek.com"
     model: str = "deepseek-chat"
 
+    # 代理配置
+    proxy_url: Optional[str] = None
+    proxy_enabled: bool = False
+
     def __post_init__(self):
         """初始化时加载 JSON 配置"""
         self._load_from_json()
@@ -80,6 +84,11 @@ class MacroConfig:
                 self.api_key = target_profile.get('api_key')
                 self.base_url = target_profile.get('base_url')
                 self.model = target_profile.get('model')
+
+            # 4. 加载代理配置
+            proxy_settings = data.get('proxy_settings', {})
+            self.proxy_enabled = proxy_settings.get('enabled', False)
+            self.proxy_url = proxy_settings.get('url')
 
         except Exception as e:
             print(f"❌ [MacroConfig] 读取配置文件出错: {e}")
