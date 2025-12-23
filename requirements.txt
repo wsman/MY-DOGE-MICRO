@@ -3,3 +3,4 @@ pandas
 tqdm
 PyQt6
 openai
+scipy
