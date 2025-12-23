@@ -45,9 +45,23 @@ class DeepSeekStrategist:
         context_str += f"\nMarket Volatility (Annualized): {metrics.get('tech_volatility', 0):.2%}\n"
         context_str += f"Risk Signal: {'Risk-On' if metrics.get('risk_on_signal') else 'Risk-Off'}\n"
 
+        # [NEW] Quantitative Dashboard Data
+        tech_rsrs = metrics.get(f'{self.config.tech_proxy}_rsrs', 0)
+        vol_skew = metrics.get('vol_skew', 0)
+        
+        dashboard_data = f"""
+### 3. 量化风控仪表盘 (Quantitative Dashboard)
+
+| 维度 | 指标名称 | 当前读数 | 信号解读 |
+| :--- | :--- | :--- | :--- |
+| **趋势** | **RSRS (Slope*R2)** | **{tech_rsrs:.2f}** | (正值代表多头趋势，负值代表空头，绝对值越大趋势越强) |
+| **情绪** | **Vol Skew (5/20)**| **{vol_skew:.2f}** | (>1.5 恐慌加速; <0.8 极度平静/变盘前夕) |
+| **资金** | **Risk Signal** | {'Risk-On' if metrics.get('risk_on_signal') else 'Risk-Off'} | (基于中期趋势比较) |
+"""
+
         # --- Prompt Engineering ---
         system_prompt = f"""你是一位讲究数据证据的量化宏观分析师。
-你的任务是根据提供的长短期指标分析市场状态。
+你的任务是根据提供的长短期指标分析市场状态，并生成一份包含【量化风控仪表盘】的专业报告。
 
 【核心规则 - 必须严格遵守】
 1. 你的每一条分析结论，必须明确引用数据来源。
@@ -56,6 +70,10 @@ class DeepSeekStrategist:
    - "但短期出现回调 [数据: 近5日涨跌 -1.3%]"
 3. 严禁混淆短期波动和长期趋势。
 4. 必须对比 BTC 与 QQQ（风险属性）以及 BTC 与 GLD（避险属性）的相关性数据。
+5. **必须在报告中包含【量化风控仪表盘】章节**，直接使用我提供的数据填充表格，并对 RSRS 和 Vol Skew 进行专业解读。
+   - RSRS > 0 且数值较大 -> 趋势强劲
+   - Vol Skew < 0.8 -> 变盘节点
+   - Vol Skew > 1.5 -> 风险释放中
 """
 
         # 获取近期数据用于展示（例如在提示词中）
@@ -65,10 +83,14 @@ class DeepSeekStrategist:
         【结构化市场数据】
         {context_str}
 
+        【量化仪表盘数据】
+        {dashboard_data}
+
         【最近5日价格明细】
         {recent_data_for_prompt.to_string()}
 
-        请生成一份简明扼要的策略报告，分析上述资产的宏观状态并给出操作建议。
+        请生成一份简明扼要的策略报告 (v2.0)，分析上述资产的宏观状态并给出操作建议。
+        请务必在报告中包含 "3. 量化风控仪表盘 (Quantitative Dashboard)" 章节。
         """
 
         try:

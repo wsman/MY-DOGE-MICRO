@@ -4,6 +4,8 @@ import os
 import sys
 from datetime import datetime
 from collections import Counter
+from scipy import stats
+import numpy as np
 
 # 路径自适应
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -13,6 +15,53 @@ data_dir = os.path.join(project_root, 'data')
 class MomentumRanker:
     def __init__(self):
         pass
+
+    def calculate_rsrs_z(self, high_series, low_series, window=18):
+        """
+        计算 RSRS 标准分 (Z-Score)
+        """
+        if len(high_series) < window + 2:
+            return 0.0
+            
+        high_vals = high_series.values
+        low_vals = low_series.values
+        
+        # 计算过去 60 天的 beta (如果数据足够)
+        lookback = min(len(high_vals), 300)
+        start_idx = len(high_vals) - lookback
+        
+        betas = []
+        # 至少需要 window 个数据点才能计算一个 beta
+        if start_idx + window >= len(high_vals):
+             # 数据太少，只计算最后一个
+             start_idx = len(high_vals) - window - 1
+             if start_idx < 0: return 0.0
+
+        for i in range(start_idx + window, len(high_vals) + 1):
+            y = high_vals[i-window:i]
+            x = low_vals[i-window:i]
+            # 简单的线性回归
+            slope, _, _, _, _ = stats.linregress(x, y)
+            betas.append(slope)
+            
+        if not betas:
+            return 0.0
+            
+        betas_arr = np.array(betas)
+        if len(betas_arr) < 10:
+            # 历史数据不足以计算 Z-Score，直接返回 0 或 beta 本身
+            return 0.0
+            
+        # Z-Score
+        mean = np.mean(betas_arr)
+        std = np.std(betas_arr)
+        
+        if std == 0:
+            return 0.0
+            
+        current_beta = betas_arr[-1]
+        z_score = (current_beta - mean) / std
+        return z_score
 
     def get_connection(self, db_name):
         db_path = os.path.join(data_dir, db_name)
@@ -39,8 +88,9 @@ class MomentumRanker:
 
             # 2. 加载最近半年数据
             print("⏳ 正在加载数据到内存...")
+            # [MODIFIED] 增加 high, low 用于计算 RSRS
             query = f"""
-                SELECT ticker, date, close, amount 
+                SELECT ticker, date, close, high, low, amount 
                 FROM stock_prices 
                 WHERE date >= date('{max_date}', '-180 days')
                 ORDER BY ticker, date ASC
@@ -92,7 +142,9 @@ class MomentumRanker:
 
             # --- 2. A股过滤 ---
             if market_type == 'CN':
-                raw_code = ticker.split('.')[0]
+                # 确保 ticker 是字符串
+                ticker_str = str(ticker)
+                raw_code = ticker_str.split('.')[0]
                 if not raw_code.startswith(('00', '30', '60', '68')): continue
             
             # --- 3. 流动性过滤 (60日均额) ---
@@ -114,6 +166,16 @@ class MomentumRanker:
             # 仅对美股应用此过滤器
             if market_type == 'US' and change_pct > 400: 
                 continue
+
+            # --- 5. [NEW] RSRS 计算 ---
+            rsrs_z = 0.0
+            if 'high' in group.columns and 'low' in group.columns:
+                # 简单的空值检查
+                if not group['high'].isnull().all() and not group['low'].isnull().all():
+                    # 填充 NaN 以防万一 (使用 ffill() 和 bfill() 替代 method 参数)
+                    h = group['high'].ffill().bfill()
+                    l = group['low'].ffill().bfill()
+                    rsrs_z = self.calculate_rsrs_z(h, l)
             
             results.append({
                 'ticker': ticker,
@@ -121,6 +183,7 @@ class MomentumRanker:
                 'price_current': round(p_curr, 2),
                 'change_percent': round(change_pct, 2),
                 'avg_daily_volume': round(avg_amt, 0),
+                'rsrs_z': round(rsrs_z, 2), # [NEW]
                 'start_date': prev_row['date'],
                 'end_date': curr_row['date']
             })
@@ -155,11 +218,11 @@ class MomentumRanker:
         filename = f"Top200_Momentum_{market_type}_{file_start}-{file_end}.csv"
         save_path = os.path.join(project_root, filename)
         
-        output_cols = ['ticker', 'price_60d_ago', 'price_current', 'change_percent', 'avg_daily_volume']
+        output_cols = ['ticker', 'price_60d_ago', 'price_current', 'change_percent', 'avg_daily_volume', 'rsrs_z']
         top_200[output_cols].to_csv(save_path, index=False)
         
         print(f"✅ {market_type} 榜单已生成: {filename}")
-        print(f"   🥇 榜首: {top_200.iloc[0]['ticker']} (+{top_200.iloc[0]['change_percent']}%)")
+        print(f"   🥇 榜首: {top_200.iloc[0]['ticker']} (+{top_200.iloc[0]['change_percent']}%) | RSRS: {top_200.iloc[0]['rsrs_z']}")
 
 def main():
     ranker = MomentumRanker()
