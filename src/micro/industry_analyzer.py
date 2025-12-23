@@ -5,6 +5,8 @@ from datetime import datetime
 import sys
 import yfinance as yf
 import concurrent.futures # 用于并发加速获取信息
+import json
+import threading
 
 # --- 路径修复 ---
 current_dir = os.path.dirname(os.path.abspath(__file__)) # src/micro
@@ -22,7 +24,14 @@ except ImportError as e:
     print(f"❌ 模块导入失败: {e}")
 
 # 导入数据库保存函数
-from database import save_research_report
+try:
+    from src.micro.database import save_research_report
+except ImportError:
+    try:
+        from database import save_research_report
+    except ImportError:
+        print("⚠️ Warning: Could not import database module")
+        save_research_report = lambda *args, **kwargs: None
 
 class IndustryAnalyzer:
     def __init__(self, logger_callback=None):
@@ -30,6 +39,9 @@ class IndustryAnalyzer:
         self.strategist = DeepSeekStrategist(self.config)
         self.project_root = project_root
         self.logger_callback = logger_callback
+        self.cache_file = os.path.join(self.project_root, 'data', 'meta_cache.json')
+        self.cache_lock = threading.RLock()
+        self.metadata_cache = self._load_cache()
 
     def load_latest_file(self, pattern):
         """加载最新的文件"""
@@ -43,6 +55,21 @@ class IndustryAnalyzer:
         print(message)
         if self.logger_callback:
             self.logger_callback(message)
+
+    def _format_stock_line(self, row, name, sector):
+        """统一格式化股票信息行"""
+        # [NEW] 增加 RSRS 数据的展示
+        # 如果 csv 中没有 rsrs_z 列，默认为 0.0
+        rsrs_val = row.get('rsrs_z', 0.0)
+        
+        # 增加一个视觉标记：RSRS > 0.8 为强趋势 (🔥)
+        trend_mark = "🔥" if rsrs_val > 0.8 else ""
+        
+        return (
+            f"- {row['ticker']} [{name}] ({sector}) "
+            f"| 涨幅: +{row['change_percent']}% "
+            f"| RSRS: {rsrs_val} {trend_mark}"
+        )
 
     def _process_csv(self, file_path, market_type):
         """处理 CSV 文件并注入元数据（供外部调用）"""
@@ -61,10 +88,9 @@ class IndustryAnalyzer:
                 row = future_to_ticker[future]
                 name, sector = future.result()
                 
-                # 格式：- 605255.SH [Tianpu Stock] (Aerospace) | Change: +465%
-                stock_list_str.append(
-                    f"- {row['ticker']} [{name}] ({sector}) | 涨幅: +{row['change_percent']}%"
-                )
+                # [MODIFIED] 调用统一的格式化函数
+                line = self._format_stock_line(row, name, sector)
+                stock_list_str.append(line)
         
         return "\n".join(stock_list_str)
 
@@ -88,9 +114,31 @@ class IndustryAnalyzer:
         summary = content[:1000] 
         return risk, vol, summary
 
+    def _load_cache(self):
+        """加载本地缓存"""
+        if os.path.exists(self.cache_file):
+            try:
+                with open(self.cache_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except:
+                return {}
+        return {}
+
+    def _save_cache(self):
+        """保存缓存到文件"""
+        with self.cache_lock:
+            os.makedirs(os.path.dirname(self.cache_file), exist_ok=True)
+            with open(self.cache_file, 'w', encoding='utf-8') as f:
+                json.dump(self.metadata_cache, f, ensure_ascii=False)
+
     def get_stock_metadata(self, ticker):
         """获取股票名称和行业信息 (消除幻觉的关键)"""
-        # 1. 格式转换 (.SH -> .SS 用于 yfinance)
+        # 1. 先查缓存
+        with self.cache_lock:
+            if ticker in self.metadata_cache:
+                return self.metadata_cache[ticker]['name'], self.metadata_cache[ticker]['sector']
+
+        # 2. 格式转换 (.SH -> .SS 用于 yfinance)
         yf_ticker = ticker.replace(".SH", ".SS") if ".SH" in ticker else ticker
         
         try:
@@ -98,6 +146,13 @@ class IndustryAnalyzer:
             # 优先取中文名或简称，Yahoo A股通常是英文名，AI能翻译
             name = info.get('shortName', info.get('longName', 'Unknown'))
             sector = info.get('sector', info.get('industry', 'Unknown'))
+            
+            # 3. 写入缓存（只有当数据有效时）
+            if name != 'Unknown':
+                with self.cache_lock:
+                    self.metadata_cache[ticker] = {'name': name, 'sector': sector}
+                    self._save_cache()
+                
             return name, sector
         except:
             return "Unknown", "Unknown"
@@ -128,10 +183,9 @@ class IndustryAnalyzer:
                 row = future_to_ticker[future]
                 name, sector = future.result()
                 
-                # 格式：- 605255.SH [Tianpu Stock] (Aerospace) | Change: +465%
-                stock_list_str.append(
-                    f"- {row['ticker']} [{name}] ({sector}) | 涨幅: +{row['change_percent']}%"
-                )
+                # [MODIFIED] 调用统一的格式化函数
+                line = self._format_stock_line(row, name, sector)
+                stock_list_str.append(line)
         
         return "\n".join(stock_list_str)
 
@@ -175,6 +229,12 @@ class IndustryAnalyzer:
 - **Key Trend**: {macro_summary}
 
 ## 2. Micro Evidence (微观资金流向)
+**指标说明**:
+- **涨幅**: 过去 60 日的价格变化。
+- **RSRS (Trend Strength)**: 趋势结构强度指标 (范围 -1.0 ~ 1.0)。
+    - **> 0.8 (🔥)**: 强劲的多头趋势结构（阻力被突破，支撑强劲），代表资金持续流入，**行业逻辑真实性高**。
+    - **< 0.3**: 趋势结构松散或处于震荡，单纯的涨幅可能来自短期消息炒作。
+
 **[A-Share Top Momentum]**
 {cn_stocks} 
 
@@ -184,19 +244,21 @@ class IndustryAnalyzer:
 # Analysis Requirements
 1.  **行业映射**：识别股票代码对应的细分赛道。
 2.  **集群识别**：找出出现频次最高的 3-5 个细分行业。
-3.  **宏观验证**：结合宏观背景分析合理性。
+3.  **量化验证 (Critical)**：
+    - **不仅仅看涨幅，更要看 RSRS**。
+    - 优先筛选出那些**涨幅高且 RSRS > 0.8** 的股票所在的板块。这代表该板块不仅涨了，而且涨得很稳（趋势结构好），是机构资金抱团的特征。
+    - 如果某行业股票涨幅大但 RSRS 普遍较低，请在报告中标记为"投机性上涨"。
+4.  **宏观验证**：结合宏观背景分析合理性。
 
 # Output Format
 请生成一份 Markdown 格式的《行业景气度深度扫描报告》，包含：
-1.  **核心结论**
-2.  **景气度排行** (列出最强行业)
+1.  **核心结论** (必须包含对 RSRS 确认强度的描述)
+2.  **景气度排行** (列出最强行业，并注明其"趋势强度等级")
 3.  **产业链映射图谱** (共振逻辑)
 4.  **风险提示**
 
 # 🛑 IMPORTANT: Metadata Output
-在报告的**最后一行**，请务必根据报告核心结论，生成一个简短、专业的中文标题（20字以内），格式必须严格如下：
 TITLE: [你的标题]
-(例如: TITLE: 避险情绪主导，黄金与军工板块成全球共振主线)
 """
         
         # 3. 调用 API
@@ -213,6 +275,10 @@ TITLE: [你的标题]
             
             raw_content = response.choices[0].message.content
             
+            # 确保 raw_content 不是 None
+            if raw_content is None:
+                raw_content = ""
+            
             # --- 核心修改：提取语义化标题 ---
             import re
             title_match = re.search(r"TITLE:\s*(.*)", raw_content)
@@ -227,6 +293,10 @@ TITLE: [你的标题]
                 timestamp = datetime.now().strftime('%Y-%m-%d %H:%M')
                 semantic_title = f"行业全景扫描 ({timestamp})"
                 report_content = raw_content
+            
+            # 确保 report_content 不是 None
+            if report_content is None:
+                report_content = ""
 
             # --- 保存文件 (保持时间戳文件名，便于排序) ---
             model_name = self.config.model.replace("/", "-") if self.config.model else "unknown"

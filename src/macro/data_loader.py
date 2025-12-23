@@ -110,14 +110,17 @@ class GlobalMacroLoader:
     def calculate_rsrs(self, prices: pd.Series, window: int = 18) -> float:
         """
         计算 RSRS (阻力支撑相对强度)
-        注意：宏观数据通常只有 Close，这里使用 Close 模拟 High/Low 的简化版，
-        或者如果数据源包含 High/Low 则使用标准版。
-        由于 yfinance 下载的数据包含 High/Low，我们尝试使用完整数据。
-        但 fetch_combined_data 目前只返回 Close。
-        为了兼容性，这里实现一个基于 Close 的简化版 RSRS (Slope of Close)。
-        或者，我们可以修改 fetch_combined_data 以保留 High/Low，但这会破坏现有结构。
+        简化版：基于收盘价的线性回归斜率，返回趋势强度值。
         
-        折衷方案：计算 Close 的线性回归斜率作为趋势强度指标。
+        参数:
+            prices: 价格序列
+            window: 回归窗口（默认18）
+        
+        返回:
+            float: 趋势强度值，范围在 -1.0 到 1.0 之间。
+            - 正值表示上涨趋势，负值表示下跌趋势
+            - 绝对值越大表示趋势越强（R² 越大，趋势越纯粹）
+            - 例如：RSRS > 0.8 代表极强上涨趋势，RSRS < -0.8 代表极强下跌趋势
         """
         if len(prices) < window:
             return 0.0
@@ -127,11 +130,10 @@ class GlobalMacroLoader:
         
         slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
         
-        # 标准化 RSRS (Z-Score) 需要历史序列，这里简化为返回 R2 * Slope 的符号
-        # 为了更接近 RSRS 含义，我们返回标准化后的斜率 (Z-Score of Slope)
-        # 但由于这里只计算单点，我们无法计算 Z-Score。
-        # 因此，我们返回 R2 (拟合度) * 符号，作为趋势强度的代理。
-        return slope * (r_value ** 2)
+        # 将 R2 * Slope 符号作为趋势强度
+        # R² (0~1) 代表趋势的纯度，乘以 slope 的符号 (+1/-1)
+        trend_strength = (r_value ** 2) * (1 if slope > 0 else -1)
+        return trend_strength
 
     def calculate_volatility_skew(self, prices: pd.Series, short_win=5, long_win=20) -> float:
         """

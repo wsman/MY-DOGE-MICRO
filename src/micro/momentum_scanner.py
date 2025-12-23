@@ -16,52 +16,31 @@ class MomentumRanker:
     def __init__(self):
         pass
 
-    def calculate_rsrs_z(self, high_series, low_series, window=18):
+    def calculate_rsrs(self, series, window=18):
         """
-        计算 RSRS 标准分 (Z-Score)
+        计算趋势强度 (RSRS 替代指标)
+        返回: -1.0 ~ 1.0 (R2 * Sign(Slope))
         """
-        if len(high_series) < window + 2:
+        try:
+            if len(series) < window:
+                return 0.0
+            
+            # 取最近 window 天的数据
+            y = series.iloc[-window:].values
+            x = np.arange(len(y))
+            
+            slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
+            
+            # R2 * Slope符号
+            # 显式转换类型以消除 Pylance 警告
+            r_sq = float(r_value) ** 2
+            sign = 1.0 if float(slope) > 0 else -1.0
+            
+            trend_strength = r_sq * sign
+            return trend_strength
+        except Exception as e:
+            # print(f"⚠️ RSRS计算异常: {e}")
             return 0.0
-            
-        high_vals = high_series.values
-        low_vals = low_series.values
-        
-        # 计算过去 60 天的 beta (如果数据足够)
-        lookback = min(len(high_vals), 300)
-        start_idx = len(high_vals) - lookback
-        
-        betas = []
-        # 至少需要 window 个数据点才能计算一个 beta
-        if start_idx + window >= len(high_vals):
-             # 数据太少，只计算最后一个
-             start_idx = len(high_vals) - window - 1
-             if start_idx < 0: return 0.0
-
-        for i in range(start_idx + window, len(high_vals) + 1):
-            y = high_vals[i-window:i]
-            x = low_vals[i-window:i]
-            # 简单的线性回归
-            slope, _, _, _, _ = stats.linregress(x, y)
-            betas.append(slope)
-            
-        if not betas:
-            return 0.0
-            
-        betas_arr = np.array(betas)
-        if len(betas_arr) < 10:
-            # 历史数据不足以计算 Z-Score，直接返回 0 或 beta 本身
-            return 0.0
-            
-        # Z-Score
-        mean = np.mean(betas_arr)
-        std = np.std(betas_arr)
-        
-        if std == 0:
-            return 0.0
-            
-        current_beta = betas_arr[-1]
-        z_score = (current_beta - mean) / std
-        return z_score
 
     def get_connection(self, db_name):
         db_path = os.path.join(data_dir, db_name)
@@ -129,13 +108,14 @@ class MomentumRanker:
         }
 
         for ticker, group in grouped:
-            if len(group) < 61: continue
+            if group.shape[0] < 61: continue
             
             # --- 1. 黑名单过滤 ---
             if market_type == 'US':
                 if ticker in us_blacklist: continue
                 # 过滤常见的 warrant (权证) 或异类后缀 (5字符以上通常要注意)
-                if len(ticker) > 4 and ticker not in ['GOOGL', 'BRK.B']: 
+                ticker_str = str(ticker)
+                if len(ticker_str) > 4 and ticker_str not in ['GOOGL', 'BRK.B']: 
                     # 简单启发式：美股正股代码通常 <= 4 位 (除了个别)
                     # YieldMax 很多是 4 位，所以必须靠 blacklist
                     pass
@@ -167,15 +147,11 @@ class MomentumRanker:
             if market_type == 'US' and change_pct > 400: 
                 continue
 
-            # --- 5. [NEW] RSRS 计算 ---
+            # --- 5. [NEW] RSRS 计算 (趋势强度) ---
             rsrs_z = 0.0
-            if 'high' in group.columns and 'low' in group.columns:
-                # 简单的空值检查
-                if not group['high'].isnull().all() and not group['low'].isnull().all():
-                    # 填充 NaN 以防万一 (使用 ffill() 和 bfill() 替代 method 参数)
-                    h = group['high'].ffill().bfill()
-                    l = group['low'].ffill().bfill()
-                    rsrs_z = self.calculate_rsrs_z(h, l)
+            # 使用 Close 价格计算
+            if len(group) >= 18:
+                rsrs_z = self.calculate_rsrs(group['close'])
             
             results.append({
                 'ticker': ticker,
@@ -227,10 +203,10 @@ class MomentumRanker:
 def main():
     ranker = MomentumRanker()
     
-    # A股 (1亿 RMB)
+    # A股 (2亿 RMB)
     ranker.analyze_market('CN', 'market_data_cn.db', 200000000)
     
-    # 美股 (1000万 USD)
+    # 美股 (2000万 USD)
     ranker.analyze_market('US', 'market_data_us.db', 20000000)
 
 if __name__ == "__main__":
