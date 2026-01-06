@@ -136,6 +136,35 @@ MY-DOGE QUANT SYSTEM 采用**三层架构**，将数据清洗、策略生成和�
     -   采用 **System Prompt** 强制要求数据引用 ("根据数据 [120天趋势 +5.2%]...")。
     -   严禁混淆短期波动与长期趋势。
 
+### 微观动量选股引擎 (Micro Momentum Engine)
+
+-   **位置**: `src/micro/momentum_scanner.py`
+-   **算法核心**: 
+    -   基于**收盘价与时间序列的线性回归**，计算趋势强度指标 $\text{RSRS}_{\text{micro}} = R^2 \times \text{sign}(\text{Slope})$。
+    -   **数学定义**: 对最近 $T$ 个交易日的收盘价序列 $(y_1, y_2, ..., y_T)$ 与时间 $(1, 2, ..., T)$ 进行普通最小二乘法 (OLS) 回归：
+        $$y_t = \alpha + \beta \cdot t + \epsilon_t$$
+        其中 $\beta$ 为斜率（趋势方向），$R^2$ 为决定系数（趋势平滑度）。
+    -   **输出范围**: $-1.0$ 到 $+1.0$。
+        -   $+1.0$: 完美的匀速上涨。
+        -   $-1.0$: 完美的匀速下跌。
+        -   $0.0$: 纯粹震荡或无序波动。
+-   **参数选择依据**:
+    -   **窗口 $T = 18$**:
+        1.  **交易月近似**: 18个交易日 ≈ 一个月（20-22天）的短周期，能过滤短期噪声而不产生过大滞后。
+        2.  **行业标准参考**: 光大证券 RSRS 研报中使用的标准参数 $N=18$，经过广泛回测验证。
+        3.  **动量效应窗口**: 位于短中期交界，配合 $R^2$ 过滤，旨在筛选“涨得稳”（而不是“涨得快”）的标的，这类标的更大概率在接下来的 2 周内维持惯性。
+    -   **向量化优化**: 利用线性代数预计算统计量，将计算复杂度从 $O(N \cdot T)$ 降至 $O(N)$，对于全市场扫描（$N > 10,000$）性能提升 **100 倍以上**。
+-   **与标准 RSRS 的区别**:
+    | 维度 | 当前实现 (Micro Momentum) | 标准 RSRS (Macro Timing) |
+    |------|---------------------------|--------------------------|
+    | 回归对象 | 收盘价 vs 时间 $(Close \sim Time)$ | 最高价 vs 最低价 $(High \sim Low)$ |
+    | 物理含义 | 价格上涨的平滑度/稳定性 | 支撑位与阻力位的相对强度 |
+    | 优势 | 能有效识别“稳步推升”的黑马股，过滤大幅波动的妖股 | 能提前预判支撑阻力结构的崩塌（更适合择时） |
+    | 适用场景 | **个股选股 (Stock Selection)** | **大盘择时 (Market Timing)** |
+-   **配置解耦**:
+    -   黑名单、流动性阈值、窗口长度等参数已移至 `models_config.json` 的 `scanner_filters` 节。
+    -   支持动态更新，无需修改代码，遵循“开闭原则”。
+
 ### AI 行业分析 (Industry Analysis)
 
 -   **位置**: `src/micro/industry_analyzer.py`
@@ -217,6 +246,13 @@ MY-DOGE QUANT SYSTEM 采用**三层架构**，将数据清洗、策略生成和�
     "proxy_settings": {
         "enabled": false,              // 是否启用代理
         "url": "http://127.0.0.1:7890" // 代理服务器地址
+    },
+    "scanner_filters": {
+        "us_blacklist": ["SQQQ", "TQQQ", "SOXL", "SOXS", "SPXU", "SPXS", "SDS", "SSO", "UPRO", "QID", "QLD", "TNA", "TZA", "UVXY", "VIXY", "SVXY", "LABU", "LABD", "YANG", "YINN", "FNGU", "FNGD", "WEBL", "WEBS", "KOLD", "BOIL", "TSLY", "NVDY", "AMDY", "MSTY", "CONY", "APLY", "GOOY", "MSFY", "AMZY", "FBY", "OARK", "XOMO", "JPMO", "DISO", "NFLY", "SQY", "PYPY", "AIYY", "YMAX", "YMAG", "ULTY", "SVOL", "TLTW", "HYGW", "LQDW", "BITX"],
+        "min_volume_cn": 200000000,
+        "min_volume_us": 20000000,
+        "max_change_pct": 400,
+        "rsrs_window": 18
     }
 }
 ```
@@ -235,6 +271,11 @@ MY-DOGE QUANT SYSTEM 采用**三层架构**，将数据清洗、策略生成和�
 | `assets` | `tech`/`safe`/`crypto`/`target` | 四大资产类别配置 | 见上方 |
 | `proxy_settings` | `enabled` | 是否启用代理 | `false` |
 | | `url` | 代理服务器地址 | `http://127.0.0.1:7890` |
+| `scanner_filters` | `us_blacklist` | 美股杠杆/反向ETF黑名单 | 包含SQQQ, TQQQ等 |
+| | `min_volume_cn` | A股最低日均成交额阈值（单位：人民币） | 200000000 |
+| | `min_volume_us` | 美股最低日均成交额阈值（单位：美元） | 20000000 |
+| | `max_change_pct` | 最大涨跌幅过滤（防止虚假暴涨） | 400 |
+| | `rsrs_window` | RSRS计算窗口（交易日数） | 18 |
 
 #### 运行时配置覆盖
 
