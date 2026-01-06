@@ -16,7 +16,7 @@ data/
 # Generated Reports & Data
 macro_report/
 micro_report/
-research_report/*.md
+research_report/
 
 # Logs
 logs/
