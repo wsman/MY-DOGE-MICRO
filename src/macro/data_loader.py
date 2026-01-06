@@ -2,6 +2,8 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import logging
+import os
+import requests
 from typing import Optional
 from scipy import stats
 from .config import MacroConfig
@@ -38,11 +40,20 @@ class GlobalMacroLoader:
 
         logger.info(f"📡 正在从全球市场同步数据: {tickers} ...")
 
-        # 配置代理
-        proxy = None
+        # 配置代理：通过环境变量设置，让 yfinance 内部处理
+        # 注意：新版本 yfinance 要求使用 curl_cffi 会话，不支持直接传入 requests.Session
+        # 因此改为设置环境变量，让 yfinance 自动使用代理
+        original_http_proxy = None
+        original_https_proxy = None
         if self.config.proxy_enabled and self.config.proxy_url:
-            proxy = self.config.proxy_url
-            logger.info(f"🔗 使用代理: {proxy}")
+            proxy_url = self.config.proxy_url
+            # 保存原始环境变量值
+            original_http_proxy = os.environ.get('HTTP_PROXY')
+            original_https_proxy = os.environ.get('HTTPS_PROXY')
+            # 设置代理环境变量
+            os.environ['HTTP_PROXY'] = proxy_url
+            os.environ['HTTPS_PROXY'] = proxy_url
+            logger.info(f"🔗 使用代理: {proxy_url}")
 
         try:
             # 获取足够长的数据以确保 lookback window 有效（超额获取）
@@ -52,8 +63,7 @@ class GlobalMacroLoader:
                 period=f"{fetch_days}d",
                 interval="1d",
                 auto_adjust=True,
-                progress=False,
-                proxy=proxy
+                progress=False
             )
 
             if data is None or data.empty:
@@ -84,10 +94,23 @@ class GlobalMacroLoader:
                 logger.warning(f"⚠️ 数据不足，仅获取到 {len(data)} 个交易日（配置要求: {self.config.lookback_days}）")
             
             return data
-
+            
         except Exception as e:
             logger.error(f"数据下载失败: {e}")
             return None
+            
+        finally:
+            # 恢复原始环境变量
+            if self.config.proxy_enabled and self.config.proxy_url:
+                if original_http_proxy is not None:
+                    os.environ['HTTP_PROXY'] = original_http_proxy
+                else:
+                    os.environ.pop('HTTP_PROXY', None)
+                    
+                if original_https_proxy is not None:
+                    os.environ['HTTPS_PROXY'] = original_https_proxy
+                else:
+                    os.environ.pop('HTTPS_PROXY', None)
 
     def get_market_summary(self, data: pd.DataFrame) -> dict:
         if data is None or data.empty:
