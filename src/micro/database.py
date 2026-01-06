@@ -365,63 +365,97 @@ def add_relationship(source, target, relation, insight_id):
 def initialize_system_dbs():
     """
     系统冷启动初始化：确保所有必要的数据库文件和表结构存在
+    增强错误处理版本
     """
     import os
     
-    # 1. 确定数据目录
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(os.path.dirname(current_dir))
-    data_dir = os.path.join(project_root, 'data')
-    os.makedirs(data_dir, exist_ok=True)
-    
-    print(f"🛠️ 系统自检: 正在检查数据库完整性 ({data_dir})...")
+    try:
+        # 1. 确定数据目录
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(os.path.dirname(current_dir))
+        data_dir = os.path.join(project_root, 'data')
+        
+        try:
+            os.makedirs(data_dir, exist_ok=True)
+            print(f"🛠️ 系统自检: 正在检查数据库完整性 ({data_dir})...")
+        except PermissionError as e:
+            print(f"❌ 权限错误: 无法创建目录 {data_dir}: {e}")
+            return False
+        except Exception as e:
+            print(f"❌ 创建数据目录失败: {e}")
+            return False
 
-    # 2. 初始化 A股/美股 数据库 (如果不存在)
-    # 即使是空的，也先建立连接以生成文件
-    for db_name in ['market_data_cn.db', 'market_data_us.db']:
-        db_path = os.path.join(data_dir, db_name)
-        if not os.path.exists(db_path):
-            print(f"   ⚠️ 未找到 {db_name}，正在初始化...")
-            conn = sqlite3.connect(db_path)
+        # 2. 创建报告目录
+        report_dirs = ['macro_report', 'micro_report', 'research_report']
+        for dir_name in report_dirs:
+            dir_path = os.path.join(project_root, dir_name)
+            try:
+                os.makedirs(dir_path, exist_ok=True)
+                print(f"   📁 确保目录存在: {dir_name}")
+            except Exception as e:
+                print(f"   ⚠️ 创建目录 {dir_name} 失败: {e}")
+                # 继续执行，不中断
+
+        # 3. 初始化 A股/美股 数据库 (如果不存在)
+        # 即使是空的，也先建立连接以生成文件
+        for db_name in ['market_data_cn.db', 'market_data_us.db']:
+            db_path = os.path.join(data_dir, db_name)
+            if not os.path.exists(db_path):
+                print(f"   ⚠️ 未找到 {db_name}，正在初始化...")
+                try:
+                    conn = sqlite3.connect(db_path)
+                    cursor = conn.cursor()
+                    # 创建基础表结构 (stock_prices)
+                    cursor.execute('''
+                        CREATE TABLE IF NOT EXISTS stock_prices (
+                            ticker TEXT,
+                            date TEXT,
+                            open REAL, high REAL, low REAL, close REAL,
+                            volume INTEGER, amount REAL,
+                            PRIMARY KEY (ticker, date)
+                        )
+                    ''')
+                    conn.commit()
+                    conn.close()
+                    print(f"   ✅ {db_name} 创建完成")
+                except Exception as e:
+                    print(f"   ❌ 初始化数据库 {db_name} 失败: {e}")
+                    # 继续初始化其他数据库
+
+        # 4. 初始化 研报智库 (包含自动迁移逻辑)
+        # 调用现有的 save_research_report 逻辑来触发建表，或者直接建表
+        research_db = os.path.join(data_dir, 'research_insights.db')
+        try:
+            conn = sqlite3.connect(research_db)
             cursor = conn.cursor()
-            # 创建基础表结构 (stock_prices)
+            
+            # 建表：Macro Reports
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS stock_prices (
-                    ticker TEXT,
-                    date TEXT,
-                    open REAL, high REAL, low REAL, close REAL,
-                    volume INTEGER, amount REAL,
-                    PRIMARY KEY (ticker, date)
+                CREATE TABLE IF NOT EXISTS macro_reports (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date TEXT, timestamp TEXT, tags TEXT, analyst TEXT,
+                    risk_signal TEXT, volatility TEXT, content TEXT
+                )
+            ''')
+            
+            # 建表：Research Reports
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS research_reports (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date TEXT, timestamp TEXT, tags TEXT, analyst TEXT,
+                    title TEXT, content TEXT
                 )
             ''')
             conn.commit()
             conn.close()
-            print(f"   ✅ {db_name} 创建完成")
+            print("   ✅ 研报数据库 (Research DB) 检查完毕")
+        except Exception as e:
+            print(f"   ❌ 研报数据库初始化失败: {e}")
+            # 继续执行
 
-    # 3. 初始化 研报智库 (包含自动迁移逻辑)
-    # 调用现有的 save_research_report 逻辑来触发建表，或者直接建表
-    research_db = os.path.join(data_dir, 'research_insights.db')
-    conn = sqlite3.connect(research_db)
-    cursor = conn.cursor()
-    
-    # 建表：Macro Reports
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS macro_reports (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date TEXT, timestamp TEXT, tags TEXT, analyst TEXT,
-            risk_signal TEXT, volatility TEXT, content TEXT
-        )
-    ''')
-    
-    # 建表：Research Reports
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS research_reports (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date TEXT, timestamp TEXT, tags TEXT, analyst TEXT,
-            title TEXT, content TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
-    print("   ✅ 研报数据库 (Research DB) 检查完毕")
-    print("🚀 系统数据库就绪")
+        print("🚀 系统数据库就绪")
+        return True
+        
+    except Exception as e:
+        print(f"❌ 系统初始化过程中发生未知错误: {e}")
+        return False
