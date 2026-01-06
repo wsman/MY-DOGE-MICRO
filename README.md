@@ -14,6 +14,39 @@
   - [知识库系统 (Knowledge Base)](#知识库系统-knowledge-base)
 - [API 调用与模型集成](#api-调用与模型集成)
 - [配置详解](#配置详解)
+  - [配置文件结构详解](#配置文件结构详解)
+  - [配置项说明](#配置项说明)
+  - [运行时配置覆盖](#运行时配置覆盖)
+- [API 调用详细流程](#api-调用详细流程)
+  - [宏观策略生成流程](#宏观策略生成流程)
+  - [行业分析流程](#行业分析流程)
+  - [防幻觉机制实现](#防幻觉机制实现)
+- [数据库架构](#数据库架构)
+  - [表结构](#表结构)
+  - [数据库初始化](#数据库初始化)
+- [错误处理与系统健壮性](#错误处理与系统健壮性)
+  - [API调用错误处理](#api调用错误处理)
+  - [数据完整性检查](#数据完整性检查)
+  - [降级策略](#降级策略)
+- [扩展开发指南](#扩展开发指南)
+  - [添加新量化指标](#添加新量化指标)
+  - [自定义行业分析逻辑](#自定义行业分析逻辑)
+  - [界面定制](#界面定制)
+  - [性能优化建议](#性能优化建议)
+- [部署注意事项](#部署注意事项)
+  - [环境要求](#环境要求)
+  - [代理配置](#代理配置)
+  - [API配额管理](#api配额管理)
+  - [数据备份](#数据备份)
+- [故障排除](#故障排除)
+  - [常见问题及解决方案](#常见问题及解决方案)
+  - [日志查看](#日志查看)
+- [贡献指南](#贡献指南)
+  - [开发流程](#开发流程)
+  - [代码规范](#代码规范)
+  - [测试要求](#测试要求)
+  - [文档更新](#文档更新)
+  - [提交信息规范](#提交信息规范)
 - [快速开始](#快速开始)
 - [开发指南](#开发指南)
 
@@ -132,27 +165,449 @@ MY-DOGE QUANT SYSTEM 采用**三层架构**，将数据清洗、策略生成和�
 
 ### 配置管理 (`models_config.json`)
 
+系统通过 `models_config.json` 文件进行集中配置，支持多模型切换、资产配置和代理设置。
+
+#### 配置文件结构详解
+
 ```json
 {
     "profiles": [
         {
-            "name": "🚀 DeepSeek Chat",
+            "name": "🚀 DeepSeek Chat (Standard)",
             "base_url": "https://api.deepseek.com",
             "model": "deepseek-chat",
-            "api_key": "sk-..."
+            "api_key": "YOUR_API_KEY_HERE"
+        },
+        {
+            "name": "🧠 DeepSeek Reasoner (R1 - Pro)",
+            "base_url": "https://api.deepseek.com",
+            "model": "deepseek-reasoner",
+            "api_key": "YOUR_API_KEY_HERE"
+        },
+        {
+            "name": "🏠 LM Studio (Local)",
+            "base_url": "http://localhost:1234/v1",
+            "model": "local-model",
+            "api_key": "lm-studio"
         }
     ],
+    "default_profile": "🚀 DeepSeek Chat (Standard)",
     "macro_settings": {
-        "lookback_days": 120,  // 中期趋势窗口
-        "volatility_window": 20 // 波动率窗口
+        "lookback_days": 120,          // 中期趋势分析窗口（交易日）
+        "volatility_window": 20        // 波动率计算窗口
     },
     "assets": {
-        "tech": { "symbol": "QQQ", "name": "科技股" },
-        "safe": { "symbol": "GLD", "name": "黄金" },
-        "crypto": { "symbol": "BTC-USD", "name": "比特币" }
+        "tech": {
+            "symbol": "QQQ",
+            "name": "科技股(纳指)"
+        },
+        "safe": {
+            "symbol": "GLD",
+            "name": "避险黄金"
+        },
+        "crypto": {
+            "symbol": "BTC-USD",
+            "name": "数字货币"
+        },
+        "target": {
+            "symbol": "000300.SS",
+            "name": "A股核心(沪深300)"
+        }
+    },
+    "proxy_settings": {
+        "enabled": false,              // 是否启用代理
+        "url": "http://127.0.0.1:7890" // 代理服务器地址
     }
 }
 ```
+
+#### 配置项说明
+
+| 配置组 | 字段 | 说明 | 默认值 |
+|--------|------|------|--------|
+| `profiles` | `name` | 模型配置名称（显示在GUI中） | - |
+| | `base_url` | API 基础地址 | `https://api.deepseek.com` |
+| | `model` | 模型标识符 | `deepseek-chat` |
+| | `api_key` | API 密钥 | 需要用户填写 |
+| `default_profile` | - | 默认使用的模型配置名称 | `🚀 DeepSeek Chat (Standard)` |
+| `macro_settings` | `lookback_days` | 中期趋势分析天数 | 120 |
+| | `volatility_window` | 波动率计算窗口 | 20 |
+| `assets` | `tech`/`safe`/`crypto`/`target` | 四大资产类别配置 | 见上方 |
+| `proxy_settings` | `enabled` | 是否启用代理 | `false` |
+| | `url` | 代理服务器地址 | `http://127.0.0.1:7890` |
+
+#### 运行时配置覆盖
+
+系统支持通过环境变量动态覆盖配置：
+```bash
+# 临时切换模型（优先级高于配置文件）
+export DEEPSEEK_MODEL="deepseek-reasoner"
+export DEEPSEEK_API_KEY="your_new_key_here"
+```
+
+GUI界面也提供模型切换功能，切换后会自动更新内存中的配置。
+
+## API 调用详细流程
+
+### 宏观策略生成流程 (`src/macro/strategist.py`)
+
+```mermaid
+sequenceDiagram
+    participant GUI as 图形界面
+    participant Config as MacroConfig
+    participant DataLoader as DataLoader
+    participant Strategist as DeepSeekStrategist
+    participant API as DeepSeek API
+    participant File as 文件系统
+
+    GUI->>Config: 加载配置文件
+    Config->>DataLoader: 初始化数据加载器
+    DataLoader->>DataLoader: 获取全球资产数据
+    DataLoader->>DataLoader: 计算量化指标(RSRS, VolSkew)
+    DataLoader->>Strategist: 传递指标数据
+    Strategist->>Strategist: 构造结构化Prompt
+    Strategist->>API: 调用generate_strategy_report()
+    API-->>Strategist: 返回分析结果
+    Strategist->>File: 保存报告到macro_report/
+    Strategist->>GUI: 返回报告内容
+```
+
+#### 关键实现细节
+
+1. **数据准备阶段**：
+   - 通过 `yfinance` 获取指定资产的历史价格数据
+   - 计算 RSRS（趋势强度）和 VolSkew（波动率偏度）指标
+   - 生成结构化数据块，便于LLM精确引用
+
+2. **Prompt工程**：
+   - **System Prompt**：定义分析师角色和核心规则
+   - **User Prompt**：包含结构化数据、量化仪表盘和最近价格明细
+   - **强制数据引用**：要求所有结论必须明确引用数据来源
+
+3. **错误处理**：
+   - API调用失败时记录详细日志
+   - 网络超时自动重试机制
+   - 返回空内容时的降级处理
+
+### 行业分析流程 (`src/micro/industry_analyzer.py`)
+
+```mermaid
+sequenceDiagram
+    participant GUI as 图形界面
+    participant Analyzer as IndustryAnalyzer
+    participant Cache as 元数据缓存
+    participant YFinance as yfinance API
+    participant Strategist as DeepSeekStrategist
+    participant DB as 数据库
+    participant File as 文件系统
+
+    GUI->>Analyzer: 启动行业分析
+    Analyzer->>Analyzer: 加载宏观报告上下文
+    Analyzer->>Analyzer: 读取动量选股CSV
+    Analyzer->>Cache: 查询股票元数据缓存
+    alt 缓存命中
+        Cache-->>Analyzer: 返回缓存的名称/行业
+    else 缓存未命中
+        Analyzer->>YFinance: 并发获取Top50股票信息
+        YFinance-->>Analyzer: 返回实时元数据
+        Analyzer->>Cache: 更新缓存
+    end
+    Analyzer->>Analyzer: 构造行业分析Prompt
+    Analyzer->>Strategist: 调用DeepSeek API
+    Strategist-->>Analyzer: 返回行业分析报告
+    Analyzer->>Analyzer: 提取语义化标题
+    Analyzer->>File: 保存报告到research_report/
+    Analyzer->>DB: 归档到research_insights.db
+    Analyzer->>GUI: 返回报告结果
+```
+
+#### 防幻觉机制实现
+
+1. **并发联网校准**：
+   - 使用 `ThreadPoolExecutor` 并发获取Top 50股票的实时信息
+   - 最大工作线程数：3（避免API限流）
+   - 重试机制：失败后等待2秒重试，最多3次
+
+2. **智能缓存系统**：
+   - 缓存文件：`data/meta_cache.json`
+   - 原子写入：避免数据损坏
+   - 离线支持：网络不佳时使用缓存数据
+
+3. **语义化归档**：
+   - 正则提取报告中的 `TITLE:` 字段
+   - 使用语义化标题作为数据库记录标识
+   - 便于历史回溯和知识检索
+
+## 数据库架构
+
+### `research_insights.db` 表结构
+
+#### `macro_reports` 表 - 存储宏观策略报告
+
+| 字段名 | 类型 | 说明 | 示例 |
+|--------|------|------|------|
+| `id` | INTEGER | 主键，自增 | 1 |
+| `title` | TEXT | 报告标题 | "MY-DOGE PRECISION MACRO REPORT" |
+| `content` | TEXT | 完整报告内容 | Markdown格式报告 |
+| `risk_signal` | TEXT | 风险信号 | "Risk-On" 或 "Risk-Off" |
+| `volatility` | REAL | 波动率 | 0.1725 (17.25%) |
+| `created_at` | TEXT | 创建时间 | "2024-01-06 16:28:23" |
+| `analyst` | TEXT | 分析模型 | "deepseek-chat" |
+| `tags` | TEXT | 标签 | "Macro,DeepSeek" |
+
+#### `research_reports` 表 - 存储行业研报
+
+| 字段名 | 类型 | 说明 | 示例 |
+|--------|------|------|------|
+| `id` | INTEGER | 主键，自增 | 1 |
+| `title` | TEXT | 语义化标题 | "新能源产业链景气度上行分析" |
+| `content` | TEXT | 完整报告内容 | Markdown格式报告 |
+| `market_type` | TEXT | 市场类型 | "CN" 或 "US" |
+| `created_at` | TEXT | 创建时间 | "2024-01-06 16:30:45" |
+| `analyst` | TEXT | 分析模型 | "deepseek-chat" |
+| `tags` | TEXT | 标签 | "Industry,DeepSeek,新能源" |
+
+#### 数据库初始化
+
+系统首次运行时自动创建数据库和表结构：
+
+```python
+# src/micro/database.py 中的初始化函数
+def initialize_system_dbs():
+    """初始化系统数据库"""
+    conn = sqlite3.connect('data/research_insights.db')
+    cursor = conn.cursor()
+    
+    # 创建宏观报告表
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS macro_reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            risk_signal TEXT,
+            volatility REAL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            analyst TEXT,
+            tags TEXT
+        )
+    ''')
+    
+    # 创建行业研报表
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS research_reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            market_type TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            analyst TEXT,
+            tags TEXT
+        )
+    ''')
+    
+    conn.commit()
+    conn.close()
+```
+
+## 错误处理与系统健壮性
+
+### 1. API调用错误处理
+
+| 错误类型 | 处理策略 | 用户反馈 |
+|----------|----------|----------|
+| **网络超时** | 自动重试3次，每次间隔2秒 | "网络连接不稳定，正在重试..." |
+| **API密钥无效** | 立即停止，记录错误日志 | "API密钥无效，请检查配置" |
+| **模型不可用** | 切换到默认模型配置 | "请求的模型不可用，已切换至默认模型" |
+| **速率限制** | 指数退避重试，限制并发 | "API调用频繁，等待后重试" |
+
+### 2. 数据完整性检查
+
+- **通达信数据验证**：检查 `.day` 文件格式和完整性
+- **CSV文件验证**：确保动量选股文件包含必要字段
+- **数据库连接验证**：连接失败时自动重连
+- **缓存一致性**：定期清理过期的缓存数据
+
+### 3. 降级策略
+
+- **离线模式**：网络不可用时使用缓存数据进行演示
+- **简化分析**：API配额不足时提供基础分析报告
+- **本地回退**：云端API失败时尝试本地模型（如配置了LM Studio）
+
+## 扩展开发指南
+
+### 添加新量化指标
+
+1. **修改 `src/macro/data_loader.py`**：
+
+```python
+def calculate_advanced_metrics(self, df):
+    """计算高级量化指标"""
+    # 现有指标计算...
+    rsrs = self.calculate_rsrs(df)
+    vol_skew = self.calculate_vol_skew(df)
+    
+    # 添加新指标，例如：动量偏离度
+    momentum_deviation = self.calculate_momentum_deviation(df)
+    
+    # 将新指标添加到返回字典
+    metrics = {
+        'tech_rsrs': rsrs,
+        'vol_skew': vol_skew,
+        'momentum_deviation': momentum_deviation,  # 新增
+        # ... 其他指标
+    }
+    return metrics
+```
+
+2. **更新策略提示词** (`src/macro/strategist.py`)：
+   - 在 `generate_strategy_report` 方法中添加新指标的数据展示
+   - 更新System Prompt中的指标解释说明
+
+### 自定义行业分析逻辑
+
+1. **修改提示词模板** (`src/micro/industry_analyzer.py`)：
+   - 调整 `run_analysis` 方法中的Prompt结构
+   - 添加新的分析维度要求
+
+2. **扩展元数据获取**：
+   - 集成其他数据源（如东方财富、雪球）
+   - 添加自定义数据清洗逻辑
+
+### 界面定制
+
+1. **添加新功能页签**：
+   - 在 `src/interface/dashboard.py` 中添加新的QWidget
+   - 设计对应的业务逻辑类
+
+2. **自定义主题**：
+   - 修改PyQt6样式表 (`QSS`)
+   - 适配深色/浅色主题
+
+### 性能优化建议
+
+1. **数据缓存优化**：
+   - 使用LRU缓存高频访问的数据
+   - 压缩历史数据存储
+
+2. **并发处理**：
+   - 合理设置线程池大小（建议3-5个线程）
+   - 使用异步IO处理网络请求
+
+3. **内存管理**：
+   - 及时释放大尺寸DataFrame
+   - 使用生成器处理流式数据
+
+## 部署注意事项
+
+### 1. 环境要求
+
+- **Python版本**: 3.8+
+- **内存要求**: 至少8GB RAM（处理大数据集时）
+- **磁盘空间**: 至少10GB可用空间（用于存储历史数据）
+- **网络连接**: 稳定的互联网连接（用于API调用和数据获取）
+
+### 2. 代理配置
+
+如果处于需要代理的网络环境：
+
+1. **编辑 `models_config.json`**：
+```json
+{
+    "proxy_settings": {
+        "enabled": true,
+        "url": "http://your-proxy-server:port"
+    }
+}
+```
+
+2. **环境变量设置**：
+```bash
+# 临时设置代理
+set HTTP_PROXY=http://your-proxy-server:port
+set HTTPS_PROXY=http://your-proxy-server:port
+```
+
+### 3. API配额管理
+
+- **DeepSeek API**：关注调用频率限制和月度配额
+- **yfinance**：免费但有请求频率限制，建议添加延迟避免被封禁
+- **本地模型**：确保LM Studio或Ollama服务正常运行
+
+### 4. 数据备份
+
+建议定期备份以下目录：
+- `data/` - 核心数据库和缓存文件
+- `macro_report/` - 历史宏观报告
+- `research_report/` - 历史行业研报
+- `micro_report/` - 动量选股结果
+
+## 故障排除
+
+### 常见问题及解决方案
+
+| 问题 | 可能原因 | 解决方案 |
+|------|----------|----------|
+| **GUI启动失败** | PyQt6未正确安装 | `pip install PyQt6` |
+| **通达信数据无法读取** | 文件路径错误或权限不足 | 检查路径是否正确，确保有读取权限 |
+| **API调用返回空内容** | API密钥无效或网络问题 | 检查API密钥，测试网络连接 |
+| **行业分析卡顿** | yfinance请求频繁被限 | 增加请求间隔，使用缓存数据 |
+| **数据库写入失败** | 磁盘空间不足或权限问题 | 检查磁盘空间，确保有写入权限 |
+| **内存占用过高** | 处理过大历史数据集 | 减少分析时间范围，分批处理数据 |
+
+### 日志查看
+
+系统日志保存在以下位置：
+- **控制台输出**：运行时的实时日志
+- **文件日志**：可通过配置logging模块输出到文件
+- **错误追踪**：详细错误信息会打印到控制台
+
+如需更详细的调试信息，可修改相关模块的日志级别：
+```python
+import logging
+logging.getLogger().setLevel(logging.DEBUG)
+```
+
+## 贡献指南
+
+我们欢迎社区贡献！请遵循以下流程：
+
+### 1. 开发流程
+
+1. **Fork仓库**：创建个人fork
+2. **创建分支**：使用描述性分支名，如 `feat/add-new-indicator`
+3. **编写代码**：遵循现有代码风格
+4. **添加测试**：确保新功能有相应测试
+5. **提交PR**：提供清晰的描述和变更说明
+
+### 2. 代码规范
+
+- **命名规范**：使用蛇形命名法（snake_case）用于函数/变量，帕斯卡命名法（PascalCase）用于类
+- **类型提示**：尽可能添加类型提示
+- **文档字符串**：所有公共函数和类都需要docstring
+- **错误处理**：使用明确的异常处理，避免裸except
+
+### 3. 测试要求
+
+- **单元测试**：核心功能需有单元测试
+- **集成测试**：API调用和数据流程需有集成测试
+- **性能测试**：新功能不应显著降低系统性能
+
+### 4. 文档更新
+
+- **README更新**：新增功能需要更新文档
+- **示例更新**：提供使用示例
+- **配置说明**：如有新增配置项，需在文档中说明
+
+### 5. 提交信息规范
+
+使用约定式提交：
+- `feat:` 新功能
+- `fix:` bug修复
+- `docs:` 文档更新
+- `style:` 代码格式调整
+- `refactor:` 代码重构
+- `test:` 测试相关
+- `chore:` 构建过程或辅助工具变动
 
 ## 快速开始
 
