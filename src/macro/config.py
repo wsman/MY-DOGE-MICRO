@@ -39,6 +39,63 @@ class MacroConfig:
         """初始化时加载 JSON 配置"""
         self._load_from_json()
         self._apply_runtime_overrides()
+        
+    def _validate_config(self, config_data):
+        """
+        验证配置文件结构完整性
+        
+        Args:
+            config_data (dict): 加载的 JSON 配置数据
+            
+        Raises:
+            ValueError: 如果配置缺少必要字段或格式错误
+        """
+        # 检查顶级必需字段
+        required_top_fields = ['profiles', 'default_profile', 'assets']
+        for field in required_top_fields:
+            if field not in config_data:
+                raise ValueError(f"配置缺少必要顶级字段: {field}")
+        
+        # 检查 profiles 数组
+        profiles = config_data.get('profiles', [])
+        if not isinstance(profiles, list):
+            raise ValueError("profiles 必须是一个数组")
+        
+        if len(profiles) == 0:
+            raise ValueError("profiles 数组不能为空")
+        
+        # 检查每个 profile 的必要字段
+        required_profile_fields = ['name', 'base_url', 'model', 'api_key']
+        for i, profile in enumerate(profiles):
+            for field in required_profile_fields:
+                if field not in profile:
+                    raise ValueError(f"profile {i} ({profile.get('name', '未命名')}) 缺少字段: {field}")
+        
+        # 检查 default_profile 是否在 profiles 中
+        default_profile_name = config_data.get('default_profile')
+        if default_profile_name not in [p.get('name') for p in profiles]:
+            raise ValueError(f"default_profile '{default_profile_name}' 不在 profiles 列表中")
+        
+        # 检查 assets 结构
+        assets = config_data.get('assets', {})
+        required_assets = ['tech', 'safe', 'crypto', 'target']
+        for asset_key in required_assets:
+            if asset_key not in assets:
+                raise ValueError(f"assets 中缺少资产: {asset_key}")
+            
+            asset = assets[asset_key]
+            if 'symbol' not in asset or 'name' not in asset:
+                raise ValueError(f"资产 {asset_key} 缺少 symbol 或 name 字段")
+        
+        # 检查 macro_settings
+        macro_settings = config_data.get('macro_settings', {})
+        if 'lookback_days' not in macro_settings or 'volatility_window' not in macro_settings:
+            raise ValueError("macro_settings 中缺少 lookback_days 或 volatility_window")
+        
+        # 检查 proxy_settings
+        proxy_settings = config_data.get('proxy_settings', {})
+        if 'enabled' not in proxy_settings:
+            raise ValueError("proxy_settings 中缺少 enabled 字段")
 
     def _load_from_json(self):
         # 智能定位 JSON 文件 (向上寻找项目根目录)
@@ -54,6 +111,9 @@ class MacroConfig:
         try:
             with open(json_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
+            
+            # 验证配置文件结构
+            self._validate_config(data)
             
             # 1. 加载资产 (Assets)
             assets = data.get('assets', {})
@@ -90,6 +150,13 @@ class MacroConfig:
             self.proxy_enabled = proxy_settings.get('enabled', False)
             self.proxy_url = proxy_settings.get('url')
 
+            print(f"✅ [MacroConfig] 配置文件加载成功: {json_path}")
+
+        except json.JSONDecodeError as e:
+            print(f"❌ [MacroConfig] JSON 格式错误: {e}")
+            print(f"   请检查 {json_path} 文件的 JSON 语法")
+        except ValueError as e:
+            print(f"❌ [MacroConfig] 配置验证失败: {e}")
         except Exception as e:
             print(f"❌ [MacroConfig] 读取配置文件出错: {e}")
 

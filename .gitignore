@@ -11,13 +11,12 @@ env/
 models_config.json
 
 # Local Databases (Heavy files)
-data/*.db
-data/*.sqlite
+data/
 
 # Generated Reports & Data
-macro_report/*.md
-micro_report/*.csv
-research_report/*.md
+macro_report/
+micro_report/
+research_report/
 
 # Logs
 logs/
