@@ -1,5 +1,19 @@
 import sys
 import os
+
+# --- 修复 PyQt6 DLL 加载问题 ---
+# 添加 Qt6 DLL 路径到系统 PATH 或使用 add_dll_directory
+qt6_bin_path = r"E:\LLMs\miniconda3\Lib\site-packages\PyQt6\Qt6\bin"
+if os.path.exists(qt6_bin_path):
+    if qt6_bin_path not in os.environ.get('PATH', ''):
+        os.environ['PATH'] = qt6_bin_path + ';' + os.environ.get('PATH', '')
+    # 对于 Python 3.8+，也使用 add_dll_directory
+    if hasattr(os, 'add_dll_directory'):
+        os.add_dll_directory(qt6_bin_path)
+    print(f"✓ Qt6 DLL path added: {qt6_bin_path}")
+else:
+    print(f"⚠️ Qt6 DLL path not found: {qt6_bin_path}")
+
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QTabWidget, QVBoxLayout, 
                              QWidget, QLabel, QComboBox, QHBoxLayout)
 from PyQt6.QtGui import QFont
