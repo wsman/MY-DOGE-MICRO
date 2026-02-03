@@ -2,7 +2,10 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import logging
+import os
+import requests
 from typing import Optional
+from scipy import stats
 from .config import MacroConfig
 
 logger = logging.getLogger(__name__)
@@ -37,11 +40,20 @@ class GlobalMacroLoader:
 
         logger.info(f"📡 正在从全球市场同步数据: {tickers} ...")
 
-        # 配置代理
-        proxy = None
+        # 配置代理：通过环境变量设置，让 yfinance 内部处理
+        # 注意：新版本 yfinance 要求使用 curl_cffi 会话，不支持直接传入 requests.Session
+        # 因此改为设置环境变量，让 yfinance 自动使用代理
+        original_http_proxy = None
+        original_https_proxy = None
         if self.config.proxy_enabled and self.config.proxy_url:
-            proxy = self.config.proxy_url
-            logger.info(f"🔗 使用代理: {proxy}")
+            proxy_url = self.config.proxy_url
+            # 保存原始环境变量值
+            original_http_proxy = os.environ.get('HTTP_PROXY')
+            original_https_proxy = os.environ.get('HTTPS_PROXY')
+            # 设置代理环境变量
+            os.environ['HTTP_PROXY'] = proxy_url
+            os.environ['HTTPS_PROXY'] = proxy_url
+            logger.info(f"🔗 使用代理: {proxy_url}")
 
         try:
             # 获取足够长的数据以确保 lookback window 有效（超额获取）
@@ -51,8 +63,7 @@ class GlobalMacroLoader:
                 period=f"{fetch_days}d",
                 interval="1d",
                 auto_adjust=True,
-                progress=False,
-                proxy=proxy
+                progress=False
             )
 
             if data is None or data.empty:
@@ -68,7 +79,8 @@ class GlobalMacroLoader:
                     pass
 
             # 数据清洗：对齐到股票交易日（以科技股代理资产为基准）
-            data = data.dropna(subset=[self.config.tech_proxy])
+            tech_col = str(self.config.tech_proxy)
+            data = data.dropna(subset=[tech_col])  # type: ignore
             # 填充其他资产可能缺失的数据（如加密货币在交易日可能缺失）
             data = data.ffill()
             # 丢弃仍包含 NaN 的行（例如首行数据缺失）
@@ -82,10 +94,23 @@ class GlobalMacroLoader:
                 logger.warning(f"⚠️ 数据不足，仅获取到 {len(data)} 个交易日（配置要求: {self.config.lookback_days}）")
             
             return data
-
+            
         except Exception as e:
             logger.error(f"数据下载失败: {e}")
             return None
+            
+        finally:
+            # 恢复原始环境变量
+            if self.config.proxy_enabled and self.config.proxy_url:
+                if original_http_proxy is not None:
+                    os.environ['HTTP_PROXY'] = original_http_proxy
+                else:
+                    os.environ.pop('HTTP_PROXY', None)
+                    
+                if original_https_proxy is not None:
+                    os.environ['HTTPS_PROXY'] = original_https_proxy
+                else:
+                    os.environ.pop('HTTPS_PROXY', None)
 
     def get_market_summary(self, data: pd.DataFrame) -> dict:
         if data is None or data.empty:
@@ -105,12 +130,113 @@ class GlobalMacroLoader:
 
         return summary
 
+    def calculate_rsrs(self, prices: pd.Series, window: int = 18) -> float:
+        """
+        计算 RSRS (阻力支撑相对强度)
+        简化版：基于收盘价的线性回归斜率，返回趋势强度值。
+        
+        参数:
+            prices: 价格序列
+            window: 回归窗口（默认18）
+        
+        返回:
+            float: 趋势强度值，范围在 -1.0 到 1.0 之间。
+            - 正值表示上涨趋势，负值表示下跌趋势
+            - 绝对值越大表示趋势越强（R² 越大，趋势越纯粹）
+            - 例如：RSRS > 0.8 代表极强上涨趋势，RSRS < -0.8 代表极强下跌趋势
+        """
+        if len(prices) < window:
+            return 0.0
+        
+        y = prices.iloc[-window:].values
+        x = np.arange(len(y))
+        
+        slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
+        
+        # 将 R2 * Slope 符号作为趋势强度
+        # R² (0~1) 代表趋势的纯度，乘以 slope 的符号 (+1/-1)
+        trend_strength = (r_value ** 2) * (1 if slope > 0 else -1)
+        return trend_strength
+
+    def calculate_volatility_skew(self, prices: pd.Series, short_win=5, long_win=20) -> float:
+        """
+        计算波动率偏度: 短期波动率 / 长期波动率
+        """
+        ret = prices.pct_change()
+        vol_short = ret.rolling(window=short_win).std().iloc[-1]
+        vol_long = ret.rolling(window=long_win).std().iloc[-1]
+        
+        if vol_long == 0 or np.isnan(vol_long):
+            return 1.0
+            
+        return vol_short / vol_long
+
+    def calculate_advanced_metrics(self, prices_df: pd.DataFrame, window: Optional[int] = None) -> pd.DataFrame:
+        """
+        计算高级宏观指标：Z-Score 偏离度与波动率缩放因子
+
+        参数:
+            prices_df: 包含资产价格的历史数据，列名应与 config 中定义的资产符号一致。
+            window: 滚动窗口大小，默认为 config.volatility_window
+
+        返回:
+            添加了高级指标列的 DataFrame，已剔除 NaN。
+        """
+        win = window if window is not None else self.config.volatility_window
+
+        # 确保没有 undefined symbols: 检查输入数据完整性
+        required_cols = [
+            self.config.safe_haven_proxy,
+            self.config.crypto_proxy,
+            self.config.tech_proxy
+        ]
+        if not all(col in prices_df.columns for col in required_cols):
+            raise ValueError(f"缺少必要资产数据: {required_cols}")
+
+        # 创建副本以避免修改原数据
+        df = prices_df.copy()
+
+        # 1. 计算金/币比值 (Gold/BTC Ratio)
+        # 避免分母为零
+        denominator = df[self.config.crypto_proxy].replace(0, np.nan)
+        df['gold_btc_ratio'] = df[self.config.safe_haven_proxy] / denominator
+
+        # 2. 计算 Z-Score (Rolling)
+        mean = df['gold_btc_ratio'].rolling(window=win).mean()
+        std = df['gold_btc_ratio'].rolling(window=win).std()
+        df['ratio_z_score'] = (df['gold_btc_ratio'] - mean) / std
+
+        # 3. 计算实现波动率 (Realized Volatility)
+        # 使用对数收益率
+        df['log_ret'] = np.log(df[self.config.tech_proxy] / df[self.config.tech_proxy].shift(1))
+        ann_vol = df['log_ret'].rolling(window=win).std() * np.sqrt(252)
+
+        # 4. 风险控制：波动率倒数加权 (Risk Parity Logic)
+        df['vol_scale_factor'] = 1.0 / ann_vol.replace(0, np.nan)
+        
+        # 5. [NEW] 波动率偏度 (Vol Skew) - 针对科技股
+        # 计算滚动波动率偏度
+        tech_ret = df[self.config.tech_proxy].pct_change()
+        df['vol_short'] = tech_ret.rolling(window=5).std()
+        df['vol_long'] = tech_ret.rolling(window=20).std()
+        df['vol_skew'] = df['vol_short'] / df['vol_long']
+
+        # 6. [NEW] Amihud Illiquidity (简化版)
+        # 由于缺乏 Volume 数据，我们使用 |Return| / Price 作为波动效率的替代指标
+        # 或者暂时略过，因为 fetch_combined_data 丢弃了 Volume
+        # 这里我们用 "价格效率" 代替：|Ret| / Volatility
+        # 值越小，代表单位波动带来的涨跌幅越小（效率低）
+        df['price_efficiency'] = df['log_ret'].abs() / (ann_vol / np.sqrt(252))
+
+        return df.dropna()
+
     def calculate_metrics(self, data: pd.DataFrame) -> dict:
         """
         计算分层级的时间序列指标：
         1. 波动率 (Vol)
         2. 中期趋势 (Medium Trend): 基于整个下载周期 (约120-180天)
         3. 短期动量 (Short Momentum): 基于最近5个交易日
+        4. 高级指标: 金/币比值、Z-Score、波动率缩放因子
         """
         try:
             # 基础数据
@@ -133,6 +259,10 @@ class GlobalMacroLoader:
             # 3. 风险信号判断 (基于中期趋势)
             risk_on = trend_medium.get(self.config.tech_proxy, 0) > trend_medium.get(self.config.safe_haven_proxy, 0)
 
+            # 4. 高级指标计算
+            advanced_df = self.calculate_advanced_metrics(data)
+            latest_advanced = advanced_df.iloc[-1] if not advanced_df.empty else {}
+
             metrics = {
                 'metadata_days': len(data),
                 'tech_volatility': float(volatility.get(self.config.tech_proxy, 0)),
@@ -143,6 +273,19 @@ class GlobalMacroLoader:
             for col in data.columns:
                 metrics[f'{col}_trend_medium'] = float(trend_medium.get(col, 0))
                 metrics[f'{col}_return_5d'] = float(momentum_short.get(col, 0))
+
+            # 添加高级指标
+            if not advanced_df.empty:
+                metrics['gold_btc_ratio'] = float(latest_advanced.get('gold_btc_ratio', 0))
+                metrics['ratio_z_score'] = float(latest_advanced.get('ratio_z_score', 0))
+                metrics['vol_scale_factor'] = float(latest_advanced.get('vol_scale_factor', 0))
+                metrics['vol_skew'] = float(latest_advanced.get('vol_skew', 0))
+                
+                # 计算 RSRS (简化版 - 基于 Close 斜率)
+                # 对主要资产计算
+                for col in [self.config.tech_proxy, self.config.safe_haven_proxy]:
+                    rsrs_val = self.calculate_rsrs(data[col])
+                    metrics[f'{col}_rsrs'] = float(rsrs_val)
 
             logger.info(f"📊 指标计算完成 (Days={len(data)})")
             return metrics
