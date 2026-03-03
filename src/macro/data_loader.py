@@ -4,6 +4,7 @@ import numpy as np
 import logging
 import os
 import requests
+import time
 from typing import Optional
 from scipy import stats
 from .config import MacroConfig
@@ -15,7 +16,7 @@ class GlobalMacroLoader:
         self.config = config
         logger.info(f"初始化数据加载器，配置: {config}")
 
-    def fetch_combined_data(self) -> Optional[pd.DataFrame]:
+    def fetch_combined_data(self, max_retries: int = 3, retry_delay: float = 5.0) -> Optional[pd.DataFrame]:
         """
         获取并清洗全球核心资产的历史价格数据。
 
@@ -23,6 +24,10 @@ class GlobalMacroLoader:
         2. 强制对齐到股票交易日（以 config.tech_proxy 为基准），剔除周末和节假日的非交易日期。
         3. 对缺失值进行前向填充，确保数据完整性。
         4. 截取指定数量的最近交易日数据作为最终输出。
+
+        Args:
+            max_retries: 最大重试次数（默认3次）
+            retry_delay: 重试间隔秒数（默认5秒）
 
         Returns:
             Optional[pd.DataFrame]: 包含所有资产价格的历史数据，按交易日对齐并截取最新 lookback_days 行。
@@ -38,7 +43,7 @@ class GlobalMacroLoader:
         if hasattr(self.config, 'crypto_proxy') and self.config.crypto_proxy:
             tickers.append(self.config.crypto_proxy)
 
-        logger.info(f"📡 正在从全球市场同步数据: {tickers} ...")
+        logger.info(f"正在从全球市场同步数据: {tickers} ...")
 
         # 配置代理：通过环境变量设置，让 yfinance 内部处理
         # 注意：新版本 yfinance 要求使用 curl_cffi 会话，不支持直接传入 requests.Session
@@ -58,13 +63,42 @@ class GlobalMacroLoader:
         try:
             # 获取足够长的数据以确保 lookback window 有效（超额获取）
             fetch_days = int(self.config.lookback_days * 1.65) + 20
-            data = yf.download(
-                tickers=tickers,
-                period=f"{fetch_days}d",
-                interval="1d",
-                auto_adjust=True,
-                progress=False
-            )
+            
+            # 重试机制：解决 Yahoo Finance API 速率限制问题
+            last_error = None
+            for attempt in range(max_retries):
+                try:
+                    if attempt > 0:
+                        logger.info(f"第 {attempt + 1} 次重试（共 {max_retries} 次）...")
+                        time.sleep(retry_delay)
+                    
+                    data = yf.download(
+                        tickers=tickers,
+                        period=f"{fetch_days}d",
+                        interval="1d",
+                        auto_adjust=True,
+                        progress=False
+                    )
+                    
+                    # 检查是否返回空数据
+                    if data is None or data.empty:
+                        logger.warning(f"下载返回空数据，可能是速率限制")
+                        continue
+                    
+                    # 成功获取数据，跳出重试循环
+                    break
+                    
+                except Exception as e:
+                    last_error = e
+                    error_msg = str(e)
+                    if "Rate" in error_msg or "429" in error_msg or "Too Many Requests" in error_msg:
+                        logger.warning(f"触发 Yahoo Finance 速率限制，等待 {retry_delay} 秒后重试...")
+                    else:
+                        logger.error(f"下载出错: {e}")
+            else:
+                # 所有重试都失败
+                logger.error(f"数据下载失败，已重试 {max_retries} 次")
+                return None
 
             if data is None or data.empty:
                 logger.error("下载的数据为空")
@@ -89,9 +123,9 @@ class GlobalMacroLoader:
             # 确保返回恰好指定数量的交易日数据（截取最后 N 行）
             if len(data) >= self.config.lookback_days:
                 data = data.tail(self.config.lookback_days)
-                logger.info(f"✅ 成功获取 {len(data)} 个交易日的数据")
+                logger.info(f"成功获取 {len(data)} 个交易日的数据")
             else:
-                logger.warning(f"⚠️ 数据不足，仅获取到 {len(data)} 个交易日（配置要求: {self.config.lookback_days}）")
+                logger.warning(f"数据不足，仅获取到 {len(data)} 个交易日（配置要求: {self.config.lookback_days}）")
             
             return data
             
