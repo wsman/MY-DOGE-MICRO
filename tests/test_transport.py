@@ -9,7 +9,7 @@ import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PYTHON = sys.executable
-SERVER_SCRIPT = PROJECT_ROOT / "mcp_server.py"
+SERVER_SCRIPT = PROJECT_ROOT / "doge_mcp.py"
 
 
 class TestStdioTransport:
@@ -79,9 +79,11 @@ class TestSseTransport:
         host, port = sock.getsockname()
         sock.close()
 
-        sys.path.insert(0, str(PROJECT_ROOT / "src"))
-        from mcp_server import mcp
+        # Editable install resolves ``doge`` as a top-level package; no
+        # sys.path shim needed. Build the modular server via its factory.
+        from doge.interfaces.mcp.server import create_mcp_server
 
+        mcp = create_mcp_server()
         app = mcp.sse_app()
         server = uvicorn.Server(uvicorn.Config(app, host=host, port=port, log_level="warning"))
         t = threading.Thread(target=server.run, daemon=True)

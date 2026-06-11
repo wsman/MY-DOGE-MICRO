@@ -20,4 +20,4 @@ HOST="${MCP_HOST:-127.0.0.1}"
 PORT="${MCP_PORT:-8902}"
 
 echo "Starting MY-DOGE MCP Server (SSE) on ${HOST}:${PORT}"
-exec "${PYTHON}" "${PROJECT_ROOT}/mcp_server.py" --transport sse --host "${HOST}" --port "${PORT}"
+exec "${PYTHON}" "${PROJECT_ROOT}/doge_mcp.py" --transport sse --host "${HOST}" --port "${PORT}"

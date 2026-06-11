@@ -15,4 +15,4 @@ fi
 export PYTHONUNBUFFERED=1
 export PYTHONIOENCODING=utf-8
 
-exec "${PYTHON}" "${PROJECT_ROOT}/mcp_server.py" --transport stdio "$@"
+exec "${PYTHON}" "${PROJECT_ROOT}/doge_mcp.py" --transport stdio "$@"

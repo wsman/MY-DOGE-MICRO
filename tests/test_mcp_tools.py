@@ -1,17 +1,47 @@
-"""Tests for MCP server tools, validation, and lifecycle."""
+"""Tests for MCP server tools, validation, and lifecycle.
+
+Retargeted (Batch-5) from the legacy ``mcp_server`` monolith to the modular
+``doge.interfaces.mcp.server`` + ``doge.interfaces.mcp.tools`` packages. The
+editable install (``pip install -e .``) resolves ``doge`` as a top-level
+package, so no ``sys.path`` shim is needed here.
+"""
 import asyncio
 import json
 import os
-import sys
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import pytest
 from starlette.testclient import TestClient
 
-import mcp_server as srv
+from doge.interfaces.mcp import server as srv
+
+# The modular server builds the FastMCP instance lazily via a factory. Construct
+# one at import time so tests that inspect the tool surface / SSE routes share a
+# single configured server.
+mcp = srv.create_mcp_server()
+
+
+def _tool_text(result) -> str:
+    """Extract the TextContent text from a FastMCP call_tool result.
+
+    ``call_tool`` returns a ``(content_blocks, structured_dict)`` tuple. The
+    MCP tools here always return a single TextContent as the first element, so
+    coerce defensively.
+    """
+    if isinstance(result, str):
+        return result
+    # FastMCP returns (Sequence[ContentBlock], dict); take the first block.
+    if isinstance(result, tuple) and result:
+        result = result[0]
+    if hasattr(result, "__iter__") and not isinstance(result, (dict, bytes)):
+        blocks = list(result)
+        if blocks and hasattr(blocks[0], "text"):
+            return blocks[0].text
+        if blocks and isinstance(blocks[0], dict) and "text" in blocks[0]:
+            return blocks[0]["text"]
+    if isinstance(result, dict) and "text" in result:
+        return result["text"]
+    return str(result)
 
 
 # ── Validation ──────────────────────────────────────────
@@ -280,13 +310,13 @@ class TestPidManager:
 class TestToolsNotPresent:
     @pytest.mark.asyncio
     async def test_run_sql_removed(self):
-        tools = await srv.mcp.list_tools()
+        tools = await mcp.list_tools()
         names = [t.name for t in tools]
         assert "run_sql" not in names
 
     @pytest.mark.asyncio
     async def test_expected_tools_present(self):
-        tools = await srv.mcp.list_tools()
+        tools = await mcp.list_tools()
         names = [t.name for t in tools]
         expected = {"query_stock", "stock_overview", "rsrs_ranking",
                     "market_breadth", "volume_anomalies", "list_views"}
@@ -294,13 +324,13 @@ class TestToolsNotPresent:
 
     @pytest.mark.asyncio
     async def test_tools_have_descriptions(self):
-        tools = await srv.mcp.list_tools()
+        tools = await mcp.list_tools()
         for tool in tools:
             assert tool.description, f"Tool {tool.name} lacks description"
 
     @pytest.mark.asyncio
     async def test_tools_descriptions_are_chinese(self):
-        tools = await srv.mcp.list_tools()
+        tools = await mcp.list_tools()
         for tool in tools:
             assert any("一" <= c <= "鿿" for c in tool.description), \
                 f"Tool {tool.name} description is not Chinese: {tool.description}"
@@ -346,10 +376,13 @@ class TestQueryStockIntegration:
 
     @pytest.mark.asyncio
     async def test_query_stock_invalid_market(self):
-        # _timed decorator catches ValueError and returns error string
-        result = await srv.query_stock("600000", "xx", 5)
-        assert result.startswith("Error:")
-        assert "Invalid market" in result
+        # Routed through the registered MCP tool so the server wrapper's
+        # validation + _timed decorator catches ValueError and returns an
+        # error string (the raw impl does not validate market itself).
+        result = await mcp.call_tool("query_stock", {"ticker": "600000", "market": "xx", "days": 5})
+        text = _tool_text(result)
+        assert text.startswith("Error:")
+        assert "Invalid market" in text
 
     @pytest.mark.asyncio
     async def test_query_stock_days_boundary(self):
@@ -428,10 +461,13 @@ class TestVolumeAnomaliesIntegration:
 
     @pytest.mark.asyncio
     async def test_volume_anomalies_invalid_ratio(self):
-        # _timed decorator catches ValueError and returns error string
-        result = await srv.volume_anomalies(0.5, 10)
-        assert result.startswith("Error:")
-        assert "min_ratio" in result
+        # Routed through the registered MCP tool so the server wrapper's
+        # validation + _timed decorator catches ValueError and returns an
+        # error string (the raw impl does not validate min_ratio itself).
+        result = await mcp.call_tool("volume_anomalies", {"min_ratio": 0.5, "top": 10})
+        text = _tool_text(result)
+        assert text.startswith("Error:")
+        assert "min_ratio" in text
 
 
 class TestListViewsIntegration:
@@ -463,18 +499,27 @@ class TestListViewsIntegration:
 
 class TestSseRoutes:
     def test_health_ok(self):
-        app = srv.mcp.sse_app()
+        app = mcp.sse_app()
         client = TestClient(app)
         response = client.get("/health")
         assert response.status_code == 200
         assert response.json()["status"] == "ok"
 
     def test_health_duckdb_failure(self, monkeypatch):
-        def mock_get_conn(*args, **kwargs):
-            raise RuntimeError("db down")
+        # The modular /health route opens a DuckDB connection via
+        # ``DuckDBConnection(...).connect()`` inside the handler. Patch the
+        # connection method so the route reports 503 on DB failure.
+        from doge.infrastructure.database import duckdb as duckdb_mod
 
-        monkeypatch.setattr(srv, "get_duckdb_connection", mock_get_conn)
-        app = srv.mcp.sse_app()
+        class _BoomConn:
+            def __init__(self, *a, **kw):
+                pass
+
+            def connect(self):
+                raise RuntimeError("db down")
+
+        monkeypatch.setattr(duckdb_mod, "DuckDBConnection", _BoomConn)
+        app = mcp.sse_app()
         client = TestClient(app)
         response = client.get("/health")
         assert response.status_code == 503
@@ -486,7 +531,7 @@ class TestSseRoutes:
         srv.REQUEST_COUNT.clear()
         srv.REQUEST_DURATION.clear()
         try:
-            app = srv.mcp.sse_app()
+            app = mcp.sse_app()
             client = TestClient(app)
             response = client.get("/metrics")
             assert response.status_code == 200
@@ -503,7 +548,7 @@ class TestSseRoutes:
         srv.REQUEST_COUNT["test_tool"] = 3
         srv.REQUEST_DURATION["test_tool"] = [0.1, 0.2, 0.3]
         try:
-            app = srv.mcp.sse_app()
+            app = mcp.sse_app()
             client = TestClient(app)
             response = client.get("/metrics")
             assert response.status_code == 200

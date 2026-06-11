@@ -15,4 +15,4 @@ if exist "%PROJECT_ROOT%\venv\Scripts\python.exe" (
 set "PYTHONUNBUFFERED=1"
 set "PYTHONIOENCODING=utf-8"
 
-"%PYTHON%" "%PROJECT_ROOT%\mcp_server.py" --transport stdio %*
+"%PYTHON%" "%PROJECT_ROOT%\doge_mcp.py" --transport stdio %*
