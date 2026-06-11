@@ -36,11 +36,11 @@ class MomentumRanker:
                     if "scanner_filters" in data:
                         return data["scanner_filters"]
                     else:
-                        print("⚠️ 配置文件中未找到 scanner_filters，使用默认配置")
+                        print("[WARN] 配置文件中未找到 scanner_filters，使用默认配置")
             except Exception as e:
-                print(f"⚠️ 配置文件加载失败: {e}, 使用默认配置")
+                print(f"[WARN] 配置文件加载失败: {e}, 使用默认配置")
         else:
-            print("⚠️ 配置文件不存在，使用默认配置")
+            print("[WARN] 配置文件不存在，使用默认配置")
         
         return default_config
 
@@ -67,7 +67,7 @@ class MomentumRanker:
             trend_strength = r_sq * sign
             return trend_strength
         except Exception as e:
-            # print(f"⚠️ RSRS计算异常: {e}")
+            # print(f"[WARN] RSRS计算异常: {e}")
             return 0.0
 
     def _calculate_rsrs_vectorized(self, price_matrix):
@@ -116,7 +116,7 @@ class MomentumRanker:
 
     def test_rsrs_accuracy(self):
         """自检函数：对比向量化与Scipy的结果"""
-        print("🧪 正在执行算法一致性自检...")
+        print("[TEST] 正在执行算法一致性自检...")
         # 生成随机测试数据
         np.random.seed(42)
         test_data = np.random.rand(100, 18) * 100  # 100只股票，18天数据
@@ -134,20 +134,20 @@ class MomentumRanker:
         max_diff = diff.max()
 
         if max_diff < 1e-6:
-            print("✅ 算法验证通过！误差极小。")
+            print("[OK] 算法验证通过！误差极小。")
         else:
-            print(f"❌ 算法存在差异，最大误差: {max_diff}")
+            print(f"[ERR] 算法存在差异，最大误差: {max_diff}")
         return max_diff
 
     def get_connection(self, db_name):
         db_path = os.path.join(data_dir, db_name)
         if not os.path.exists(db_path):
-            print(f"❌ 数据库不存在: {db_path}")
+            print(f"[ERR] 数据库不存在: {db_path}")
             return None
         return sqlite3.connect(db_path)
 
     def analyze_market(self, market_type, db_name, amount_threshold):
-        print(f"\n🚀 正在分析 {market_type} 市场动量...")
+        print(f"\n[GO] 正在分析 {market_type} 市场动量...")
         
         # 1. 优先使用传入参数，否则使用配置
         min_vol = amount_threshold  # 保留原参数，不做覆盖逻辑，以保持兼容
@@ -155,7 +155,7 @@ class MomentumRanker:
         window = self.config.get('rsrs_window', 18)
         max_change_pct = self.config.get('max_change_pct', 400)
         
-        print(f"   ⚙️ 筛选标准: 60日涨幅排名 | 60日日均成交额 > {min_vol/10000:.0f}万")
+        print(f"   [CFG] 筛选标准: 60日涨幅排名 | 60日日均成交额 > {min_vol/10000:.0f}万")
         
         conn = self.get_connection(db_name)
         if not conn: return
@@ -166,11 +166,11 @@ class MomentumRanker:
             cursor.execute("SELECT MAX(date) FROM stock_prices")
             max_date = cursor.fetchone()[0]
             if not max_date:
-                print("⚠️ 数据库为空")
+                print("[WARN] 数据库为空")
                 return
 
             # 加载最近半年数据
-            print("⏳ 正在加载数据到内存...")
+            print("[WAIT] 正在加载数据到内存...")
             query = f"""
                 SELECT ticker, date, close, high, low, amount 
                 FROM stock_prices 
@@ -180,16 +180,16 @@ class MomentumRanker:
             df = pd.read_sql_query(query, conn)
             
         except Exception as e:
-            print(f"❌ 读取错误: {e}")
+            print(f"[ERR] 读取错误: {e}")
             return
         finally:
             conn.close()
 
         if df.empty:
-            print("⚠️ 无数据")
+            print("[WARN] 无数据")
             return
 
-        print(f"📊 数据加载完成，开始筛选 {len(df['ticker'].unique())} 只股票...")
+        print(f"[INFO] 数据加载完成，开始筛选 {len(df['ticker'].unique())} 只股票...")
         
         # --- 批处理容器 ---
         candidates_meta = []   # 存储元数据 (ticker, price, vol, etc.)
@@ -235,7 +235,7 @@ class MomentumRanker:
             if market_type == 'US' and change_pct > max_change_pct:
                 continue
                 
-            # ✅ 关键改动: 此时不计算 RSRS，只收集数据
+            # [OK] 关键改动: 此时不计算 RSRS，只收集数据
             # 获取最近 window 天的收盘价
             recent_prices = group['close'].values[-window:]
             
@@ -259,15 +259,15 @@ class MomentumRanker:
 
         # --- 向量化计算阶段 ---
         if not candidates_meta:
-            print("⚠️ 没有符合条件的标的")
+            print("[WARN] 没有符合条件的标的")
             return
 
-        print(f"⚡ 正在对 {len(candidates_meta)} 只优选股票进行 RSRS 向量化计算...")
+        print(f"[FAST] 正在对 {len(candidates_meta)} 只优选股票进行 RSRS 向量化计算...")
 
         # 转换为 numpy 矩阵 (N, window)
         price_matrix = np.array(candidates_prices)
 
-        # 🚀 一次性计算所有 RSRS
+        # [GO] 一次性计算所有 RSRS
         rsrs_scores = self._calculate_rsrs_vectorized(price_matrix)
 
         # 将结果合并回元数据
@@ -300,8 +300,8 @@ class MomentumRanker:
         output_cols = ['ticker', 'price_60d_ago', 'price_current', 'change_percent', 'avg_daily_volume', 'rsrs_z']
         top_200[output_cols].to_csv(save_path, index=False)
         
-        print(f"✅ {market_type} 榜单已生成: {filename}")
-        print(f"   🥇 榜首: {top_200.iloc[0]['ticker']} (+{top_200.iloc[0]['change_percent']}%) | RSRS: {top_200.iloc[0]['rsrs_z']}")
+        print(f"[OK] {market_type} 榜单已生成: {filename}")
+        print(f"   #1 榜首: {top_200.iloc[0]['ticker']} (+{top_200.iloc[0]['change_percent']}%) | RSRS: {top_200.iloc[0]['rsrs_z']}")
 
 def main():
     ranker = MomentumRanker()

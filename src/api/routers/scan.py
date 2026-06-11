@@ -1,0 +1,251 @@
+"""
+扫描路由 — POST /api/scan/{market}  (SSE)
+          GET  /api/servers          (服务器列表)
+          POST /api/servers/test     (测试连通性)
+"""
+
+import os
+import json
+import asyncio
+import threading
+import time
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from typing import Optional, List
+from sse_starlette.sse import EventSourceResponse
+
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+# 扫描锁: 同一市场同时只能跑一个扫描
+_scan_locks = {"cn": threading.Lock(), "us": threading.Lock()}
+_scan_status = {"cn": "idle", "us": "idle"}
+
+router = APIRouter()
+
+
+# ---------------------------------------------------------------------------
+#  服务器管理
+# ---------------------------------------------------------------------------
+
+def _load_servers():
+    """加载 TDX 服务器列表"""
+    try:
+        from src.micro.tdx_downloader import CN_SERVERS, US_SERVERS
+        return list(CN_SERVERS), list(US_SERVERS)
+    except ImportError:
+        return (
+            ["180.153.18.170", "180.153.18.171", "60.191.117.167",
+             "115.238.56.198", "218.75.126.9"],
+            ["112.74.214.43", "120.25.218.6", "43.139.173.246",
+             "159.75.90.107", "139.9.191.175"],
+        )
+
+
+@router.get("/servers")
+async def get_servers():
+    """返回 CN / US 服务器列表"""
+    cn, us = _load_servers()
+    return {
+        "cn": [{"host": h, "port": 7709, "latency_ms": None} for h in cn],
+        "us": [{"host": h, "port": 7727, "latency_ms": None} for h in us],
+    }
+
+
+class ServerTestRequest(BaseModel):
+    market: str
+
+
+@router.post("/servers/test")
+async def test_servers(body: ServerTestRequest):
+    """并发测试所有服务器, 返回每个 IP 的延迟"""
+    if body.market not in ("cn", "us"):
+        raise HTTPException(400, "market must be 'cn' or 'us'")
+
+    cn, us = _load_servers()
+    servers = cn if body.market == "cn" else us
+    port = 7709 if body.market == "cn" else 7727
+
+    import concurrent.futures
+
+    def _test(host):
+        try:
+            from opentdx.tdxClient import TdxClient
+            client = TdxClient()
+            t0 = time.time()
+            client.quotation_client.connect(host, port=port, time_out=5)
+            client.quotation_client.login()
+            if body.market == "us":
+                client.ex_quotation_client.connect(host, port=7727, time_out=5)
+                client.ex_quotation_client.login()
+            latency = int((time.time() - t0) * 1000)
+            try:
+                client.quotation_client.disconnect()
+                if body.market == "us":
+                    client.ex_quotation_client.disconnect()
+            except Exception:
+                pass
+            return {"host": host, "ok": True, "latency_ms": latency}
+        except Exception as e:
+            return {"host": host, "ok": False, "latency_ms": None, "error": str(e)}
+
+    results = []
+    pool = concurrent.futures.ThreadPoolExecutor(max_workers=min(10, len(servers)))
+    futures = {pool.submit(_test, h): h for h in servers}
+    try:
+        for future in concurrent.futures.as_completed(futures, timeout=15):
+            results.append(future.result())
+    except concurrent.futures.TimeoutError:
+        for f in futures:
+            if not f.done():
+                host = futures[f]
+                results.append({"host": host, "ok": False, "latency_ms": None, "error": "timeout"})
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
+
+    # 保持原始顺序
+    host_order = {h: i for i, h in enumerate(servers)}
+    results.sort(key=lambda r: host_order.get(r["host"], 999))
+    return {"results": results}
+
+
+# ---------------------------------------------------------------------------
+#  扫描
+# ---------------------------------------------------------------------------
+
+class ScanRequest(BaseModel):
+    tdx_path: str = ""
+    use_server: bool = True
+    server: Optional[str] = None   # 指定服务器 IP, null = 自动选择
+
+
+@router.get("/status")
+async def scan_status():
+    return _scan_status
+
+
+@router.post("/{market}")
+async def start_scan(market: str, body: ScanRequest):
+    if market not in ("cn", "us"):
+        raise HTTPException(400, "market must be 'cn' or 'us'")
+
+    if not _scan_locks[market].acquire(blocking=False):
+        raise HTTPException(409, f"{market} scan already running")
+
+    _scan_status[market] = "running"
+
+    async def event_generator():
+        queue = asyncio.Queue()
+        loop = asyncio.get_event_loop()
+
+        def callback(pct, msg):
+            try:
+                asyncio.run_coroutine_threadsafe(
+                    queue.put({"progress": pct, "message": str(msg)}), loop
+                )
+            except Exception:
+                pass
+
+        def run_scan():
+            try:
+                from src.micro.database import init_db_custom
+                db_name = f"market_data_{market}.db"
+                db_path = os.path.join(_PROJECT_ROOT, "data", db_name)
+                init_db_custom(db_path)
+
+                if body.use_server:
+                    # 优先走服务器下载
+                    from src.micro.tdx_downloader import (
+                        find_working_server, download_cn_kline, download_us_kline,
+                        CN_SERVERS, US_SERVERS,
+                    )
+
+                    csv_path = os.path.join(_PROJECT_ROOT, "data", "stock_names_cn.csv")
+
+                    if market == "cn":
+                        import pandas as pd
+                        if os.path.exists(csv_path):
+                            df = pd.read_csv(csv_path, dtype=str)
+                            tickers = df['ticker'].tolist()
+                            tickers = [t for t in tickers if '.' in t and len(t.split('.')[0]) == 6]
+                        else:
+                            tickers = []
+                        servers = CN_SERVERS
+                        download_fn = download_cn_kline
+                    else:
+                        # 美股: 从数据库读取已有 tickers
+                        import sqlite3
+                        conn = sqlite3.connect(db_path)
+                        cur = conn.cursor()
+                        cur.execute("SELECT DISTINCT ticker FROM stock_prices")
+                        tickers = [r[0] for r in cur.fetchall()]
+                        conn.close()
+                        servers = US_SERVERS
+                        download_fn = download_us_kline
+
+                    if tickers and servers:
+                        # 如果指定了服务器, 直接用它
+                        if body.server:
+                            servers = [body.server]
+                            callback(2, f"using specified server {body.server}")
+                        client, host = find_working_server(servers, market)
+                        if client:
+                            callback(5, f"connected to {host}")
+                            download_fn(client, tickers, db_path, progress_cb=callback)
+                            client.quotation_client.disconnect()
+                            if market == "us":
+                                try:
+                                    client.ex_quotation_client.disconnect()
+                                except Exception:
+                                    pass
+                        else:
+                            callback(0, "no server available, trying local files...")
+                            _run_local_scan(market, body.tdx_path, db_path, callback)
+                    else:
+                        _run_local_scan(market, body.tdx_path, db_path, callback)
+                else:
+                    _run_local_scan(market, body.tdx_path, db_path, callback)
+
+                # 刷新 DuckDB
+                try:
+                    from src.ai_analysis import connect_duckdb, run_views_sql
+                    con = connect_duckdb()
+                    run_views_sql(con)
+                    con.close()
+                except Exception:
+                    pass
+
+                asyncio.run_coroutine_threadsafe(
+                    queue.put({"progress": 100, "message": "done"}), loop
+                )
+            except Exception as e:
+                asyncio.run_coroutine_threadsafe(
+                    queue.put({"progress": -1, "message": f"error: {e}"}), loop
+                )
+            finally:
+                _scan_locks[market].release()
+                _scan_status[market] = "idle"
+
+        thread = threading.Thread(target=run_scan, daemon=True)
+        thread.start()
+
+        while True:
+            event = await queue.get()
+            yield {"event": "progress", "data": json.dumps(event)}
+            if event.get("progress") in (100, -1):
+                break
+
+    return EventSourceResponse(event_generator())
+
+
+def _run_local_scan(market, tdx_path, db_path, callback):
+    """回退到本地 .day 文件扫描"""
+    if not tdx_path:
+        callback(0, "no tdx_path provided, skipping local scan")
+        return
+
+    from src.micro.market_scanner import MarketScanner
+    scanner = MarketScanner(tdx_path)
+    if market == "cn":
+        scanner.scan_cn_market(db_path, progress_callback=callback, use_server=False)
+    else:
+        scanner.scan_us_market(db_path, progress_callback=callback, use_server=False)

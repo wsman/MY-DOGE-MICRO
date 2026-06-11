@@ -46,7 +46,7 @@ def init_db():
     
     conn.commit()
     conn.close()
-    print("✅ 数据库初始化完成")
+    print("[OK] database initialized")
 
 # 初始化AI研报数据库
 def init_research_db():
@@ -89,7 +89,7 @@ def init_research_db():
     
     conn.commit()
     conn.close()
-    print("✅ AI研报数据库初始化完成")
+    print("[OK] AI research database initialized")
 
 def init_db_custom(db_path):
     """使用指定路径初始化数据库，创建 stock_prices 表（仅当表不存在时）"""
@@ -113,25 +113,86 @@ def init_db_custom(db_path):
     
     conn.commit()
     conn.close()
-    print(f"✅ 数据库初始化完成: {db_path}")
+    print(f"[OK] database initialized: {db_path}")
 
-def save_stock_data_custom(data, db_path):
-    """将股票数据保存到指定数据库
-    
+def save_stock_data_custom(data, db_path, retention_days=180):
+    """增量写入 + 自动清理超过 retention_days 的旧数据
+
     Args:
         data (pd.DataFrame): 包含股票数据的 DataFrame
         db_path (str): 目标数据库路径
+        retention_days (int): 保留近 N 个自然日的记录
     """
+    from datetime import datetime, timedelta
     conn = get_db_connection(db_path)
-    
+    cutoff = (datetime.now() - timedelta(days=retention_days)).strftime('%Y-%m-%d')
+
     try:
-        # 使用 to_sql 方法批量插入数据，if_exists='append' 表示追加模式
-        data.to_sql('stock_prices', conn, if_exists='append', index=False)
-        print(f"💾 数据已保存到数据库: {db_path}")
+        cur = conn.cursor()
+        ticker = data['ticker'].iloc[0] if not data.empty else 'UNKNOWN'
+        cur.execute(
+            "SELECT MAX(date) FROM stock_prices WHERE ticker = ?", (ticker,)
+        )
+        max_existing = cur.fetchone()[0]
+
+        if max_existing:
+            new_data = data[data['date'] > max_existing]
+            if new_data.empty:
+                return
+            new_data.to_sql('stock_prices', conn, if_exists='append', index=False)
+        else:
+            data.to_sql('stock_prices', conn, if_exists='append', index=False)
+
+        # 删除该 ticker 的过期数据
+        conn.execute(
+            "DELETE FROM stock_prices WHERE ticker = ? AND date < ?",
+            (ticker, cutoff)
+        )
+        conn.commit()
     except Exception as e:
-        print(f"❌ 保存数据时出错: {e}")
+        pass
     finally:
         conn.close()
+
+def get_tickers_sync_state(db_path, tickers):
+    """批量查询多只票在 DB 中的最新日期和条数，用于增量下载。
+
+    Args:
+        db_path (str): SQLite 数据库路径
+        tickers (list[str]): 股票代码列表
+
+    Returns:
+        dict: {ticker: {"latest_date": str|None, "row_count": int}}
+    """
+    conn = get_db_connection(db_path)
+    try:
+        cur = conn.cursor()
+        # SQLite 有参数个数限制 (999)，分批查询
+        BATCH = 900
+        result = {}
+        for i in range(0, len(tickers), BATCH):
+            batch = tickers[i:i + BATCH]
+            placeholders = ','.join('?' * len(batch))
+            sql = f"""
+                SELECT ticker, MAX(date) AS latest_date, COUNT(*) AS row_count
+                FROM stock_prices
+                WHERE ticker IN ({placeholders})
+                GROUP BY ticker
+            """
+            cur.execute(sql, batch)
+            for row in cur.fetchall():
+                result[row[0]] = {"latest_date": row[1], "row_count": row[2]}
+        # 补全未查询到的 ticker
+        for t in tickers:
+            if t not in result:
+                result[t] = {"latest_date": None, "row_count": 0}
+        return result
+    except Exception as e:
+        print(f"[ERR] get_tickers_sync_state failed: {e}")
+        return {t: {"latest_date": None, "row_count": 0} for t in tickers}
+    finally:
+        conn.close()
+
 
 def _ensure_columns(cursor, table_name, new_columns):
     """
@@ -143,11 +204,11 @@ def _ensure_columns(cursor, table_name, new_columns):
     
     for col_name, col_type in new_columns:
         if col_name not in existing_cols:
-            print(f"🔄 正在迁移表 {table_name}: 添加列 {col_name}...")
+            print(f"[MIGRATE] altering table {table_name}: adding column {col_name}...")
             try:
                 cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_type}")
             except Exception as e:
-                print(f"⚠️ 迁移警告: {e}")
+                print(f"[WARN] migration warning: {e}")
 
 def save_macro_report(content, risk_signal, volatility, tags="Macro, DeepSeek", analyst="deepseek-reasoner"):
     """
@@ -186,9 +247,9 @@ def save_macro_report(content, risk_signal, volatility, tags="Macro, DeepSeek", 
             (date_str, time_str, tags, analyst, risk_signal, volatility, content)
         )
         conn.commit()
-        print(f"✅ 宏观报告已归档 (Analyst: {analyst})")
+        print(f"[OK] macro report archived (Analyst: {analyst})")
     except Exception as e:
-        print(f"❌ 宏观报告归档失败: {e}")
+        print(f"[ERR] macro report archive failed: {e}")
     finally:
         conn.close()
 
@@ -228,9 +289,9 @@ def save_research_report(title, content, tags="Industry, DeepSeek", analyst="dee
             (date_str, time_str, tags, analyst, title, content)
         )
         conn.commit()
-        print(f"✅ 行业研报已归档 (Analyst: {analyst})")
+        print(f"[OK] industry report archived (Analyst: {analyst})")
     except Exception as e:
-        print(f"❌ 研报归档失败: {e}")
+        print(f"[ERR] report archive failed: {e}")
     finally:
         conn.close()
 
@@ -254,9 +315,9 @@ def save_insight(category, target, summary, full_content):
         ''', (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), category, target, summary, full_content))
         
         conn.commit()
-        print(f"💾 AI研报已保存到数据库")
+        print("[OK] AI insight saved to database")
     except Exception as e:
-        print(f"❌ 保存AI研报时出错: {e}")
+        print(f"[ERR] error saving AI insight: {e}")
     finally:
         conn.close()
 
@@ -304,7 +365,7 @@ def get_history_insights(limit=None, category=None, target=None):
         
         return insights
     except Exception as e:
-        print(f"❌ 查询AI研报时出错: {e}")
+        print(f"[ERR] error querying AI insights: {e}")
         return []
     finally:
         conn.close()
@@ -328,11 +389,11 @@ def add_entity(name, entity_type):
         
         conn.commit()
         if cursor.rowcount > 0:
-            print(f"💾 实体 '{name}' 已添加到知识库")
+            print(f"[OK] entity '{name}' added to knowledge base")
         else:
-            print(f"⚠️ 实体 '{name}' 已存在，跳过添加")
+            print(f"[WARN] entity '{name}' already exists, skipped")
     except Exception as e:
-        print(f"❌ 添加实体时出错: {e}")
+        print(f"[ERR] error adding entity: {e}")
     finally:
         conn.close()
 
@@ -356,9 +417,9 @@ def add_relationship(source, target, relation, insight_id):
         ''', (source, target, relation, insight_id))
         
         conn.commit()
-        print(f"🔗 关系 '{source} -> {relation} -> {target}' 已添加到知识图谱")
+        print(f"[OK] relation '{source} -> {relation} -> {target}' added to knowledge graph")
     except Exception as e:
-        print(f"❌ 添加关系时出错: {e}")
+        print(f"[ERR] error adding relation: {e}")
     finally:
         conn.close()
 
@@ -377,12 +438,12 @@ def initialize_system_dbs():
         
         try:
             os.makedirs(data_dir, exist_ok=True)
-            print(f"🛠️ 系统自检: 正在检查数据库完整性 ({data_dir})...")
+            print(f"[INIT] checking database integrity ({data_dir})...")
         except PermissionError as e:
-            print(f"❌ 权限错误: 无法创建目录 {data_dir}: {e}")
+            print(f"[ERR] permission denied creating dir {data_dir}: {e}")
             return False
         except Exception as e:
-            print(f"❌ 创建数据目录失败: {e}")
+            print(f"[ERR] failed to create data dir: {e}")
             return False
 
         # 2. 创建报告目录
@@ -391,9 +452,9 @@ def initialize_system_dbs():
             dir_path = os.path.join(project_root, dir_name)
             try:
                 os.makedirs(dir_path, exist_ok=True)
-                print(f"   📁 确保目录存在: {dir_name}")
+                print(f"   [DIR] ensured: {dir_name}")
             except Exception as e:
-                print(f"   ⚠️ 创建目录 {dir_name} 失败: {e}")
+                print(f"   [WARN] failed to create dir {dir_name}: {e}")
                 # 继续执行，不中断
 
         # 3. 初始化 A股/美股 数据库 (如果不存在)
@@ -401,7 +462,7 @@ def initialize_system_dbs():
         for db_name in ['market_data_cn.db', 'market_data_us.db']:
             db_path = os.path.join(data_dir, db_name)
             if not os.path.exists(db_path):
-                print(f"   ⚠️ 未找到 {db_name}，正在初始化...")
+                print(f"   [WARN] {db_name} not found, initializing...")
                 try:
                     conn = sqlite3.connect(db_path)
                     cursor = conn.cursor()
@@ -417,9 +478,9 @@ def initialize_system_dbs():
                     ''')
                     conn.commit()
                     conn.close()
-                    print(f"   ✅ {db_name} 创建完成")
+                    print(f"   [OK] {db_name} created")
                 except Exception as e:
-                    print(f"   ❌ 初始化数据库 {db_name} 失败: {e}")
+                    print(f"   [ERR] failed to init {db_name}: {e}")
                     # 继续初始化其他数据库
 
         # 4. 初始化 研报智库 (包含自动迁移逻辑)
@@ -448,14 +509,14 @@ def initialize_system_dbs():
             ''')
             conn.commit()
             conn.close()
-            print("   ✅ 研报数据库 (Research DB) 检查完毕")
+            print("   [OK] research database check complete")
         except Exception as e:
-            print(f"   ❌ 研报数据库初始化失败: {e}")
+            print(f"   [ERR] research database init failed: {e}")
             # 继续执行
 
-        print("🚀 系统数据库就绪")
+        print("[INIT] system databases ready")
         return True
         
     except Exception as e:
-        print(f"❌ 系统初始化过程中发生未知错误: {e}")
+        print(f"[ERR] unknown error during system init: {e}")
         return False
