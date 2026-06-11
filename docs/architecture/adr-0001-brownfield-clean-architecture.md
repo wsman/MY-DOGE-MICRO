@@ -178,6 +178,35 @@ Exact method signatures are owned by module CDDs and implementation stories. Thi
 - The CDD workspace tracks governance metadata only; source changes still happen in `MY-DOGE-MICRO`.
 - Some existing files may stay as compatibility shims after their responsibilities move.
 
+> **Amendment (2026-06-12, S002-001 / TR-016 / OQ-11):** The RSRS zero-slope
+> sign convention was unified to **zero → +1** across the two Python
+> implementations on 2026-06-12: the scalar path (`src/micro/momentum_scanner.py:72`
+> — `sign = 1.0 if float(slope) >= 0 else -1.0`) and the vectorized path
+> (`src/micro/momentum_scanner.py:121` — `np.where(slope >= 0, 1.0, -1.0)`). The
+> DuckDB-SQL views (`data/views.sql` `vw_rsrs_ranking_cn/us`) already use
+> `CASE WHEN ... >= 0 THEN 1`, so the zero-boundary sign helper matches at the
+> helper level. NOTE: the zero-boundary convention is moot for the RSRS *product*
+> value, because a zero-slope series necessarily has R² = 0 (the product is 0.0
+> under any sign convention) — the unification prevents the sign *helper* itself
+> from diverging. The macro duplicate copy (`src/macro/data_loader.py:167-193`)
+> was brought into guard-parity with the canonical Module #5 `calculate_rsrs` in
+> S002-002; the macro copy is NOT a third canonical implementation but a delegated
+> copy that must mirror Module #5. This is recorded as an amendment here rather
+> than a new ADR because the canonical formula declares the Python implementation
+> authoritative (`design/cdd/micro-momentum-scanner.md` §4.1), so a sign-convention
+> pin is a property of that existing formula, not an independent architecture
+> decision. No ADR Status change.
+>
+> **Open follow-up (NOT closed by S002-001, discovered 2026-06-12 during the
+> parity test):** the DuckDB views compute `ROW_NUMBER() OVER (... ORDER BY date
+> DESC) AS rn` then `REGR_SLOPE(rn, close)`, whose sign is INVERTED relative to
+> the Python scalar path for every monotonic series (a perfectly increasing
+> series yields RSRS −1.0 from the view but +1.0 from Python). This is independent
+> of the zero-boundary convention and requires a `data/views.sql` rn-ordering
+> change plus view re-materialization — out of scope for S002-001. Tracked as a
+> follow-up; pinned by the strict `xfail` in
+> `tests/migration/test_rsrs_view_sign_convention.py`.
+
 ## Risks
 
 | Risk | Probability | Impact | Mitigation |

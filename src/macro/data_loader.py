@@ -168,29 +168,46 @@ class GlobalMacroLoader:
         """
         计算 RSRS (阻力支撑相对强度)
         简化版：基于收盘价的线性回归斜率，返回趋势强度值。
-        
+
         参数:
             prices: 价格序列
             window: 回归窗口（默认18）
-        
+
         返回:
             float: 趋势强度值，范围在 -1.0 到 1.0 之间。
             - 正值表示上涨趋势，负值表示下跌趋势
             - 绝对值越大表示趋势越强（R² 越大，趋势越纯粹）
             - 例如：RSRS > 0.8 代表极强上涨趋势，RSRS < -0.8 代表极强下跌趋势
+            - flat / zero-variance 序列或长度不足时返回 0.0（不会返回 NaN）
+
+        Parity: mirrors ``MomentumRanker.calculate_rsrs``
+        (``src/micro/momentum_scanner.py:47-79``); the canonical Module #5
+        implementation is authoritative — see S002-001/S002-002 and
+        ``design/cdd/micro-momentum-scanner.md`` §4.1. This macro copy is a
+        delegated duplicate that MUST stay in guard-parity with Module #5; the
+        parity battery in ``tests/unit/macro/test_data_loader_rsrs.py`` is the
+        regression guard. Sign convention: zero slope -> +1 (unified under
+        S002-001 / OQ-11).
         """
         if len(prices) < window:
             return 0.0
-        
+
         y = prices.iloc[-window:].values
         x = np.arange(len(y))
-        
+
+        # 零方差 (flat) 保护：linregress 在 y 无方差时返回 rvalue=nan，
+        # 会导致趋势强度为 nan 并污染 strategist 提示词。与 Module #5 一致。
+        if float(np.var(y)) <= 1e-10:
+            return 0.0
+
         slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
-        
+
         # 将 R2 * Slope 符号作为趋势强度
         # R² (0~1) 代表趋势的纯度，乘以 slope 的符号 (+1/-1)
-        trend_strength = (r_value ** 2) * (1 if slope > 0 else -1)
-        return trend_strength
+        # 符号约定 (S002-001 统一)：零斜率 -> +1，与 Module #5 标量路径一致。
+        trend_strength = (r_value ** 2) * (1 if slope >= 0 else -1)
+        # 防御：即使经过方差检查，极端输入仍可能产生 nan。
+        return 0.0 if trend_strength != trend_strength else trend_strength
 
     def calculate_volatility_skew(self, prices: pd.Series, short_win=5, long_win=20) -> float:
         """
@@ -319,7 +336,9 @@ class GlobalMacroLoader:
                 # 对主要资产计算
                 for col in [self.config.tech_proxy, self.config.safe_haven_proxy]:
                     rsrs_val = self.calculate_rsrs(data[col])
-                    metrics[f'{col}_rsrs'] = float(rsrs_val)
+                    # 防御性强制：即使 calculate_rsrs 的守卫被绕过，
+                    # NaN 也永远不会进入 strategist 提示词 (S002-002)。
+                    metrics[f'{col}_rsrs'] = float(rsrs_val) if rsrs_val == rsrs_val else 0.0
 
             logger.info(f"📊 指标计算完成 (Days={len(data)})")
             return metrics

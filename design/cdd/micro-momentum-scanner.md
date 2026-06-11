@@ -125,7 +125,9 @@ This file is the bridge from Module #5's CSV output to Module #6 (AI Industry An
 
 This is the single source of truth. The DuckDB views `vw_rsrs_ranking_cn/us` (Module #2, `data/views.sql:114-122`) reproduce it in SQL **modulo the zero-slope sign convention, which is masked by the zero-variance guard** (see note below); this Python implementation is authoritative.
 
-> **Sign-convention divergence (three implementations):** the SQL view uses `CASE WHEN COALESCE(REGR_SLOPE(rn, close), 0) >= 0 THEN 1 ELSE -1` (`data/views.sql:118` — zero slope → **+1**), while the Python scalar path uses `1.0 if float(slope) > 0 else -1.0` (`momentum_scanner.py:72` — zero slope → **-1**) and the vectorized path uses `np.sign(slope)` (`np.sign(0)=0`). These three only agree because the zero-variance guard forces `r_sq=0` whenever slope can be exactly zero (flat series), so the product is `0.0` under all three conventions. See Open Question 11.
+> **Sign convention — UNIFIED on the zero-boundary (OQ-11 RESOLVED, TR-016, S002-001, 2026-06-12):** The zero-slope sign convention is unified to **sign(slope) = +1 when slope >= 0, -1 otherwise**, across the Python scalar path (`momentum_scanner.py:72` — `sign = 1.0 if float(slope) >= 0 else -1.0`) and the vectorized path (`momentum_scanner.py:121` — `np.where(slope >= 0, 1.0, -1.0)`). The DuckDB-SQL view already uses `CASE WHEN COALESCE(REGR_SLOPE(rn, close), 0) >= 0 THEN 1 ELSE -1 END`, so the zero→+1 boundary matches at the sign-helper level. **For any zero-slope series (palindromic / symmetric) R² is necessarily 0, so the RSRS product is 0.0 under all three implementations — the zero-boundary convention is therefore moot for the product value, but it is pinned for consistency and to prevent the sign helper itself from diverging.** Enforced by `tests/unit/momentum/test_rsrs_parity.py` and `tests/unit/momentum/test_rsrs_sign_unit.py`.
+>
+> **BLOCKER (separate, NOT closed by S002-001 — discovered during the S002-001 parity test, 2026-06-12):** the DuckDB view `vw_rsrs_ranking_cn/us` computes `ROW_NUMBER() OVER (... ORDER BY date DESC) AS rn` (rn=1 is newest) and then `REGR_SLOPE(rn, close)`, whose sign is INVERTED relative to the Python scalar path (`x = arange(0..17)` oldest→newest) for every monotonic series. Empirically, a perfectly increasing series yields RSRS **−1.0** from the view but **+1.0** from Python. This is independent of the zero-boundary convention above (it affects all monotonic series, not just zero-slope) and requires a `data/views.sql` rn-ordering change plus a view re-materialization to fix — out of scope for S002-001 (the view is gitignored and owned by the market-data-storage refresh path). Tracked as a follow-up; pinned by the strict `xfail` in `tests/migration/test_rsrs_view_sign_convention.py::test_perfectly_increasing_view_is_positive_one`.
 
 **Signature**
 
@@ -147,7 +149,7 @@ def calculate_rsrs(self, series, window=18):
 | `p_value` | `float` | Two-sided p-value (unused). |
 | `std_err` | `float` | Standard error of the slope (unused). |
 | `R_squared` (`r_sq`) | `float` | `float(r_value) ** 2` — coefficient of determination ∈ `[0, 1]`. |
-| `sign` | `float` | `1.0 if float(slope) > 0 else -1.0` — **note**: exactly-zero slope maps to `-1.0`, but `r_sq` is then `0.0` (flat) or `nan` (pre-fix), so the product is `0.0` or `nan`; the guards normalize both to `0.0`. |
+| `sign` | `float` | `1.0 if float(slope) >= 0 else -1.0` — zero slope maps to `+1.0` (S002-001 unified convention, matching the vectorized `np.where(slope >= 0, 1.0, -1.0)` path and the DuckDB-SQL `CASE WHEN ... >= 0 THEN 1` view). For the flat-series case the zero-variance guard at evaluation order 2 already returned `0.0` before the sign is computed, so the sign convention only matters for the degenerate zero-slope-with-nonzero-variance edge case. |
 
 **Formula**
 
@@ -378,7 +380,7 @@ These thresholds are **hardcoded in the prompt text**, not in config (open quest
 **Contract / data model:**
 - [ ] Top-200 CSV columns are exactly `ticker, price_60d_ago, price_current, change_percent, avg_daily_volume, rsrs_z` in order (manual/fixture test — OPEN).
 - [ ] RSRS score column `rsrs_z` is `R²×sign(slope)` rounded to 2 decimals, ∈ `[-1.0, 1.0]` (regression test against the scalar formula — OPEN).
-- [ ] The DuckDB `vw_rsrs_ranking_cn` RSRS column equals `calculate_rsrs` on the same 18-bar window for a sample ticker (cross-implementation agreement — OPEN; cite `data/views.sql:114-122`).
+- [x] The DuckDB `vw_rsrs_ranking_cn` RSRS column equals `calculate_rsrs` on the same 18-bar window for a zero-slope fixture ticker (cross-implementation agreement at the zero-boundary — RESOLVED S002-001; `tests/unit/momentum/test_rsrs_parity.py`, `tests/migration/test_rsrs_view_sign_convention.py`; cite `data/views.sql:124-133`). NOTE: a SEPARATE sign-inversion blocker between the view's `rn`-ordering and Python's time-index remains open (see §4.1 BLOCKER note); it is out of scope for S002-001 and tracked as a follow-up.
 
 **Workflow:**
 - [ ] CN scan with a fixture DB yields a CSV with ≤ 200 rows, all tickers matching `^(00|30|60|68)`, all `avg_daily_volume ≥ min_volume_cn` (fixture integration test — OPEN).

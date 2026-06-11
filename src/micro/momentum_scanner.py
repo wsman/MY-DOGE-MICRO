@@ -69,7 +69,11 @@ class MomentumRanker:
             # R2 * Slope符号
             # 显式转换类型以消除 Pylance 警告
             r_sq = float(r_value) ** 2
-            sign = 1.0 if float(slope) > 0 else -1.0
+            # Sign convention (S002-001, OQ-11/TR-016 RESOLVED): zero slope -> +1,
+            # unifying the scalar path with the vectorized path (np.where below)
+            # and the DuckDB-SQL view (CASE WHEN ... >= 0 THEN 1). See the
+            # cross-implementation parity test tests/unit/momentum/test_rsrs_parity.py.
+            sign = 1.0 if float(slope) >= 0 else -1.0
 
             trend_strength = r_sq * sign
             # 防御：即使经过方差检查，极端输入仍可能产生 nan。
@@ -118,7 +122,11 @@ class MomentumRanker:
         r_sq[valid_mask] = (cov_xy[valid_mask] ** 2) / (x_var * y_var[valid_mask])
 
         # 5. 计算 RSRS = R^2 * Sign(Slope)
-        rsrs = r_sq * np.sign(slope)
+        # Sign convention (S002-001, OQ-11/TR-016 RESOLVED): zero slope -> +1 to
+        # match the scalar path (sign = 1.0 if slope >= 0 else -1.0 above) and
+        # the DuckDB-SQL view (CASE WHEN ... >= 0 THEN 1). np.where broadcasts
+        # over the (N,) slope array; a Python scalar conditional would break.
+        rsrs = r_sq * np.where(slope >= 0, 1.0, -1.0)
 
         return rsrs
 
