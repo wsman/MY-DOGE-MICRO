@@ -84,6 +84,57 @@ Adopt the shipped composition as the architectural stance for Module #11, and do
 5. **Manual `fetch`-based SSE reader** (`useSSE.ts`) over `EventSource`, because the scan endpoint is a **POST** (`POST /api/scan/{market}`, Module #9 §4.1) and `EventSource` only supports GET. The reader parses `data:` lines and treats `progress === -1` as error / `progress >= 100` as complete.
 6. **`@pretext` sibling-project alias** at an absolute path (`vite.config.ts:5,11`, mirrored in `vitest.config.ts:11,17` and `tsconfig.app.json:6-8`), accepting the portability cost in exchange for reusing the mature sibling text-layout library without an npm publish step.
 
+## Amendment A1 — SSE watchdog contract (S002-010 / TR-036, 2026-06-12)
+
+> This amendment hardens Decision 5 with a bounded-time watchdog so a dropped
+> stream can no longer leave the scanner status stuck on `running`. It does NOT
+> change the ADR's Status (still Accepted) and does NOT introduce
+> `EventSource`; it adds a contract on top of the existing raw-`fetch` reader.
+
+**Watchdog contract:** every active SSE stream keeps a `lastEventAt` timestamp
+refreshed on each received `data:` line (and on connect / chunk arrival). A
+`setInterval` watchdog compares wall-clock `Date.now()` to `lastEventAt`; if
+the gap exceeds `stallTimeoutMs` **and** the stream is still `running`, the
+stream is treated as dropped and a **terminal** error is surfaced:
+
+- `reader.cancel()` is called to unblock the pending `await reader.read()`;
+- `error.value` is set to a structured `{ code: 'stream_stalled', message: 'live data stream stalled' }` object (NOT a bare string);
+- `status` transitions to `'error'` and `isRunning` to `false` (so the spinner stops);
+- `opts.onError` is invoked exactly once;
+- the watchdog interval is cleared (idempotently) in the `finally` block and on every early return.
+
+**Threshold default:** `stallTimeoutMs` defaults to **30000 ms (30s)**,
+exposed as an `SSEOptions` field. 30s is conservative enough to avoid
+false-trips on legitimately slow scan steps (a full CN-universe scan can have
+multi-second gaps between progress callbacks) while still bounding the
+stuck-`running` window the operator perceives.
+
+**Reconnect policy for scan:** **zero auto-reconnect.** A scan is
+operator-initiated and idempotent — a dropped scan surfaces a visible terminal
+error + a Retry affordance; retry is an explicit operator action, NOT an
+automatic reconnect with backoff. Bounded reconnect is intentionally NOT
+implemented for scan in this story.
+
+**Store/UI wiring (binding contract):**
+
+- `web/src/stores/scanner.ts` widens `cnStatus`/`usStatus` to `'idle' | 'running' | 'error'`. `onError` sets status to `'error'` (NOT `'idle'` — the prior behavior hid failures). Status resets to `'idle'` only on explicit Retry or `onComplete`.
+- A terminal error also **stops the auto-scan timer** (`clearInterval`) so the next interval tick cannot silently restart into another stuck stream.
+- `ScannerView.vue` renders an `n-alert type="error"` banner + Retry button when status is `'error'`, replacing the prior "infinite spinner with no terminal state" UX.
+
+**Test contract (TR-036):** `web/src/composables/useSSE.spec.ts` (watchdog
+trip, watchdog-cleared-on-completion, watchdog-cleared-on-rejection,
+HTTP-non-ok envelope, in-band `progress === -1`) and
+`web/src/stores/scanner.spec.ts` (idle→running→idle,
+running→error-on-terminal-error, auto-scan-teardown-on-error) are the
+mandated regression tests. Both use `vi.useFakeTimers` / mocked `fetch` /
+mocked `useSSE` and are green under jsdom.
+
+**Soft dependency note:** the structured `error.code` field is consumed today
+only for the client-originated `stream_stalled` code. Server-emitted stable
+codes (e.g. branching on `http_5xx` envelope codes) are threaded through once
+S002-009 lands its string-enum convention; until then the in-band error path
+falls back to `internal_error`. This is a forward-compatible seam, not a gap.
+
 ### Architecture
 
 ```
@@ -190,7 +241,7 @@ Adopt the shipped composition as the architectural stance for Module #11, and do
 ### Negative
 
 - **`@pretext` absolute-path coupling**: the build breaks if the sibling checkout moves/disappears; non-portable to CI or other machines. (Headline risk; tracked open question.)
-- **No SSE reconnect**: a dropped stream without a terminal event can leave the scanner status stuck on `running`. (CDD §5, §9 Q3.)
+- **No SSE auto-reconnect for scan** (resolved 2026-06-12 by Amendment A1): a dropped stream now surfaces a terminal `stream_stalled` error within `stallTimeoutMs` (default 30s) instead of sticking on `running`. The scan path intentionally has zero auto-reconnect — a retry is an explicit operator action (see Amendment A1).
 - **Hand-maintained virtualization**: three components to maintain vs. one library; bug surface is owned, not outsourced.
 - **Two overlapping view registries**: a new view must be added in up to three places (`ViewId` union, `VIEW_REGISTRY`, optionally router) — easy to forget.
 - **Singleton shared state**: two TickerView panels share `marketData.selectedTicker`/`klineData`; selecting in one overwrites the other (CDD §5, §9 Q5).
@@ -205,7 +256,7 @@ Adopt the shipped composition as the architectural stance for Module #11, and do
 |------|------------|--------|-----------|
 | Sibling `pretext` checkout moved/deleted → build red | MEDIUM (any machine/CI migration) | HIGH (blocks all builds) | Vendor or npm-publish pretext (CDD §9 Q1); add a build precheck that asserts the alias target exists with a clear error. |
 | lightweight-charts v5 API changes on upgrade | LOW (v5 is current) | MEDIUM (chart breaks) | Pin `lightweight-charts` minor version; re-validate `useKlineChart.ts:38-66` on upgrade. |
-| SSE stream drops without terminal event → stuck `running` | MEDIUM (network blips on localhost are rare but possible) | LOW (operator can re-trigger) | Add a watchdog in `useSSE` (CDD §9 Q3). |
+| SSE stream drops without terminal event → stuck `running` | MEDIUM (network blips on localhost are rare but possible) | LOW (operator can re-trigger) | **RESOLVED 2026-06-12 (S002-010/TR-036):** watchdog in `useSSE` surfaces a terminal `stream_stalled` error within `stallTimeoutMs` (default 30s); scan does not auto-reconnect (operator Retry). See Amendment A1. |
 | jsdom limitations block view-level tests | HIGH (already the case) | LOW (smoke suite still covers pure logic) | Add a Playwright/Cypress E2E against dev server + mocked API for critical paths (CDD §9 Q4). |
 | Two TickerView panels share ticker state | MEDIUM (operator splits two ticker panels) | LOW (confusing but recoverable) | Scope ticker state to the leaf handle (CDD §9 Q5). |
 

@@ -29,8 +29,14 @@
           <n-button size="small" :loading="store.cnTesting" @click="store.doTestServers('cn')">
             Test
           </n-button>
-          <n-button size="small" type="error" :loading="store.cnStatus === 'running'" @click="store.scanCn">
-            ▶ Scan
+          <n-button
+            size="small"
+            type="error"
+            :loading="store.cnStatus === 'running'"
+            :disabled="store.cnStatus === 'running'"
+            @click="store.scanCn"
+          >
+            {{ store.cnStatus === 'error' ? '↻ Retry' : '▶ Scan' }}
           </n-button>
         </div>
         <div class="section-auto">
@@ -69,8 +75,14 @@
           <n-button size="small" :loading="store.usTesting" @click="store.doTestServers('us')">
             Test
           </n-button>
-          <n-button size="small" type="info" :loading="store.usStatus === 'running'" @click="store.scanUs">
-            ▶ Scan
+          <n-button
+            size="small"
+            type="info"
+            :loading="store.usStatus === 'running'"
+            :disabled="store.usStatus === 'running'"
+            @click="store.scanUs"
+          >
+            {{ store.usStatus === 'error' ? '↻ Retry' : '▶ Scan' }}
           </n-button>
         </div>
         <div class="section-auto">
@@ -97,6 +109,26 @@
         processing
         style="margin-bottom: 6px"
       />
+      <!-- Terminal-error banner: a dropped stream surfaces here instead of an
+           infinite spinner. The watchdog (useSSE.ts) guarantees isRunning is
+           false when status==='error', so the n-progress above is hidden. -->
+      <n-alert
+        v-if="terminalError"
+        type="error"
+        :title="terminalError.title"
+        style="margin-bottom: 6px"
+        closable
+      >
+        {{ terminalError.message }}
+        <n-button
+          size="tiny"
+          type="error"
+          style="margin-left: 8px"
+          @click="terminalError.retry()"
+        >
+          Retry
+        </n-button>
+      </n-alert>
       <n-log
         :rows="8"
         :log="logText"
@@ -109,13 +141,41 @@
 
 <script setup lang="ts">
 import { computed, h, onMounted } from 'vue'
-import { NButton, NProgress, NLog, NSwitch, NSelect, type SelectOption } from 'naive-ui'
+import { NButton, NProgress, NLog, NSwitch, NSelect, NAlert, type SelectOption } from 'naive-ui'
 import { useScannerStore } from '../stores/scanner'
 import type { ServerEntry } from '../stores/scanner'
 
 const store = useScannerStore()
 
 const logText = computed(() => store.messages.join('\n'))
+
+/**
+ * Terminal-error banner payload. Surfaced when a scan stream drops without a
+ * terminal event and the watchdog trips (status === 'error'). CN takes
+ * priority over US when both are errored (arbitrary but deterministic).
+ * Returning null hides the banner when no market is in an error state.
+ */
+const terminalError = computed(() => {
+  const err = store.error
+  const detail = err && typeof err === 'object' && 'message' in err
+    ? err.message
+    : 'live data stream stalled'
+  if (store.cnStatus === 'error') {
+    return {
+      title: 'A-Share (CN) scan failed',
+      message: detail,
+      retry: () => store.scanCn(),
+    }
+  }
+  if (store.usStatus === 'error') {
+    return {
+      title: 'US Market scan failed',
+      message: detail,
+      retry: () => store.scanUs(),
+    }
+  }
+  return null
+})
 
 const intervalOptions = [
   { label: '15 min', value: 15 },

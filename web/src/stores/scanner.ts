@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { useSSE } from '../composables/useSSE'
+import type { SSEError } from '../composables/useSSE'
 import { getServers, testServers } from '../api/config'
 import type { ServerTestResult } from '../api/config'
 
@@ -36,7 +37,7 @@ function loadSettings(): AutoSettings {
 }
 
 export const useScannerStore = defineStore('scanner', () => {
-  const { progress, messages, isRunning, error, start } = useSSE()
+  const { progress, messages, isRunning, error, status, start } = useSSE()
 
   // -- Server state --
   const cnServers = ref<ServerEntry[]>([])
@@ -53,8 +54,8 @@ export const useScannerStore = defineStore('scanner', () => {
   const usAutoInterval = ref(30)
   const lastCnScan = ref<string | null>(null)
   const lastUsScan = ref<string | null>(null)
-  const cnStatus = ref<'idle' | 'running'>('idle')
-  const usStatus = ref<'idle' | 'running'>('idle')
+  const cnStatus = ref<'idle' | 'running' | 'error'>('idle')
+  const usStatus = ref<'idle' | 'running' | 'error'>('idle')
 
   // Timer handles
   let cnTimer: ReturnType<typeof setInterval> | null = null
@@ -111,7 +112,11 @@ export const useScannerStore = defineStore('scanner', () => {
   }
 
   // -- Scan --
+  // Scan is operator-initiated and idempotent: a dropped scan surfaces a
+  // terminal error + Retry affordance; we do NOT auto-reconnect (a retry is an
+  // explicit operator action). See ADR-0008 watchdog amendment.
   async function scanCn() {
+    // Reset any prior terminal-error state so the spinner shows on Retry.
     cnStatus.value = 'running'
     lastCnScan.value = new Date().toLocaleTimeString()
     await start('/api/scan/cn', {
@@ -120,7 +125,13 @@ export const useScannerStore = defineStore('scanner', () => {
       server: selectedCnServer.value,
     }, {
       onComplete: () => { cnStatus.value = 'idle' },
-      onError: () => { cnStatus.value = 'idle' },
+      onError: (_err: SSEError) => {
+        // Terminal failure — surface it (do NOT silently reset to 'idle').
+        cnStatus.value = 'error'
+        // Stop the auto-scan timer so the next tick doesn't silently restart
+        // into another stuck stream.
+        stopAutoScan('cn')
+      },
     })
   }
 
@@ -133,7 +144,10 @@ export const useScannerStore = defineStore('scanner', () => {
       server: selectedUsServer.value,
     }, {
       onComplete: () => { usStatus.value = 'idle' },
-      onError: () => { usStatus.value = 'idle' },
+      onError: (_err: SSEError) => {
+        usStatus.value = 'error'
+        stopAutoScan('us')
+      },
     })
   }
 
@@ -186,7 +200,7 @@ export const useScannerStore = defineStore('scanner', () => {
   if (usAutoEnabled.value) startAutoScan('us')
 
   return {
-    progress, messages, isRunning, error,
+    progress, messages, isRunning, error, status,
     cnServers, usServers, selectedCnServer, selectedUsServer,
     cnTesting, usTesting,
     cnAutoEnabled, usAutoEnabled, cnAutoInterval, usAutoInterval,
