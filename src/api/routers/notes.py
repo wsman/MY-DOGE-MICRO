@@ -79,9 +79,14 @@ async def tracked_tickers():
 
 @router.delete("/{note_id}")
 async def delete_note(note_id: int):
-    try:
-        from src.ai_analysis.stock_notes import delete_note
-        delete_note(note_id)
-        return {"ok": True}
-    except Exception as e:
-        raise HTTPException(500, str(e))
+    """Soft-delete a note.
+
+    Returns 200 ``{"ok": true}`` when a note was deleted (soft-delete applied),
+    404 when no active note with ``note_id`` exists (missing id, already
+    deleted, or never existed).
+    """
+    from src.ai_analysis.stock_notes import delete_note as _delete
+    deleted = _delete(note_id)
+    if not deleted:
+        raise HTTPException(404, "note not found")
+    return {"ok": True}

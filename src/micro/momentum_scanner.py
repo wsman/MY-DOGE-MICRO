@@ -56,16 +56,24 @@ class MomentumRanker:
             # 取最近 window 天的数据
             y = series.iloc[-window:].values
             x = np.arange(len(y))
-            
+
+            # 零方差 (flat) 保护：linregress 在 y 无方差时返回 rvalue=nan，
+            # 会导致趋势强度为 nan。向量化路径 (_calculate_rsrs_vectorized)
+            # 通过 y_var > 1e-10 保护此情形并返回 0.0；此处与之一致，
+            # 保证标量与向量化两条路径在 flat 输入上行为相同 (BUG E)。
+            if float(np.var(y)) <= 1e-10:
+                return 0.0
+
             slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
-            
+
             # R2 * Slope符号
             # 显式转换类型以消除 Pylance 警告
             r_sq = float(r_value) ** 2
             sign = 1.0 if float(slope) > 0 else -1.0
-            
+
             trend_strength = r_sq * sign
-            return trend_strength
+            # 防御：即使经过方差检查，极端输入仍可能产生 nan。
+            return 0.0 if trend_strength != trend_strength else trend_strength
         except Exception as e:
             # print(f"[WARN] RSRS计算异常: {e}")
             return 0.0
