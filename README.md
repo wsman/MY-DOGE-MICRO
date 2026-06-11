@@ -47,12 +47,31 @@
   - [测试要求](#测试要求)
   - [文档更新](#文档更新)
   - [提交信息规范](#提交信息规范)
+- [文档导航](#文档导航)
 - [快速开始](#快速开始)
 - [开发指南](#开发指南)
+
+## 文档导航
+
+本 README 是入口概览。按使用场景深入对应文档（注意区分：`docs/QUICK-START.md`、`docs/START-HERE.md` 等 CDD 框架治理文档介绍的是 Claude Code agent 体系，**不是** MY-DOGE 平台运维文档）：
+
+| 文档 | 用途 |
+|------|------|
+| [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) | 运营者快速上手（三套运行面、环境变量、安装、首次扫描） |
+| [docs/API.md](docs/API.md) | FastAPI HTTP 接口参考（127.0.0.1:8901，26 个路由、SSE 契约、错误码） |
+| [docs/CLI.md](docs/CLI.md) | 命令行参考（`python src/cli.py` 查询 CLI 与 `python -m macro.cli` 宏观 CLI） |
+| [docs/operations-runbook.md](docs/operations-runbook.md) | 运维手册（备份、保留期调优、密钥轮换、DuckDB 视图刷新、故障排除） |
+| [docs/MCP_SERVER.md](docs/MCP_SERVER.md) | doge-db MCP 服务器（6 个数据工具、stdio/SSE 双传输） |
+| [design/cdd/module-index.md](design/cdd/module-index.md) | 模块设计契约（数据管道、宏观引擎、AI 行业分析、Web 控制台、PyQt 面板） |
+| [design/ux/](design/ux/) | UX 流程规格与可访问性基线（按视图逐页） |
+
+> 注：以上 Wave-2 文档为运营者面向的产品文档，与 `docs/` 下介绍 CDD 框架的治理文档受众不同，避免混淆。
 
 ## 项目概览
 
 MY-DOGE QUANT SYSTEM 采用**三层架构**，将数据清洗、策略生成和用户交互分离。所有数据本地存储，不依赖云服务，保护用户隐私并降低延迟。
+
+> **运行面（Runtime Surfaces）**：除下文 PyQt6 桌面主控台外，本平台当前暴露三套本地运行面——MCP 服务器（stdio / SSE，默认 127.0.0.1:8902，供 Claude Code 等 MCP 客户端调用）、FastAPI 后端（127.0.0.1:8901，供 Vue Web 控制台消费）、以及 PyQt6 桌面仪表盘。三套面均本地优先（local-first），默认仅绑定环回地址。详见 [快速开始](#快速开始) 与 [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)。
 
 本系统设计目标：
 - **数据主权**：所有数据本地存储 (SQLite)，无云端依赖。
@@ -282,6 +301,8 @@ export DEEPSEEK_API_KEY="your_new_key_here"
 ```
 
 GUI界面也提供模型切换功能，切换后会自动更新内存中的配置。
+
+> ⚠️ **安全须知（S002-013）**：自 S002-013 起，DeepSeek API 密钥以环境变量 `DEEPSEEK_API_KEY` 为唯一可信来源（`src/macro/config.py` 读取顺序：env 优先 → 失败则 `RuntimeError`）。仓库随附的 `models_config.json` 与 `models_config.template.json` 中 `api_key` 字段均为占位符 `REPLACE_WITH_DEEPSEEK_API_KEY`，**切勿在 `models_config.json` 中写入真实密钥**（该文件纳入版本控制）。轮换流程见 [docs/operations-runbook.md](docs/operations-runbook.md) §密钥轮换。
 
 ## API 调用详细流程
 
@@ -647,39 +668,81 @@ logging.getLogger().setLevel(logging.DEBUG)
 
 ## 快速开始
 
-### 1. 环境准备
+平台提供三套本地运行面，可按需选择其一或组合使用。详细安装、环境变量、首次扫描步骤见 [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)。
+
+### 0. 环境准备
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. 配置 API
+### 1. 配置 DeepSeek API Key（仅宏观/行业分析需要）
 
-复制模板并填入 API Key：
+仓库随附 `models_config.json`（若缺失则从模板生成）：
 ```bash
+# 可选：从模板生成（模板与正式文件均已使用占位符，不含真实密钥）
 cp models_config.template.json models_config.json
-# 编辑 models_config.json 填入你的 DeepSeek API Key
 ```
 
-### 3. 启动系统
+**切勿在 `models_config.json` 中写入真实密钥**（该文件纳入版本控制）。自 S002-013 起，密钥统一通过环境变量注入：
+```bash
+export DEEPSEEK_API_KEY="your_real_key_here"   # Windows: set DEEPSEEK_API_KEY=...
+# 可选：临时切换模型
+export DEEPSEEK_MODEL="deepseek-reasoner"
+```
+缺失 `DEEPSEEK_API_KEY` 时，宏观/行业分析调用将以明确的 `RuntimeError` 失败（`src/macro/config.py`）。
+
+### 2. 运行面 A：MCP 服务器（供 Claude Code 等 MCP 客户端）
 
 ```bash
+# stdio 传输（Claude Code 集成）
+scripts/mcp_stdio.bat        # Windows
+scripts/mcp_stdio.sh         # POSIX
+
+# 或 SSE 传输（默认 127.0.0.1:8902，可用 MCP_HOST / MCP_PORT 覆盖）
+scripts/start_mcp_sse.bat    # Windows
+scripts/start_mcp_sse.sh     # POSIX
+```
+
+### 3. 运行面 B：FastAPI 后端 + Vue Web 控制台
+
+```bash
+# 后端（绑定 127.0.0.1:8901）
+python src/api/main.py
+
+# 另开终端启动 Web 控制台（Vite dev server，/api 反代到 8901）
+cd web && npm install && npm run dev
+```
+
+### 4. 运行面 C：PyQt6 桌面仪表盘（需 [gui] 扩展）
+
+```bash
+pip install -e ".[gui]"      # 安装 PyQt6 扩展
 python src/interface/dashboard.py
 ```
 
-### 4. 操作流程
+> ⚠️ **可移植性限制**：`src/interface/dashboard.py` 顶部硬编码了开发机的 Qt6 DLL 路径（`qt6_bin_path = r"E:\LLMs\miniconda3\..."`），在非开发机或非 conda 环境下启动会失败。迁移到其他机器时需手动修正该路径，或改用 Web 控制台（运行面 B）。该硬编码是已知技术债，待清理架构迁移修复。
 
-1.  **数据准备**: 在 **"市场扫描"** 页签，设置通达信路径 (如 `D:/New_TDX`)，执行 A 股/美股扫描。
+### 5. 操作流程（任一运行面通用）
+
+1.  **数据准备**: 在 **"市场扫描"** 页签/视图，设置通达信路径 (如 `D:/New_TDX`)，执行 A 股/美股扫描。
 2.  **宏观定调**: 点击 **"启动 宏观分析"**，系统将拉取全球数据并生成策略报告。
-3.  **行业挖掘**: 切换到 **"行业扫描"** 页签，选择宏观报告和动量 CSV，点击 **"执行"**。系统将自动联网校准数据并生成深度研报。
+3.  **行业挖掘**: 切换到 **"行业扫描"** 页签/视图，选择宏观报告和动量 CSV，点击 **"执行"**。系统将自动联网校准数据并生成深度研报。
 4.  **复盘**: 在 **"研报智库"** 中查看历史分析记录。
 
 ## 开发指南
 
 -   **目录结构**:
-    -   `src/interface`: PyQt6 界面逻辑
+    -   `src/interface`: PyQt6 桌面界面逻辑（运行面 C）
     -   `src/macro`: 宏观策略、API 交互、全球数据加载
     -   `src/micro`: 通达信解析、动量计算、行业分析、数据库管理
+    -   `src/api`: FastAPI 后端与路由（运行面 B，127.0.0.1:8901）
+    -   `src/ai_analysis`: AI 分析模块
+    -   `src/doge`: 清洁架构目标层（集中配置 `config/settings.py`、单一配置来源，遵循 ADR-0001 / ADR-0002）
+    -   `src/cli.py`: 查询 CLI（DuckDB 只读分析）
+    -   `web/`: Vue 3 + Vite + Pinia + Naive UI Web 控制台（运行面 B）
+    -   `mcp_server.py`: doge-db MCP 服务器主入口（运行面 A）
+    -   `doge_mcp.py`: MCP 模块化入口
 -   **扩展**:
     -   若需添加新指标，请修改 `src/macro/data_loader.py` 中的 `calculate_advanced_metrics`。
     -   若需调整 AI 提示词，请修改 `src/macro/strategist.py` 或 `src/micro/industry_analyzer.py`。
