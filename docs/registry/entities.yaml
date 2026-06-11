@@ -310,12 +310,12 @@ constants:
 
   # --- Storage knobs (Module #2 / #3) ---
   - name: storage.retention_days
-    value: 180
+    value: 730
     unit: days
     owner: market-data-storage
-    source: "src/micro/database.py:118 (save_stock_data_custom default)"
+    source: "Settings().market.retention_days via DOGE_RETENTION_DAYS (default 730); consumed by save_stock_data_custom"
     op_risk: HIGH
-    notes: "DESTRUCTIVE per-ticker prune on every write. LATENT BUG: longest view (vw_market_breadth_cn) uses 730 days, so breadth is silently truncated to ~half a year. Target: env DOGE_RETENTION_DAYS with default >= 730."
+    notes: "DESTRUCTIVE per-ticker prune on every write. Must be >= 730 to satisfy the widest view window (vw_market_breadth_cn, data/views.sql:23 INTERVAL 730 DAYS). Regression guard: tests/migration/test_retention_view_window_safety.py."
 
   - name: storage.tdx.MAX_DAYS
     value: 120

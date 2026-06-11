@@ -45,9 +45,10 @@ The active ingestion caller is `src/micro/market_scanner.py`, which:
 1. Calls `init_db_custom(db_path)` (`database.py:94-116`) — `CREATE TABLE IF NOT EXISTS stock_prices(...)` with composite PK `(ticker, date)`. Non-destructive.
 2. For each ticker, builds a DataFrame and calls `save_stock_data_custom(df, db_path)` (`database.py:118-155`).
 
-`save_stock_data_custom(data, db_path, retention_days=180)` behavior (`database.py:118-155`):
+`save_stock_data_custom(data, db_path, retention_days=None)` behavior (`database.py:118-171`):
 - Opens a connection via `get_db_connection`.
-- Computes `cutoff = now - retention_days` (default **180**) as `YYYY-MM-DD`.
+- When `retention_days is None`, resolves it from `Settings().market.retention_days` (`DOGE_RETENTION_DAYS`, default **730**) — falls back to 730 with a logged WARNING only if the `doge` config import itself fails. An explicit `retention_days=` arg overrides the config default.
+- Computes `cutoff = now - retention_days` (default **730**) as `YYYY-MM-DD`.
 - Reads `MAX(date)` for the first ticker in the frame as the incremental anchor.
 - Appends only rows with `date > max_existing` (incremental upsert-like behavior, but PK-violating duplicate dates will raise, see Edge Cases).
 - **Destructive retention**: `DELETE FROM stock_prices WHERE ticker=? AND date<cutoff` (`database.py:147-150`).
@@ -259,7 +260,7 @@ All env vars are read by `_env_path` (`settings.py:18-20`). Knobs not yet in `DB
 | `DOGE_US_DB` | `<DB_DIR>/market_data_us.db` | path | operator | None |
 | `DOGE_RESEARCH_DB` | `<DB_DIR>/research_insights.db` | path | operator | None |
 | `DOGE_DUCKDB_PATH` | `<DB_DIR>/market.duckdb` | path | operator | Must be writable for `refresh_views` |
-| `retention_days` (`save_stock_data_custom`) | **180** | int > 0 | **HARDCODED** in `database.py:118` (not env) | **DESTRUCTIVE** — each write deletes rows older than N days for that ticker. Not configurable at runtime. **Target: env `DOGE_RETENTION_DAYS` with safe default.** |
+| `retention_days` (`save_stock_data_custom`) | **730** | int >= 730 | env `DOGE_RETENTION_DAYS` (read by `Settings().market.retention_days`, `settings.py` `MarketConfig`) | **DESTRUCTIVE** — each write deletes rows older than N days for that ticker. Must be >= 730 to satisfy the widest view window (`vw_market_breadth_cn`, `views.sql:23`). |
 | `MAX_DAYS` (`tdx_loader`) | **120** | int > 0 | **HARDCODED** class attr (`tdx_loader.py:64`) | Ingest ceiling — only the last 120 bars are ever parsed/written. Inconsistent with `retention_days=180` (see Edge Cases). |
 | `BATCH` (`get_tickers_sync_state`, `DuckDBStockRepository.get_sync_state`) | **900** | int < 999 | hardcoded (`database.py:171`, `repositories.py:91`) | Below SQLite's 999-host-parameter limit; safe but must not be raised above 998. |
 | DuckDB `threads` | **4** | int >= 1 | hardcoded (`duckdb.py:39`) | Memory/CPU contention; bounds OpenBLAS to 1 thread separately (`duckdb.py:16-17`). |
@@ -280,7 +281,7 @@ Contract / data-model checks:
 Migration checks (ADR-0001 / ADR-0003):
 - [ ] No file under `src/api/`, `src/doge/interfaces/`, or `src/interface/` imports `sqlite3` or `duckdb` directly (`grep -rnE "import sqlite3|import duckdb|sqlite3.connect|duckdb.connect"` returns zero hits in interface layers).
 - [ ] `src/micro/database.py` write failures are **logged** (not `pass`); a test asserts a warning is emitted when `to_sql` raises.
-- [ ] `retention_days` is configurable via `DOGE_RETENTION_DAYS`; default documented.
+- [x] `retention_days` is configurable via `DOGE_RETENTION_DAYS`; default documented (730, shipped S002-007). Regression guard: `tests/migration/test_retention_view_window_safety.py` asserts `max(INTERVAL N DAYS) <= retention_days`.
 - [ ] Cold-start `initialize_system_dbs()` creates every table referenced by `IReportRepository` and `IStockRepository` (including `insights`, `stock_notes`, `stock_names`).
 
 Workflow / observability:
@@ -305,7 +306,7 @@ Docs:
 
 ### 9.2 Retention
 
-- `retention_days=180` deletes rows older than 180 calendar days **per ticker** on every write (`database.py:147-150`). This is **destructive and irreversible**; there is no archive step. Any backfill history older than 180 days is lost the next time that ticker is synced. Operational guidance: set `DOGE_RETENTION_DAYS` (Target) to a value >= the longest analysis window actually used (current views use up to **730 days** for `vw_market_breadth_cn` (`views.sql:23`); `vw_daily_enriched_cn` / `vw_cross_sectional_return_cn` use 365 days; US breadth uses 365 and US RSRS uses 180) — **the 180-day retention is therefore already shorter than every one of these view windows**, which is a latent bug; see Open Questions).
+- `retention_days` (default **730**, env `DOGE_RETENTION_DAYS`) deletes rows older than N calendar days **per ticker** on every write (`database.py:147-150`). This is **destructive and irreversible**; there is no archive step. Any backfill history older than 730 days is lost the next time that ticker is synced. Operational guidance: keep `DOGE_RETENTION_DAYS` >= the longest analysis window actually used (current views use up to **730 days** for `vw_market_breadth_cn` (`views.sql:23`); `vw_daily_enriched_cn` / `vw_cross_sectional_return_cn` use 365 days; US breadth uses 365 and US RSRS uses 180). **Warm-up caveat**: `tdx_loader.MAX_DAYS=120` means only ~120 bars are ingested per ticker, so breadth fills toward 730 days gradually post-fix; the 730 default does not retroactively backfill history.
 
 ### 9.3 Concurrency model
 
@@ -328,7 +329,7 @@ Docs:
 
 ## Open Questions (aspirational — flagged for Phase 5 reconciliation)
 
-1. **`retention_days=180` vs `MAX_DAYS=120` vs view windows (730/365/180)** — multiple time horizons exist. Which is canonical? The longest view window is `vw_market_breadth_cn` at **730 days** (`views.sql:23`). Recommend: make `retention_days` env-configurable and set it to **>= 730** to satisfy `vw_market_breadth_cn` (and transitively the 365-day enriched/return views and the 180-day RSRS views). **Concrete consequence**: with the current `retention_days=180`, `vw_market_breadth_cn` returns at most ~180 trading days of breadth rows — roughly half a year — instead of the designed ~2 years (730 calendar days), silently truncating breadth analysis.
+1. **RESOLVED (2026-06-12, story S002-007 / TR-006)** — `retention_days` is now env-configurable via `DOGE_RETENTION_DAYS` (read by `Settings().market.retention_days`) with a default of **730**, which satisfies the widest view window (`vw_market_breadth_cn`, `views.sql:23`). The legacy silent 180-day ceiling is lifted: `save_stock_data_custom` resolves its `retention_days` from `Settings()` when no explicit arg is passed. **Warm-up caveat (NOT fixed by this story)**: `tdx_loader.MAX_DAYS=120` means raising retention does NOT backfill history — breadth will fill toward 730 days gradually as new bars accumulate post-fix. Operators may perceive the fix as inert on day one. `MAX_DAYS` is a separate lockstep invariant (4 call sites, `entities.yaml`) and is out of scope for S002-007.
 2. **Swallowed write exception** (`database.py:152-153`) — must become a logged, typed error. Blocking acceptance criterion.
 3. **Legacy `data/market_data.db` default** (`database.py:15-16`) — unused by the live scanner; delete after confirming no callers.
 4. **`initialize_system_dbs` does not create all tables** — should it, or should each repository lazily create its table?

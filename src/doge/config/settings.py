@@ -20,6 +20,35 @@ def _env_path(name: str, default: Path) -> Path:
     return Path(env) if env else default
 
 
+def _env_int(name: str, default: int) -> int:
+    """Read an integer env var, returning ``default`` on unset/empty string.
+
+    Mirrors the empty-string-is-unset semantics of ``_env_path`` (see
+    ``test_settings.py`` contract for ``DOGE_US_DB``: an empty value must fall
+    back to the documented default rather than raise).
+
+    Args:
+        name: Environment variable name (e.g. ``DOGE_RETENTION_DAYS``).
+        default: Value returned when the var is unset or set to an empty
+            string. For ``DOGE_RETENTION_DAYS`` the safe default is ``730``:
+            it must be ``>= 730`` to satisfy the widest analytical-view window
+            (``vw_market_breadth_cn`` uses ``INTERVAL 730 DAYS``). A value
+            below 730 silently truncates breadth scans. This knob is
+            **DESTRUCTIVE** — every write deletes rows older than N days per
+            ticker.
+
+    Returns:
+        The integer value of the env var, or ``default``.
+
+    Raises:
+        ValueError: if the env var is set to a non-empty, non-integer string.
+    """
+    env = os.environ.get(name)
+    if not env:
+        return default
+    return int(env)
+
+
 @dataclass(frozen=True)
 class DBConfig:
     """Database paths (override via env vars)."""
@@ -56,12 +85,20 @@ class TDXConfig:
 
 @dataclass(frozen=True)
 class MarketConfig:
-    """Market-related constants."""
+    """Market-related constants.
+
+    ``retention_days`` is the per-ticker destructive prune ceiling applied on
+    every OHLCV write. It is sourced from ``DOGE_RETENTION_DAYS`` (default
+    730) and MUST be ``>= 730`` to satisfy the widest analytical-view window
+    (``vw_market_breadth_cn`` advertises a 730-day horizon in
+    ``data/views.sql``). See ADR-0003 (Storage Repository Contract).
+    """
     whitelist: frozenset[str] = frozenset({"cn", "us"})
     cn_min_volume: int = 200_000_000
     us_min_volume: int = 20_000_000
     max_change_pct: int = 400
     rsrs_window: int = 18
+    retention_days: int = field(default_factory=lambda: _env_int("DOGE_RETENTION_DAYS", 730))
 
 
 @dataclass(frozen=True)

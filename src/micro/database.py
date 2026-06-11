@@ -115,15 +115,31 @@ def init_db_custom(db_path):
     conn.close()
     print(f"[OK] database initialized: {db_path}")
 
-def save_stock_data_custom(data, db_path, retention_days=180):
+def save_stock_data_custom(data, db_path, retention_days=None):
     """增量写入 + 自动清理超过 retention_days 的旧数据
 
     Args:
         data (pd.DataFrame): 包含股票数据的 DataFrame
         db_path (str): 目标数据库路径
-        retention_days (int): 保留近 N 个自然日的记录
+        retention_days (int | None): 保留近 N 个自然日的记录。当为 None
+            时（默认），从集中配置 ``Settings().market.retention_days``
+            读取，该值由环境变量 ``DOGE_RETENTION_DAYS`` 控制，默认 730
+            （必须 >= 730 以满足最宽分析视图 vw_market_breadth_cn 的 730 天
+            窗口；低于该值会静默截断市场宽度扫描）。调用方可显式传入
+            retention_days 以覆盖配置默认值。**该参数是破坏性的** —— 每次
+            写入都会按 ticker 删除超过 N 天的旧行，且不可恢复。若 doge 配置
+            包因运行环境问题无法导入，则回退为 730 并记录 WARNING，绝不
+            回退到旧的 180 天默认值（那会重新引入静默截断 bug）。
     """
     from datetime import datetime, timedelta
+    if retention_days is None:
+        try:
+            from doge.config import get_settings
+            retention_days = get_settings().market.retention_days
+        except Exception as e:
+            retention_days = 730
+            print(f"[WARN] could not load doge settings for retention_days, "
+                  f"falling back to 730 (NOT 180): {e}")
     conn = get_db_connection(db_path)
     cutoff = (datetime.now() - timedelta(days=retention_days)).strftime('%Y-%m-%d')
 

@@ -85,7 +85,7 @@ Adopt the **Storage Repository Contract**:
 2. **Adapter ownership**: `src/doge/infrastructure/database/` is the only place that opens SQLite/DuckDB connections. `DuckDBConnection` and `SQLiteConnection` are the connection managers; `DuckDBStockRepository` / `SQLiteReportRepository` are the adapters.
 3. **Path ownership**: `DBConfig` (via `get_settings()`) is the only source of DB paths. Legacy `_PROJECT_ROOT` recomputation in `database.py` is tech debt to remove.
 4. **Write-error contract**: every write path raises a typed `StorageWriteError` (to be introduced) or returns a structured result; bare `except Exception: pass` is forbidden in storage code.
-5. **Retention contract**: `retention_days` is configurable via `DOGE_RETENTION_DAYS` (default 365 to satisfy the widest view window), documented as destructive, and applied per-ticker on write. The default migration lifts the silent 180-day ceiling.
+5. **Retention contract**: `retention_days` is configurable via `DOGE_RETENTION_DAYS` (default 730 to satisfy the widest view window), documented as destructive, and applied per-ticker on write. The default migration lifts the silent 180-day ceiling.
 6. **Concurrency contract**: SQLite is single-writer; enable WAL + `busy_timeout`; DuckDB analytical reads are read-only by default; `refresh_views` is the sole DuckDB writer.
 7. **Legacy compatibility**: `src/micro/database.py` free functions remain as compatibility shims but receive no new callers; they are deleted once every caller (scanner, API, dashboard) is routed through repositories and tested.
 
@@ -190,7 +190,7 @@ class StorageWriteError(RuntimeError): ...
 | Risk | Probability | Impact | Mitigation |
 |------|-------------|--------|------------|
 | Caller migration stalls; legacy and repository paths diverge | Medium | High | Migrate workflow-by-workflow with regression tests; CI grep blocks new direct imports. |
-| Changing `retention_days` default (180 → 365) surprises operators who expected pruning | Low | Medium | Document in release notes; keep env override; default change lands behind the same release that adds `DOGE_RETENTION_DAYS`. |
+| Changing `retention_days` default (180 → 730) surprises operators who expected pruning | Low | Medium | Document in release notes; keep env override; default change lands behind the same release that adds `DOGE_RETENTION_DAYS`. |
 | WAL enablement changes lock behavior unexpectedly on Windows | Low | Medium | Test on the Windows target platform before rollout; provide rollback to default journal mode. |
 | `save_prices` typed error breaks an unhandled caller | Medium | Medium | Audit callers in the same migration step; add try/except where the scan must continue. |
 
