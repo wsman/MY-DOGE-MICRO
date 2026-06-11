@@ -537,20 +537,20 @@ requirements:
     system: clean-architecture-migration
     cdd: design/cdd/clean-architecture-migration.md
     section: "8 (AC-9, OQ-5)"
-    requirement: "The four DuckDBConnection-backed services are reconciled — either converted to depend on ports (e.g. IMarketViewRepository) or ADR-0001 is formally amended to permit adapter-injection for read-only view services."
-    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
-    test: tests/test_database.py
+    requirement: "The four DuckDBConnection-backed services are reconciled — converted to depend on the IMarketViewRepository port (single execute->DataFrame method) with a composition root owning the infrastructure wiring."
+    adr: docs/architecture/adr-0010-view-service-port-injection.md
+    test: tests/unit/core/services/test_view_services_port_injection.py
     created: 2026-06-12
-    revised: ""
+    revised: "2026-06-12"
     status: active
 
   - id: TR-042
     system: clean-architecture-migration
     cdd: design/cdd/clean-architecture-migration.md
     section: "8 (AC-10, OQ-2)"
-    requirement: "ADR-0001 port names (StockRepository, ReportRepository, NoteRepository, MarketDataSource, TickerMetadataSource vs Cache) are reconciled with source ABC names (IStockRepository, etc.) at Phase-5 registry approval."
-    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
-    test: tests/test_database.py
+    requirement: "ADR-0001 port names (StockRepository, ReportRepository, NoteRepository, MarketDataSource, TickerMetadataSource vs Cache) are reconciled with source ABC names (IStockRepository, etc.) — I-prefix kept, registry alias map recorded; the TickerMetadataSource/Cache ambiguity is split into two distinct ports (ITickerMetadataSource + ITickerNameCache)."
+    adr: docs/architecture/adr-0009-cache-metadata-port-split.md
+    test: tests/unit/core/ports/test_port_inventory.py
     created: 2026-06-12
-    revised: ""
+    revised: "2026-06-12"
     status: active

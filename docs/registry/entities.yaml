@@ -763,9 +763,21 @@ entities:
     - {name: IStockRepository, owner: market-data-storage, source: "src/doge/core/ports/repository.py:10-43", methods: "get_prices, get_overview, get_sync_state (+proposed save_prices, delete_older_than)"}
     - {name: IReportRepository, owner: market-data-storage, source: "src/doge/core/ports/repository.py:45-68", methods: "list_macro_reports, get_macro_report, save_macro_report, save_research_report, add_note, search_notes, list_stock_names"}
     - {name: IMarketDataSource, owner: data-sources, source: "src/doge/core/ports/data_source.py:8-49", methods: "connect, disconnect, download_kline, get_latest_market_date, is_connected"}
-    - {name: TickerMetadataSource, owner: data-sources, source: "ADR-0001 (declared; not yet implemented as ABC)", notes: "yfinance .info metadata + JSONTickerNameCache"}
+    - {name: ITickerNameCache, owner: market-data-storage, source: "src/doge/core/ports/cache.py:7-22", methods: "get(ticker)->Optional[str], load(market)->Dict[str,str], clear()->None", notes: "Local-JSON ticker-name lookup; adapter JSONTickerNameCache (src/doge/infrastructure/cache/ticker_cache.py). ADR-0001 alias: 'Cache' == ITickerNameCache (ADR-0009). ADR-0003's proposed ICache reconciles to this port (S002-011)."}
+    - {name: ITickerMetadataSource, owner: data-sources, source: "src/doge/core/ports/metadata.py", methods: "get_metadata(ticker, market)->Optional[dict] ({name, sector})", notes: "DISTINCT from ITickerNameCache — remote yfinance .info (network, name+sector) vs local JSON (file, name string). Adapter YFinanceMetadataSource (stub, raises NotImplementedError pending src/micro/industry_analyzer.py:190 migration). ADR-0001 alias: 'TickerMetadataSource' == ITickerMetadataSource (ADR-0009)."}
+    - {name: IMarketViewRepository, owner: market-data-storage, source: "src/doge/core/ports/market_view.py", methods: "execute(sql, params=None)->DataFrame", notes: "Single execute->DataFrame surface for the 4 read-only view-backed services (View/Ranking/Breadth/Anomaly). Adapter DuckDBMarketViewRepository (src/doge/infrastructure/database/market_view_repository.py). ADR-0010."}
     - {name: NoteRepository, owner: research-insight-knowledge-base, source: "ADR-0001; reconciliation TR-042", notes: "IReportRepository extension proposed: delete_note, get_notes, get_recent_notes, list_tracked_tickers, get_ticker_with_context"}
-    - {name: ICache, owner: market-data-storage, source: "ADR-0003 (proposed)", notes: "JSONTickerNameCache routes behind it; not yet declared as ABC"}
+
+  # --- ADR-0001 -> source ABC alias map (AC-10/OQ-2, resolved by ADR-0009) ---
+  # ADR-0001 uses un-prefixed canonical names; source ABCs are I-prefixed. The
+  # I-prefix is KEPT (no rename); this table records the mapping so registry
+  # readers and /architecture-review can reconcile the two naming conventions.
+  adr0001_port_aliases:
+    - {adr0001_name: StockRepository, source_abc: IStockRepository}
+    - {adr0001_name: ReportRepository, source_abc: IReportRepository}
+    - {adr0001_name: MarketDataSource, source_abc: IMarketDataSource}
+    - {adr0001_name: TickerMetadataSource, source_abc: ITickerMetadataSource, notes: "remote yfinance .info name+sector (ADR-0009 split)"}
+    - {adr0001_name: Cache, source_abc: ITickerNameCache, notes: "local-JSON ticker-name lookup (ADR-0009 split; == ADR-0003 proposed ICache)"}
 
   # --- Ports (5 TCP) ---
   network_ports:

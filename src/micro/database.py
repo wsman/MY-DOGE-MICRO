@@ -1,7 +1,29 @@
 import os
 import sqlite3
+import logging
 import pandas as pd
 from datetime import datetime, timedelta
+
+# S002-006 / TR-006: typed write error replaces the legacy swallowed
+# ``except Exception: pass`` in save_stock_data_custom. Import the centralized
+# error from the doge ports layer; fall back to a RuntimeError alias only if
+# the doge package is not importable in this legacy runtime context.
+try:
+    from doge.core.ports.repository import StorageWriteError
+except ImportError:  # pragma: no cover - legacy bootstrap fallback
+    class StorageWriteError(RuntimeError):
+        """Fallback alias when the doge package is unavailable.
+
+        Mirrors doge.core.ports.repository.StorageWriteError so the legacy
+        module keeps a typed write error even in environments where the
+        doge package has not been installed yet.
+        """
+
+        pass
+
+
+logger = logging.getLogger(__name__)
+
 
 def get_db_connection(db_path=None):
     """获取数据库连接对象
@@ -140,10 +162,11 @@ def save_stock_data_custom(data, db_path, retention_days=None):
             retention_days = 730
             print(f"[WARN] could not load doge settings for retention_days, "
                   f"falling back to 730 (NOT 180): {e}")
-    conn = get_db_connection(db_path)
+    conn = None
     cutoff = (datetime.now() - timedelta(days=retention_days)).strftime('%Y-%m-%d')
 
     try:
+        conn = get_db_connection(db_path)
         cur = conn.cursor()
         ticker = data['ticker'].iloc[0] if not data.empty else 'UNKNOWN'
         cur.execute(
@@ -166,9 +189,27 @@ def save_stock_data_custom(data, db_path, retention_days=None):
         )
         conn.commit()
     except Exception as e:
-        pass
+        # S002-006 / TR-006: surface write failures as a typed
+        # StorageWriteError (logged at ERROR with full traceback) instead of
+        # swallowing them with a bare ``pass``. The original cause is chained
+        # via ``__cause__`` so diagnostics are preserved. Callers that need
+        # per-ticker fault tolerance MUST catch StorageWriteError explicitly.
+        # NOTE: connection-open failures also land here (the get_db_connection
+        # call now lives inside this try) so unwritable paths surface too.
+        ticker_ctx = (
+            data['ticker'].iloc[0] if not data.empty and 'ticker' in data.columns
+            else 'UNKNOWN'
+        )
+        logger.error(
+            "save_stock_data_custom failed ticker=%s db=%s: %s",
+            ticker_ctx, db_path, e, exc_info=True,
+        )
+        raise StorageWriteError(
+            f"write failed for ticker={ticker_ctx} db={db_path}"
+        ) from e
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
 
 def get_tickers_sync_state(db_path, tickers):
     """批量查询多只票在 DB 中的最新日期和条数，用于增量下载。

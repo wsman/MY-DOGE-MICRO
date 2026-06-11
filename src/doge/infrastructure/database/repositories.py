@@ -14,10 +14,31 @@ from .sqlite import SQLiteConnection
 
 
 class DuckDBStockRepository(IStockRepository):
-    """Stock data repository backed by DuckDB + attached SQLite."""
+    """Stock data repository backed by DuckDB + attached SQLite.
+
+    This adapter is **read-only** by design (single-logical-writer principle,
+    ``market-data-storage.md:301``): DuckDB attaches the SQLite market files
+    in read-only mode for analytical views. All writes MUST go through
+    :class:`~doge.infrastructure.database.sqlite_storage.SQLiteStorageRepository`,
+    which owns the live SQLite writer.
+    """
 
     def __init__(self, conn: DuckDBConnection | None = None):
         self._conn = conn or DuckDBConnection(read_only=True)
+
+    def save_prices(self, market: str, frame) -> int:
+        """Writes are owned by ``SQLiteStorageRepository``.
+
+        The DuckDB adapter is read-only (it attaches the SQLite market files
+        read-only for analytical views). Calling this method indicates a
+        caller-side wiring mistake — route writes through
+        :class:`~doge.infrastructure.database.sqlite_storage.SQLiteStorageRepository`
+        instead.
+        """
+        raise NotImplementedError(
+            "DuckDBStockRepository is read-only; persist prices via "
+            "SQLiteStorageRepository.save_prices(market, frame) instead."
+        )
 
     def get_prices(self, ticker: str, market: str, days: int = 20) -> List[dict]:
         if market == "cn":

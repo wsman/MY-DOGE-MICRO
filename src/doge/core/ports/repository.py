@@ -7,6 +7,22 @@ from abc import ABC, abstractmethod
 from typing import List, Optional
 
 
+class StorageWriteError(RuntimeError):
+    """Raised by storage write paths (``save_prices``) when persistence fails.
+
+    Replaces the legacy swallowed ``except Exception: pass`` in
+    ``src/micro/database.py::save_stock_data_custom`` (TR-006). Write paths
+    MUST surface failures via this typed exception so callers can decide
+    whether to tolerate (per-ticker scan loop) or propagate (single-shot
+    write) — silent failure is forbidden under ADR-0003.
+
+    Subclasses ``RuntimeError`` per ADR-0003:133. The original underlying
+    exception (sqlite3.IntegrityError, OperationalError, OSError, ...) is
+    chained via ``raise StorageWriteError(...) from e`` so ``__cause__``
+    preserves the root cause for diagnostics.
+    """
+
+
 class IStockRepository(ABC):
     """Interface for stock price data access."""
 
@@ -28,6 +44,33 @@ class IStockRepository(ABC):
     @abstractmethod
     def get_sync_state(self, tickers: List[str]) -> dict[str, dict]:
         """Return {ticker: {"latest_date": str, "row_count": int}}."""
+        ...
+
+    @abstractmethod
+    def save_prices(self, market: str, frame) -> int:
+        """Persist an OHLCV frame to the ``stock_prices`` table.
+
+        Args:
+            market: Market identifier (``"cn"`` or ``"us"``); selects the
+                target SQLite database file.
+            frame: A pandas ``DataFrame`` with columns ``date, open, high,
+                low, close, volume, amount, ticker``. The ``ticker`` column
+                MUST be present so retention pruning can be applied per-ticker.
+
+        Returns:
+            The number of rows appended.
+
+        Raises:
+            StorageWriteError: When the underlying write fails (PK violation,
+                unwritable path, schema mismatch, ...). The original
+                exception is chained via ``__cause__``. Callers MUST NOT see
+                a swallowed failure.
+
+        Notes:
+            The write is **DESTRUCTIVE** — rows older than the configured
+            ``DOGE_RETENTION_DAYS`` (default 730, must be ``>= 730``) are
+            deleted per ticker on every call. See ADR-0003 and S002-007.
+        """
         ...
 
 

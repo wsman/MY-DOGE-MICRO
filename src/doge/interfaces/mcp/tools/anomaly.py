@@ -1,7 +1,6 @@
 """MCP tool: volume_anomalies."""
 
-from doge.core.services import AnomalyService
-from doge.infrastructure.database.duckdb import DuckDBConnection
+from doge.core.services.composition import build_anomaly_service
 
 
 def _fmt(columns, rows):
@@ -23,7 +22,7 @@ def _fmt(columns, rows):
 
 
 async def volume_anomalies(min_ratio: float = 3.0, top: int = 20) -> str:
-    svc = AnomalyService(DuckDBConnection(read_only=True))
+    svc = build_anomaly_service()
     data = svc.anomalies(min_ratio, top)
     if not data:
         return "No anomalies"

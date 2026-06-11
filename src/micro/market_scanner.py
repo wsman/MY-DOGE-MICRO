@@ -3,6 +3,7 @@ import sys
 import sqlite3
 import glob
 import re
+import logging
 import pandas as pd
 
 # 路径自适应
@@ -19,6 +20,20 @@ from tdx_downloader import (
     CN_SERVERS,
     US_SERVERS,
 )
+
+# S002-006 / TR-006: typed write error raised by save_stock_data_custom on
+# persistence failure. Falls back to a RuntimeError alias if the doge package
+# is unavailable in this legacy runtime context.
+try:
+    from doge.core.ports.repository import StorageWriteError
+except ImportError:  # pragma: no cover - legacy bootstrap fallback
+    class StorageWriteError(RuntimeError):
+        """Fallback alias mirroring doge.core.ports.repository.StorageWriteError."""
+
+        pass
+
+
+logger = logging.getLogger(__name__)
 
 # 项目根目录下的 ai_analysis 包
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -126,17 +141,22 @@ class MarketScanner:
             try:
                 # 2. 读取数据
                 df = self.reader.get_data(ticker, market_type='cn')
-                
+            except Exception as e:
+                # 容错处理: 仅捕获读/df 构建失败 —— 单只票的读取异常不得中断整盘扫描。
+                logger.warning("CN scan: failed reading ticker=%s: %s", ticker, e)
+                continue
+
+            try:
                 # 3. 写入数据库 (关键逻辑)
                 if not df.empty:
                     # 增加 ticker 列
                     df['ticker'] = ticker
                     save_stock_data_custom(df, db_path)
-            except Exception as e:
-                # 容错处理
-                print(f"Error reading {ticker}: {e}")
-                pass
-            
+            except StorageWriteError as e:
+                # S002-006 / TR-006: 单只票写入失败不再被静默吞掉 —— 记 WARNING
+                # 后继续下一只票，保证 4000+ 票的扫描不会因为一条坏数据中止。
+                logger.warning("CN scan: ticker=%s write failed: %s", ticker, e)
+
             # 4. 更新进度条 (每100个或是1%更新一次，避免UI卡顿)
             if progress_callback and i % 50 == 0:
                 progress_callback(int((i + 1) / total * 100), f"正在入库: {ticker}")
@@ -191,16 +211,22 @@ class MarketScanner:
             try:
                 # 2. 读取数据
                 df = self.reader.get_data(ticker, market_type='us')
-                
+            except Exception as e:
+                # 容错处理: 仅捕获读/df 构建失败 —— 单只票的读取异常不得中断整盘扫描。
+                logger.warning("US scan: failed reading ticker=%s: %s", ticker, e)
+                continue
+
+            try:
                 # 3. 写入数据库 (关键逻辑)
                 if not df.empty:
                     # 增加 ticker 列
                     df['ticker'] = ticker
                     save_stock_data_custom(df, db_path)
-            except Exception as e:
-                print(f"Error reading {ticker}: {e}")
-                pass
-            
+            except StorageWriteError as e:
+                # S002-006 / TR-006: 单只票写入失败不再被静默吞掉 —— 记 WARNING
+                # 后继续下一只票，保证整盘扫描不会因为一条坏数据中止。
+                logger.warning("US scan: ticker=%s write failed: %s", ticker, e)
+
             # 4. 更新进度条 (每100个或是1%更新一次，避免UI卡顿)
             if progress_callback and i % 50 == 0:
                 progress_callback(int((i + 1) / total * 100), f"正在入库: {ticker}")

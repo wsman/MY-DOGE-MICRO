@@ -15,6 +15,7 @@ import sys
 import struct
 import sqlite3
 import time
+import logging
 import argparse
 from datetime import datetime
 
@@ -28,6 +29,20 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from database import init_db_custom, save_stock_data_custom, get_tickers_sync_state
 from opentdx.tdxClient import TdxClient
 from opentdx.const import MARKET, EX_MARKET, PERIOD, ADJUST
+
+# S002-006 / TR-006: typed write error raised by save_stock_data_custom on
+# persistence failure. Distinct from network/kline errors so the
+# consecutive_failures reconnect logic below only fires on real network faults.
+try:
+    from doge.core.ports.repository import StorageWriteError
+except ImportError:  # pragma: no cover - legacy bootstrap fallback
+    class StorageWriteError(RuntimeError):
+        """Fallback alias mirroring doge.core.ports.repository.StorageWriteError."""
+
+        pass
+
+
+logger = logging.getLogger(__name__)
 
 # === 服务器列表 ===
 def _load_servers_from_opentdx():
@@ -206,6 +221,14 @@ def download_cn_kline(client, tickers, db_path, max_bars=120, progress_cb=None,
                 save_stock_data_custom(df, db_path)
                 fetched += 1
             consecutive_failures = 0
+        except StorageWriteError as e:
+            # S002-006 / TR-006: write failure is distinct from a network/kline
+            # fetch failure. Do NOT increment consecutive_failures — the
+            # reconnect logic below must only fire on real server faults, not
+            # local SQLite write errors.
+            logger.error(
+                "CN kline: ticker=%s write failed (continuing): %s", ticker, e
+            )
         except Exception as e:
             consecutive_failures += 1
             if consecutive_failures >= 5:
@@ -263,6 +286,13 @@ def download_us_kline(client, tickers, db_path, max_bars=120, progress_cb=None,
                 save_stock_data_custom(df, db_path)
                 fetched += 1
             consecutive_failures = 0
+        except StorageWriteError as e:
+            # S002-006 / TR-006: write failure is distinct from a network/kline
+            # fetch failure. Do NOT increment consecutive_failures — the
+            # reconnect logic below must only fire on real server faults.
+            logger.error(
+                "US kline: ticker=%s write failed (continuing): %s", ticker, e
+            )
         except Exception as e:
             consecutive_failures += 1
             if consecutive_failures >= 5:
@@ -432,8 +462,17 @@ def download_cn_raw(client, tickers, db_path, local_dir=None,
                 # 同时写入本地 vipdoc (如果指定)
                 if local_dir:
                     _write_local_day_file(local_dir, ticker, records)
+        except StorageWriteError as e:
+            # S002-006 / TR-006: write failure is now observable (logged at
+            # ERROR) instead of silently swallowed.
+            logger.error(
+                "CN raw: ticker=%s write failed (continuing): %s", ticker, e
+            )
         except Exception:
-            pass
+            logger.warning(
+                "CN raw: ticker=%s fetch/parse failed (continuing)", ticker,
+                exc_info=True,
+            )
 
         if progress_cb and i % 50 == 0:
             progress_cb(int((i + 1) / total * 100), "raw: {}".format(ticker))

@@ -138,19 +138,26 @@ still uses raw dicts.
   / get_latest_market_date / is_connected).
 - `cache.py`: `ITickerNameCache` (get / load / clear).
 
-**`src/doge/core/services/`** — business services, take ports/conns via
-constructor injection:
+**`src/doge/core/services/`** — business services, take ports via constructor
+injection:
 - `StockService(IStockRepository)` — `query()`, `overview()`.
-- `RankingService(DuckDBConnection)` — `rsrs(market, top)`.
-- `BreadthService(DuckDBConnection)` — `breadth(market, days)`.
-- `AnomalyService(DuckDBConnection)` — `anomalies(min_ratio, top)`.
-- `ViewService(DuckDBConnection)` — `list_views()`.
+- `RankingService(IMarketViewRepository)` — `rsrs(market, top)`.
+- `BreadthService(IMarketViewRepository)` — `breadth(market, days)`.
+- `AnomalyService(IMarketViewRepository)` — `anomalies(min_ratio, top)`.
+- `ViewService(IMarketViewRepository)` — `list_views()`.
+- `composition.py` — factory functions `build_view_service()` /
+  `build_ranking_service()` / `build_breadth_service()` /
+  `build_anomaly_service()` that construct a `DuckDBMarketViewRepository` and
+  inject it. This module is the **single site** under `core/services/` that
+  imports `doge.infrastructure` (per ADR-0010).
 
-> Known deviation from the strict rule (open question, see §8 AC-9): the four
-> view-backed services accept a `DuckDBConnection` *adapter* directly rather
-> than a port. Only `StockService` currently depends on a true abstract port
-> (`IStockRepository`). ADR-0001 permits this as an interim step (exact method
-> signatures owned by module CDDs / implementation stories — ADR-0001:125).
+> **Resolved (2026-06-12, ADR-0010 / story S002-004 / TR-041):** the four
+> view-backed services were previously a known deviation — they accepted the
+> concrete `DuckDBConnection` adapter directly rather than a port. They now
+> depend on the `IMarketViewRepository` port (single `execute(sql, params) ->
+> DataFrame` method covering all four read-only view services), with default
+> adapter construction moved to the composition root. The four service modules
+> now import no infrastructure, satisfying AC-2. See ADR-0010.
 
 **`src/doge/infrastructure/`** — adapters implementing the ports:
 - `database/duckdb.py` — `DuckDBConnection` context manager that auto-attaches
@@ -192,7 +199,7 @@ gated by tests before the next begins:
 | 1 | `pyproject.toml` (editable install `pip install -e .`), `src/doge/config/settings.py`, eliminate `sys.path.insert` | `pyproject.toml` exists (packages find at `src/`, pythonpath `["src"]`); settings.py exists; legacy `sys.path.insert` **still present in 13 distinct legacy files** (14 insert sites — `tdx_downloader.py` has two) | Partial — package install exists, legacy bootstraps remain |
 | 2 | Repository ports + DuckDB/SQLite adapters + repositories | `ports/repository.py`, `infrastructure/database/{duckdb,sqlite,repositories}.py` all exist | Implemented (read paths); write-path coverage partial |
 | 3 | TDX data source adapter | `data_source/tdx.py` is a stub raising `NotImplementedError` | Not started — logic still in `micro/tdx_downloader.py` |
-| 4 | Core services | All 5 services exist; only `StockService` uses a port; others take `DuckDBConnection` | Implemented (interim shape) |
+| 4 | Core services | All 5 services exist; all now take ports — `StockService` uses `IStockRepository`, the 4 view-backed services use `IMarketViewRepository` (ADR-0010) | Implemented (port-injected; composition root owns infra wiring) |
 | 5 | Interface rewire (MCP/CLI/API/GUI) | MCP done (`interfaces/mcp/`); `src/api/routers/*` still legacy; `src/cli.py` still legacy | MCP complete; API/CLI/GUI pending |
 | 6 | Cleanup + full test pass | Legacy code still present | Pending |
 
@@ -231,34 +238,52 @@ Data source ports (`src/doge/core/ports/data_source.py`):
 - **`MarketDataSource`** — market data download (TDX / yfinance). *(Source class
   name: `IMarketDataSource`.)*
 
-Plus the **ticker-name / cache port** (`src/doge/core/ports/cache.py`):
-- **`ITickerNameCache`** — ticker name/metadata access (get / load / clear).
-  *(Proposed canonical names under reconciliation: `TickerMetadataSource` vs
-  `Cache` — these are **mutually-exclusive candidate names for the same source
-  class**, not two separate ports; ADR-0001 references both names for this single
-  adapter column, architecture summary ADR-0001:98-99. See OQ-2 and §4.7.)*
+Plus the **two distinct ticker-metadata ports** (resolved by ADR-0009):
+- **`ITickerNameCache`** (`src/doge/core/ports/cache.py`) — local-JSON ticker
+  name lookup (get / load / clear; returns a name string). Adapter:
+  `JSONTickerNameCache` (file-backed). This is ADR-0001's `Cache` concept.
+- **`ITickerMetadataSource`** (`src/doge/core/ports/metadata.py`) — remote
+  yfinance `.info` metadata lookup (`get_metadata(ticker, market) -> Optional[dict]`
+  returning `{'name': ..., 'sector': ...}`). Adapter:
+  `YFinanceMetadataSource` (stub, raises `NotImplementedError` pending the
+  `industry_analyzer.py:190` migration). This is ADR-0001's `TickerMetadataSource`.
 
-> **Naming note (open question OQ-2):** ADR-0001 lists the canonical names
-> without the `I` prefix (`StockRepository`, …); source code uses `I`-prefixed
-> ABC names (`IStockRepository`, …). This is a documented drift to reconcile in
-> Phase 5 registry work — do not silently rename here. The `ITickerNameCache`
-> class additionally has two competing proposed canonical names
-> (`TickerMetadataSource`, `Cache`) which are alternatives, not concurrent
-> ports — only one will be recorded in the registry.
+> **Resolved (2026-06-12, ADR-0009 / story S002-003 / TR-042 / OQ-2):** the
+> "mutually-exclusive candidate names" framing is withdrawn — `ITickerNameCache`
+> (local file, name string) and `ITickerMetadataSource` (network, name+sector
+> dict) are **two distinct ports**, differing by data source and returned shape.
+> ADR-0001:115's `TickerMetadataSource` line is read as refined by ADR-0009
+> (un-prefixed `TickerMetadataSource` -> `ITickerMetadataSource`; `Cache` ->
+> `ITickerNameCache`).
 
-### 4.2 Core service inventory (verbatim from ADR-0001:117-123)
+Read-only view port (`src/doge/core/ports/market_view.py`):
+- **`IMarketViewRepository`** — single `execute(sql, params) -> DataFrame`
+  method covering all four read-only view-backed services. Adapter:
+  `DuckDBMarketViewRepository`. (ADR-0010 / TR-041 / OQ-5.)
+
+> **Naming note (AC-10/OQ-2, resolved):** ADR-0001 lists the canonical names
+> without the `I` prefix (`StockRepository`, `TickerMetadataSource`, …); source
+> code uses `I`-prefixed ABC names (`IStockRepository`, `ITickerMetadataSource`,
+> …). Per ADR-0009 the **I-prefix is kept** and the registry records the alias
+> map; no existing ABC is renamed.
+
+### 4.2 Core service inventory (verbatim from ADR-0001:117-123, updated by ADR-0010)
 
 - **`StockService`** — `src/doge/core/services/stock_service.py`. Constructed
   with `IStockRepository`. Methods: `query(ticker, market, days)`,
   `overview(ticker, market)`.
 - **`RankingService`** — `ranking_service.py`. Constructed with
-  `DuckDBConnection`. Method: `rsrs(market, top)`.
+  `IMarketViewRepository` (ADR-0010). Method: `rsrs(market, top)`.
 - **`BreadthService`** — `breadth_service.py`. Constructed with
-  `DuckDBConnection`. Method: `breadth(market, days)`.
+  `IMarketViewRepository` (ADR-0010). Method: `breadth(market, days)`.
 - **`AnomalyService`** — `anomaly_service.py`. Constructed with
-  `DuckDBConnection`. Method: `anomalies(min_ratio, top)`.
-- **`ViewService`** — `view_service.py`. Constructed with `DuckDBConnection`.
-  Method: `list_views()`.
+  `IMarketViewRepository` (ADR-0010). Method: `anomalies(min_ratio, top)`.
+- **`ViewService`** — `view_service.py`. Constructed with
+  `IMarketViewRepository` (ADR-0010). Method: `list_views()`.
+- **`composition.py`** — `src/doge/core/services/composition.py`. Factory
+  functions `build_view_service()` / `build_ranking_service()` /
+  `build_breadth_service()` / `build_anomaly_service()`; the single
+  infrastructure-import site for the view-backed services (ADR-0010).
 
 ### 4.3 Layer dependency contract (enforced rule)
 
@@ -500,8 +525,10 @@ Testable pass/fail. Each criterion names the artifact or grep that proves it.
   only until editable install is enforced; its removal is a sub-item.*
 - [ ] **AC-2.** No file under `src/doge/core/services/` imports `sqlite3`,
   `duckdb`, `ai_analysis`, `micro`, or any interface framework (`fastapi`,
-  `mcp`, `PyQt6`). (Today `ranking/breadth/anomaly/view_service.py` import
-  `DuckDBConnection` — see AC-9 for the interim-port reconciliation.)
+  `mcp`, `PyQt6`), nor `from doge.infrastructure`. (Resolved 2026-06-12 by
+  ADR-0010: `ranking/breadth/anomaly/view_service.py` now import only the
+  `IMarketViewRepository` port; the single infrastructure import lives in the
+  `composition.py` composition root.)
 - [ ] **AC-3.** Path/DB constants in legacy `src/ai_analysis/__init__.py` and
   `src/doge/config/settings.py` resolve to identical values for the same
   environment (parity test passes for all 5 env vars).
@@ -531,18 +558,20 @@ Testable pass/fail. Each criterion names the artifact or grep that proves it.
   `ai_analysis` god-package path constants are removed.
 
 **Interim-shape reconciliation (recorded open question → AC)**
-- [ ] **AC-9.** The four `DuckDBConnection`-backed services are converted to
-  depend on ports (e.g. a `IMarketViewRepository` or per-domain repository port)
-  rather than the concrete `DuckDBConnection` adapter, *or* ADR-0001 is amended
-  to formally permit adapter-injection for view-backed read services. (Currently
-  a deviation from the strict rule — see §3.2 note.)
+- [x] **AC-9.** **RESOLVED (2026-06-12, ADR-0010 / story S002-004 / TR-041 /
+  OQ-5).** The four view-backed services are converted to depend on the
+  `IMarketViewRepository` port (single `execute(sql, params) -> DataFrame`
+  method) rather than the concrete `DuckDBConnection` adapter. A composition
+  root (`composition.py`) owns the default-adapter construction. See ADR-0010.
 
 **Naming reconciliation**
-- [ ] **AC-10.** ADR-0001 port names (`StockRepository`, `ReportRepository`,
+- [x] **AC-10.** **RESOLVED (2026-06-12, ADR-0009 / story S002-003 / TR-042 /
+  OQ-2).** ADR-0001 port names (`StockRepository`, `ReportRepository`,
   `NoteRepository`, `MarketDataSource`, `TickerMetadataSource`, `Cache`) are
-  reconciled with source class names (`IStockRepository`, etc.) — either the
-  registry records the alias mapping or the source is renamed — as part of the
-  Phase-5 registry approval. (OQ-2.)
+  reconciled with source class names (`IStockRepository`, etc.) via a registry
+  alias map — the **I-prefix is kept** and no existing ABC is renamed. The
+  `TickerMetadataSource`/`Cache` ambiguity is split into two distinct ports
+  (`ITickerMetadataSource` + `ITickerNameCache`). See ADR-0009.
 
 **Entrypoint / test gates (from ADR-0001:212-217)**
 - [ ] **AC-11.** `pytest` passes for MCP tools, database, and transport in the
@@ -567,18 +596,23 @@ Testable pass/fail. Each criterion names the artifact or grep that proves it.
 - **OQ-1.** When is `doge_mcp.py:13-15` `sys.path.insert` fallback removed?
   Gated on enforcing `pip install -e .` (Batch 1 completion). Until then it is
   the one sanctioned shim.
-- **OQ-2.** Reconcile ADR-0001 port names (`StockRepository`, no `I` prefix)
-  with source ABC names (`IStockRepository`). Registry alias vs. rename —
-  deferred to Phase-5 registry approval.
+- **OQ-2.** **RESOLVED (2026-06-12, ADR-0009 / story S002-003 / TR-042).**
+  ADR-0001 port names are reconciled with source ABC names by **keeping the
+  I-prefix** and recording a registry alias map. The `TickerMetadataSource` vs
+  `Cache` ambiguity is resolved by splitting into two distinct ports:
+  `ITickerNameCache` (local-JSON name lookup) + `ITickerMetadataSource` (remote
+  yfinance `.info` name+sector). See ADR-0009.
 - **OQ-3.** Should DuckDB `threads` (duckdb.py:39, currently hardcoded `4`)
   and `OPENBLAS_NUM_THREADS` become operator-configurable via `Settings`, or
   stay adapter-owned?
 - **OQ-4.** Should a standalone `NoteRepository` port be split out of
   `IReportRepository` (which currently mixes macro reports, research reports,
   notes, and stock names), or is the combined port acceptable long-term?
-- **OQ-5.** The view-backed services take a concrete `DuckDBConnection` rather
-  than a port (AC-9). Is a `IMarketViewRepository` port warranted, or does
-  ADR-0001 get amended to permit read-only view access via the adapter?
+- **OQ-5.** **RESOLVED (2026-06-12, ADR-0010 / story S002-004 / TR-041).** A
+  `IMarketViewRepository` port IS warranted (single `execute(sql, params) ->
+  DataFrame` method covers all four read-only view services). The four services
+  now take the port; a composition root owns the infrastructure wiring. See
+  ADR-0010.
 - **OQ-6.** Migration ordering vs. Modules #4/#5: do Macro Strategy Engine and
   Micro Momentum Scanner services get authored directly under
   `src/doge/core/services/`, or do their existing `src/micro/*` /

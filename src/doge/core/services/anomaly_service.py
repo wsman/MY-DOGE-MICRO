@@ -2,17 +2,24 @@
 
 from typing import List
 
-from doge.infrastructure.database.duckdb import DuckDBConnection
+from doge.core.ports.market_view import IMarketViewRepository
 
 
 class AnomalyService:
-    """Volume anomaly queries."""
+    """Volume anomaly queries.
 
-    def __init__(self, conn: DuckDBConnection | None = None):
-        self._conn = conn or DuckDBConnection(read_only=True)
+    Depends on the :class:`~doge.core.ports.market_view.IMarketViewRepository`
+    port (per ADR-0010); this service imports no infrastructure.
+
+    The ``vw_volume_anomalies_cn`` view name is intentionally hardcoded (out of
+    scope for ADR-0010 — see anomaly_service history).
+    """
+
+    def __init__(self, view: IMarketViewRepository):
+        self._view = view
 
     def anomalies(self, min_ratio: float = 3.0, top: int = 20) -> List[dict]:
-        df = self._conn.execute("""
+        df = self._view.execute("""
             SELECT ticker, date, volume, ROUND(avg_vol_20d, 0) AS avg_vol,
                    ROUND(vol_ratio, 2) AS vol_ratio,
                    ROUND(intraday_return, 2) AS ret_pct

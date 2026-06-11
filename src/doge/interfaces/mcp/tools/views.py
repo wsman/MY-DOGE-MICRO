@@ -1,9 +1,8 @@
 """MCP tool: list_views."""
 
-from doge.core.services import ViewService
-from doge.infrastructure.database.duckdb import DuckDBConnection
+from doge.core.services.composition import build_view_service
 
 
 async def list_views() -> str:
-    svc = ViewService(DuckDBConnection(read_only=True))
+    svc = build_view_service()
     return svc.list_views()

@@ -88,7 +88,7 @@ All open the research DB directly (Current State; target is `SQLiteReportReposit
 - `IReportRepository` (implemented by `SQLiteReportRepository`, `repositories.py:113-203`):
   - `list_macro_reports`, `get_macro_report`, `save_macro_report`, `save_research_report`, `add_note`, `search_notes`, `list_stock_names`. All via `SQLiteConnection` (`use_row_factory=True`).
 
-> **Cache port**: ADR-0001 lists a `Cache` port; storage's only current cache usage is `JSONTickerNameCache` (`src/doge/infrastructure/cache/ticker_cache.py`) consumed inside `get_overview`. A formal `ICache` port is not yet declared in `repository.py` (Open Question).
+> **Cache port**: ADR-0001 lists a `Cache` port; storage's only current cache usage is `JSONTickerNameCache` (`src/doge/infrastructure/cache/ticker_cache.py`) consumed inside `get_overview`. **Resolved (2026-06-12, ADR-0009):** ADR-0001's `Cache` concept is `ITickerNameCache` (`src/doge/core/ports/cache.py`) — the local-JSON ticker-name port. The remote yfinance `.info` name+sector metadata is a **separate** port, `ITickerMetadataSource` (`src/doge/core/ports/metadata.py`, stub adapter `YFinanceMetadataSource`). See OQ-7 below and ADR-0009.
 
 ### 3.6 Read path — DuckDB analytical layer
 
@@ -335,6 +335,6 @@ Docs:
 4. **`initialize_system_dbs` does not create all tables** — should it, or should each repository lazily create its table?
 5. **`DuckDBStockRepository.get_sync_state` always queries `cn_db`** even for US tickers — bug or intended?
 6. **No WAL / `busy_timeout`** — should the target contract enable WAL?
-7. **`ICache` port** — ADR-0001 mentions a `Cache` port; `JSONTickerNameCache` is used but not behind a declared port. Formalize?
+7. **RESOLVED (2026-06-12, ADR-0009 / story S002-003 / TR-042)** — ADR-0001's `Cache` port **is** `ITickerNameCache` (`src/doge/core/ports/cache.py`), implemented by `JSONTickerNameCache` (local-JSON ticker-name lookup). The remote yfinance `.info` name+sector metadata is a **distinct** port, `ITickerMetadataSource` (`src/doge/core/ports/metadata.py`), with a stub adapter `YFinanceMetadataSource` pending the `industry_analyzer.py:190` migration. ADR-0003's proposed `ICache` is reconciled to `ITickerNameCache` (formal ADR-0003 promotion is S002-011 scope).
 8. **`stock_names` bootstrap** — who creates and populates this table? (Currently only read by `list_stock_names`; no writer in this module.)
 9. **`temp_vol_check` view** — appears in `list_views` but is not in `data/views.sql`. Where is it defined? (Likely created ad-hoc; needs to be added to `views.sql` or removed.)
