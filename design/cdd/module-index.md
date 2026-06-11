@@ -26,8 +26,8 @@ MY-DOGE QUANT SYSTEM is a local-first product composed of data ingestion, local 
 | 7 | Research Insight Knowledge Base | Core | MVP | In Progress | design/cdd/research-insight-knowledge-base.md | Market Data Storage, AI Industry Analysis |
 | 8 | MCP Server | Interface | MVP | In Progress | design/cdd/mcp-server.md | Runtime Configuration, Market Data Storage, Research Insight Knowledge Base |
 | 9 | FastAPI Service | Interface | Vertical Slice | In Progress | design/cdd/fastapi-service.md | Runtime Configuration, Market Data Storage, Macro Strategy Engine, Micro Momentum Scanner |
-| 10 | PyQt Desktop Dashboard | Presentation | Vertical Slice | In Progress | — | Macro Strategy Engine, Micro Momentum Scanner, AI Industry Analysis |
-| 11 | Vue Web Console | Presentation | Alpha | In Progress | — | FastAPI Service |
+| 10 | PyQt Desktop Dashboard | Presentation | Vertical Slice | In Progress | design/cdd/pyqt-desktop-dashboard.md | Macro Strategy Engine, Micro Momentum Scanner, AI Industry Analysis |
+| 11 | Vue Web Console | Presentation | Alpha | In Progress | design/cdd/vue-web-console.md | FastAPI Service |
 | 12 | Clean Architecture Migration | Operations | MVP | In Progress | design/cdd/clean-architecture-migration.md | Runtime Configuration, Market Data Storage |
 
 ---

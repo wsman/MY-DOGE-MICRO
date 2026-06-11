@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@vicons/ionicons5": "^0.13.0",
@@ -23,9 +25,12 @@
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^24.12.2",
     "@vitejs/plugin-vue": "^6.0.6",
+    "@vue/test-utils": "^2.4.6",
     "@vue/tsconfig": "^0.9.1",
+    "jsdom": "^25.0.1",
     "typescript": "~6.0.2",
     "vite": "^8.0.10",
+    "vitest": "^2.1.9",
     "vue-tsc": "^3.2.7"
   }
 }
