@@ -336,14 +336,26 @@ async def stock_overview(ticker: str, market: str = "cn") -> str:
         lines.append(f"\n价格查询失败: {exc}")
 
     # 笔记
+    # Consistency with Module #7's soft-delete (Phase 2): the stock_notes table
+    # carries a nullable ``deleted_at`` column once migrated by
+    # ``ai_analysis.stock_notes._ensure_deleted_at_column``. That migration is
+    # lazy and runs only on the stock_notes.py read paths — NOT here — so the
+    # column may or may not exist on this raw connection. We detect it once and
+    # add ``AND deleted_at IS NULL`` when present so soft-deleted notes do not
+    # leak into MCP responses (see CDD module #7 §3.3 and #8 bug fix).
     try:
         conn = sqlite3.connect(str(RESEARCH_DB))
         cur = conn.cursor()
+        has_deleted_at = "deleted_at" in {
+            row[1] for row in cur.execute("PRAGMA table_info(stock_notes)").fetchall()
+        }
+        deleted_pred = " AND deleted_at IS NULL" if has_deleted_at else ""
         n = cur.execute(
-            "SELECT COUNT(*) FROM stock_notes WHERE ticker=?", (t,)
+            f"SELECT COUNT(*) FROM stock_notes WHERE ticker=?{deleted_pred}", (t,)
         ).fetchone()[0]
         notes = cur.execute(
-            "SELECT created_at, content FROM stock_notes WHERE ticker=? ORDER BY created_at DESC LIMIT 5",
+            f"SELECT created_at, content FROM stock_notes WHERE ticker=?{deleted_pred} "
+            f"ORDER BY created_at DESC LIMIT 5",
             (t,),
         ).fetchall()
         conn.close()
