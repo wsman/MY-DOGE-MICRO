@@ -161,16 +161,40 @@ class MacroConfig:
             print(f"❌ [MacroConfig] 读取配置文件出错: {e}")
 
     def _apply_runtime_overrides(self):
+        """Apply runtime environment-variable overrides.
+
+        As of S002-013 the ``DEEPSEEK_API_KEY`` environment variable is the
+        PRIMARY source of the DeepSeek API key. ``models_config.json`` ships
+        only a placeholder sentinel (``REPLACE_WITH_DEEPSEEK_API_KEY``); the
+        on-disk value MUST NOT reach the OpenAI client.
+
+        Resolution order:
+          1. ``DEEPSEEK_API_KEY`` env var — if set and non-empty, it wins.
+          2. Otherwise, if the JSON-loaded ``self.api_key`` is the placeholder
+             sentinel, ``None``, or empty → raise ``RuntimeError`` with a clear
+             remediation message. We never print-and-continue (the old behavior
+             let the placeholder flow silently to ``OpenAI(...)``).
+
+        ``DEEPSEEK_MODEL`` remains a secondary override used by the GUI to
+        switch models at runtime; its behavior is unchanged.
         """
-        应用运行时环境变量覆盖 (兼容 GUI 切换模型)
-        注意：这里的 env 是 GUI 临时设置的内存变量，不是 .env 文件
-        """
-        env_api_key = os.getenv("DEEPSEEK_API_KEY")
-        if env_api_key: self.api_key = env_api_key
-        
+        # Sentinel shipped in models_config.json so grep-based scanners have a
+        # single, obvious placeholder pattern. Keep in sync with the template.
+        placeholder_sentinel = "REPLACE_WITH_DEEPSEEK_API_KEY"
+
+        env_api_key = os.environ.get("DEEPSEEK_API_KEY")
+        if env_api_key:
+            self.api_key = env_api_key
+
         env_model = os.getenv("DEEPSEEK_MODEL")
-        if env_model: self.model = env_model
-        
-        if not self.api_key:
-            # 仅作为警告，不阻断初始化 (可能在 GUI 中稍后设置)
-            print("⚠️ [MacroConfig] Warning: API Key is not set.")
+        if env_model:
+            self.model = env_model
+
+        if not self.api_key or self.api_key == placeholder_sentinel:
+            # The placeholder must NOT silently flow to OpenAI(); block early
+            # with a typed, actionable error instead of the old print-and-continue.
+            raise RuntimeError(
+                "DEEPSEEK_API_KEY environment variable is not set and "
+                "models_config.json still carries the placeholder. "
+                "Set DEEPSEEK_API_KEY=<your-key>."
+            )

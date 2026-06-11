@@ -26,10 +26,21 @@ class AnalysisWorker(QThread):
         self.profile = profile_config
 
     def run(self):
-        # 核心逻辑：利用环境变量注入配置，兼容 MacroConfig
-        # 这样就不需要修改底层的 config.py，实现了 .env 和 JSON 并存
-        os.environ["DEEPSEEK_API_KEY"] = self.profile.get("api_key", "")
+        # DEEPSEEK_MODEL is set from the selected profile so GUI model-switching
+        # keeps working. As of S002-013 the operator MUST export
+        # DEEPSEEK_API_KEY before launching the GUI — models_config.json ships
+        # only a placeholder, so we no longer inject the profile's api_key here.
         os.environ["DEEPSEEK_MODEL"] = self.profile.get("model", "deepseek-chat")
+
+        if not os.environ.get("DEEPSEEK_API_KEY"):
+            # Surface the missing key via the worker log so the operator sees a
+            # clear remediation hint instead of an opaque SDK auth failure.
+            self.log_signal.emit(
+                "⚠️ DEEPSEEK_API_KEY is not set in the environment. "
+                "Export DEEPSEEK_API_KEY=<your-key> before launching the GUI, "
+                "or macro report generation will fail."
+            )
+
         # 如果底层支持 base_url 环境变量，也可以注入，否则默认
         
         try:

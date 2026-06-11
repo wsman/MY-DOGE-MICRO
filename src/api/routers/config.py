@@ -4,6 +4,7 @@
 
 import os
 import json
+import copy
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
@@ -25,11 +26,30 @@ def _write_json(path, data):
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
+def _redact_api_keys(config: dict) -> dict:
+    """Return a deep copy of ``config`` with every profile ``api_key`` dropped.
+
+    As of S002-013 the local FastAPI surface MUST NOT echo ``api_key`` to any
+    HTTP client — not the real key, and not even the placeholder sentinel. The
+    on-disk ``models_config.json`` shape is unchanged; only the HTTP response
+    is sanitized so a read-only disclosure cannot occur. All other fields
+    (``base_url``, ``model``, ``default_profile``, ``macro_settings``,
+    ``assets``, ``scanner_filters``, ``proxy_settings``) are preserved.
+    """
+    redacted = copy.deepcopy(config)
+    profiles = redacted.get("profiles")
+    if isinstance(profiles, list):
+        for profile in profiles:
+            if isinstance(profile, dict):
+                profile.pop("api_key", None)
+    return redacted
+
+
 @router.get("")
 async def get_config():
-    """读取 models_config.json"""
+    """读取 models_config.json (api_key 字段在响应中被移除，不向 HTTP 客户端泄漏)"""
     path = os.path.join(_PROJECT_ROOT, "models_config.json")
-    return _read_json(path)
+    return _redact_api_keys(_read_json(path))
 
 
 @router.get("/settings")

@@ -282,7 +282,7 @@ The following constants/env-vars are proposed for later registration in `docs/re
 
 ### 6.4 Cross-cutting process env (owned elsewhere, listed for awareness)
 - `OPENBLAS_NUM_THREADS` / `OMP_NUM_THREADS` — set by `src/ai_analysis/__init__.py:15-16`, `src/api/main.py:12-13`, `src/doge/infrastructure/database/duckdb.py:16-17`. **Not** owned by settings (open question).
-- `DEEPSEEK_API_KEY` / `DEEPSEEK_MODEL` — owned by `src/macro/config.py:168-172` and set by `src/interface/analysis_gui.py:31-32`. **Not** owned by settings (open question — LLM config consolidation).
+- `DEEPSEEK_API_KEY` / `DEEPSEEK_MODEL` — owned by `src/macro/config.py:_apply_runtime_overrides` and read by `src/macro/strategist.py` + `src/interface/analysis_gui.py`. As of **S002-013**, `DEEPSEEK_API_KEY` is the PRIMARY key source (the env var wins over the JSON value), and `models_config.json` ships only the placeholder `REPLACE_WITH_DEEPSEEK_API_KEY`; if the env var is unset and the JSON value is the placeholder/empty/`None`, `MacroConfig` raises `RuntimeError` (no silent print-and-continue). The GUI no longer injects the profile `api_key` into the env (the `DEEPSEEK_API_KEY` write line was removed); the operator must export it before launch. **Not** owned by settings (the broader LLM/config consolidation into `settings.py` remains an open question — see #1).
 - `HTTP_PROXY` / `HTTPS_PROXY` — set transiently by `src/micro/industry_analyzer.py:50-51` and `src/macro/data_loader.py:56-147`. Not owned by settings.
 
 ### 6.5 Governance references
@@ -357,6 +357,12 @@ Changing any default in this file is a **backward-incompatible config change** p
 - Repointing a default path relocates every DB on next run — breaking, with data-loss appearance.
 - Tightening validation (e.g. asserting paths exist) can break deployments that create paths lazily.
 
+### 7.8 Secrets / process env (owned elsewhere, documented for awareness)
+
+| Env var | Default | Valid range / type | Env ownership | Operational risk |
+|---------|---------|--------------------|---------------|------------------|
+| `DEEPSEEK_API_KEY` | `(unset)` — required for macro LLM reports | Non-empty string ≥ 10 chars (DeepSeek-issued `sk-...` key). | Operator. Read by `src/macro/config.py` at `MacroConfig` construction; also read by the GUI worker. | **HIGH** — missing/empty blocks all macro LLM reports with a `RuntimeError` (no print-and-continue fallback). `models_config.json` ships only the `REPLACE_WITH_DEEPSEEK_API_KEY` placeholder; the on-disk value never reaches the OpenAI client. |
+
 ---
 
 ## 8. Acceptance Criteria
@@ -393,7 +399,7 @@ Testable pass/fail conditions. Items marked **[GATE]** are blocking for `clean-a
 
 ## 9. Open Questions (aspirational — NOT current behavior)
 
-1. **LLM/model config consolidation**: should `MacroConfig` (`src/macro/config.py`) and its `DEEPSEEK_API_KEY`/`DEEPSEEK_MODEL`/`models_config.json`/`proxy_settings` be folded into `settings.py` (e.g. an `LLMConfig` dataclass)? Today they are a parallel config system. (Affects `ai-industry-analysis` #6 and `macro-strategy-engine` #4.)
+1. **LLM/model config consolidation**: should `MacroConfig` (`src/macro/config.py`) and its `DEEPSEEK_API_KEY`/`DEEPSEEK_MODEL`/`models_config.json`/`proxy_settings` be folded into `settings.py` (e.g. an `LLMConfig` dataclass)? Today they are a parallel config system. (Affects `ai-industry-analysis` #6 and `macro-strategy-engine` #4.) — **Secret-rotation half RESOLVED by S002-013**: `DEEPSEEK_API_KEY` is now the PRIMARY key source, `models_config.json` ships only the placeholder `REPLACE_WITH_DEEPSEEK_API_KEY`, and the local FastAPI `GET /api/config` drops `api_key` from the HTTP response. The broader `settings.py` consolidation of the `DEEPSEEK_*` knobs remains OPEN.
 2. **Validation**: should `settings.py` validate env values (path writability, port ranges, positive ints) at construction and raise a typed `ConfigError`, instead of deferring to first-use runtime errors?
 3. **Thread-limit shims**: should `OPENBLAS_NUM_THREADS`/`OMP_NUM_THREADS` (`setdefault` at import in 3 modules) be centralized in `settings.py` or a dedicated `runtime/env.py`?
 4. **Environment profiles**: introduce `DOGE_ENV=local|test|prod` to satisfy `.claude/rules/config-files.md`'s environment-tier separation requirement?
