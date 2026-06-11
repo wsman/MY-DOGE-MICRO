@@ -106,40 +106,41 @@ async def get_kline(market: str, ticker: str, days: int = Query(120, ge=1, le=36
     if market not in ("cn", "us"):
         raise HTTPException(400, "market must be cn or us")
 
-    try:
-        from src.ai_analysis import connect_duckdb
-        con = connect_duckdb()
+    # NOTE: the body runs unwrapped (S002-009). Any failure (e.g. duckdb
+    # connection error) surfaces through the global Exception handler in
+    # src/api/main.py, which logs server-side and returns the stable
+    # {"error": {"code", "message"}} envelope — it never leaks str(e).
+    from src.ai_analysis import connect_duckdb
+    con = connect_duckdb()
 
-        if market == "cn":
-            view = "vw_daily_enriched_cn"
-            base_table = "cn.stock_prices"
-        else:
-            view = None
-            base_table = "us.stock_prices"
+    if market == "cn":
+        view = "vw_daily_enriched_cn"
+        base_table = "cn.stock_prices"
+    else:
+        view = None
+        base_table = "us.stock_prices"
 
-        if view:
-            df = con.execute(f"""
-                SELECT date, open, high, low, close, volume,
-                       ma_5, ma_10, ma_20, ma_60, atr_14
-                FROM {view}
-                WHERE ticker = ?
-                ORDER BY date DESC
-                LIMIT ?
-            """, [ticker, days]).df()
-        else:
-            df = con.execute(f"""
-                SELECT date, open, high, low, close, volume, amount
-                FROM {base_table}
-                WHERE ticker = ?
-                ORDER BY date DESC
-                LIMIT ?
-            """, [ticker, days]).df()
+    if view:
+        df = con.execute(f"""
+            SELECT date, open, high, low, close, volume,
+                   ma_5, ma_10, ma_20, ma_60, atr_14
+            FROM {view}
+            WHERE ticker = ?
+            ORDER BY date DESC
+            LIMIT ?
+        """, [ticker, days]).df()
+    else:
+        df = con.execute(f"""
+            SELECT date, open, high, low, close, volume, amount
+            FROM {base_table}
+            WHERE ticker = ?
+            ORDER BY date DESC
+            LIMIT ?
+        """, [ticker, days]).df()
 
-        con.close()
-        df = df.sort_values("date")
-        return {"data": df.to_dict(orient="records")}
-    except Exception as e:
-        raise HTTPException(500, str(e))
+    con.close()
+    df = df.sort_values("date")
+    return {"data": df.to_dict(orient="records")}
 
 
 # --- 股票名称映射缓存 ---

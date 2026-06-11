@@ -314,13 +314,30 @@ returned to `["*"]`; repository routing is backward-compatible by definition.
 - [ ] `tests/test_api_routers.py` is green and covers every endpoint
   (success + validation failure + edge case); the no-auth case is documented
   as intentionally skipped. (DONE — 57 passed as of 2026-06-12.)
-- [ ] After the error-envelope migration: no response body on any path
+- [x] After the error-envelope migration: no response body on any path
   contains the raw `str(e)` of an internal exception (regression assertion).
+  **(DONE — S002-009.)** The two global handlers (`@app.exception_handler(
+  HTTPException)` + `@app.exception_handler(Exception)`) are registered in
+  `src/api/main.py`; the six `try/except Exception as e: raise HTTPException(
+  500, str(e))` wrappers are removed from `data.py:get_kline` and the five
+  `notes.py` handlers. The stable `code` convention is a **string enum**
+  (`bad_request` / `not_found` / `conflict` / `unprocessable` /
+  `internal_error`, with an `http_{status}` fallback for unmapped codes)
+  rather than the illustrative `str(exc.status_code)` pseudocode shown in the
+  Key Interfaces block above — the string enum was chosen so the S002-010 SSE
+  client can branch on `error.error.code`. The raw exception is logged
+  server-side via `logging.getLogger("doge.api").exception(...)` and is never
+  returned. The BLOCKING contract regression is
+  `tests/contract/test_api_error_envelope.py`. FastAPI's default 422
+  `RequestValidationError` handler is intentionally left as-is (out of scope
+  for S002-009); S002-011 owns any follow-on.
 - [ ] After the CORS hardening: `allow_origins` is an explicit list and a
   non-loopback `bind_host` is gated on it.
 - [ ] This ADR is promoted from Proposed to Accepted once the CORS hardening
   story (or an explicit decision to keep `*` under a strengthened loopback
-  guarantee) lands.
+  guarantee) lands. **(S002-009 closes only the error-envelope half of this
+  gate; the CORS-hardening half remains out of Sprint 002 scope. S002-011 owns
+  the promotion-gate cross-reference note.)**
 
 ## CDD Requirements Addressed
 
