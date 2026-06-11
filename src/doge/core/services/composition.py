@@ -54,3 +54,32 @@ def build_anomaly_service(
 ) -> AnomalyService:
     """Build an :class:`AnomalyService` with an injected (or default) repository."""
     return AnomalyService(repo if repo is not None else build_view_repository())
+
+
+def refresh_views() -> None:
+    """Materialize the DuckDB analytical views after a market-data scan.
+
+    Replaces the interface-layer DuckDB-connect / view-DDL calls that used to
+    live directly inside ``src/api/routers/scan.py`` (an ADR-0001 forbidden
+    pattern; S002-005 / TR-011). The DuckDB materialization is delegated to
+    the clean :class:`~doge.infrastructure.database.duckdb.DuckDBConnection`
+    adapter's own ``refresh_views`` (the canonical runner for
+    ``data/views.sql``), so behavior is preserved while the literal forbidden
+    symbols stay out of the interface layer.
+
+    This function lives in the composition root — the single sanctioned site
+    for an infrastructure import (ADR-0010 AC-2: service modules import no
+    infrastructure; only this factory module does).
+
+    Raises:
+        Exception: Any failure from the underlying DuckDB materialization is
+            propagated unchanged so callers can log it (the interface layer
+            logs at WARNING via :func:`logging.warning` — see scan.py). It is
+            deliberately NOT swallowed here so a refresh failure is observable
+            (the server-side half of the S002-010 stuck-running concern).
+    """
+    from doge.infrastructure.database.duckdb import DuckDBConnection
+
+    # The adapter's refresh_views opens its own write-mode connection and
+    # closes it; we do not hold a long-lived connection here.
+    DuckDBConnection(read_only=False).refresh_views()

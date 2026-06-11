@@ -36,3 +36,5 @@ class ViewService:
             except Exception:
                 rows.append({"view": vn, "rows": None, "columns": ""})
         return json.dumps(rows, indent=2, ensure_ascii=False)
+
+

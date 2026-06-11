@@ -62,6 +62,48 @@ class SQLiteStorageRepository(IStockRepository):
 
     # ── Write side ────────────────────────────────────────────────────────
 
+    def ensure_schema(self, market: str) -> None:
+        """Idempotently create the ``stock_prices`` table for ``market``.
+
+        Routes schema bootstrap (formerly ``init_db_custom`` called directly
+        from the interface layer — an ADR-0001 forbidden pattern) through the
+        single logical writer. Delegates to the legacy
+        ``init_db_custom`` which is ``CREATE TABLE IF NOT EXISTS``.
+
+        Args:
+            market: ``"cn"`` or ``"us"`` — selects the target DB path via
+                centralized ``Settings().db`` (``cn_db`` / ``us_db``).
+
+        Raises:
+            ValueError: If ``market`` is not ``"cn"`` or ``"us"``.
+            StorageWriteError: If schema initialization fails for any reason;
+                the original exception is chained on ``__cause__``.
+        """
+        if market == "cn":
+            db_path: Path = get_settings().db.cn_db
+        elif market == "us":
+            db_path = get_settings().db.us_db
+        else:
+            raise ValueError(
+                f"unknown market {market!r}; expected 'cn' or 'us'"
+            )
+        # Lazy import: micro is a package under src/ (pythonpath=['src'] /
+        # editable install). Avoids a module-load circular import.
+        from micro.database import init_db_custom
+
+        try:
+            init_db_custom(str(db_path))
+        except StorageWriteError:
+            raise
+        except Exception as exc:
+            logger.error(
+                "ensure_schema failed market=%s db=%s: %s",
+                market, db_path, exc, exc_info=True,
+            )
+            raise StorageWriteError(
+                f"schema init failed for market={market} db={db_path}: {exc}"
+            ) from exc
+
     def save_prices(self, market: str, frame) -> int:
         """Persist ``frame`` to the market SQLite database.
 

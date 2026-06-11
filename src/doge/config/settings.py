@@ -85,13 +85,24 @@ class TDXConfig:
 
 @dataclass(frozen=True)
 class MarketConfig:
-    """Market-related constants.
+    """Market-related constants — the SINGLE SOURCE OF TRUTH for scanner filters.
 
     ``retention_days`` is the per-ticker destructive prune ceiling applied on
     every OHLCV write. It is sourced from ``DOGE_RETENTION_DAYS`` (default
     730) and MUST be ``>= 730`` to satisfy the widest analytical-view window
     (``vw_market_breadth_cn`` advertises a 730-day horizon in
     ``data/views.sql``). See ADR-0003 (Storage Repository Contract).
+
+    Scanner-filter fields (S002-008 / TR-019): this dataclass is the canonical
+    source for the Micro Momentum Scanner (Module #5) filters. The scanner reads
+    these values via ``get_settings().market`` and MUST NOT consult
+    ``models_config.json`` ``scanner_filters`` (that block was removed; see
+    ADR-0002 and ``tests/contract/test_scanner_filter_drift_guard.py``).
+
+    ``us_blacklist`` holds the ~52 leveraged/inverse ETF tickers the US scan
+    excludes; the type is ``tuple[str, ...]`` because a frozen dataclass cannot
+    hold a mutable ``list`` default. ``cn_universe_prefixes`` are the A-share
+    investable-code prefixes.
     """
     whitelist: frozenset[str] = frozenset({"cn", "us"})
     cn_min_volume: int = 200_000_000
@@ -99,6 +110,19 @@ class MarketConfig:
     max_change_pct: int = 400
     rsrs_window: int = 18
     retention_days: int = field(default_factory=lambda: _env_int("DOGE_RETENTION_DAYS", 730))
+    # S002-008: scanner-filter canonical values. us_blacklist is a tuple (frozen
+    # dataclass constraint) — converted to a list at the MomentumRanker call
+    # site so existing ``.get('us_blacklist')`` reads keep working.
+    us_blacklist: tuple[str, ...] = (
+        "SQQQ", "TQQQ", "SOXL", "SOXS", "SPXU", "SPXS", "SDS", "SSO", "UPRO",
+        "QID", "QLD", "TNA", "TZA", "UVXY", "VIXY", "SVXY", "LABU", "LABD",
+        "YANG", "YINN", "FNGU", "FNGD", "WEBL", "WEBS", "KOLD", "BOIL", "TSLY",
+        "NVDY", "AMDY", "MSTY", "CONY", "APLY", "GOOY", "MSFY", "AMZY", "FBY",
+        "OARK", "XOMO", "JPMO", "DISO", "NFLY", "SQY", "PYPY", "AIYY", "YMAX",
+        "YMAG", "ULTY", "SVOL", "TLTW", "HYGW", "LQDW", "BITX",
+    )
+    # S002-008: A-share investable-code prefixes (CN whitelist root codes).
+    cn_universe_prefixes: tuple[str, ...] = ("00", "30", "60", "68")
 
 
 @dataclass(frozen=True)

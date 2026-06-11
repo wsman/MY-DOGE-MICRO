@@ -47,6 +47,25 @@ class IStockRepository(ABC):
         ...
 
     @abstractmethod
+    def ensure_schema(self, market: str) -> None:
+        """Idempotently create the ``stock_prices`` table for ``market``.
+
+        Args:
+            market: Market identifier (``"cn"`` or ``"us"``); selects the
+                target SQLite database file via centralized settings.
+
+        Raises:
+            StorageWriteError: When schema initialization fails. Callers MUST
+                NOT see a swallowed failure.
+
+        Notes:
+            Replaces the legacy interface-layer ``init_db_custom`` call
+            (ADR-0001 forbidden pattern) with a port-backed bootstrap so the
+            schema write flows through the single logical writer. See S002-005.
+        """
+        ...
+
+    @abstractmethod
     def save_prices(self, market: str, frame) -> int:
         """Persist an OHLCV frame to the ``stock_prices`` table.
 

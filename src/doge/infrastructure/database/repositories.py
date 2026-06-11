@@ -26,6 +26,20 @@ class DuckDBStockRepository(IStockRepository):
     def __init__(self, conn: DuckDBConnection | None = None):
         self._conn = conn or DuckDBConnection(read_only=True)
 
+    def ensure_schema(self, market: str) -> None:
+        """Schema bootstrap is owned by ``SQLiteStorageRepository``.
+
+        The DuckDB adapter is read-only (it attaches the SQLite market files
+        read-only for analytical views). Calling this method indicates a
+        caller-side wiring mistake — route schema bootstrap through
+        :class:`~doge.infrastructure.database.sqlite_storage.SQLiteStorageRepository`
+        instead.
+        """
+        raise NotImplementedError(
+            "DuckDBStockRepository is read-only; initialize the schema via "
+            "SQLiteStorageRepository.ensure_schema(market) instead."
+        )
+
     def save_prices(self, market: str, frame) -> int:
         """Writes are owned by ``SQLiteStorageRepository``.
 

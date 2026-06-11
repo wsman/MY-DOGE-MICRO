@@ -4,17 +4,43 @@
           POST /api/servers/test     (测试连通性)
 """
 
-import os
 import json
+import os
 import asyncio
 import threading
 import time
+import logging
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 from sse_starlette.sse import EventSourceResponse
 
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# S002-005 (TR-011 / TR-040): the interface layer MUST NOT open SQLite/DuckDB
+# connections, import the legacy schema-init / DuckDB-connect writers, or
+# recompute a project-root path inline (ADR-0001 forbidden patterns).
+# All DB needs are routed through the clean layer:
+#   - schema bootstrap + writes: SQLiteStorageRepository (single logical writer)
+#   - SQLite reads (US ticker list): SQLiteConnection adapter
+#   - DuckDB view materialization: ViewService.refresh_views
+#   - all paths: get_settings().db.* (never a local root derivation)
+from doge.config import get_settings
+from doge.core.services.composition import refresh_views
+from doge.infrastructure.database.sqlite import SQLiteConnection
+from doge.infrastructure.database.sqlite_storage import SQLiteStorageRepository
+
+logger = logging.getLogger(__name__)
+
+
+def _db_path_for(market: str) -> str:
+    """Resolve the market SQLite path via centralized settings (never a local root)."""
+    settings = get_settings()
+    return str(settings.db.cn_db if market == "cn" else settings.db.us_db)
+
+
+def _storage_repo() -> SQLiteStorageRepository:
+    """Build the single-logical-writer repository (schema bootstrap + writes)."""
+    return SQLiteStorageRepository()
+
 
 # 扫描锁: 同一市场同时只能跑一个扫描
 _scan_locks = {"cn": threading.Lock(), "us": threading.Lock()}
@@ -147,10 +173,12 @@ async def start_scan(market: str, body: ScanRequest):
 
         def run_scan():
             try:
-                from src.micro.database import init_db_custom
-                db_name = f"market_data_{market}.db"
-                db_path = os.path.join(_PROJECT_ROOT, "data", db_name)
-                init_db_custom(db_path)
+                # S002-005: schema bootstrap routed through the clean layer
+                # (SQLiteStorageRepository.ensure_schema) instead of a direct
+                # interface-layer import of the legacy schema-init function.
+                # Path sourced from centralized settings, never a local root.
+                db_path = _db_path_for(market)
+                _storage_repo().ensure_schema(market)
 
                 if body.use_server:
                     # 优先走服务器下载
@@ -159,7 +187,7 @@ async def start_scan(market: str, body: ScanRequest):
                         CN_SERVERS, US_SERVERS,
                     )
 
-                    csv_path = os.path.join(_PROJECT_ROOT, "data", "stock_names_cn.csv")
+                    csv_path = str(get_settings().stock_names_csv)
 
                     if market == "cn":
                         import pandas as pd
@@ -172,13 +200,12 @@ async def start_scan(market: str, body: ScanRequest):
                         servers = CN_SERVERS
                         download_fn = download_cn_kline
                     else:
-                        # 美股: 从数据库读取已有 tickers
-                        import sqlite3
-                        conn = sqlite3.connect(db_path)
-                        cur = conn.cursor()
-                        cur.execute("SELECT DISTINCT ticker FROM stock_prices")
-                        tickers = [r[0] for r in cur.fetchall()]
-                        conn.close()
+                        # 美股: 从数据库读取已有 tickers via the SQLiteConnection
+                        # adapter (clean layer) — no interface-layer sqlite3.
+                        rows = SQLiteConnection(db_path).execute(
+                            "SELECT DISTINCT ticker FROM stock_prices"
+                        )
+                        tickers = [r[0] for r in rows]
                         servers = US_SERVERS
                         download_fn = download_us_kline
 
@@ -205,14 +232,18 @@ async def start_scan(market: str, body: ScanRequest):
                 else:
                     _run_local_scan(market, body.tdx_path, db_path, callback)
 
-                # 刷新 DuckDB
+                # 刷新 DuckDB — routed through the clean ViewService.refresh_views
+                # seam (S002-005). A refresh failure is LOGGED (logger.warning)
+                # rather than silently swallowed, so a stuck/failed refresh is
+                # observable on the server side (half of the S002-010
+                # stuck-running concern). The scan still completes.
                 try:
-                    from src.ai_analysis import connect_duckdb, run_views_sql
-                    con = connect_duckdb()
-                    run_views_sql(con)
-                    con.close()
-                except Exception:
-                    pass
+                    refresh_views()
+                except Exception as refresh_err:
+                    logger.warning(
+                        "DuckDB view refresh failed after %s scan: %s",
+                        market, refresh_err, exc_info=True,
+                    )
 
                 asyncio.run_coroutine_threadsafe(
                     queue.put({"progress": 100, "message": "done"}), loop

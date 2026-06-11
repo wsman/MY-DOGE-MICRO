@@ -1,48 +1,86 @@
-import sqlite3
 import pandas as pd
 import os
 import sys
-import json
 from datetime import datetime
 from collections import Counter
 from scipy import stats
 import numpy as np
 
-# 路径自适应
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(os.path.dirname(current_dir))
-data_dir = os.path.join(project_root, 'data')
+# S002-005 (TR-011): the module-global ``current_dir`` / ``project_root`` /
+# ``data_dir`` path recalculations (forbidden ``_PROJECT_ROOT`` pattern under
+# ADR-0001) are removed. Paths now resolve through the centralized settings
+# singleton (``doge.config.get_settings``), and raw sqlite3 module connect is
+# replaced by the clean ``SQLiteConnection`` adapter. ``project_root`` is kept
+# ONLY as a derived settings-backed value for the legacy CSV-output path so the
+# standalone CLI entrypoint (``if __name__ == "__main__"``) keeps working.
+try:
+    from doge.config import get_settings
+
+    def _project_root():
+        return str(get_settings().project_root)
+
+    def _db_path_for(db_name):
+        """Resolve a market DB filename to an absolute path via settings.
+
+        ``db_name`` is a bare filename like ``market_data_cn.db``; the data dir
+        comes from ``Settings().db.dir`` (overridable via ``DOGE_DB_DIR``).
+        """
+        return os.path.join(str(get_settings().db.dir), db_name)
+except ImportError:  # pragma: no cover - legacy bootstrap fallback
+    def _project_root():
+        return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+    def _db_path_for(db_name):
+        return os.path.join(_project_root(), "data", db_name)
+
+
+def _build_sqlite_connection(db_path):
+    """Build a clean ``SQLiteConnection`` adapter for ``db_path``.
+
+    The adapter (not a raw sqlite3 module connect) owns the connection lifecycle.
+    Imported lazily so this module is import-safe; the doge package is the
+    production path (the editable install / ``pythonpath=['src']`` makes
+    ``doge.infrastructure`` importable everywhere this module runs).
+    """
+    from doge.infrastructure.database.sqlite import SQLiteConnection
+
+    return SQLiteConnection(db_path)
+
 
 class MomentumRanker:
     def __init__(self):
         self.config = self._load_config()
 
     def _load_config(self):
-        """加载配置文件，如果不存在则使用默认值"""
-        config_path = os.path.join(project_root, 'models_config.json')
-        default_config = {
-            "us_blacklist": ["SQQQ", "TQQQ", "SOXL", "SOXS", "SPXU", "SPXS", "SDS", "SSO", "UPRO", "QID", "QLD", "TNA", "TZA", "UVXY", "VIXY", "SVXY", "LABU", "LABD", "YANG", "YINN", "FNGU", "FNGD", "WEBL", "WEBS", "KOLD", "BOIL", "TSLY", "NVDY", "AMDY", "MSTY", "CONY", "APLY", "GOOY", "MSFY", "AMZY", "FBY", "OARK", "XOMO", "JPMO", "DISO", "NFLY", "SQY", "PYPY", "AIYY", "YMAX", "YMAG", "ULTY", "SVOL", "TLTW", "HYGW", "LQDW", "BITX"],
-            "min_volume_cn": 200000000,
-            "min_volume_us": 20000000,
-            "max_change_pct": 400,
-            "rsrs_window": 18
+        """Build the scanner config as a dict VIEW over ``get_settings().market``.
+
+        S002-008 (TR-019): ``Settings().market`` is now the single source of
+        truth for scanner filters (ADR-0002). This method no longer opens
+        ``models_config.json`` nor reads a ``scanner_filters`` block — that
+        block was removed from both the live config and the tracked template,
+        and a drift guard (``tests/contract/test_scanner_filter_drift_guard.py``)
+        fails if any production module reintroduces the key-read.
+
+        The returned dict preserves the LEGACY key names used at the call sites
+        (``analyze_market`` reads ``us_blacklist`` / ``rsrs_window`` /
+        ``max_change_pct`` via ``self.config.get(...)``, momentum_scanner.py
+        ~214-216). The mapping is:
+          - ``MarketConfig.us_blacklist`` (tuple)  -> ``us_blacklist`` (list)
+          - ``MarketConfig.cn_min_volume``         -> ``min_volume_cn``
+          - ``MarketConfig.us_min_volume``         -> ``min_volume_us``
+          - ``MarketConfig.max_change_pct``        -> ``max_change_pct``
+          - ``MarketConfig.rsrs_window``           -> ``rsrs_window``
+          - ``MarketConfig.cn_universe_prefixes``  -> ``cn_universe_prefixes``
+        """
+        market = get_settings().market
+        return {
+            "us_blacklist": list(market.us_blacklist),
+            "min_volume_cn": market.cn_min_volume,
+            "min_volume_us": market.us_min_volume,
+            "max_change_pct": market.max_change_pct,
+            "rsrs_window": market.rsrs_window,
+            "cn_universe_prefixes": list(market.cn_universe_prefixes),
         }
-        
-        if os.path.exists(config_path):
-            try:
-                with open(config_path, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    # 合并/覆盖默认配置，防止 key 缺失报错
-                    if "scanner_filters" in data:
-                        return data["scanner_filters"]
-                    else:
-                        print("[WARN] 配置文件中未找到 scanner_filters，使用默认配置")
-            except Exception as e:
-                print(f"[WARN] 配置文件加载失败: {e}, 使用默认配置")
-        else:
-            print("[WARN] 配置文件不存在，使用默认配置")
-        
-        return default_config
 
     def calculate_rsrs(self, series, window=18):
         """
@@ -156,50 +194,66 @@ class MomentumRanker:
         return max_diff
 
     def get_connection(self, db_name):
-        db_path = os.path.join(data_dir, db_name)
+        """Build a clean ``SQLiteConnection`` adapter for ``db_name``.
+
+        Returns ``None`` (and prints ``[ERR]``) when the resolved DB file does
+        not exist, preserving the legacy behavior contract relied on by
+        :meth:`analyze_market`. The path is resolved via centralized settings
+        (``Settings().db.dir``), NOT a module-global ``data_dir`` recalculation.
+        The adapter (not a raw sqlite3 module connect) owns the actual connection
+        lifecycle — callers use ``with adapter.connect() as conn:`` (S002-005).
+        """
+        db_path = _db_path_for(db_name)
         if not os.path.exists(db_path):
             print(f"[ERR] 数据库不存在: {db_path}")
             return None
-        return sqlite3.connect(db_path)
+        return _build_sqlite_connection(db_path)
 
     def analyze_market(self, market_type, db_name, amount_threshold):
         print(f"\n[GO] 正在分析 {market_type} 市场动量...")
-        
+
         # 1. 优先使用传入参数，否则使用配置
         min_vol = amount_threshold  # 保留原参数，不做覆盖逻辑，以保持兼容
         blacklist = set(self.config.get('us_blacklist', []))
         window = self.config.get('rsrs_window', 18)
         max_change_pct = self.config.get('max_change_pct', 400)
-        
+        # S002-008: CN investable-code prefixes are now sourced from
+        # Settings().market.cn_universe_prefixes via _load_config (canonical),
+        # not hardcoded inline.
+        cn_prefixes = tuple(self.config.get('cn_universe_prefixes', ('00', '30', '60', '68')))
+
         print(f"   [CFG] 筛选标准: 60日涨幅排名 | 60日日均成交额 > {min_vol/10000:.0f}万")
-        
-        conn = self.get_connection(db_name)
-        if not conn: return
 
+        adapter = self.get_connection(db_name)
+        if not adapter:
+            return
+
+        # S002-005: the adapter owns the connection lifecycle via its
+        # ``connect()`` contextmanager (replaces raw sqlite3 module connect +
+        # manual ``conn.close()``). The yielded object is still a
+        # ``sqlite3.Connection``, so ``pd.read_sql_query`` works unchanged.
         try:
-            # 获取最新日期
-            cursor = conn.cursor()
-            cursor.execute("SELECT MAX(date) FROM stock_prices")
-            max_date = cursor.fetchone()[0]
-            if not max_date:
-                print("[WARN] 数据库为空")
-                return
+            with adapter.connect() as conn:
+                # 获取最新日期
+                cursor = conn.cursor()
+                cursor.execute("SELECT MAX(date) FROM stock_prices")
+                max_date = cursor.fetchone()[0]
+                if not max_date:
+                    print("[WARN] 数据库为空")
+                    return
 
-            # 加载最近半年数据
-            print("[WAIT] 正在加载数据到内存...")
-            query = f"""
-                SELECT ticker, date, close, high, low, amount 
-                FROM stock_prices 
-                WHERE date >= date('{max_date}', '-180 days')
-                ORDER BY ticker, date ASC
-            """
-            df = pd.read_sql_query(query, conn)
-            
+                # 加载最近半年数据
+                print("[WAIT] 正在加载数据到内存...")
+                query = f"""
+                    SELECT ticker, date, close, high, low, amount
+                    FROM stock_prices
+                    WHERE date >= date('{max_date}', '-180 days')
+                    ORDER BY ticker, date ASC
+                """
+                df = pd.read_sql_query(query, conn)
         except Exception as e:
             print(f"[ERR] 读取错误: {e}")
             return
-        finally:
-            conn.close()
 
         if df.empty:
             print("[WARN] 无数据")
@@ -232,7 +286,7 @@ class MomentumRanker:
                 # 确保 ticker 是字符串
                 ticker_str = str(ticker)
                 raw_code = ticker_str.split('.')[0]
-                if not raw_code.startswith(('00', '30', '60', '68')): continue
+                if not raw_code.startswith(cn_prefixes): continue
             
             # --- 流动性过滤 ---
             avg_amt = group['amount'].tail(60).mean()
@@ -311,7 +365,7 @@ class MomentumRanker:
             file_start = "00000000"
         
         filename = f"Top200_Momentum_{market_type}_{file_start}-{file_end}.csv"
-        save_path = os.path.join(project_root, filename)
+        save_path = os.path.join(_project_root(), filename)
         
         output_cols = ['ticker', 'price_60d_ago', 'price_current', 'change_percent', 'avg_daily_volume', 'rsrs_z']
         top_200[output_cols].to_csv(save_path, index=False)
@@ -321,12 +375,17 @@ class MomentumRanker:
 
 def main():
     ranker = MomentumRanker()
-    
-    # A股 (2亿 RMB)
-    ranker.analyze_market('CN', 'market_data_cn.db', 200000000)
-    
-    # 美股 (2000万 USD)
-    ranker.analyze_market('US', 'market_data_us.db', 20000000)
+
+    # S002-008 (TR-019): amount thresholds now come from Settings().market
+    # (the single source of truth) instead of hardcoded 2e8 / 2e7 literals,
+    # closing the call-site-override gap noted in the CDD §7 / §9 open-questions.
+    market = get_settings().market
+
+    # A股 (A股最低日均成交额阈值, 默认 2亿 RMB)
+    ranker.analyze_market('CN', 'market_data_cn.db', market.cn_min_volume)
+
+    # 美股 (美股最低日均成交额阈值, 默认 2000万 USD)
+    ranker.analyze_market('US', 'market_data_us.db', market.us_min_volume)
 
 if __name__ == "__main__":
     main()

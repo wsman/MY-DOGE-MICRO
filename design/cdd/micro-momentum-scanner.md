@@ -25,7 +25,7 @@ Micro Momentum Scanner is the Core module that ranks the strongest-trending A-sh
 - Tolerate offline/degraded operation: TDX-server-first with automatic local-file fallback (no crash when no server is reachable); DuckDB view refresh failures are non-fatal.
 - Hand the CSV off to the industry analyzer without re-implementing ranking logic.
 
-**The module does NOT yet keep** (open questions, Section 9): single-source config (it reads `models_config.json` + `scanner_filters` instead of `Settings().market.*`), env-overridable thresholds, structured logging, or service-layer wrapping for MCP/API consumption.
+**The module does NOT yet keep** (open questions, Section 9): env-overridable thresholds, structured logging, or service-layer wrapping for MCP/API consumption. (Single-source config was RESOLVED by S002-008/TR-019 — see §3.2.)
 
 ## 3. Detailed Behavior
 
@@ -37,15 +37,16 @@ Micro Momentum Scanner is the Core module that ranks the strongest-trending A-sh
 | `src/micro/market_scanner.py` | `MarketScanner`, module fns `_refresh_duckdb_views`, `_tdx_server_sync` | CN/US data ingestion from local TDX files with TDX-server-first sync; writes to `stock_prices`; refreshes DuckDB views | Section 3.7 |
 | `src/micro/industry_analyzer.py` | `IndustryAnalyzer` | CSV → metadata calibration → DeepSeek prompt → Markdown report → research DB | Section 3.8 (consumed by Module #6) |
 
-### 3.2 Configuration load (`MomentumRanker._load_config`, `momentum_scanner.py:20-45`)
+### 3.2 Configuration load (`MomentumRanker._load_config`, `momentum_scanner.py`)
 
-- Reads `<project_root>/models_config.json`; if the file exists and contains a `"scanner_filters"` object, that object **replaces** the default config entirely (`momentum_scanner.py:36-38`). If the file exists but lacks `scanner_filters`, or any I/O/parse error occurs, it prints a `[WARN]` and **returns the hardcoded default dict** (`momentum_scanner.py:23-29`).
-- Default `scanner_filters`:
-  - `us_blacklist`: 50 leveraged/inverse ETF tickers (`SQQQ`, `TQQQ`, `SOXL`, ... `BITX`) — full list at `momentum_scanner.py:24`.
-  - `min_volume_cn`: `200_000_000` (RMB), `min_volume_us`: `20_000_000` (USD).
-  - `max_change_pct`: `400` (60-day surge circuit breaker).
+- **S002-008 / TR-019 RESOLVED**: the scanner now reads `get_settings().market` (`src/doge/config/settings.py` `MarketConfig`) as the **single source of truth** for all scanner filters. The `models_config.json` `scanner_filters` block is removed from both the live (gitignored) config and the tracked template; a drift guard (`tests/contract/test_scanner_filter_drift_guard.py`) fails if any production module reintroduces the `scanner_filters` key-read.
+- `_load_config` builds and returns a **dict VIEW** over `MarketConfig` (not a copy of `models_config.json`), preserving the legacy key names so existing call sites (`self.config.get('us_blacklist'/'rsrs_window'/'max_change_pct')` in `analyze_market`) keep working unchanged. The mapping: `MarketConfig.us_blacklist` (tuple) → `us_blacklist` (list); `cn_min_volume` → `min_volume_cn`; `us_min_volume` → `min_volume_us`; `max_change_pct` → `max_change_pct`; `rsrs_window` → `rsrs_window`; `cn_universe_prefixes` → `cn_universe_prefixes`.
+- Canonical filter values (all on `MarketConfig`, `src/doge/config/settings.py`):
+  - `us_blacklist`: ~52 leveraged/inverse ETF tickers (`SQQQ`, `TQQQ`, `SOXL`, ... `BITX`) — stored as a `tuple[str, ...]` (frozen-dataclass constraint), converted to `list` at the call site.
+  - `cn_min_volume`: `200_000_000` (RMB), `us_min_volume`: `20_000_000` (USD).
+  - `max_change_pct`: `400` (60-day surge circuit breaker, US-only).
   - `rsrs_window`: `18`.
-- **Config drift (Current State vs Target)**: these defaults duplicate `Settings().market.*` (`src/doge/config/settings.py:57-64` `MarketConfig`). The live scanner reads `models_config.json` first; centralized `MarketConfig` is currently **not read** by this module (ADR-0002 drift — open question). Section 7 documents both owners.
+  - `cn_universe_prefixes`: `("00","30","60","68")` — A-share investable-code prefixes, consumed by `analyze_market`'s CN whitelist (no longer hardcoded inline).
 
 ### 3.3 Canonical RSRS — scalar path (`MomentumRanker.calculate_rsrs`, `momentum_scanner.py:47-71`)
 
@@ -346,25 +347,26 @@ These thresholds are **hardcoded in the prompt text**, not in config (open quest
 
 ## 7. Configuration Knobs
 
-> **Config drift note**: there are currently **two** config surfaces for the scanner filters — (a) `<project_root>/models_config.json` → `scanner_filters` (read first by this module), and (b) `Settings().market.*` (`src/doge/config/settings.py:57-64`, the centralized source per ADR-0002). They are **not wired together**; the live scanner ignores (b). Migration target: (b) wins, (a) becomes a profile/override.
+> **Config drift note (S002-008 / TR-019 RESOLVED, 2026-06-12)**: there is now a **single** config surface for the scanner filters — `Settings().market.*` (`src/doge/config/settings.py` `MarketConfig`, the centralized source per ADR-0002). The legacy `<project_root>/models_config.json` → `scanner_filters` block has been removed from both the live (gitignored) config and the tracked `models_config.template.json`; the scanner reads `get_settings().market` directly via `_load_config` (§3.2). A BLOCKING drift guard (`tests/contract/test_scanner_filter_drift_guard.py`) fails if any production `.py` under `src/micro`, `src/macro`, `src/api`, `src/doge` reintroduces the `scanner_filters` key-read.
 
 | Knob | Default | Valid range / type | Owner (Current) | Env owner | Operational risk |
 |---|---|---|---|---|---|
-| `rsrs_window` | `18` (bars) | positive int, typical 10–30 | `models_config.json` `scanner_filters.rsrs_window` (`momentum_scanner.py:28`) | (not env) | **HIGH** — changes ranking output; MUST stay aligned with `Settings().market.rsrs_window` (Module #1) and the DuckDB RSRS view (`REGR_*` over 18 bars, `data/views.sql:114-122`). Drift → inconsistent rankings across CSV vs MCP/API. |
-| `min_volume_cn` | `200_000_000` (RMB) | positive int | `models_config.json` `scanner_filters.min_volume_cn` | (not env) | **MEDIUM** — over-filters (miss mid-caps) or under-filters (illiquid noise). Note: `analyze_market`'s positional `amount_threshold` overrides this at the call site. |
-| `min_volume_us` | `20_000_000` (USD) | positive int | `models_config.json` `scanner_filters.min_volume_us` | (not env) | **MEDIUM** — same. |
-| `max_change_pct` | `400` (%) | positive int | `models_config.json` `scanner_filters.max_change_pct` | (not env) | **MEDIUM** — too low rejects legit breakouts; too high admits bad ticks. **Applied to US only** (`momentum_scanner.py:235`). |
-| `us_blacklist` | 50 tickers | list of str | `models_config.json` `scanner_filters.us_blacklist` | (not env) | **MEDIUM** — leveraged/inverse ETFs would otherwise dominate US rankings; list must be maintained as new products launch. |
-| `universe_lookback_days` | `180` (calendar days) | positive int | **HARDCODED** in SQL (`momentum_scanner.py:177`) | (not env) | **MEDIUM** — must be ≥ 60 trading days to compute the 60-day change; shorter → `change_pct` undefined for recent listings. Interacts with Module #2 `retention_days=180` (only ~120 bars are ever ingested per ticker, so 180 calendar days is ample headroom). |
-| `top_n` | `200` | positive int | **HARDCODED** (`momentum_scanner.py:280`) | (not env) | LOW — output size; raising increases LLM token cost downstream (Module #6 caps at 50 anyway). |
-| `amount_threshold` (call-site) | `2e8` (CN) / `2e7` (US) from `main()` | positive int | caller (`momentum_scanner.py:310-313`) | (not env) | **MEDIUM** — bypasses `min_volume_*` config; operator must keep `main()` / router calls in sync with intent. |
-| RSRS `hot_threshold` | `0.8` | float ∈ (0, 1] | **HARDCODED in Module #6 prompt** (`industry_analyzer.py:73,298`) | (not env) | LOW — display/interpretation only; does not affect the score. |
-| RSRS `speculative_threshold` | `0.3` | float ∈ [0, 1) | **HARDCODED in Module #6 prompt** (`industry_analyzer.py:299`) | (not env) | LOW — same. |
-| `flat_variance_guard` | `1e-10` | small positive float | **HARDCODED** in both paths (`momentum_scanner.py:59, 106`) | (not env) | LOW — must be identical across both paths to preserve scalar/vectorized equivalence. |
+| `rsrs_window` | `18` (bars) | positive int, typical 10–30 | `Settings().market.rsrs_window` (`MarketConfig`) | (not env) | **HIGH** — changes ranking output; MUST stay aligned with the DuckDB RSRS view (`REGR_*` over 18 bars, `data/views.sql:114-122`). Drift → inconsistent rankings across CSV vs MCP/API. |
+| `min_volume_cn` | `200_000_000` (RMB) | positive int | `Settings().market.cn_min_volume` (`MarketConfig`) | (not env) | **MEDIUM** — over-filters (miss mid-caps) or under-filters (illiquid noise). |
+| `min_volume_us` | `20_000_000` (USD) | positive int | `Settings().market.us_min_volume` (`MarketConfig`) | (not env) | **MEDIUM** — same. |
+| `max_change_pct` | `400` (%) | positive int | `Settings().market.max_change_pct` (`MarketConfig`) | (not env) | **MEDIUM** — too low rejects legit breakouts; too high admits bad ticks. **Applied to US only**. |
+| `us_blacklist` | ~52 tickers | tuple of str (`tuple[str,...]` on `MarketConfig`; list at the call site) | `Settings().market.us_blacklist` (`MarketConfig`) | (not env) | **MEDIUM** — leveraged/inverse ETFs would otherwise dominate US rankings; list must be maintained as new products launch. |
+| `cn_universe_prefixes` | `("00","30","60","68")` | tuple of str | `Settings().market.cn_universe_prefixes` (`MarketConfig`) | (not env) | LOW — A-share investable-code whitelist; widening admits funds/indexes. |
+| `universe_lookback_days` | `180` (calendar days) | positive int | **HARDCODED** in SQL | (not env) | **MEDIUM** — must be ≥ 60 trading days to compute the 60-day change; shorter → `change_pct` undefined for recent listings. Interacts with Module #2 `retention_days=180`. |
+| `top_n` | `200` | positive int | **HARDCODED** | (not env) | LOW — output size; raising increases LLM token cost downstream (Module #6 caps at 50 anyway). |
+| `amount_threshold` (call-site) | now `Settings().market.cn_min_volume` (CN) / `.us_min_volume` (US) from `main()` | positive int | `main()` reads `Settings().market` (S002-008) | (not env) | LOW (post-S002-008) — `main()` now sources thresholds from settings, closing the prior call-site-override gap. `analyze_market` still accepts an explicit `amount_threshold` for callers that need to override. |
+| RSRS `hot_threshold` | `0.8` | float ∈ (0, 1] | **HARDCODED in Module #6 prompt** (`industry_analyzer.py`) | (not env) | LOW — display/interpretation only; does not affect the score. |
+| RSRS `speculative_threshold` | `0.3` | float ∈ [0, 1) | **HARDCODED in Module #6 prompt** (`industry_analyzer.py`) | (not env) | LOW — same. |
+| `flat_variance_guard` | `1e-10` | small positive float | **HARDCODED** in both RSRS paths | (not env) | LOW — must be identical across both paths to preserve scalar/vectorized equivalence. |
 
 **Migration target (vs Current State):**
-- *Current State*: scanner filters in `models_config.json`; `Settings().market` parallel and unused by this module; `main()` hardcodes thresholds.
-- *Target (Migration)*: all knobs sourced from `Settings().market` (+ a `ScannerConfig` extension if needed); `models_config.json` becomes an optional profile overlay; `analyze_market` reads thresholds from settings, not positional args; `hot_threshold`/`speculative_threshold` promoted to config so Module #6 reads them rather than hardcoding.
+- *Current State (post-S002-008)*: scanner filters sourced from `Settings().market`; `models_config.json` no longer carries `scanner_filters`; `main()` reads thresholds from settings.
+- *Target (further migration, owned by #12)*: env-overridable thresholds; `hot_threshold`/`speculative_threshold` promoted to config so Module #6 reads them rather than hardcoding; `analyze_market` reads thresholds from settings, not positional args (the positional `amount_threshold` is retained for backward compat but now defaults to the settings value at the `main()` call site).
 
 ## 8. Acceptance Criteria
 
@@ -391,7 +393,7 @@ These thresholds are **hardcoded in the prompt text**, not in config (open quest
 - [ ] `src/micro/momentum_scanner.py:12-13` `current_dir`/`project_root` recalculation removed — routed through `Settings()`.
 - [ ] `src/micro/market_scanner.py:10-11, 24-26` `sys.path` hacks removed.
 - [ ] `momentum_scanner.py` direct `sqlite3.connect` (`get_connection`, `momentum_scanner.py:142-147`) replaced by `IStockRepository` reads (ADR-0001 `direct_sqlite_import_in_interface`/repository routing).
-- [ ] Scanner filters sourced from `Settings().market`; `models_config.json` becomes an overlay (ADR-0002).
+- [x] Scanner filters sourced from `Settings().market`; `models_config.json` `scanner_filters` removed (ADR-0002) — **RESOLVED S002-008 / TR-019 (2026-06-12)**. `_load_config` builds a dict view over `MarketConfig`; `main()` reads thresholds from settings; drift guard `tests/contract/test_scanner_filter_drift_guard.py` (BLOCKING) prevents reintroduction.
 - [ ] CSV output path aligned with `industry_analyzer`'s read path (`micro_report/`), or `industry_analyzer` reads from project root (resolve the path drift — open question).
 - [ ] `hot_threshold` / `speculative_threshold` moved out of the Module #6 prompt into config.
 
@@ -402,8 +404,8 @@ These thresholds are **hardcoded in the prompt text**, not in config (open quest
 
 ## 9. Open Questions (aspirational — flagged for Phase 5 reconciliation)
 
-1. **Config drift (`models_config.json` vs `Settings().market`)** — two sources of truth for `rsrs_window`, `min_volume_*`, `max_change_pct`, `us_blacklist`. Which wins? Recommend `Settings()` canonical + `models_config.json` overlay (ADR-0002).
-2. **`amount_threshold` positional override** — `analyze_market` ignores `config.min_volume_*` at the call site (`momentum_scanner.py:153`). Should the config always win, or should the param be removed?
+1. **~~Config drift (`models_config.json` vs `Settings().market`)~~ — RESOLVED by S002-008 / TR-019 (2026-06-12).** `Settings().market` is now the single source of truth; `models_config.json` `scanner_filters` removed (live + tracked template); `_load_config` builds a dict view over `MarketConfig`; `main()` reads thresholds from settings. A BLOCKING drift guard prevents reintroduction of the `scanner_filters` key-read. See §3.2 and §7.
+2. **`amount_threshold` positional override** — `analyze_market` still accepts an explicit `amount_threshold` (kept for backward compat / explicit-override callers). Post-S002-008 the `main()` call site sources the value from `Settings().market`, but the positional param itself is retained. Should the param be removed entirely (config always wins), or kept as an explicit override?
 3. **CSV path drift (default-discovery path only)** — scanner writes to project root; industry analyzer's `load_momentum_data` default-discovery reads `micro_report/` (`industry_analyzer.py:222`). They only fail to chain on the auto-discovery default; explicit `run_analysis(cn_path=..., us_path=...)` (`industry_analyzer.py:251,268-276`) consumes project-root CSVs directly via `_process_csv`. Recommend a single canonical output dir so the default also chains.
 4. **`rsrs_z` column name** — historical misnomer (it is not a z-score). Rename to `rsrs` to match the DuckDB view column?
 5. **CN surge breaker absent** — US rejects `change_pct > 400%`; CN has no equivalent. Add one for symmetry (CN reverse-split artifacts)?

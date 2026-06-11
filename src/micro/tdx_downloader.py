@@ -11,7 +11,6 @@ Usage:
 """
 
 import os
-import sys
 import struct
 import sqlite3
 import time
@@ -21,12 +20,13 @@ from datetime import datetime
 
 import pandas as pd
 
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if _PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, _PROJECT_ROOT)
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-from database import init_db_custom, save_stock_data_custom, get_tickers_sync_state
+# S002-005 (TR-011 / ADR-0004:204,217): the legacy project-root recalc and
+# both path-shim sys.path mutations are removed. ``micro`` is a package under
+# ``src/`` (resolved via the editable install / ``pythonpath=['src']``), so the
+# sibling imports use the package-qualified form ``from micro.<mod> import ...``
+# instead of the shim-dependent bare sibling-module imports.
+# All DB / CSV paths resolve through centralized settings, never a local root.
+from micro.database import init_db_custom, save_stock_data_custom, get_tickers_sync_state
 from opentdx.tdxClient import TdxClient
 from opentdx.const import MARKET, EX_MARKET, PERIOD, ADJUST
 
@@ -535,7 +535,15 @@ def get_known_tickers_from_db(db_path):
 
 
 def get_known_tickers_from_csv(market="cn"):
-    csv_path = os.path.join(_PROJECT_ROOT, "data", "stock_names_cn.csv")
+    # S002-005: path sourced from centralized settings, not a local root derivation.
+    try:
+        from doge.config import get_settings
+        csv_path = str(get_settings().stock_names_csv)
+    except ImportError:  # pragma: no cover - legacy bootstrap fallback
+        csv_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            "data", "stock_names_cn.csv",
+        )
     if not os.path.exists(csv_path):
         return []
     df = pd.read_csv(csv_path, dtype=str)
@@ -582,7 +590,15 @@ if __name__ == "__main__":
 
     if args.db is None:
         db_name = "market_data_{}.db".format(args.market)
-        args.db = os.path.join(_PROJECT_ROOT, "data", db_name)
+        # S002-005: path sourced from centralized settings, not a local root derivation.
+        try:
+            from doge.config import get_settings
+            args.db = os.path.join(str(get_settings().db.dir), db_name)
+        except ImportError:  # pragma: no cover - legacy bootstrap fallback
+            args.db = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                "data", db_name,
+            )
 
     if args.only:
         tickers = [t.strip() for t in args.only.split(",")]
