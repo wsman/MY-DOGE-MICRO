@@ -2,7 +2,7 @@
 
 > **Status**: Draft
 > **Created**: 2026-06-11
-> **Last Updated**: 2026-06-11
+> **Last Updated**: 2026-06-12
 > **Source Concept**: design/cdd/product-concept.md
 
 ---
@@ -17,18 +17,18 @@ MY-DOGE QUANT SYSTEM is a local-first product composed of data ingestion, local 
 
 | # | Module Name | Category | Priority | Status | Design Doc | Depends On |
 |---|-------------|----------|----------|--------|------------|------------|
-| 1 | Runtime Configuration | Foundation | MVP | In Progress | design/cdd/runtime-configuration.md | None |
-| 2 | Market Data Storage | Foundation | MVP | In Progress | design/cdd/market-data-storage.md | Runtime Configuration |
-| 3 | TDX/YFinance Data Sources | Foundation | MVP | In Progress | design/cdd/data-sources.md | Runtime Configuration, Market Data Storage |
-| 4 | Macro Strategy Engine | Core | MVP | In Progress | design/cdd/macro-strategy-engine.md | Market Data Storage, TDX/YFinance Data Sources |
-| 5 | Micro Momentum Scanner | Core | MVP | In Progress | design/cdd/micro-momentum-scanner.md | Market Data Storage, TDX/YFinance Data Sources |
-| 6 | Market Reporting | Feature | Vertical Slice | In Progress | design/cdd/market-reporting.md | Runtime Configuration, Market Data Storage (writes `stock_names` shared with #7) |
-| 7 | Research Insight Knowledge Base | Core | MVP | In Progress | design/cdd/research-insight-knowledge-base.md | Market Data Storage, Market Reporting |
-| 8 | MCP Server | Interface | MVP | In Progress | design/cdd/mcp-server.md | Runtime Configuration, Market Data Storage, Research Insight Knowledge Base |
-| 9 | FastAPI Service | Interface | Vertical Slice | In Progress | design/cdd/fastapi-service.md | Runtime Configuration, Market Data Storage, Macro Strategy Engine, Micro Momentum Scanner |
-| 10 | PyQt Desktop Dashboard | Presentation | Vertical Slice | In Progress | design/cdd/pyqt-desktop-dashboard.md | Macro Strategy Engine, Micro Momentum Scanner, Market Reporting |
-| 11 | Vue Web Console | Presentation | Alpha | In Progress | design/cdd/vue-web-console.md | FastAPI Service |
-| 12 | Clean Architecture Migration | Operations | MVP | In Progress | design/cdd/clean-architecture-migration.md | Runtime Configuration, Market Data Storage |
+| 1 | Runtime Configuration | Foundation | MVP | Designed | design/cdd/runtime-configuration.md | None |
+| 2 | Market Data Storage | Foundation | MVP | Designed | design/cdd/market-data-storage.md | Runtime Configuration |
+| 3 | TDX/YFinance Data Sources | Foundation | MVP | Designed | design/cdd/data-sources.md | Runtime Configuration, Market Data Storage |
+| 4 | Macro Strategy Engine | Core | MVP | Designed | design/cdd/macro-strategy-engine.md | Market Data Storage, TDX/YFinance Data Sources |
+| 5 | Micro Momentum Scanner | Core | MVP | Designed | design/cdd/micro-momentum-scanner.md | Market Data Storage, TDX/YFinance Data Sources |
+| 6 | Market Reporting | Feature | Vertical Slice | Designed | design/cdd/market-reporting.md | Runtime Configuration, Market Data Storage (writes `stock_names` shared with #7) |
+| 7 | Research Insight Knowledge Base | Core | MVP | Designed | design/cdd/research-insight-knowledge-base.md | Market Data Storage, Market Reporting |
+| 8 | MCP Server | Interface | MVP | Designed | design/cdd/mcp-server.md | Runtime Configuration, Market Data Storage, Research Insight Knowledge Base |
+| 9 | FastAPI Service | Interface | Vertical Slice | Designed | design/cdd/fastapi-service.md | Runtime Configuration, Market Data Storage, Macro Strategy Engine, Micro Momentum Scanner |
+| 10 | PyQt Desktop Dashboard | Presentation | Vertical Slice | Designed | design/cdd/pyqt-desktop-dashboard.md | Macro Strategy Engine, Micro Momentum Scanner, Market Reporting |
+| 11 | Vue Web Console | Presentation | Alpha | Designed | design/cdd/vue-web-console.md | FastAPI Service |
+| 12 | Clean Architecture Migration | Operations | MVP | Designed | design/cdd/clean-architecture-migration.md | Runtime Configuration, Market Data Storage |
 
 ---
 
@@ -132,11 +132,11 @@ MY-DOGE QUANT SYSTEM is a local-first product composed of data ingestion, local 
 | Metric | Count |
 |--------|-------|
 | Total modules identified | 12 |
-| Design docs started | 1 |
-| Design docs reviewed | 0 |
+| Design docs started | 12 |
+| Design docs reviewed | 12 |
 | Design docs approved | 0 |
-| MVP modules designed | 0/8 |
-| Vertical Slice modules designed | 0/3 |
+| MVP modules designed | 8/8 |
+| Vertical Slice modules designed | 3/3 |
 
 ---
 
