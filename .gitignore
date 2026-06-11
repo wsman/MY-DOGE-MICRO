@@ -17,6 +17,7 @@ data/
 macro_report/
 micro_report/
 research_report/
+ai_report/
 
 # Logs
 logs/
