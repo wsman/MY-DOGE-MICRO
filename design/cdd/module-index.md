@@ -17,9 +17,9 @@ MY-DOGE QUANT SYSTEM is a local-first product composed of data ingestion, local 
 
 | # | Module Name | Category | Priority | Status | Design Doc | Depends On |
 |---|-------------|----------|----------|--------|------------|------------|
-| 1 | Runtime Configuration | Foundation | MVP | In Progress | — | None |
-| 2 | Market Data Storage | Foundation | MVP | In Progress | — | Runtime Configuration |
-| 3 | TDX/YFinance Data Sources | Foundation | MVP | In Progress | — | Runtime Configuration, Market Data Storage |
+| 1 | Runtime Configuration | Foundation | MVP | In Progress | design/cdd/runtime-configuration.md | None |
+| 2 | Market Data Storage | Foundation | MVP | In Progress | design/cdd/market-data-storage.md | Runtime Configuration |
+| 3 | TDX/YFinance Data Sources | Foundation | MVP | In Progress | design/cdd/data-sources.md | Runtime Configuration, Market Data Storage |
 | 4 | Macro Strategy Engine | Core | MVP | In Progress | — | Market Data Storage, TDX/YFinance Data Sources |
 | 5 | Micro Momentum Scanner | Core | MVP | In Progress | — | Market Data Storage, TDX/YFinance Data Sources |
 | 6 | AI Industry Analysis | Feature | Vertical Slice | In Progress | — | Macro Strategy Engine, Micro Momentum Scanner |
@@ -28,7 +28,7 @@ MY-DOGE QUANT SYSTEM is a local-first product composed of data ingestion, local 
 | 9 | FastAPI Service | Interface | Vertical Slice | In Progress | — | Runtime Configuration, Market Data Storage, Macro Strategy Engine, Micro Momentum Scanner |
 | 10 | PyQt Desktop Dashboard | Presentation | Vertical Slice | In Progress | — | Macro Strategy Engine, Micro Momentum Scanner, AI Industry Analysis |
 | 11 | Vue Web Console | Presentation | Alpha | In Progress | — | FastAPI Service |
-| 12 | Clean Architecture Migration | Operations | MVP | In Progress | docs/architecture/adr-0001-brownfield-clean-architecture.md | Runtime Configuration, Market Data Storage |
+| 12 | Clean Architecture Migration | Operations | MVP | In Progress | design/cdd/clean-architecture-migration.md | Runtime Configuration, Market Data Storage |
 
 ---
 
