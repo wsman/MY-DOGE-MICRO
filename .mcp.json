@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "doge-db": {
+      "command": "D:\\Users\\WSMAN\\Desktop\\Coding Task\\MY-DOGE-MICRO\\scripts\\mcp_stdio.bat",
+      "env": {
+        "PYTHONUNBUFFERED": "1",
+        "PYTHONIOENCODING": "utf-8"
+      }
+    }
+  }
+}
