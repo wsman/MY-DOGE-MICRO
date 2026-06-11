@@ -1,181 +1,484 @@
-# Architecture Decision Registry
+# MY-DOGE-MICRO — Architecture Stance Registry
 #
-# PURPOSE: Single source of truth for key architectural stances that all ADRs
-# must agree on. Skills check this before writing new ADRs to detect conflicts
-# at authoring time — before stories are created against contradictory decisions.
+# PURPOSE: Single source of truth for cross-ADR architectural stances that all
+# ADRs must agree on. Skills check this before writing new ADRs to detect
+# conflicts at authoring time. Aggregated from the 8 ADRs
+# (docs/architecture/adr-0001..0008) and the 12 module CDDs.
 #
 # RULES:
 #   - Register a stance when it constrains how OTHER systems must be built.
-#     An internal implementation detail that affects only one ADR does not need
-#     to be registered.
-#   - Never delete entries — set status: superseded_by: ADR-NNNN instead.
-#   - When a stance changes: update the entry, set revised: to today's date,
-#     add a comment with the old value, and run /architecture-review to check
-#     what ADRs are now invalidated.
-#   - adr: is the authoritative source. All other ADRs that depend on this
-#     stance list themselves in referenced_by.
+#   - Never delete entries — set status: superseded_by: ADR-NNNN.
+#   - `adr` is the authoritative source; dependent ADRs list themselves in
+#     referenced_by[].
+#   - This file holds STANCES (port contracts, layer rules, forbidden patterns,
+#     API decisions, performance budgets). Concrete VALUES live in
+#     docs/registry/entities.yaml.
 #
-# WRITTEN BY: /architecture-decision (Phase 5 — after ADR is approved)
-# READ BY:    /architecture-decision (Step 2 — before authoring begins)
-#             /architecture-review (Phase 4 — cross-ADR conflict baseline)
-#             /create-stories (to embed architectural constraints in stories)
-#             /dev-story (to check implementation against accepted stances)
+# WRITTEN BY: Phase-5 set-approval (BLOCKING — user must approve before write)
+# READ BY:    /architecture-decision, /architecture-review, /create-stories,
+#             /dev-story
 #
-# SEARCH PATTERNS (for skills using Grep):
-#   All state owners:       Grep pattern="^  - state:" path="docs/registry/architecture.yaml"
-#   Who owns player_health: Grep pattern="state: player_health"
-#   All signal contracts:   Grep pattern="pattern: signal"
-#   Budget for combat:      Grep pattern="system: combat"
-#   All forbidden patterns: Grep pattern="^  - pattern:" (forbidden_patterns section)
-#   Superseded entries:     Grep pattern="status: superseded"
+# STATUS VALUES: active | superseded_by: ADR-NNNN
 
 version: 1
-last_updated: ""
+last_updated: "2026-06-12"
 
-# ─── STATE OWNERSHIP ─────────────────────────────────────────────────────────
-# Who is the authoritative owner of each piece of shared game state.
-# Conflicts: two ADRs claiming to own the same state = data race / authority bug.
-#
-# Register state when it is READ or WRITTEN by more than one system.
-# Internal-only state (never accessed by another system) does not need to be registered.
-#
-# Required fields: state, owner_system, adr, interface, referenced_by[], added
-# interface: how other systems access this state (read-only property, method call,
-#   signal, shared resource, etc.) — this is the contract other ADRs depend on.
+# ============================================================================
+# SYSTEMS — the 12 product modules (module-index.md canonical enumeration)
+# ============================================================================
+systems:
+  - {num: 1, slug: runtime-configuration, name: "Runtime Configuration", category: Foundation, layer: Foundation, cdd: design/cdd/runtime-configuration.md, status: "In Progress"}
+  - {num: 2, slug: market-data-storage, name: "Market Data Storage", category: Foundation, layer: Foundation, cdd: design/cdd/market-data-storage.md, status: "In Progress"}
+  - {num: 3, slug: data-sources, name: "TDX/YFinance Data Sources", category: Foundation, layer: Foundation, cdd: design/cdd/data-sources.md, status: "In Progress"}
+  - {num: 4, slug: macro-strategy-engine, name: "Macro Strategy Engine", category: Core, layer: Core, cdd: design/cdd/macro-strategy-engine.md, status: "In Progress", notes: "Owns the project's single LLM client (DeepSeekStrategist)"}
+  - {num: 5, slug: micro-momentum-scanner, name: "Micro Momentum Scanner", category: Core, layer: Core, cdd: design/cdd/micro-momentum-scanner.md, status: "In Progress", notes: "Owns canonical RSRS formula"}
+  - {num: 6, slug: market-reporting, name: "Market Reporting", category: Feature, layer: Feature, cdd: design/cdd/market-reporting.md, status: "In Progress", notes: "Pure-SQL reports; NO LLM. (Prior name 'AI Industry Analysis' was a misnomer.)"}
+  - {num: 7, slug: research-insight-knowledge-base, name: "Research Insight Knowledge Base", category: Core, layer: Core, cdd: design/cdd/research-insight-knowledge-base.md, status: "In Progress", notes: "Owns stock_notes + stock_names; soft-delete (deleted_at)"}
+  - {num: 8, slug: mcp-server, name: "MCP Server", category: Interface, layer: Interface, cdd: design/cdd/mcp-server.md, status: "In Progress", notes: "6 read-only tools; stdio primary + SSE secondary"}
+  - {num: 9, slug: fastapi-service, name: "FastAPI Service", category: Interface, layer: Interface, cdd: design/cdd/fastapi-service.md, status: "In Progress", notes: "26 product routes; 127.0.0.1:8901"}
+  - {num: 10, slug: pyqt-desktop-dashboard, name: "PyQt Desktop Dashboard", category: Presentation, layer: Presentation, cdd: design/cdd/pyqt-desktop-dashboard.md, status: "In Progress"}
+  - {num: 11, slug: vue-web-console, name: "Vue Web Console", category: Presentation, layer: Presentation, cdd: design/cdd/vue-web-console.md, status: "In Progress"}
+  - {num: 12, slug: clean-architecture-migration, name: "Clean Architecture Migration", category: Operations, layer: Operations, cdd: design/cdd/clean-architecture-migration.md, status: "In Progress"}
 
-state_ownership: []
+# ============================================================================
+# STATE OWNERSHIP — authoritative owner of each shared state artifact
+# ============================================================================
+state_ownership:
+  - state: cn_price_db
+    status: active
+    owner_system: market-data-storage
+    artifact: market_data_cn.db (stock_prices table)
+    adr: docs/architecture/adr-0003-storage-repository-contract.md
+    interface: "IStockRepository.{get_prices, get_overview, get_sync_state, save_prices(proposed)}"
+    write_access: market-data-storage-only
+    referenced_by:
+      - docs/architecture/adr-0001-brownfield-clean-architecture.md
+      - docs/architecture/adr-0003-storage-repository-contract.md
+    added: "2026-06-12"
 
-# Example:
-#
-# state_ownership:
-#   - state: player_health
-#     status: active           # active | superseded_by: ADR-NNNN
-#     owner_system: health-system
-#     adr: docs/architecture/adr-0001-health-system.md
-#     interface: "HealthComponent.current_health (read-only float, range 0–max_health)"
-#     write_access: health-system-only   # only owner can write; others read
-#     referenced_by:
-#       - docs/architecture/adr-0001-health-system.md
-#       - docs/architecture/adr-0003-combat-system.md   # reads to apply damage
-#       - docs/architecture/adr-0007-ui-system.md       # reads to display HUD
-#     added: 2026-03-26
-#     revised: ""
+  - state: us_price_db
+    status: active
+    owner_system: market-data-storage
+    artifact: market_data_us.db (stock_prices table)
+    adr: docs/architecture/adr-0003-storage-repository-contract.md
+    interface: IStockRepository (same as cn)
+    write_access: market-data-storage-only
+    added: "2026-06-12"
 
+  - state: duckdb_analytical_views
+    status: active
+    owner_system: market-data-storage
+    artifact: "market.duckdb + views.sql (7 product views + temp_vol_check)"
+    adr: docs/architecture/adr-0003-storage-repository-contract.md
+    interface: "DuckDBConnection (read_only=True); refresh_views is sole writer"
+    write_access: market-data-storage-only
+    notes: "Zero-copy ATTACH of cn/us SQLite. Refreshed after each scan."
+    added: "2026-06-12"
 
-# ─── INTERFACE CONTRACTS ──────────────────────────────────────────────────────
-# How systems are required to communicate with each other.
-# Conflicts: one ADR expects signal, another expects direct call = integration bug.
-#
-# Register a contract when the communication pattern between two systems is
-# explicitly decided in an ADR and other systems must follow the same pattern.
-#
-# pattern options: signal | direct_call | event_bus | shared_resource | rpc | none
+  - state: stock_notes
+    status: active
+    owner_system: research-insight-knowledge-base
+    artifact: "research_insights.db.stock_notes (soft-delete via deleted_at)"
+    adr: docs/architecture/adr-0003-storage-repository-contract.md
+    interface: "IReportRepository.add_note/search_notes (+proposed delete_note, get_notes, get_recent_notes, list_tracked_tickers, get_ticker_with_context)"
+    write_access: research-insight-knowledge-base-only
+    referenced_by:
+      - docs/architecture/adr-0006-mcp-transport-strategy.md
+    notes: "Permanent across price-retention pruning (Module #2 retention_days never touches this table). All reads filter deleted_at IS NULL."
+    added: "2026-06-12"
 
-interfaces: []
+  - state: stock_names
+    status: active
+    owner_system: research-insight-knowledge-base
+    artifact: research_insights.db.stock_names
+    adr: docs/architecture/adr-0003-storage-repository-contract.md
+    interface: IReportRepository.list_stock_names
+    write_access: "research-insight-knowledge-base (read) + market-reporting/fetch_names (write — Module #6 backfills)"
+    notes: "No bootstrap writer in Module #2 cold-start (open question)."
+    added: "2026-06-12"
 
-# Example:
-#
-# interfaces:
-#   - contract: damage_delivery
-#     status: active
-#     pattern: signal          # how the producer notifies consumers
-#     producer: combat-system
-#     consumers:
-#       - health-system        # receives damage_dealt signal, applies to health
-#       - ui-system            # receives damage_dealt signal, shows damage number
-#       - audio-system         # receives damage_dealt signal, plays SFX
-#     adr: docs/architecture/adr-0003-combat-system.md
-#     signal_signature: "damage_dealt(amount: float, target: Node, is_crit: bool)"
-#     referenced_by:
-#       - docs/architecture/adr-0003-combat-system.md
-#       - docs/architecture/adr-0001-health-system.md
-#     added: 2026-03-26
-#     revised: ""
+  - state: macro_reports
+    status: active
+    owner_system: market-data-storage
+    artifact: research_insights.db.macro_reports
+    adr: docs/architecture/adr-0003-storage-repository-contract.md
+    interface: IReportRepository.{list_macro_reports, get_macro_report, save_macro_report}
+    write_access: "market-data-storage (table owner) — written by Module #4 (DeepSeekStrategist via save_macro_report) and Module #10 (MacroWorker)"
+    notes: "Table owned by Module #2; semantic producer is Module #4. Today archived to macro_report/*.md files only — DB persistence target."
+    added: "2026-06-12"
 
+  - state: research_reports
+    status: active
+    owner_system: market-data-storage
+    artifact: research_insights.db.research_reports
+    adr: docs/architecture/adr-0003-storage-repository-contract.md
+    interface: IReportRepository.save_research_report
+    write_access: "market-data-storage (table owner) — written by Module #5 industry_analyzer (via save_research_report)"
+    added: "2026-06-12"
 
-# ─── PERFORMANCE BUDGETS ──────────────────────────────────────────────────────
-# Frame time allocations per system, against a defined total frame budget.
-# Conflicts: allocations that sum to more than the total budget = unshippable.
-#
-# Register a budget when an ADR explicitly claims a frame time allocation.
-# The registry lets /architecture-review verify the total doesn't exceed the target.
+  - state: market_reports_markdown
+    status: active
+    owner_system: market-reporting
+    artifact: "ai_report/market_overview_YYYYMMDD.md + ai_report/anomaly_detection_YYYYMMDD.md"
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    interface: "filesystem writes (no DB). market_overview.generate(), anomaly_detection.generate()"
+    write_access: market-reporting-only
+    notes: "Pure-SQL reports; NO LLM. NOT persisted to research DB today."
+    added: "2026-06-12"
 
-performance_budgets: []
+  - state: knowledge_graph_tables
+    status: active
+    owner_system: market-data-storage
+    artifact: "research_insights.db.{insights, knowledge_entities, knowledge_graph}"
+    adr: docs/architecture/adr-0003-storage-repository-contract.md
+    interface: "legacy src/micro/database.py.{save_insight, add_entity, add_relationship} — NOT yet behind IReportRepository"
+    notes: "Owned by Module #2 (reconciled with Module #7 on 2026-06-12 — Module #7 owns ONLY stock_notes/stock_names)."
+    added: "2026-06-12"
 
-# Example:
-#
-# performance_budgets:
-#   - target_fps: 60
-#     total_frame_budget_ms: 16.6
-#     platform: PC             # PC | Console | Mobile | All
-#     adr: docs/architecture/adr-0000-performance-targets.md
-#     added: 2026-03-26
-#     revised: ""
-#
-#   - system: combat
-#     status: active
-#     budget_ms: 2.0
-#     adr: docs/architecture/adr-0003-combat-system.md
-#     notes: "Includes physics queries, hitbox evaluation, and damage calculation"
-#     referenced_by:
-#       - docs/architecture/adr-0003-combat-system.md
-#     added: 2026-03-26
-#     revised: ""
+  - state: runtime_settings
+    status: active
+    owner_system: runtime-configuration
+    artifact: "src/doge/config/settings.py (frozen dataclass singleton)"
+    adr: docs/architecture/adr-0002-centralized-configuration.md
+    interface: "get_settings() lazy singleton; reset_settings() test seam"
+    write_access: "settings.py construction only (frozen=True); tests via reset_settings()"
+    notes: "Single sanctioned _PROJECT_ROOT at settings.py:15. LLM config (DEEPSEEK_*/models_config.json) NOT yet consolidated here."
+    added: "2026-06-12"
 
+# ============================================================================
+# INTERFACES — required communication patterns between systems
+# ============================================================================
+interfaces:
+  - contract: mcp_tool_invocation
+    status: active
+    pattern: rpc
+    producer: mcp-server
+    consumers: [external MCP clients, vue-web-console]
+    transports: [stdio, sse]
+    adr: docs/architecture/adr-0006-mcp-transport-strategy.md
+    signature: "6 async tools returning str; never raise to client; @_timed enforces 30s"
+    referenced_by:
+      - docs/architecture/adr-0001-brownfield-clean-architecture.md
+      - docs/architecture/adr-0003-storage-repository-contract.md
+    added: "2026-06-12"
 
-# ─── API DECISIONS ───────────────────────────────────────────────────────────
-# Which engine APIs are chosen for which purpose across the project.
-# Conflicts: two ADRs using different APIs for the same purpose = inconsistent
-# implementation that breaks when one system expects the other's API.
-#
-# Register an API decision when the choice is non-obvious and other ADRs might
-# make a different choice for the same purpose without knowing this was decided.
+  - contract: http_api
+    status: active
+    pattern: rpc
+    producer: fastapi-service
+    consumers: [vue-web-console, pyqt-desktop-dashboard]
+    transports: [http]
+    adr: docs/architecture/adr-0007-api-surface-and-cors.md
+    signature: "26 product routes; JSON + SSE; bind 127.0.0.1:8901"
+    referenced_by:
+      - docs/architecture/adr-0008-web-architecture.md
+    added: "2026-06-12"
 
-api_decisions: []
+  - contract: storage_repository_access
+    status: active
+    pattern: direct_call
+    producer: market-data-storage
+    consumers: [mcp-server, fastapi-service, pyqt-desktop-dashboard, market-reporting, research-insight-knowledge-base]
+    adr: docs/architecture/adr-0003-storage-repository-contract.md
+    signature: "IStockRepository / IReportRepository ports (no direct sqlite3/duckdb in interface layers)"
+    notes: "Target shape. Legacy direct-connect still present in monolith mcp_server.py and src/api/routers/* (Module #12 migration)."
+    referenced_by:
+      - docs/architecture/adr-0001-brownfield-clean-architecture.md
+    added: "2026-06-12"
 
-# Example:
-#
-# api_decisions:
-#   - purpose: physics_raycast
-#     status: active
-#     api: PhysicsServer3D.space_get_direct_state()
-#     not: RayCast3D node     # explicitly banned for this purpose
-#     adr: docs/architecture/adr-0002-physics-architecture.md
-#     reason: "Direct server calls avoid per-frame node overhead; 3× faster in profiling"
-#     referenced_by:
-#       - docs/architecture/adr-0002-physics-architecture.md
-#       - docs/architecture/adr-0003-combat-system.md
-#     added: 2026-03-26
-#     revised: ""
+  - contract: market_data_ingestion
+    status: active
+    pattern: direct_call
+    producer: data-sources
+    consumers: [market-data-storage]
+    adr: docs/architecture/adr-0004-data-source-adapter-contract.md
+    signature: "IMarketDataSource.download_kline -> canonical 8-col frame or None"
+    notes: "Adapters never raise on transient/network/rate-limit; return None (degraded)."
+    added: "2026-06-12"
 
+  - contract: llm_report_generation
+    status: active
+    pattern: direct_call
+    producer: macro-strategy-engine
+    consumers: [fastapi-service, pyqt-desktop-dashboard]
+    adr: docs/architecture/adr-0005-llm-client-strategy.md
+    signature: "DeepSeekStrategist.generate_strategy_report(metrics, market_data) -> Optional[str] (None on any error)"
+    notes: "Single LLM client project-wide. Module #6 industry_analyzer borrows it (not a separate client)."
+    added: "2026-06-12"
 
-# ─── FORBIDDEN PATTERNS ──────────────────────────────────────────────────────
-# Architecture anti-patterns explicitly banned by accepted ADRs.
-# When writing a new ADR, check this list — if the proposed approach matches
-# a forbidden pattern, it must be reworked before the ADR can be Accepted.
-#
-# Register a pattern when an ADR explicitly bans it AND other ADRs might
-# unknowingly use it (i.e., it's a tempting but wrong approach for this project).
+  - contract: sse_progress_stream
+    status: active
+    pattern: shared_resource
+    producer: fastapi-service
+    consumers: [vue-web-console]
+    adr: docs/architecture/adr-0008-web-architecture.md
+    signature: "POST /api/scan/{market} and /api/macro/run stream data:{progress:int, message:str}; progress=-1 error, >=100 complete"
+    notes: "Web console reads via raw fetch (NOT EventSource) because endpoint is POST."
+    added: "2026-06-12"
 
-forbidden_patterns: []
+  - contract: qt_worker_progress
+    status: active
+    pattern: signal
+    producer: pyqt-desktop-dashboard
+    consumers: [pyqt-desktop-dashboard]
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    signature: "QThread workers emit Qt signals (finished_signal, result_signal); UI thread never blocks"
+    added: "2026-06-12"
 
-# Example:
-#
-# forbidden_patterns:
-#   - pattern: autoload_singleton_coupling
-#     status: active
-#     description: "Systems must not directly reference Autoload singletons by name.
-#       Use dependency injection or signals instead."
-#     why: "Tight coupling to Autoloads makes systems untestable in isolation and
-#       creates hidden dependencies that break when Autoload load order changes."
-#     adr: docs/architecture/adr-0001-health-system.md
-#     added: 2026-03-26
-#
-#   - pattern: direct_cross_system_state_write
-#     status: active
-#     description: "A system must never write to state owned by another system.
-#       Use signals or method calls on the owner instead."
-#     why: "Direct state writes create race conditions and break the state
-#       ownership model. The owning system must be the sole writer."
-#     adr: docs/architecture/adr-0000-architecture-principles.md
-#     added: 2026-03-26
+# ============================================================================
+# FORBIDDEN PATTERNS — explicitly banned by ADR-0001
+# ============================================================================
+forbidden_patterns:
+  - pattern: direct_sqlite_import_in_interface
+    status: active
+    description: "No file under src/api/, src/doge/interfaces/, src/interface/, or the MCP/web layers may import sqlite3 or call sqlite3.connect(). All storage access via IStockRepository / IReportRepository."
+    why: "Direct SQLite access in interfaces duplicates connection logic, bypasses retention/error contracts, and makes the layer untestable in isolation."
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    current_offenders: "mcp_server.py:23, src/api/routers/data.py:7, src/api/routers/scan.py:150 (init_db_custom), src/api/routers/notes.py (lazy stock_notes import)"
+    added: "2026-06-12"
+
+  - pattern: direct_duckdb_connect_in_interface
+    status: active
+    description: "No interface module may import duckdb or call duckdb.connect / connect_duckdb. Use DuckDBConnection adapter."
+    why: "Same as above for the analytical-read layer; preserves zero-copy read-only contract."
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    current_offenders: "mcp_server.py:38, src/api/routers/scan.py:210-211, src/ai_analysis/__init__.py:97-114 (legacy connect_duckdb)"
+    added: "2026-06-12"
+
+  - pattern: sys_path_insert
+    status: active
+    description: "No module under src/doge/** may call sys.path.insert/append for bootstrapping, except documented compatibility shims. Legacy files: 14 insert sites across 13 files."
+    why: "sys.path mutation creates hidden import dependencies, breaks test isolation, and fails across alternative launchers (MCP stdio vs SSE vs uvicorn vs PyQt)."
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    referenced_by:
+      - docs/architecture/adr-0002-centralized-configuration.md
+    current_offenders: "src/micro/{tdx_downloader,market_scanner,industry_analyzer}.py, all src/api/routers/*.py, src/cli.py, src/macro/cli.py, src/interface/scanner_gui.py, src/ai_analysis/*.py"
+    added: "2026-06-12"
+
+  - pattern: _PROJECT_ROOT_recalculation
+    status: active
+    description: "No module may recompute _PROJECT_ROOT via Path(__file__).parents[N] or os.path.dirname chains. Single source: src/doge/config/settings.py:15 (parents[3])."
+    why: "Per-file root recalculation causes path drift when the tree is restructured and silent disagreement about where data lives."
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    referenced_by:
+      - docs/architecture/adr-0002-centralized-configuration.md
+    current_offenders: "7+ legacy occurrences: tdx_downloader.py:23, market_scanner.py:24, all 5 api/routers/*.py, api/main.py:9, ai_analysis/__init__.py:21"
+    added: "2026-06-12"
+
+  - pattern: cross_layer_state_write
+    status: active
+    description: "A module must never write state owned by another layer. Interface modules must not mutate shared module-level DB globals or process env (HTTP_PROXY/HTTPS_PROXY/DEEPSEEK_*) except behind a documented boundary."
+    why: "Cross-layer writes create race conditions, hidden global side effects, and break the state ownership model."
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    current_offenders: "src/micro/industry_analyzer.py:50-51 (HTTP_PROXY), src/macro/data_loader.py:56-147, src/interface/analysis_gui.py:31-32 (DEEPSEEK_*), BLAS thread shims in 3 modules"
+    added: "2026-06-12"
+
+  - pattern: direct_backend_import_in_presentation
+    status: active
+    description: "Presentation-layer modules (src/interface/*, web) must not import src/macro.*, src.micro.*, or src.ai_analysis directly; route through services/ports."
+    why: "Tight coupling to backend modules makes the UI untestable and bypasses the clean-architecture boundary."
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    current_offenders: "src/interface/scanner_gui.py:26-28, src/interface/analysis_gui.py:15"
+    added: "2026-06-12"
+
+  - pattern: swallowed_storage_exception
+    status: active
+    description: "Bare `except Exception: pass` in storage write paths is forbidden. Use typed StorageWriteError or structured result."
+    why: "Silent write-failure swallowing causes silent data loss (save_stock_data_custom database.py:152-153)."
+    adr: docs/architecture/adr-0003-storage-repository-contract.md
+    current_offenders: "src/micro/database.py:152-153"
+    added: "2026-06-12"
+
+  - pattern: committed_secret
+    status: active
+    description: "No real API key/credential may be committed. models_config.json must ship a placeholder and be gitignored."
+    why: "Secrets in source control violate the no-secrets rule and expose operator credentials."
+    adr: docs/architecture/adr-0005-llm-client-strategy.md
+    current_offenders: "models_config.json ships a real-looking api_key (open remediation)"
+    added: "2026-06-12"
+
+# ============================================================================
+# API DECISIONS — non-obvious framework/library choices
+# ============================================================================
+api_decisions:
+  - purpose: web_framework
+    status: active
+    api: FastAPI 0.123.8
+    not: "Flask, Django (heavier; less async-native for SSE)"
+    adr: docs/architecture/adr-0007-api-surface-and-cors.md
+    reason: "Async-native, Pydantic v2 validation, OpenAPI surface for the web console."
+    added: "2026-06-12"
+
+  - purpose: mcp_transport
+    status: active
+    api: "mcp 1.25.0 FastMCP — dual transport: stdio (primary, Claude Code) + SSE (secondary, web/remote)"
+    not: "HTTP-only single transport; gRPC"
+    adr: docs/architecture/adr-0006-mcp-transport-strategy.md
+    reason: "stdio is the MCP-canonical local integration; SSE serves the browser liveness probe and remote clients from one server."
+    added: "2026-06-12"
+
+  - purpose: analytical_read_engine
+    status: active
+    api: "DuckDB 1.4.4 zero-copy read-over-SQLite (sqlite extension ATTACH read-only)"
+    not: "Duplicate OHLCV into DuckDB tables; replace SQLite with DuckDB as sole store"
+    adr: docs/architecture/adr-0003-storage-repository-contract.md
+    reason: "Preserves SQLite WAL single-writer semantics for ingestion; DuckDB adds rich analytical SQL without data duplication."
+    added: "2026-06-12"
+
+  - purpose: llm_client
+    status: active
+    api: "openai SDK 1.62.0 in OpenAI-compatible mode (single DeepSeekStrategist)"
+    not: "Per-module LLM clients; langchain; direct HTTP"
+    adr: docs/architecture/adr-0005-llm-client-strategy.md
+    reason: "One client surface; provider/model/base_url switchable via models_config.json or DEEPSEEK_* env (no source edit). DeepSeek, DeepSeek Reasoner, local LM Studio all supported."
+    added: "2026-06-12"
+
+  - purpose: cors_policy
+    status: active
+    api: "allow_origins=['*'], allow_methods=['*'], allow_headers=['*']"
+    not: "Tight origin allowlist (today)"
+    adr: docs/architecture/adr-0007-api-surface-and-cors.md
+    reason: "Safe ONLY because FastAPI binds 127.0.0.1. Hardening target: explicit localhost origins once non-loopback bind is contemplated."
+    referenced_by:
+      - docs/architecture/adr-0008-web-architecture.md
+    added: "2026-06-12"
+
+  - purpose: market_data_source
+    status: active
+    api: "TDX (opentdx protocol, primary) + yfinance 0.2.66 (secondary/fallback), both via IMarketDataSource adapter"
+    not: "Direct yfinance.download in modules (legacy macro/data_loader.py drift)"
+    adr: docs/architecture/adr-0004-data-source-adapter-contract.md
+    reason: "Shared retry/backoff, canonical 8-col frame, offline-tolerant (return None, never crash)."
+    added: "2026-06-12"
+
+  - purpose: web_stack
+    status: active
+    api: "Vue 3.5 + Vite 8 + Pinia 3 + Naive UI 2.44 + lightweight-charts v5 + manual-fetch SSE (NOT EventSource)"
+    not: "React; EventSource (endpoint is POST)"
+    adr: docs/architecture/adr-0008-web-architecture.md
+    reason: "Composition API + virtual scroll + manual SSE for POST scan endpoint."
+    added: "2026-06-12"
+
+  - purpose: config_centralization
+    status: active
+    api: "frozen dataclass Settings in src/doge/config/settings.py + get_settings() lazy singleton"
+    not: "pydantic-settings / dynaconf; per-module root recalculation; YAML/TOML config file as primary"
+    adr: docs/architecture/adr-0002-centralized-configuration.md
+    reason: "Stdlib-only for the Foundation layer; env-var override is the operator contract; frozen=True prevents mid-process mutation."
+    added: "2026-06-12"
+
+  - purpose: sse_reader
+    status: active
+    api: "raw fetch + ReadableStream reader (web console)"
+    not: EventSource
+    adr: docs/architecture/adr-0008-web-architecture.md
+    reason: "Scan endpoint is POST /api/scan/{market}; EventSource only supports GET. progress===-1 error, >=100 complete."
+    added: "2026-06-12"
+
+# ============================================================================
+# PERFORMANCE BUDGETS
+# ============================================================================
+performance_budgets:
+  - budget: mcp_tool_latency
+    target: "< 30s per tool call"
+    platform: local
+    adr: docs/architecture/adr-0006-mcp-transport-strategy.md
+    enforced_by: "_timed decorator (asyncio.wait_for, TOOL_TIMEOUT=30); on timeout returns 'Error: {tool} timed out after 30s'"
+    notes: "Matches standards/technical-preferences.md MCP Tool Latency budget."
+    added: "2026-06-12"
+
+  - budget: api_route_latency
+    target: "no operator-perceived regression vs direct-DB baseline"
+    platform: local
+    adr: docs/architecture/adr-0007-api-surface-and-cors.md
+    notes: "Read routes open fresh sqlite3 connection per handler today (no pooling). Target: repository-routed, WAL-enabled."
+    added: "2026-06-12"
+
+  - budget: duckdb_analytical_reads
+    target: "zero-copy reads over SQLite; memory bounded by result set"
+    platform: local
+    adr: docs/architecture/adr-0003-storage-repository-contract.md
+    enforced_by: "DuckDBConnection read_only=True; threads=4; OPENBLAS_NUM_THREADS=1 / OMP_NUM_THREADS=1 to bound pandas conversion memory"
+    added: "2026-06-12"
+
+  - budget: ui_responsiveness
+    target: "long-running scans/macro/LLM runs never freeze the UI thread"
+    platform: "local desktop (PyQt) + browser (Vue)"
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    enforced_by: "PyQt QThread workers + Qt signals; Vue web worker + SSE stream; scan auto-locks DB editor tab"
+    added: "2026-06-12"
+
+  - budget: memory_ceiling
+    target: "bounded by dataset size; avoid full-history UI loads"
+    platform: local
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    enforced_by: "120-day fetch default per ticker; virtual scroll (viewport + buffer rows only); DuckDB view result sets"
+    added: "2026-06-12"
+
+# ============================================================================
+# ADR INDEX
+# ============================================================================
+adr_index:
+  - id: ADR-0001
+    title: "Brownfield Clean Architecture Migration"
+    status: Accepted
+    date: "2026-06-11"
+    path: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    governs: "layer rules, forbidden patterns, ports & adapters target"
+    referenced_by: [ADR-0002, ADR-0003, ADR-0004, ADR-0005, ADR-0006, ADR-0007]
+
+  - id: ADR-0002
+    title: "Centralized Runtime Configuration"
+    status: Proposed
+    date: "2026-06-11"
+    path: docs/architecture/adr-0002-centralized-configuration.md
+    governs: "settings.py + get_settings() single source; sys_path_insert / _PROJECT_ROOT_recalculation forbidden"
+    depends_on: [ADR-0001]
+
+  - id: ADR-0003
+    title: "Storage Repository Contract (No Direct SQLite/DuckDB in Interface Layers)"
+    status: Proposed
+    date: "2026-06-11"
+    path: docs/architecture/adr-0003-storage-repository-contract.md
+    governs: "IStockRepository / IReportRepository ports; StorageWriteError; DOGE_RETENTION_DAYS; WAL"
+    depends_on: [ADR-0001]
+
+  - id: ADR-0004
+    title: "Data Source Adapter Contract"
+    status: Proposed
+    date: "2026-06-11"
+    path: docs/architecture/adr-0004-data-source-adapter-contract.md
+    governs: "IMarketDataSource port; canonical 8-col OHLCV frame; shared retry/backoff; 120d default window"
+    depends_on: [ADR-0001]
+
+  - id: ADR-0005
+    title: "LLM Client Strategy"
+    status: Proposed
+    date: "2026-06-12"
+    path: docs/architecture/adr-0005-llm-client-strategy.md
+    governs: "single DeepSeekStrategist via openai SDK; Optional[str] None-on-error; no committed secrets"
+    depends_on: [ADR-0001, ADR-0004]
+
+  - id: ADR-0006
+    title: "MCP Transport Strategy"
+    status: Accepted
+    date: "2026-06-12"
+    path: docs/architecture/adr-0006-mcp-transport-strategy.md
+    governs: "dual-transport single-server (stdio primary + SSE secondary); 6 read-only tools; 30s timeout; never raise to client"
+    depends_on: [ADR-0001, ADR-0003]
+
+  - id: ADR-0007
+    title: "API Surface and CORS"
+    status: Proposed
+    date: "2026-06-12"
+    path: docs/architecture/adr-0007-api-surface-and-cors.md
+    governs: "26-route canonical table; 127.0.0.1:8901 bind; allow_origins=['*'] local-first; stable non-leaking error envelope (target)"
+    depends_on: [ADR-0001]
+
+  - id: ADR-0008
+    title: "Web Architecture"
+    status: Accepted
+    date: "2026-06-12"
+    path: docs/architecture/adr-0008-web-architecture.md
+    governs: "Vue3+Vite8+Pinia+Naive UI+lightweight-charts; manual-fetch SSE; @pretext alias (portability open question)"
+    depends_on: [ADR-0007]

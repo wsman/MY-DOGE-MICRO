@@ -22,11 +22,11 @@ MY-DOGE QUANT SYSTEM is a local-first product composed of data ingestion, local 
 | 3 | TDX/YFinance Data Sources | Foundation | MVP | In Progress | design/cdd/data-sources.md | Runtime Configuration, Market Data Storage |
 | 4 | Macro Strategy Engine | Core | MVP | In Progress | design/cdd/macro-strategy-engine.md | Market Data Storage, TDX/YFinance Data Sources |
 | 5 | Micro Momentum Scanner | Core | MVP | In Progress | design/cdd/micro-momentum-scanner.md | Market Data Storage, TDX/YFinance Data Sources |
-| 6 | AI Industry Analysis | Feature | Vertical Slice | In Progress | — | Macro Strategy Engine, Micro Momentum Scanner |
-| 7 | Research Insight Knowledge Base | Core | MVP | In Progress | design/cdd/research-insight-knowledge-base.md | Market Data Storage, AI Industry Analysis |
+| 6 | Market Reporting | Feature | Vertical Slice | In Progress | design/cdd/market-reporting.md | Runtime Configuration, Market Data Storage (writes `stock_names` shared with #7) |
+| 7 | Research Insight Knowledge Base | Core | MVP | In Progress | design/cdd/research-insight-knowledge-base.md | Market Data Storage, Market Reporting |
 | 8 | MCP Server | Interface | MVP | In Progress | design/cdd/mcp-server.md | Runtime Configuration, Market Data Storage, Research Insight Knowledge Base |
 | 9 | FastAPI Service | Interface | Vertical Slice | In Progress | design/cdd/fastapi-service.md | Runtime Configuration, Market Data Storage, Macro Strategy Engine, Micro Momentum Scanner |
-| 10 | PyQt Desktop Dashboard | Presentation | Vertical Slice | In Progress | design/cdd/pyqt-desktop-dashboard.md | Macro Strategy Engine, Micro Momentum Scanner, AI Industry Analysis |
+| 10 | PyQt Desktop Dashboard | Presentation | Vertical Slice | In Progress | design/cdd/pyqt-desktop-dashboard.md | Macro Strategy Engine, Micro Momentum Scanner, Market Reporting |
 | 11 | Vue Web Console | Presentation | Alpha | In Progress | design/cdd/vue-web-console.md | FastAPI Service |
 | 12 | Clean Architecture Migration | Operations | MVP | In Progress | design/cdd/clean-architecture-migration.md | Runtime Configuration, Market Data Storage |
 
@@ -38,7 +38,7 @@ MY-DOGE QUANT SYSTEM is a local-first product composed of data ingestion, local 
 |----------|-------------|-----------------|
 | **Foundation** | Infrastructure and primitives other modules depend on | Runtime configuration, storage, data sources |
 | **Core** | Modules required for the central market-analysis workflow | Macro strategy, micro momentum, research knowledge base |
-| **Feature** | User-facing analytical workflows built on core modules | AI industry analysis |
+| **Feature** | User-facing analytical workflows built on core modules | Market reporting |
 | **Interface** | External access surfaces and protocols | MCP server, FastAPI service |
 | **Presentation** | Human operator UI surfaces | PyQt dashboard, Vue web console |
 | **Operations** | Architecture, quality, release, and migration control | Clean architecture migration |
@@ -72,7 +72,7 @@ MY-DOGE QUANT SYSTEM is a local-first product composed of data ingestion, local 
 
 ### Feature Layer
 
-1. AI Industry Analysis — depends on macro context, micro candidates, ticker calibration, and model clients.
+1. Market Reporting — depends on storage analytical views (Module #2) and runtime config (Module #1); writes ticker names to the `stock_names` table shared with Module #7. It is pure SQL report generation with **no LLM** — the project's LLM lives in Module #4 and the LLM-based industry-chain clustering lives in Module #5.
 
 ### Interface Layer
 
@@ -102,7 +102,7 @@ MY-DOGE QUANT SYSTEM is a local-first product composed of data ingestion, local 
 | 6 | Micro Momentum Scanner | MVP | Core | python-specialist | M |
 | 7 | Macro Strategy Engine | MVP | Core | python-specialist | M |
 | 8 | Research Insight Knowledge Base | MVP | Core | python-specialist | S |
-| 9 | AI Industry Analysis | Vertical Slice | Feature | python-specialist, security-engineer | M |
+| 9 | Market Reporting | Vertical Slice | Feature | python-specialist, security-engineer | M |
 | 10 | FastAPI Service | Vertical Slice | Interface | python-specialist | M |
 | 11 | PyQt Desktop Dashboard | Vertical Slice | Presentation | ui-programmer, python-specialist | M |
 | 12 | Vue Web Console | Alpha | Presentation | typescript-specialist, ui-programmer | M |
@@ -122,7 +122,7 @@ MY-DOGE QUANT SYSTEM is a local-first product composed of data ingestion, local 
 |--------|-----------|------------------|------------|
 | Clean Architecture Migration | Technical | New clean architecture files are untracked while legacy paths still run. | Freeze state in Git snapshot, write ADR, migrate in batches, preserve compatibility entrypoints. |
 | Market Data Storage | Technical | Direct SQLite/DuckDB access is spread across interface and analysis modules. | Centralize repositories and connection management behind ports. |
-| AI Industry Analysis | Technical/Product | Model output can hallucinate market claims. | Keep ticker metadata calibration, source grounding, retries, and cached fallback behavior. |
+| Micro Momentum Scanner | Technical/Product | The LLM-based industry-chain clustering (`src/micro/industry_analyzer.py`, Module #5) can hallucinate market/sector claims. | Keep ticker metadata calibration via `yfinance` + local JSON cache, RSRS-based trend confirmation, source grounding, retries, and cached fallback behavior. (Risk relocated from the former "AI Industry Analysis" row — that module was renamed to Market Reporting and has no LLM.) |
 | Vue Web Console | Scope | Web UI expands product surface while backend migration is unfinished. | Keep web API contracts narrow until services stabilize. |
 
 ---
