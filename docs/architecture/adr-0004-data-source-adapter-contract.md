@@ -4,13 +4,30 @@
 
 Proposed
 
+> **Promotion gate (S002-011 governance review, 2026-06-12).** This ADR stays
+> Proposed because its gating work is incomplete. **MET**:
+> `IMarketDataSource` port exists; `YFinanceDataSource` adapter is implemented
+> and green (`tests/test_yfinance_adapter.py`, 13/13, network-free). **REMAINS**
+> before promotion to Accepted:
+> - **S002-005 / TDX adapter** — `src/doge/infrastructure/data_source/tdx.py`
+>   still raises `NotImplementedError` at `:32` (`download_kline`) and `:35`
+>   (`get_latest_market_date`); the migration of `src/micro/tdx_downloader.py`
+>   onto the port is deferred beyond Sprint 002.
+> - **Shared retry-helper extraction** — `src/doge/infrastructure/data_source/
+>   _retry.py` is a follow-on (Migration Plan step 2); the yfinance adapter and
+>   `macro/data_loader.py` still carry independent retry loops.
+> - **`tdx_downloader.py` full migration** — remove `sys.path.insert` +
+>   `_PROJECT_ROOT` block (`:23-26`); route consumers through the port; then
+>   delete legacy paths after a live smoke.
+> Promotion to Accepted is the gating ADR-lifecycle event for those stories.
+
 ## Date
 
 2026-06-11
 
 ## Last Verified
 
-2026-06-11
+2026-06-12
 
 ## Decision Makers
 

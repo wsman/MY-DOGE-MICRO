@@ -4,12 +4,23 @@
 
 Proposed
 
-> **Proposed, not Accepted.** The CORS hardening follow-on story (tighten
-> `allow_origins=["*"]` to an explicit localhost allow-list) is the gating work
-> before this ADR can move to Accepted. Per the docs/CLAUDE.md ADR lifecycle,
-> stories referencing a Proposed ADR are auto-blocked — the FastAPI service CDD
-> references this ADR for rationale only; its blocking ACs are written as
-> explicit open items, not as satisfied-by-ADR-0007.
+> **Promotion gate (S002-011 governance review, 2026-06-12).** This ADR stays
+> Proposed because one of its two gating items is incomplete. Per the
+> docs/CLAUDE.md ADR lifecycle, stories referencing a Proposed ADR are
+> auto-blocked — the FastAPI service CDD references this ADR for rationale only;
+> its blocking ACs are written as explicit open items, not as
+> satisfied-by-ADR-0007.
+> **MET**: the error envelope — S002-009 shipped the two global handlers
+> (`@app.exception_handler(HTTPException)` + `@app.exception_handler(Exception)`
+> at `src/api/main.py:45,60`), removed the six `try/except ... raise
+> HTTPException(500, str(e))` wrappers in `data.py` and `notes.py`, and locked
+> the no-`str(e)` regression behind `tests/contract/test_api_error_envelope.py`.
+> **REMAINS**: CORS hardening — `allow_origins=["*"]` (`src/api/main.py:28`)
+> must be tightened to an explicit loopback-guarantee allow-list (or an explicit
+> decision to keep `*` under a strengthened loopback bind), and a non-loopback
+> `bind_host` must be gated on it. This is explicitly out of Sprint 002 scope
+> (sprint-002:47). Promotion to Accepted is the gating ADR-lifecycle event for
+> the CORS-hardening follow-on.
 
 ## Date
 

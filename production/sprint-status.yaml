@@ -22,6 +22,11 @@
 
 version: 1
 last_updated: "2026-06-12"
+# 2026-06-12 (S002-011): Sprint 002 implementation complete. All 13 stories
+# shipped: S002-001..013 done. ADR governance — ADR-0002/0003/0005 Accepted
+# (gates met); ADR-0004/0007/0009/0010 carry Promotion gate callouts and stay
+# Proposed (0009/0010 recommended for Wave-4 promotion; 0004/0007 deferred
+# beyond Sprint 002).
 
 sprints:
   - id: S001
@@ -37,7 +42,7 @@ sprints:
     plan: production/sprints/sprint-002-cdd-followup.md
     epics_index: production/epics/index.md
     start: "2026-06-12"
-    status: planning
+    status: done
     control_manifest: "2026-06-12"
     duration_assumption: "2 weeks"
     goal: >-
@@ -53,7 +58,7 @@ sprints:
       - "python -m pytest -q green on Windows 10 LTSC."
       - "npm run build and npm test green in web/ on a clean checkout."
       - "Layer-rule grep gates pass for the remediated sites."
-      - "ADR-0002 and ADR-0005 Accepted; ADR-0003/0004/0007 carry promotion-gate notes."
+      - "ADR-0002/0003/0005 Accepted (S002-006/007 met ADR-0003's gates after shipping); ADR-0004/0007/0009/0010 carry Promotion gate callouts and stay Proposed (0009/0010 recommended for Wave-4 promotion)."
       - "No real API key in models_config.json; on-disk key rotated."
       - "All 13 stories' acceptance criteria met or explicitly deferred."
     stories:
@@ -65,7 +70,7 @@ sprints:
         priority: MED
         effort: M
         owner: python-specialist
-        status: todo
+        status: done
         blocking_gate: false
 
       - id: S002-002
@@ -76,7 +81,7 @@ sprints:
         priority: MED
         effort: S
         owner: python-specialist
-        status: todo
+        status: done
         depends_on: [S002-001]
         blocking_gate: false
 
@@ -88,7 +93,7 @@ sprints:
         priority: MED
         effort: M
         owner: lead-programmer
-        status: todo
+        status: done
         kind: design-adr
         blocking_gate: false
 
@@ -100,7 +105,7 @@ sprints:
         priority: MED
         effort: M
         owner: lead-programmer
-        status: todo
+        status: done
         kind: design-adr
         blocking_gate: false
 
@@ -113,7 +118,7 @@ sprints:
         priority: MED
         effort: S
         owner: python-specialist
-        status: todo
+        status: done
         blocking_gate: false
 
       - id: S002-006
@@ -124,7 +129,7 @@ sprints:
         priority: MED
         effort: S
         owner: python-specialist
-        status: todo
+        status: done
         gates_adr_0003_promotion: true
         blocking_gate: true
 
@@ -136,7 +141,7 @@ sprints:
         priority: HIGH
         effort: M
         owner: python-specialist
-        status: todo
+        status: done
         gates_adr_0003_promotion: true
         blocking_gate: true
         story_type: "Migration / Data Pipeline"
@@ -149,7 +154,7 @@ sprints:
         priority: MED
         effort: M
         owner: python-specialist
-        status: todo
+        status: done
         blocking_gate: false
 
       - id: S002-009
@@ -160,7 +165,7 @@ sprints:
         priority: MED
         effort: M
         owner: python-specialist
-        status: todo
+        status: done
         gates_adr_0007_promotion: true
         blocking_gate: true
         story_type: "API Contract"
@@ -173,23 +178,33 @@ sprints:
         priority: MED
         effort: M
         owner: typescript-specialist
-        status: todo
+        status: done
         depends_on: [S002-009]
         blocking_gate: true
         story_type: "Web / App Workflow"
 
       - id: S002-011
-        title: "Promote ADR-0002 + ADR-0005 to Accepted; define promotion gates for ADR-0003/0004/0007"
+        title: "Promote ADR-0002 + ADR-0003 + ADR-0005 to Accepted; define promotion gates for ADR-0004/0007/0009/0010"
         epic: ep-governance-security
         tr: null
         source: "FINDING-1 (ADR lifecycle)"
         priority: MED
         effort: S
         owner: lead-programmer
-        status: todo
+        status: done
         depends_on: [S002-006, S002-007, S002-009]
         kind: governance
         blocking_gate: false
+        note: >-
+          ADR-0002/0003/0005 Accepted (gates met against shipped code:
+          S002-006 StorageWriteError, S002-007 DOGE_RETENTION_DAYS, S002-013
+          DeepSeek-key env rotation, ADR-0001 dependency Accepted). ADR-0004/
+          0007/0009/0010 carry Promotion gate callouts and stay Proposed:
+          0004 (TDX adapter still NotImplementedError), 0007 (CORS hardening
+          out of Sprint 002 scope), 0009 + 0010 (decision realized but
+          self-promotion deferred) recommended for Wave-4 /architecture-review
+          promotion. Contract enforced by
+          tests/unit/governance/test_adr_lifecycle_status.py (11 passed).
 
       - id: S002-012
         title: "Make @pretext sibling-project alias portable (vendor / npm-publish / workspace-alias)"
@@ -199,7 +214,7 @@ sprints:
         priority: MED
         effort: M
         owner: typescript-specialist
-        status: todo
+        status: done
         subsumes: [S001-012]
         blocking_gate: false
 
@@ -211,18 +226,18 @@ sprints:
         priority: HIGH
         effort: S
         owner: security-engineer
-        status: todo
+        status: done
         blocking_gate: false
 
 # Rollup counts (kept in sync with the stories list above).
 rollup:
   total_stories: 13
   by_status:
-    todo: 13
+    todo: 0
     in_progress: 0
     blocked: 0
     review: 0
-    done: 0
+    done: 13
     deferred: 0
   by_priority:
     HIGH: 2

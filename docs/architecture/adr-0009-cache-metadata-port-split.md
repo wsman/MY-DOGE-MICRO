@@ -4,6 +4,23 @@
 
 Proposed
 
+> **Promotion gate (S002-011 governance review, 2026-06-12).** This ADR stays
+> Proposed for Sprint 002. **The decision itself is realized** (the split is
+> not contested): `ITickerNameCache` is left unchanged in
+> `src/doge/core/ports/cache.py`; `ITickerMetadataSource` is declared in
+> `src/doge/core/ports/metadata.py`; the `YFinanceMetadataSource` stub in
+> `src/doge/infrastructure/data_source/yfinance_metadata.py` mirrors the
+> `TDXDataSource` stub pattern. **REMAINS** before the *implementation* is
+> complete: the real yfinance-backed metadata adapter — migrate the
+> `yf.Ticker(yf_ticker).info` call at `src/micro/industry_analyzer.py:190`
+> (plus its in-memory `metadata_cache` and local retry loop at `:180-203`) onto
+> `YFinanceMetadataSource.get_metadata`. That follow-on story removes the
+> `NotImplementedError` and is the natural promotion trigger.
+> **Recommend promotion at `/architecture-review` (Wave-4)** — the port-split
+> *decision* is accepted; only the real adapter implementation is a follow-on.
+> Self-promotion in the same Sprint-002 commit window is intentionally
+> deferred so the FRESH Wave-4 review confirms.
+
 ## Date
 
 2026-06-12

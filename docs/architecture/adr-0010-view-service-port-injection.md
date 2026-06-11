@@ -4,6 +4,24 @@
 
 Proposed
 
+> **Promotion gate (S002-011 governance review, 2026-06-12).** This ADR stays
+> Proposed for Sprint 002 even though its validation gate **IS met**.
+> **MET (fully realized)**: `IMarketViewRepository` is declared in
+> `src/doge/core/ports/market_view.py`; `DuckDBMarketViewRepository` wraps a
+> read-only `DuckDBConnection` in
+> `src/doge/infrastructure/database/market_view_repository.py`; all four
+> services (`ViewService`, `RankingService`, `BreadthService`, `AnomalyService`)
+> take the port as a REQUIRED arg with no infrastructure import (AC-2 grep
+> clean); the composition root `src/doge/core/services/composition.py` is the
+> single infrastructure-import site; the three MCP tool files use the
+> `build_*()` factories.
+> **REMAINS**: none at the contract level — the gate is satisfied. The ADR is
+> brand-new this sprint, so self-promotion in the same commit window is
+> intentionally deferred.
+> **Recommend promotion at `/architecture-review` (Wave-4)** — the decision is
+> fully realized; the FRESH Wave-4 review should confirm rather than this
+> sprint self-promoting in the same window.
+
 ## Date
 
 2026-06-12
