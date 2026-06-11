@@ -143,7 +143,7 @@ function sortServers(servers: ServerEntry[]): ServerEntry[] {
 
 function toOptions(servers: ServerEntry[]): SelectOption[] {
   const sorted = sortServers(servers)
-  const auto: SelectOption = { label: 'Auto (fastest)', value: null }
+  const auto: SelectOption = { label: 'Auto (fastest)', value: '' }
   const items: SelectOption[] = sorted.map(s => {
     const latency = s.latency_ms != null
       ? (s.ok ? `${s.latency_ms}ms` : '✗')

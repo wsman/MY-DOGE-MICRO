@@ -6,7 +6,6 @@ import {
 } from 'naive-ui'
 import { useSplitTree } from './composables/useSplitTree'
 import SplitPane from './components/SplitPane.vue'
-import type { SplitLayout } from './types/splitTree'
 
 const splitTree = useSplitTree()
 

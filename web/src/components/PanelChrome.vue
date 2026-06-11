@@ -57,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, defineAsyncComponent } from 'vue'
+import { computed, defineAsyncComponent } from 'vue'
 import { NSelect, NButton, NText } from 'naive-ui'
 import type { LeafNode, ViewId } from '../types/splitTree'
 import { VIEW_REGISTRY, VIEW_SELECT_OPTIONS } from '../views/registry'

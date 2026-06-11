@@ -32,7 +32,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { NAutoComplete, NSelect, NText, type SelectOption } from 'naive-ui'
+import { NAutoComplete, NSelect, NText } from 'naive-ui'
 import { useMarketDataStore } from '../stores/marketData'
 import { getKline, fetchTickerNames } from '../api/data'
 import { useKlineChart } from '../composables/useKlineChart'

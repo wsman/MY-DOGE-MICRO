@@ -6,7 +6,7 @@
     :class="{ active: isActive }"
     @mousedown="activate"
   >
-    <PanelChrome :node="node" />
+    <PanelChrome :node="node as LeafNode" />
   </div>
 
   <!-- LEAF NODE -->
@@ -50,7 +50,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { SplitTreeNode, SplitLayout } from '../types/splitTree'
+import type { SplitTreeNode, SplitLayout, LeafNode } from '../types/splitTree'
 import { useSplitTree } from '../composables/useSplitTree'
 import { VIEW_REGISTRY } from '../views/registry'
 import PanelChrome from './PanelChrome.vue'

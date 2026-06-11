@@ -18,7 +18,7 @@
         <div :style="{ transform: `translateY(${visibleRange.offsetY}px)` }">
           <div
             v-for="(row, idx) in visibleRows"
-            :key="rowKey ? row[rowKey] : visibleRange.startIdx + idx"
+            :key="rowKey ? String(row[rowKey]) : visibleRange.startIdx + idx"
             class="vt-row"
             :class="{ 'vt-row-striped': (visibleRange.startIdx + idx) % 2 === 1 }"
             :style="{ height: rowHeight + 'px' }"

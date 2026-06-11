@@ -14,14 +14,14 @@
               :maxColWidth="400"
             >
               <template #card="{ item }">
-                <n-card size="small" hoverable @click="showMacroReport(item.raw)">
-                  <template #header>{{ item.raw.date }} {{ item.raw.timestamp }}</template>
+                <n-card size="small" hoverable @click="showMacroReport(asMacro(item.raw))">
+                  <template #header>{{ asMacro(item.raw).date }} {{ asMacro(item.raw).timestamp }}</template>
                   <template #header-extra>
-                    <n-tag :type="riskTagType(item.raw.risk_signal)" size="small">
-                      {{ item.raw.risk_signal }}
+                    <n-tag :type="riskTagType(asMacro(item.raw).risk_signal)" size="small">
+                      {{ asMacro(item.raw).risk_signal }}
                     </n-tag>
                   </template>
-                  <n-text depth="3">{{ item.raw.analyst }} | Vol: {{ item.raw.volatility }}</n-text>
+                  <n-text depth="3">{{ asMacro(item.raw).analyst }} | Vol: {{ asMacro(item.raw).volatility }}</n-text>
                 </n-card>
               </template>
             </VirtualMasonry>
@@ -42,9 +42,9 @@
             :maxColWidth="400"
           >
             <template #card="{ item }">
-              <n-card size="small" hoverable @click="showResearchReport(item.raw)">
-                <template #header>{{ item.raw.title || 'Untitled' }}</template>
-                <n-text depth="3">{{ item.raw.date }} | {{ item.raw.analyst }}</n-text>
+              <n-card size="small" hoverable @click="showResearchReport(asResearch(item.raw))">
+                <template #header>{{ asResearch(item.raw).title || 'Untitled' }}</template>
+                <n-text depth="3">{{ asResearch(item.raw).date }} | {{ asResearch(item.raw).analyst }}</n-text>
               </n-card>
             </template>
           </VirtualMasonry>
@@ -96,6 +96,13 @@ import type { MacroReport, ResearchReport } from '../types/report'
 import type { MasonryItem } from '../components/VirtualMasonry.vue'
 
 const md = new MarkdownIt()
+
+// MasonryItem.raw is typed `unknown` (it is a generic payload slot). These
+// narrow it back to the concrete report type the template renders. The raw
+// value is set from a typed source in the computed masonry items above, so
+// the cast is sound.
+const asMacro = (raw: unknown): MacroReport => raw as MacroReport
+const asResearch = (raw: unknown): ResearchReport => raw as ResearchReport
 
 const loading = ref(false)
 const macroReports = ref<MacroReport[]>([])

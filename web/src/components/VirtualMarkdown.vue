@@ -108,7 +108,7 @@ const firstVisibleIdx = computed(() => {
 const spacerAbove = computed(() => {
   let h = 0
   for (let i = 0; i < firstVisibleIdx.value; i++) {
-    h += getChunkHeight(chunks.value[i], i)
+    h += getChunkHeight(chunks.value[i])
   }
   return h
 })

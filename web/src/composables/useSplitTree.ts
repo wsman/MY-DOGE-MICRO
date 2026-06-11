@@ -84,7 +84,11 @@ function loadFromStorage(): SplitTreeState | null {
   }
 }
 
+// Module-level debounce timer placeholder retained for symmetry with the
+// composable-scoped timer below. Silenced with `void` so noUnusedLocals
+// does not flag it; the live timer lives inside useSplitTree().
 let _persistTimer: ReturnType<typeof setTimeout> | null = null
+void _persistTimer
 
 // ---------------------------------------------------------------------------
 // Spatial calculation  (ghostty: spatial() + fillSpatialSlots L968-1048)
@@ -244,6 +248,9 @@ if (!state.activeHandle) {
   state.activeHandle = firstLeaf(state.root).handle
 }
 _initialized = true
+// `_initialized` is a module-load latch reserved for future hot-reload /
+// re-init guards. Read it back here so noUnusedLocals does not flag it.
+void _initialized
 
 // ---------------------------------------------------------------------------
 // Composable

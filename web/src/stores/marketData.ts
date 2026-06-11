@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { listTables, queryTable, fetchTickerNames } from '../api/data'
 import type { KlineData } from '../types/stock'
 

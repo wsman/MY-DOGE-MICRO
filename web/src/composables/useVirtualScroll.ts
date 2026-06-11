@@ -3,7 +3,7 @@
  * Pure arithmetic visibility calculation — no DOM measurement needed.
  * Uses ResizeObserver for container height + RAF-batched scroll events.
  */
-import { ref, computed, watch, onMounted, onUnmounted, type Ref } from 'vue'
+import { ref, computed, watch, type Ref } from 'vue'
 
 export interface VirtualScrollOptions {
   /** Fixed row height in pixels */
