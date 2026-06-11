@@ -20,10 +20,10 @@ MY-DOGE QUANT SYSTEM is a local-first product composed of data ingestion, local 
 | 1 | Runtime Configuration | Foundation | MVP | In Progress | design/cdd/runtime-configuration.md | None |
 | 2 | Market Data Storage | Foundation | MVP | In Progress | design/cdd/market-data-storage.md | Runtime Configuration |
 | 3 | TDX/YFinance Data Sources | Foundation | MVP | In Progress | design/cdd/data-sources.md | Runtime Configuration, Market Data Storage |
-| 4 | Macro Strategy Engine | Core | MVP | In Progress | — | Market Data Storage, TDX/YFinance Data Sources |
-| 5 | Micro Momentum Scanner | Core | MVP | In Progress | — | Market Data Storage, TDX/YFinance Data Sources |
+| 4 | Macro Strategy Engine | Core | MVP | In Progress | design/cdd/macro-strategy-engine.md | Market Data Storage, TDX/YFinance Data Sources |
+| 5 | Micro Momentum Scanner | Core | MVP | In Progress | design/cdd/micro-momentum-scanner.md | Market Data Storage, TDX/YFinance Data Sources |
 | 6 | AI Industry Analysis | Feature | Vertical Slice | In Progress | — | Macro Strategy Engine, Micro Momentum Scanner |
-| 7 | Research Insight Knowledge Base | Core | MVP | In Progress | — | Market Data Storage, AI Industry Analysis |
+| 7 | Research Insight Knowledge Base | Core | MVP | In Progress | design/cdd/research-insight-knowledge-base.md | Market Data Storage, AI Industry Analysis |
 | 8 | MCP Server | Interface | MVP | In Progress | — | Runtime Configuration, Market Data Storage, Research Insight Knowledge Base |
 | 9 | FastAPI Service | Interface | Vertical Slice | In Progress | — | Runtime Configuration, Market Data Storage, Macro Strategy Engine, Micro Momentum Scanner |
 | 10 | PyQt Desktop Dashboard | Presentation | Vertical Slice | In Progress | — | Macro Strategy Engine, Micro Momentum Scanner, AI Industry Analysis |
