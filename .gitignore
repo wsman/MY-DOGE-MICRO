@@ -46,3 +46,6 @@ web/dist/
 
 # Company snapshots (stale data)
 data/company_snapshots/
+
+# Editable-install build artifact
+*.egg-info/

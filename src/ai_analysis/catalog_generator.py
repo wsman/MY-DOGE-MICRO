@@ -6,13 +6,14 @@ Usage:
 """
 
 import json
-import sys
 import os
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+# S002-009 / TR-011: package-qualified sibling import (editable install), no
+# sys.path shim (ADR-0001 forbidden pattern ``sys_path_insert``). The legacy
+# ``get_project_path`` symbol never existed on the ``ai_analysis`` package, so
+# the prior ``from ai_analysis import get_project_path`` made this module
+# unimportable; catalog output path is now sourced from get_settings().
 from ai_analysis import (
-    get_project_path,
     CN_DB,
     US_DB,
     RESEARCH_DB,
@@ -21,6 +22,7 @@ from ai_analysis import (
     run_views_sql,
     get_duckdb_view_stats,
 )
+from doge.config import get_settings
 
 
 def generate_catalog():
@@ -75,7 +77,7 @@ def generate_catalog():
     from datetime import datetime
     catalog["generated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    catalog_path = get_project_path("data", "catalog.json")
+    catalog_path = str(get_settings().catalog_json)
     with open(catalog_path, "w", encoding="utf-8") as f:
         json.dump(catalog, f, indent=2)
 

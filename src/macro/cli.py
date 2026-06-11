@@ -8,9 +8,11 @@ import sys
 import os
 import logging  # 添加导入
 
-# 添加项目路径到Python路径
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
+# S002-009 / TR-011: the macro package is importable via the editable install,
+# so ``from . import ...`` resolves without a sys.path shim (ADR-0001 forbidden
+# pattern ``sys_path_insert``). NOTE: running ``python src/macro/cli.py``
+# directly still fails on the relative import (it must be launched as
+# ``python -m macro.cli``); that limitation is pre-existing and unchanged.
 from . import MacroConfig, GlobalMacroLoader, DeepSeekStrategist, setup_logging
 
 

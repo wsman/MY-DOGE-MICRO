@@ -1,35 +1,29 @@
-import sys
 import os
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, 
-                             QHBoxLayout, QLabel, QLineEdit, QPushButton, 
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout,
+                             QHBoxLayout, QLabel, QLineEdit, QPushButton,
                              QFileDialog, QGroupBox, QTextEdit, QProgressBar, QMessageBox)
 from PyQt6.QtCore import QThread, pyqtSignal
 
-# --- 路径修复核心代码 ---
-# 1. 获取关键目录路径
-current_file_path = os.path.abspath(__file__)
-interface_dir = os.path.dirname(current_file_path)  # .../src/interface
-src_dir = os.path.dirname(interface_dir)            # .../src
-project_root = os.path.dirname(src_dir)             # .../MY-DOGE-MICRO
+# S002-009 / TR-011: package-qualified sibling imports via the editable install,
+# no sys.path shim (ADR-0001 forbidden pattern ``sys_path_insert``). Project
+# root and DB paths come from get_settings().
+from doge.config import get_settings
 
-# 2. 将项目根目录加入 sys.path (确保优先级)
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
-# 3. 导入核心模块 (使用全限定路径)
+# 导入核心模块 (package-qualified)
 try:
     # 导入 Micro 模块
-    from src.micro.market_scanner import MarketScanner
-    
+    from micro.market_scanner import MarketScanner
+
     # 导入 Macro 模块 (这是之前报错的地方)
-    from src.macro.config import MacroConfig
-    from src.macro.data_loader import GlobalMacroLoader
-    from src.macro.strategist import DeepSeekStrategist
+    from macro.config import MacroConfig
+    from macro.data_loader import GlobalMacroLoader
+    from macro.strategist import DeepSeekStrategist
 except ImportError as e:
     print(f"❌ 严重导入错误: {e}")
     print("请确保项目目录下存在 __init__.py 文件，且目录结构正确。")
-    # 为了防止IDE报错干扰，这里可以保留一个备用尝试，但通常根目录导入是最稳的
 # ------------------------
+
+project_root = str(get_settings().project_root)
 
 class MacroWorker(QThread):
     log_signal = pyqtSignal(str)
@@ -66,15 +60,11 @@ class MacroWorker(QThread):
                 vol_str = f"{vol_val:.2f}%" if isinstance(vol_val, (int, float)) else str(vol_val)
                 
                 # 局部导入以避免循环依赖
-                try:
-                    from src.micro.database import save_macro_report
-                    save_macro_report(raw_report, risk_str, vol_str, analyst=config.model)  # <--- 关键修改：传入实际模型名
-                except ImportError:
-                    # 尝试从根路径导入
-                    import sys
-                    sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'src', 'micro'))
-                    from database import save_macro_report
-                    save_macro_report(raw_report, risk_str, vol_str, analyst=config.model)  # <--- 关键修改：传入实际模型名
+                # S002-009: package-qualified import (editable install). The
+                # legacy path-manipulation fallback shim was removed
+                # (ADR-0001 forbidden pattern sys_path_append).
+                from micro.database import save_macro_report
+                save_macro_report(raw_report, risk_str, vol_str, analyst=config.model)  # <--- 关键修改：传入实际模型名
 
                 self.log_signal.emit("✅ 宏观分析完成！报告已生成并归档。")
             else:
@@ -194,10 +184,9 @@ class ScannerWidget(QWidget):
             
     def start_scan(self, mode):
         tdx_root = self.tdx_path_edit.text()
-        # 自动决定数据库路径
-        db_name = "market_data_cn.db" if mode == 'CN' else "market_data_us.db"
-        # 假设 data 目录在项目根目录
-        db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', db_name)
+        # 自动决定数据库路径 (S002-009: from centralized Settings, no dirname walk)
+        _db_cfg = get_settings().db
+        db_path = str(_db_cfg.cn_db if mode == 'CN' else _db_cfg.us_db)
         
         # 1. 界面锁定：禁用两个按钮，防止重复点击
         self.btn_cn.setEnabled(False)
@@ -286,20 +275,18 @@ class ScannerWidget(QWidget):
 
     def start_scan(self, mode):
         # 1. 保存当前路径 (新增功能)
-        self.save_settings() 
-        
-        tdx_root = self.tdx_path_edit.text()
-        # 自动决定数据库路径
-        db_name = "market_data_cn.db" if mode == 'CN' else "market_data_us.db"
-        
-        # 路径回退逻辑：先找 ../../data，找不到就用当前目录 data
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        self.save_settings()
 
-        data_dir = os.path.join(project_root, 'data')
+        tdx_root = self.tdx_path_edit.text()
+        # 自动决定数据库路径 (S002-009: from centralized Settings, no dirname walk).
+        _db_cfg = get_settings().db
+        db_name = "market_data_cn.db" if mode == 'CN' else "market_data_us.db"
+
+        data_dir = str(_db_cfg.dir)
         if not os.path.exists(data_dir):
             os.makedirs(data_dir, exist_ok=True)
-            
-        db_path = os.path.join(data_dir, db_name)
+
+        db_path = str(_db_cfg.cn_db if mode == 'CN' else _db_cfg.us_db)
         
         # 2. 界面锁定
         self.btn_cn.setEnabled(False)

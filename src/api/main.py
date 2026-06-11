@@ -6,8 +6,11 @@ Tauri sidecar — runs on localhost:8901
 import logging
 import os
 
-# ── 路径设置 ──────────────────────────────────────────
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# S002-009 / TR-011: project root sourced from get_settings() (ADR-0001
+# forbidden pattern ``_PROJECT_ROOT`` dirname-walk). The module-global name is
+# KEPT so the contract test (tests/test_api_routers.py:153) can still
+# monkeypatch it to a temp dir; only the *derivation* changed (settings vs
+# os.path.dirname walk).
 
 # ── OpenBLAS 安全设置 ────────────────────────────────
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
@@ -17,9 +20,13 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from doge.config import get_settings
 from src.api.routers import scan, data, notes, macro, analysis, config
 
 logger = logging.getLogger("doge.api")
+
+# Module-global project root — derived from Settings, monkeypatchable in tests.
+_PROJECT_ROOT = str(get_settings().project_root)
 
 app = FastAPI(title="MY-DOGE API", version="0.1.0")
 
@@ -98,6 +105,9 @@ async def stats():
     """数据库概览统计"""
     import sqlite3
     result = {}
+    # S002-009: the project root is the module-global (Settings-derived, and
+    # monkeypatchable by tests). DB paths derive from it so the test's
+    # temp-root redirect remains effective; no os.path.dirname walk here.
     data_dir = os.path.join(_PROJECT_ROOT, "data")
     for db_name in ["market_data_cn.db", "market_data_us.db", "research_insights.db"]:
         db_path = os.path.join(data_dir, db_name)

@@ -14,18 +14,19 @@ if os.path.exists(qt6_bin_path):
 else:
     print(f"⚠️ Qt6 DLL path not found: {qt6_bin_path}")
 
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QTabWidget, QVBoxLayout, 
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QTabWidget, QVBoxLayout,
                              QWidget, QLabel, QComboBox, QHBoxLayout)
 from PyQt6.QtGui import QFont
 
-# 路径自适应
-current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(current_dir)
+# S002-009 / TR-011: package-qualified sibling imports (editable install), no
+# sys.path shim (ADR-0001 forbidden pattern ``sys_path_insert``). Project root
+# and DB paths come from get_settings().
+from doge.config import get_settings
 
 # 导入子组件
-from scanner_gui import ScannerWidget
-from db_editor import DBEditorWidget
-from analysis_gui import AnalysisWidget
+from interface.scanner_gui import ScannerWidget
+from interface.db_editor import DBEditorWidget
+from interface.analysis_gui import AnalysisWidget
 
 class CommandCenter(QMainWindow):
     def __init__(self):
@@ -60,21 +61,19 @@ class CommandCenter(QMainWindow):
         
         # --- 组装 Tab 2: 档案局 (A股) ---
         self.cn_editor_tab = DBEditorWidget(connection_name="conn_cn_market")
-        # 默认加载 A股库
-        cn_db_path = os.path.join(os.path.dirname(os.path.dirname(current_dir)), 'data', 'market_data_cn.db')
-        self.cn_editor_tab.load_database(cn_db_path) # 假设组件有此方法
+        # 默认加载 A股库 (path from centralized Settings, not a dirname walk)
+        _db = get_settings().db
+        self.cn_editor_tab.load_database(str(_db.cn_db)) # 假设组件有此方法
         self.tabs.addTab(self.cn_editor_tab, "🇨🇳 A股档案 (CN Data)")
-        
+
         # --- 组装 Tab 3: 档案局 (美股) ---
         self.us_editor_tab = DBEditorWidget(connection_name="conn_us_market")
-        us_db_path = os.path.join(os.path.dirname(os.path.dirname(current_dir)), 'data', 'market_data_us.db')
-        self.us_editor_tab.load_database(us_db_path)
+        self.us_editor_tab.load_database(str(_db.us_db))
         self.tabs.addTab(self.us_editor_tab, "🇺🇸 美股档案 (US Data)")
-        
+
         # --- 组装 Tab 4: 研报智库 ---
         self.insight_tab = DBEditorWidget(connection_name="conn_insights")
-        insight_db_path = os.path.join(os.path.dirname(os.path.dirname(current_dir)), 'data', 'research_insights.db')
-        self.insight_tab.load_database(insight_db_path)
+        self.insight_tab.load_database(str(_db.research_db))
         self.tabs.addTab(self.insight_tab, "🧠 研报智库 (Insights)")
         
         # --- 组装 Tab 5: 行业分析台 ---
@@ -118,12 +117,9 @@ class CommandCenter(QMainWindow):
 
 if __name__ == "__main__":
     # 1. 在启动 app 前执行数据库自检
-    try:
-        from src.micro.database import initialize_system_dbs
-    except ImportError:
-        # 路径回退处理
-        sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'src', 'micro'))
-        from database import initialize_system_dbs
+    # S002-009: package-qualified import via the editable install, no sys.path
+    # shim fallback (ADR-0001 forbidden pattern ``sys_path_append``).
+    from micro.database import initialize_system_dbs
 
     initialize_system_dbs()
     

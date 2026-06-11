@@ -1,19 +1,15 @@
 import os
-import sys
-import sqlite3
 import glob
 import re
 import logging
 import pandas as pd
 
-# 路径自适应
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.append(current_dir)
-
-from tdx_loader import TDXReader
-from database import init_db_custom, save_stock_data_custom
-from tdx_downloader import (
+# S002-009 / TR-011: sibling imports are package-qualified (the editable install
+# resolves ``micro.*`` / ``ai_analysis.*`` without sys.path shims). ADR-0001
+# forbidden pattern ``sys_path_insert`` no longer applies here.
+from micro.tdx_loader import TDXReader
+from micro.database import init_db_custom, save_stock_data_custom
+from micro.tdx_downloader import (
     download_cn_kline as _tdx_download_cn,
     download_us_kline as _tdx_download_us,
     find_working_server,
@@ -35,16 +31,11 @@ except ImportError:  # pragma: no cover - legacy bootstrap fallback
 
 logger = logging.getLogger(__name__)
 
-# 项目根目录下的 ai_analysis 包
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if _PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, _PROJECT_ROOT)
-
 
 def _refresh_duckdb_views():
     """数据导入后刷新 DuckDB 分析视图"""
     try:
-        from src.ai_analysis import connect_duckdb, run_views_sql
+        from ai_analysis import connect_duckdb, run_views_sql
         con = connect_duckdb()
         run_views_sql(con)
         con.close()

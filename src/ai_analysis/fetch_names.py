@@ -7,23 +7,27 @@ Usage:
 """
 
 import os
-import sys
 import sqlite3
 import time
 import json
 from datetime import datetime
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# S002-009 / TR-011: package-qualified sibling import (editable install), no
+# sys.path shim (ADR-0001 forbidden pattern ``sys_path_insert``). The legacy
+# ``get_project_path`` symbol never existed on the ``ai_analysis`` package, so
+# the prior ``from ai_analysis import get_project_path`` made this module
+# unimportable; paths now come from get_settings().
+from doge.config import get_settings
 
-from ai_analysis import get_project_path
-
-NOTES_DB = get_project_path("data", "research_insights.db")
-CACHE_PATH = get_project_path("data", "meta_cache.json")
+_NOTES_DB = get_settings().db
+NOTES_DB = str(_NOTES_DB.research_db)
+CACHE_PATH = str(_NOTES_DB.dir / "meta_cache.json")
 
 
 def get_all_tickers(market="cn"):
     """从 SQLite 获取所有已知 ticker"""
-    db_path = get_project_path("data", "market_data_{}.db".format(market))
+    db_cfg = get_settings().db
+    db_path = str(db_cfg.cn_db if market == "cn" else db_cfg.us_db)
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
     cur.execute("SELECT DISTINCT ticker FROM stock_prices ORDER BY ticker")

@@ -10,7 +10,15 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# S002-009 / TR-011: project root sourced from get_settings() (ADR-0001
+# forbidden pattern ``_PROJECT_ROOT`` dirname-walk). The module-global name is
+# KEPT so the contract test (tests/test_api_routers.py:151) can monkeypatch it
+# to a temp dir; only the *derivation* changed (settings vs os.path.dirname
+# walk). The router STILL does sqlite3.connect directly; the clean-layer
+# router DI is deferred to Batch-5 (out of scope here).
+from doge.config import get_settings
+
+_PROJECT_ROOT = str(get_settings().project_root)
 
 router = APIRouter()
 

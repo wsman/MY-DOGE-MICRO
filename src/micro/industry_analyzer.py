@@ -2,42 +2,36 @@ import os
 import pandas as pd
 import glob
 from datetime import datetime
-import sys
 import yfinance as yf
 import concurrent.futures # 用于并发加速获取信息
 import json
 import threading
 
-# --- 路径修复 ---
-current_dir = os.path.dirname(os.path.abspath(__file__)) # src/micro
-src_dir = os.path.dirname(current_dir)                   # src
-project_root = os.path.dirname(src_dir)                  # MY-DOGE-MICRO
-
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+# S002-009 / TR-011: package-qualified sibling imports resolve via the editable
+# install (no sys.path shim). Paths come from get_settings().project_root.
+from doge.config import get_settings
 
 # --- 导入 ---
 try:
-    from src.macro.config import MacroConfig
-    from src.macro.strategist import DeepSeekStrategist
+    from macro.config import MacroConfig
+    from macro.strategist import DeepSeekStrategist
 except ImportError as e:
     print(f"[ERR] 模块导入失败: {e}")
 
 # 导入数据库保存函数
 try:
-    from src.micro.database import save_research_report
+    from micro.database import save_research_report
 except ImportError:
-    try:
-        from database import save_research_report
-    except ImportError:
-        print("[WARN] Warning: Could not import database module")
-        save_research_report = lambda *args, **kwargs: None
+    print("[WARN] Warning: Could not import database module")
+    save_research_report = lambda *args, **kwargs: None
 
 class IndustryAnalyzer:
     def __init__(self, logger_callback=None, proxy='http://127.0.0.1:7890'):
         self.config = MacroConfig()
         self.strategist = DeepSeekStrategist(self.config)
-        self.project_root = project_root
+        # S002-009: project root sourced from centralized Settings, not a local
+        # dirname walk (ADR-0001 forbidden pattern ``_PROJECT_ROOT``).
+        self.project_root = str(get_settings().project_root)
         self.logger_callback = logger_callback
         self.cache_file = os.path.join(self.project_root, 'data', 'meta_cache.json')
         self.cache_lock = threading.RLock()

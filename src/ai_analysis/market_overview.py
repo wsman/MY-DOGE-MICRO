@@ -9,11 +9,10 @@ Output:
 """
 
 import os
-import sys
 from datetime import datetime
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+# S002-009 / TR-011: package-qualified sibling import (editable install), no
+# sys.path shim (ADR-0001 forbidden pattern ``sys_path_insert``).
 from ai_analysis import (
     connect_duckdb,
     run_views_sql,

@@ -12,15 +12,18 @@ layer invariant stays grep-able.
 """
 
 from doge.core.ports.market_view import IMarketViewRepository
+from doge.core.ports.repository import IStockRepository
 from doge.core.services.anomaly_service import AnomalyService
 from doge.core.services.breadth_service import BreadthService
 from doge.core.services.ranking_service import RankingService
+from doge.core.services.stock_service import StockService
 from doge.core.services.view_service import ViewService
 
 # Infrastructure import is intentionally localized to this composition root.
 from doge.infrastructure.database.market_view_repository import (
     DuckDBMarketViewRepository,
 )
+from doge.infrastructure.database.repositories import DuckDBStockRepository
 
 
 def build_view_repository(read_only: bool = True) -> IMarketViewRepository:
@@ -33,6 +36,29 @@ def build_view_service(
 ) -> ViewService:
     """Build a :class:`ViewService` with an injected (or default) repository."""
     return ViewService(repo if repo is not None else build_view_repository())
+
+
+def build_stock_repository(read_only: bool = True) -> IStockRepository:
+    """Construct the default read-only DuckDB stock repository.
+
+    The ``read_only`` flag mirrors :func:`build_view_repository`; the
+    :class:`~doge.infrastructure.database.repositories.DuckDBStockRepository`
+    adapter is read-only by design (single-logical-writer principle), so
+    callers should leave the default.
+    """
+    return DuckDBStockRepository()
+
+
+def build_stock_service(
+    repo: IStockRepository | None = None,
+) -> StockService:
+    """Build a :class:`StockService` with an injected (or default) repository.
+
+    The stock service depends on :class:`IStockRepository` (a different port
+    than :class:`IMarketViewRepository`) so it has its own factory; this is the
+    single sanctioned site for the ``DuckDBStockRepository`` adapter wiring.
+    """
+    return StockService(repo if repo is not None else build_stock_repository())
 
 
 def build_ranking_service(

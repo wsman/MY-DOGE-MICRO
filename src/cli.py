@@ -6,111 +6,139 @@ Usage:
     python src/cli.py rsrs [--market cn] [--top 20]
     python src/cli.py breadth [--market cn] [--days 10]
     python src/cli.py anomaly [--min-ratio 3.0] [--top 20]
+
+Clean-architecture wiring (ADR-0001 / ADR-0010): each subcommand delegates to
+its read-only service via the composition root factories in
+``doge.core.services.composition``. This file contains NO inline SQL and opens
+NO DuckDB connections directly — the ``build_*`` factories inject the wired
+``DuckDBMarketViewRepository`` / ``DuckDBStockRepository`` adapters. The
+service seam is what makes the command handlers unit-testable without a
+database (see ``tests/cli/test_cli_service_dispatch.py``).
+
+Exit codes:
+    0  success (including help when no subcommand is given)
+    1  query returned no rows for the supplied filter
+    2  argparse rejection (invalid flag / value)
 """
 
 import argparse
-import os
+import re
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import pandas as pd
+from tabulate import tabulate
 
-from ai_analysis import connect_duckdb, query_sql, normalize_ticker
+from doge.core.services.composition import (
+    build_anomaly_service,
+    build_breadth_service,
+    build_ranking_service,
+    build_stock_service,
+)
+
+# Distinct exit code for the "no data" case (docs/CLI.md flagged the prior
+# gap of returning 0 on no data as tech debt). Chosen so it does not collide
+# with argparse's exit 2 or the implicit success exit 0.
+EXIT_NO_DATA = 1
+
+
+def normalize_ticker(ticker: str, market: str = "cn") -> str:
+    """Normalize a bare CN code to its exchange-suffixed ticker.
+
+    CN: ``6xx``/``68x`` -> ``.SH``, ``0xx``/``3xx`` -> ``.SZ``,
+    ``4xx``/``8xx`` -> ``.BJ``. Non-CN markets and codes already containing a
+    suffix are returned unchanged.
+
+    This is a local copy of the helper that lived in ``ai_analysis`` so the CLI
+    no longer imports from the legacy package (the MCP ``query_stock`` tool
+    keeps an identical local copy). Raises ``ValueError`` on malformed input.
+    """
+    if not isinstance(ticker, str):
+        raise ValueError("ticker must be a string")
+    code = ticker.strip()
+    if not code:
+        raise ValueError("ticker cannot be empty")
+    if len(code) > 20:
+        raise ValueError("ticker too long (max 20 chars)")
+    if not re.match(r"^[A-Za-z0-9.\\-]+$", code):
+        raise ValueError("ticker contains invalid characters")
+
+    if market != "cn" or "." in code:
+        return code
+    if code[0] == "6":
+        return f"{code}.SH"
+    elif code[0] in ("0", "3"):
+        return f"{code}.SZ"
+    elif code[0] in ("4", "8"):
+        return f"{code}.BJ"
+    return code
 
 
 def cmd_stock(args):
-    con = connect_duckdb(read_only=True)
+    """Query OHLCV + indicators for a ticker via StockService.
+
+    Formats the same tabulate table as the legacy inline-SQL handler; the
+    "no data" case prints the same message and now exits with code
+    :data:`EXIT_NO_DATA` (1) instead of the prior implicit 0.
+    """
     market = args.market
     ticker = normalize_ticker(args.ticker, market)
-    if market == "cn":
-        sql = """
-            SELECT date, open, high, low, close, volume,
-                   ROUND(return_pct, 2) AS ret_pct,
-                   ma_5, ma_10, ma_20, ma_60,
-                   ROUND(atr_14, 2) AS atr14,
-                   ROUND(ma60_deviation, 2) AS ma60_dev,
-                   ROUND(volatility_20d, 2) AS vol_20d
-            FROM vw_daily_enriched_cn
-            WHERE ticker = ?
-            ORDER BY date DESC
-            LIMIT ?
-        """
-    else:
-        sql = """
-            SELECT date, open, high, low, close, volume, amount
-            FROM us.stock_prices
-            WHERE ticker = ?
-            ORDER BY date DESC
-            LIMIT ?
-        """
-    df = con.execute(sql, [ticker, args.days]).df()
-    con.close()
+    data = build_stock_service().query(ticker, market, args.days)
 
-    if df.empty:
+    if not data:
         print(f"no data for {args.ticker}")
-        return
+        sys.exit(EXIT_NO_DATA)
 
-    from tabulate import tabulate
+    df = pd.DataFrame(data)
     print(tabulate(df, headers="keys", tablefmt="simple", showindex=False,
                    floatfmt=(".0f", ".2f", ".2f", ".2f", ".2f", ".0f")))
 
 
 def cmd_rsrs(args):
-    con = connect_duckdb(read_only=True)
-    view = "vw_rsrs_ranking_cn" if args.market == "cn" else "vw_rsrs_ranking_us"
-    df = con.execute(f"SELECT * FROM {view} LIMIT ?", [args.top]).df()
-    con.close()
+    """Query the RSRS momentum ranking via RankingService."""
+    data = build_ranking_service().rsrs(args.market, args.top)
 
-    if df.empty:
+    if not data:
         print("no data")
-        return
+        sys.exit(EXIT_NO_DATA)
 
+    df = pd.DataFrame(data)
     cols = ["rank", "ticker", "rsrs", "avg_vol_20d", "last_close"]
     if "pct_change_60d" in df.columns:
         cols.append("pct_change_60d")
 
-    from tabulate import tabulate
     # rank(.0f), ticker(str), rsrs(.6f), avg_vol_20d(.0f), last_close(.2f), pct_change_60d(.2f)
     print(tabulate(df[cols], headers="keys", tablefmt="simple", showindex=False,
                    floatfmt=(".0f", ".6f", ".0f", ".2f", ".2f", ".2f")))
 
 
 def cmd_breadth(args):
-    con = connect_duckdb(read_only=True)
-    view = "vw_market_breadth_cn" if args.market == "cn" else "vw_market_breadth_us"
-    df = con.execute(f"SELECT * FROM {view} LIMIT ?", [args.days]).df()
-    con.close()
+    """Query market breadth (advancers/decliners) via BreadthService."""
+    data = build_breadth_service().breadth(args.market, args.days)
 
-    if df.empty:
+    if not data:
         print("no data")
-        return
+        sys.exit(EXIT_NO_DATA)
 
-    from tabulate import tabulate
+    df = pd.DataFrame(data)
     print(tabulate(df, headers="keys", tablefmt="simple", showindex=False,
                    floatfmt=(".0f", ".0f", ".0f", ".2f", ".2f")))
 
 
 def cmd_anomaly(args):
-    con = connect_duckdb(read_only=True)
-    df = con.execute("""
-        SELECT ticker, date, volume, ROUND(avg_vol_20d, 0) AS avg_vol,
-               vol_ratio, ROUND(intraday_return, 2) AS ret_pct
-        FROM vw_volume_anomalies_cn
-        WHERE vol_ratio >= ?
-        ORDER BY vol_ratio DESC
-        LIMIT ?
-    """, [args.min_ratio, args.top]).df()
-    con.close()
+    """Query volume anomalies via AnomalyService."""
+    data = build_anomaly_service().anomalies(args.min_ratio, args.top)
 
-    if df.empty:
+    if not data:
         print("no anomalies found")
-        return
+        sys.exit(EXIT_NO_DATA)
 
-    from tabulate import tabulate
+    df = pd.DataFrame(data)
     print(tabulate(df, headers="keys", tablefmt="simple", showindex=False,
                    floatfmt=(".0f", ".2f", ".2f")))
 
 
 def main():
+    """Parse argv and dispatch to the matching command handler."""
     parser = argparse.ArgumentParser(
         prog="doge",
         description="MY-DOGE stock data query tool",

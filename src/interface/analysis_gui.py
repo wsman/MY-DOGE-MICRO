@@ -1,18 +1,18 @@
-import sys
 import os
 import json
 import threading
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                             QLineEdit, QPushButton, QTextEdit, QFileDialog, 
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+                             QLineEdit, QPushButton, QTextEdit, QFileDialog,
                              QComboBox, QGroupBox, QSplitter, QFrame, QSizePolicy)
 from PyQt6.QtCore import Qt, pyqtSignal, QThread
 
-# 路径适配
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(os.path.dirname(current_dir))
-sys.path.append(os.path.join(project_root, 'src', 'micro'))
+# S002-009 / TR-011: package-qualified sibling import (editable install), no
+# sys.path shim (ADR-0001 forbidden pattern ``sys_path_insert``). The project
+# root is sourced from get_settings() instead of a dirname walk.
+from doge.config import get_settings
+from micro.industry_analyzer import IndustryAnalyzer
 
-from industry_analyzer import IndustryAnalyzer
+project_root = str(get_settings().project_root)
 
 class AnalysisWorker(QThread):
     log_signal = pyqtSignal(str)

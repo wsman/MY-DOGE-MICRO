@@ -9,7 +9,11 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# S002-009 / TR-011: project-root paths sourced from get_settings() (ADR-0001
+# forbidden pattern ``_PROJECT_ROOT``).
+from doge.config import get_settings
+
+_PROJECT_ROOT = str(get_settings().project_root)
 
 router = APIRouter()
 

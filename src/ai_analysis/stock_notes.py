@@ -6,12 +6,11 @@
 """
 
 import os
-import sys
 import sqlite3
 from datetime import datetime
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+# S002-009 / TR-011: package-qualified sibling import (editable install), no
+# sys.path shim (ADR-0001 forbidden pattern ``sys_path_insert``).
 from ai_analysis import connect_duckdb, RESEARCH_DB, CN_DB, US_DB  # noqa: F401 (connect_duckdb used below)
 
 # research_insights.db path. ``RESEARCH_DB`` is sourced from the shared
