@@ -4,7 +4,7 @@
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "types": ["vite/client"],
     "paths": {
-      "@pretext": ["../../pretext/src/layout.ts"]
+      "@pretext": ["./src/vendor/pretext/layout.ts"]
     },
 
     /* Linting */

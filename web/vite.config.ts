@@ -2,13 +2,14 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
 
-const pretextSrc = resolve('D:/Users/WSMAN/Desktop/Coding Task/pretext/src')
-
+// @pretext is vendored into web/src/vendor/pretext/ (S002-012 / TR-037) so the
+// build no longer depends on a sibling-project checkout. See ADR-0008 §Alternatives
+// and web/src/vendor/pretext/README.md for the re-sync procedure.
 export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
-      '@pretext': resolve(pretextSrc, 'layout.ts'),
+      '@pretext': resolve(__dirname, 'src/vendor/pretext/layout.ts'),
     },
   },
   server: {

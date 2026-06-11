@@ -205,11 +205,11 @@ Malformed `data:` lines are silently skipped (`useSSE.ts:64-66`). This contract 
 - Runtime: `vue` ^3.5.32, `vue-router` ^4.6.4, `pinia` ^3.0.4, `naive-ui` ^2.44.1, `axios` ^1.16.0, `lightweight-charts` ^5.2.0, `markdown-it` ^14.1.1, `@types/markdown-it` (dev), `highlight.js` ^11.11.1, `@vicons/ionicons5` ^0.13.0.
 - Build/test: `vite` ^8.0.10, `@vitejs/plugin-vue` ^6.0.6, `typescript` ~6.0.2, `vue-tsc` ^3.2.7, `@vue/tsconfig` ^0.9.1, `vitest` ^2.1.9, `@vue/test-utils` ^2.4.6, `jsdom` ^25.0.1, `@types/node` ^24.12.2.
 
-**External sibling-project dependency — `@pretext` (CRITICAL):**
-- `usePretextLayout.ts` and `VirtualMasonry.vue` import `{prepare, prepareWithSegments, layout, ...}` from `@pretext` (`usePretextLayout.ts:3-9`; `VirtualMasonry.vue:28`). `@pretext` is **not an npm package** — it is a path alias resolved to an absolute file in a *sibling project checkout*: `D:/Users/WSMAN/Desktop/Coding Task/pretext/src/layout.ts` (`vite.config.ts:5,11`; mirrored in `vitest.config.ts:11,17` and `tsconfig.app.json:6-8`).
+**External sibling-project dependency — `@pretext` (VENDORED 2026-06-12, S002-012 / TR-037):**
+- `usePretextLayout.ts` and `VirtualMasonry.vue` import `{prepare, prepareWithSegments, layout, ...}` from `@pretext` (`usePretextLayout.ts:3-9`; `VirtualMasonry.vue:28`). `@pretext` is **not an npm package** — it is a path alias that resolves to a **vendored** copy of the sibling pretext text-layout library at `web/src/vendor/pretext/layout.ts` (`vite.config.ts`, mirrored in `vitest.config.ts` and `tsconfig.app.json`).
 - pretext is a text-layout library: it segments text (word + grapheme, via `Intl.Segmenter`), measures glyph widths on a canvas, caches them, and lays out wrapped lines as pure arithmetic on cached widths. The web console uses it for masonry card-height prediction and the two-phase prepare/layout cycle.
-- **Build prerequisite**: the sibling `../pretext` checkout must exist at that absolute path or `npm run build` / `npm test` fail at module resolution. This is a hard cross-project coupling that is invisible to `package.json`.
-- **Portability open question** (flagged for Phase 5): the absolute Windows path is non-portable across machines/CI. Options: (a) vendor `layout.ts` (and its deps) into `web/src/vendor/pretext/`; (b) publish pretext to npm and consume it normally; (c) convert the alias to a workspace/relative path that resolves from the repo root. None is implemented yet — see ADR-0008 §Alternatives and Open Question §9.
+- **Build prerequisite (RESOLVED)**: the sibling `../pretext` checkout is NO LONGER required. The 5-file import closure of `layout.ts` (`layout.ts`, `analysis.ts`, `line-break.ts`, `measurement.ts`, `bidi.ts`) is vendored into `web/src/vendor/pretext/` (upstream commit `4e71390` / tag `v0.0.4`). The alias points at the relative vendored path; `npm run build` / `npm test` are green on a clean checkout without the sibling repo.
+- **Portability** (RESOLVED via vendoring, S002-012): the prior absolute Windows path was replaced by the vendored copy. The fork must be hand-synced on upstream pretext bumps — see `web/src/vendor/pretext/README.md` for the re-sync procedure. See ADR-0008 §Alternatives (Alternative 3) and Open Question §9.
 
 **Docs / ADRs:**
 - [ADR-0008](../../docs/architecture/adr-0008-web-architecture.md) — **this module's** decision: Vue3 + Vite8 + Pinia + Naive UI + manual-SSE + virtual-scroll + the `@pretext` alias, and the alternatives rejected.
@@ -222,7 +222,7 @@ Malformed `data:` lines are silently skipped (`useSSE.ts:64-66`). This contract 
 | `api.baseURL` | `'/api'` | URL path prefix | **hardcoded** in `api/client.ts:4` | (not env) | LOW — the `/api` prefix MUST match the dev-proxy and the FastAPI router prefixes. Changing it requires updating `vite.config.ts` and the raw-`fetch` URLs in `useSSE`/`api/scanner.ts`. |
 | `api.timeout` | `30000` (ms) | int > 0 | **hardcoded** in `api/client.ts:5` | (not env) | LOW — bounds how long a hung read waits before throwing. SSE streams are NOT subject to this (they use raw `fetch`, `useSSE.ts:22`). |
 | `server.proxy./api` | `http://localhost:8901` | origin URL | **hardcoded** in `vite.config.ts:14-17` | (not env) | **MEDIUM** — couples the dev server to the FastAPI bind port (Module #9 §7 `bind_port=8901`). If the API moves ports, the proxy breaks in dev. Production builds do not use the proxy (the deployed origin serves both). |
-| `@pretext` alias path | `D:/Users/WSMAN/Desktop/Coding Task/pretext/src/layout.ts` | absolute file path | **hardcoded** in `vite.config.ts:5,11`, `vitest.config.ts:11,17`, `tsconfig.app.json:6-8` | (not env) | **HIGH** — non-portable absolute path; moving/deleting the sibling checkout breaks build + test + typecheck. Tracked as the headline portability open question (§6, §9, ADR-0008). |
+| `@pretext` alias path | `web/src/vendor/pretext/layout.ts` (relative, vendored) | relative file path | **hardcoded** in `vite.config.ts`, `vitest.config.ts`, `tsconfig.app.json` | (not env) | **LOW (was HIGH, resolved 2026-06-12 by S002-012)** — vendored into the repo, so the build no longer depends on a sibling checkout. The residual cost is a hand-sync of the fork on upstream pretext bumps (`web/src/vendor/pretext/README.md`). |
 | SSE endpoint URLs | `/api/scan/cn`, `/api/scan/us` | URL paths | **hardcoded** in `stores/scanner.ts:117,130` (and `api/scanner.ts:5` parallel) | (not env) | LOW — must match Module #9's `POST /api/scan/{market}` route. |
 | `splitTree.storageKey` | `'my-doge-split-layout'` | localStorage key | **hardcoded** in `useSplitTree.ts:25` | (not env) | LOW — collisions with another app's localStorage key would corrupt layout. |
 | `scanner.storageKey` | `'my-doge-scanner-settings'` | localStorage key | **hardcoded** in `scanner.ts:7` | (not env) | LOW. |
@@ -235,7 +235,7 @@ Malformed `data:` lines are silently skipped (`useSSE.ts:64-66`). This contract 
 
 **Migration target (vs Current State):**
 - *Current State*: every knob is hardcoded; the `@pretext` path is an absolute Windows path; nothing is env-driven.
-- *Target (Migration)*: `api.baseURL`, `api.timeout`, the dev-proxy target, and the `@pretext` alias path sourced from `import.meta.env` / a `.env` file with safe local defaults; the `@pretext` dependency either vendored or npm-published so the alias disappears entirely.
+- *Target (Migration)*: `api.baseURL`, `api.timeout`, the dev-proxy target sourced from `import.meta.env` / a `.env` file with safe local defaults; the `@pretext` dependency is **vendored into `web/src/vendor/pretext/` (DONE 2026-06-12, S002-012)** so the absolute sibling path is gone (the `@pretext` alias is retained, pointing at the relative vendored copy).
 
 ## 8. Acceptance Criteria
 
@@ -243,6 +243,7 @@ Malformed `data:` lines are silently skipped (`useSSE.ts:64-66`). This contract 
 - [x] `cd web && npm run build` is green (`vue-tsc -b && vite build` — `package.json:8`). Typecheck + Vite production build pass.
 - [x] `cd web && npm test` is green (vitest, jsdom env, `package.json:10`). Smoke suite covers `useFuzzySearch`, `useVirtualScroll`, and one Pinia store (`scanner`).
 - [x] The `@pretext` alias resolves in both `vite build` and `vitest` (mirrored in `vite.config.ts:9-13` and `vitest.config.ts:15-19`).
+- [x] **Clean-checkout portability (RESOLVED 2026-06-12, S002-012 / TR-037)**: `@pretext` is vendored into `web/src/vendor/pretext/` (5-file import closure, upstream `4e71390` / `v0.0.4`); `cd web && npm run build` and `cd web && npm test` are green with the alias resolved to the vendored copy, no sibling-project checkout required. `grep -rn 'pretext/src' web/` returns only the vendor README provenance rows.
 
 **Pure-logic unit coverage (RESOLVED):**
 - [x] `useFuzzySearch.spec.ts` covers exact/prefix/contains/grapheme-subsequence/token scoring, empty-query, no-match, CJK subsequence, and `maxResults`/`minScore` options (8 cases).
@@ -290,9 +291,9 @@ Malformed `data:` lines are silently skipped (`useSSE.ts:64-66`). This contract 
 
 ### 9.3 The external `@pretext` dependency
 
-- `@pretext` is a **sibling-project** text-layout library, aliased to an absolute path in a sibling checkout (`vite.config.ts:5,11`). It is a build prerequisite: `npm run build` and `npm test` both fail at module resolution if the sibling is absent.
-- The vitest smoke suite deliberately avoids specs that transitively import `@pretext` (i.e. no `usePretextLayout` or `VirtualMasonry` mount tests) because jsdom lacks `OffscreenCanvas` and `Intl.Segmenter` support is uneven — the smoke suite sticks to pure-arithmetic composables (`useVirtualScroll`) and store logic (`scanner`) that do not pull `@pretext` into the graph (`vitest.config.ts:6-10` comment).
-- **Portability stance** (open): the absolute path is a Windows-machine-specific coupling. Recommended remediations, in priority order: (1) vendor `layout.ts` + its `Intl.Segmenter`/canvas deps into `web/src/vendor/pretext/` and drop the alias; (2) publish pretext to npm and add it to `package.json`; (3) make the alias resolve via a workspace/relative path. Tracked in ADR-0008 §Alternatives. Until resolved, "the sibling `../pretext` checkout exists at `D:/Users/WSMAN/Desktop/Coding Task/pretext/src`" is a documented build precondition.
+- `@pretext` is a text-layout library **vendored into `web/src/vendor/pretext/`** (the 5-file import closure of `layout.ts`: `layout.ts`, `analysis.ts`, `line-break.ts`, `measurement.ts`, `bidi.ts`; upstream commit `4e71390` / tag `v0.0.4`). It is NO LONGER a build prerequisite on a sibling checkout — `npm run build` and `npm test` resolve the `@pretext` alias to the relative vendored copy. Vendored by S002-012 / TR-037 (2026-06-12).
+- The vitest smoke suite deliberately avoids specs that transitively execute `@pretext` at runtime (i.e. no `usePretextLayout` or `VirtualMasonry` mount tests that call `layout()` on real text) because jsdom lacks `OffscreenCanvas` and `Intl.Segmenter` support is uneven — the smoke suite sticks to pure-arithmetic composables (`useVirtualScroll`) and store logic (`scanner`) that do not exercise the canvas/Segmenter path (`vitest.config.ts` comment). The vendored export SHAPE is nonetheless asserted by `web/src/__tests__/vendor-pretext-regression.spec.ts` (a contract test that imports the 3 runtime fns + 3 types and asserts the fns are callable, without invoking `layout()`).
+- **Portability stance** (RESOLVED via vendoring, S002-012): the prior absolute Windows path was replaced by the vendored copy. The fork must be hand-synced on upstream pretext bumps — see `web/src/vendor/pretext/README.md` for the re-sync procedure. Tracked in ADR-0008 §Alternatives (Alternative 3).
 
 ### 9.4 Browser target
 
@@ -316,7 +317,7 @@ Malformed `data:` lines are silently skipped (`useSSE.ts:64-66`). This contract 
 
 ## Open Questions (flagged for Phase 5 reconciliation)
 
-1. **`@pretext` portability** — vendor, npm-publish, or workspace-alias the sibling-project dependency so the build no longer depends on an absolute Windows path. (Blocking for any CI / non-original-machine build. §6, §7, §9.3, ADR-0008.)
+1. **`@pretext` portability** — **RESOLVED 2026-06-12 (S002-012 / TR-037):** vendored the 5-file import closure of `layout.ts` into `web/src/vendor/pretext/` (upstream `4e71390` / `v0.0.4`) and repointed the alias in all 3 configs to the relative vendored path. The build no longer depends on an absolute Windows path or a sibling checkout. Residual: hand-sync the fork on upstream pretext bumps (`web/src/vendor/pretext/README.md`). (§6, §7, §9.3, ADR-0008 Alternative 3.)
 2. **`api/scanner.ts` parallel code** — `startScan` (`scanner.ts:3-11`) is not called by the scanner store (which uses `useSSE().start` directly with its own body, `scanner.ts:117-124`). Is `api/scanner.ts` dead code, or the intended future seam? Delete or wire it in.
 3. **SSE reconnect** — `useSSE` has no reconnect on a dropped stream without a terminal event; the scanner status can stick on `running`. Add a watchdog (e.g. `isRunning=true` with no message for N seconds → force idle) or an explicit reconnect with resume. (§5.)
 4. **View-level automated tests** — mount tests for the six views are blocked by jsdom's missing `OffscreenCanvas`/full Naive UI/lightweight-charts support. Consider a happy-path E2E (Playwright/Cypress) against a running dev server + mocked API, or lift the heaviest composables out of jsdom-incompatible dependencies. (§8 OPEN.)

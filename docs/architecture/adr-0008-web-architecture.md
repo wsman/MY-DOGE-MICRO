@@ -82,7 +82,7 @@ Adopt the shipped composition as the architectural stance for Module #11, and do
 3. **Hand-ported Ghostty split-tree** (`useSplitTree.ts`) over any existing Vue split-pane library, because the Ghostty algorithms (spatial navigation with wrap, equalize-by-leaf-weight, dynamic min-ratio resize) are richer than off-the-shelf options and the port was already done.
 4. **Three hand-written virtualized components** over a table/grid library, because the three virtualization strategies differ (fixed-row windowing, variable-height masonry, chunked Markdown with measured-height correction) and pretext already provided the masonry height-prediction primitive.
 5. **Manual `fetch`-based SSE reader** (`useSSE.ts`) over `EventSource`, because the scan endpoint is a **POST** (`POST /api/scan/{market}`, Module #9 §4.1) and `EventSource` only supports GET. The reader parses `data:` lines and treats `progress === -1` as error / `progress >= 100` as complete.
-6. **`@pretext` sibling-project alias** at an absolute path (`vite.config.ts:5,11`, mirrored in `vitest.config.ts:11,17` and `tsconfig.app.json:6-8`), accepting the portability cost in exchange for reusing the mature sibling text-layout library without an npm publish step.
+6. **`@pretext` sibling-project alias, now vendored** — originally resolved from an absolute path into the sibling `pretext` checkout; **vendored into `web/src/vendor/pretext/` (S002-012 / TR-037, 2026-06-12)** so the alias (`vite.config.ts`, `vitest.config.ts`, `tsconfig.app.json`) now points at the relative vendored copy. The vendored fork reuses the mature sibling text-layout library without an npm publish step AND without a sibling-checkout build precondition. See Alternative 3 and `web/src/vendor/pretext/README.md`.
 
 ## Amendment A1 — SSE watchdog contract (S002-010 / TR-036, 2026-06-12)
 
@@ -166,7 +166,7 @@ falls back to `internal_error`. This is a forward-compatible seam, not a gap.
 |  (JSON reads + SSE scan/macro streams; see ADR-0007)                  |
 +-----------------------------------------------------------------------+
 
-         @pretext  ──>  D:/.../pretext/src/layout.ts   (SIBLING PROJECT, absolute alias)
+         @pretext  ──>  web/src/vendor/pretext/layout.ts   (VENDORED, S002-012; git 4e71390 / v0.0.4)
                           (prepare / layout / Intl.Segmenter / canvas measure)
 ```
 
@@ -181,7 +181,7 @@ falls back to `internal_error`. This is a forward-compatible seam, not a gap.
 //   progress >= 100  -> completion
 
 // The alias contract (build-time):
-//   '@pretext' -> <absolute>/pretext/src/layout.ts
+//   '@pretext' -> web/src/vendor/pretext/layout.ts  (vendored S002-012 / TR-037)
 //   must export: prepare, prepareWithSegments, layout,
 //                PreparedText, PreparedTextWithSegments, LayoutResult
 //   (consumed at usePretextLayout.ts:3-9 and VirtualMasonry.vue:28)
@@ -212,13 +212,13 @@ falls back to `internal_error`. This is a forward-compatible seam, not a gap.
 - **Estimated Effort**: Large (API contract change downstream).
 - **Rejection Reason**: The POST requirement is load-bearing and matches Module #9. Keep raw `fetch`.
 
-### Alternative 3: Publish `@pretext` to npm / vendor it / workspace-alias it
+### Alternative 3: Publish `@pretext` to npm / vendor it / workspace-alias it  — RESOLVED via vendoring (S002-012)
 
 - **Description**: Remove the absolute-path sibling alias by (a) publishing pretext to npm, (b) vendoring `layout.ts` into `web/src/vendor/pretext/`, or (c) using a workspace/relative alias.
 - **Pros**: Portability — the build no longer depends on a sibling checkout at an absolute Windows path; CI and other machines work; `package.json` becomes the source of truth.
 - **Cons**: (a) npm publish requires a publish pipeline and version-sync discipline; (b) vendoring forks the library and loses upstream fixes; (c) a relative alias still requires the sibling to be checked out, just not at an absolute path.
 - **Estimated Effort**: Small (vendoring), Medium (workspace alias), Large (npm publish pipeline).
-- **Rejection Reason (for now)**: NOT rejected — this is the headline **open question** (CDD §9 Q1). The current absolute alias was the fastest path to reuse; the portability remediation is tracked as future work, not a permanent stance. Preferred order: vendor → npm publish.
+- **Resolution (2026-06-12, S002-012 / TR-037)**: **Option (a) — VENDOR — adopted.** The 5-file import closure of `layout.ts` (`layout.ts`, `analysis.ts`, `line-break.ts`, `measurement.ts`, `bidi.ts`) was copied verbatim from the sibling `pretext` repo (upstream commit `4e71390`, tag `v0.0.4`) into `web/src/vendor/pretext/`. The `@pretext` alias in all three config files (`vite.config.ts`, `vitest.config.ts`, `tsconfig.app.json`) was repointed to the vendored `web/src/vendor/pretext/layout.ts` (relative form, no absolute Windows path). The alias itself was KEPT so the two importers (`usePretextLayout.ts:9`, `VirtualMasonry.vue:28`) are unchanged. Rejected options: (b) npm publish was rated Large effort and requires a registry account + version-sync discipline pretext is not on the registry; (c) workspace-alias is structurally impossible — the two repos are separate git repos with no parent `package.json` `workspaces` field. Provenance + the hand-sync re-sync procedure are documented in `web/src/vendor/pretext/README.md`.
 
 ### Alternative 4: Use a split-pane library (e.g. `vue-split-panel`, `allotment`)
 
@@ -240,7 +240,8 @@ falls back to `internal_error`. This is a forward-compatible seam, not a gap.
 
 ### Negative
 
-- **`@pretext` absolute-path coupling**: the build breaks if the sibling checkout moves/disappears; non-portable to CI or other machines. (Headline risk; tracked open question.)
+- **`@pretext` absolute-path coupling** (**RESOLVED 2026-06-12, S002-012 / TR-037**): the build no longer breaks when the sibling checkout moves/disappears. The dependency was vendored into `web/src/vendor/pretext/` (commit `4e71390` / tag `v0.0.4`); the alias in all three config files now points at the relative vendored path. See Alternative 3 and `web/src/vendor/pretext/README.md`. The residual cost of vendoring is recorded as the next Consequences bullet.
+- **Vendored `@pretext` is a hand-synced fork** (added 2026-012 by S002-012): upstream pretext fixes do NOT flow automatically into `web/src/vendor/pretext/`. On a pretext upgrade an operator must re-diff/re-copy the 5 files and record the new commit/tag per the procedure in [`web/src/vendor/pretext/README.md`](../../web/src/vendor/pretext/README.md). The vendored code is byte-identical to upstream except for a one-line provenance header on `layout.ts`. Bundle size is net-zero (the same code was already being bundled via the absolute alias; only the source location moved in-repo).
 - **No SSE auto-reconnect for scan** (resolved 2026-06-12 by Amendment A1): a dropped stream now surfaces a terminal `stream_stalled` error within `stallTimeoutMs` (default 30s) instead of sticking on `running`. The scan path intentionally has zero auto-reconnect — a retry is an explicit operator action (see Amendment A1).
 - **Hand-maintained virtualization**: three components to maintain vs. one library; bug surface is owned, not outsourced.
 - **Two overlapping view registries**: a new view must be added in up to three places (`ViewId` union, `VIEW_REGISTRY`, optionally router) — easy to forget.
@@ -254,7 +255,7 @@ falls back to `internal_error`. This is a forward-compatible seam, not a gap.
 
 | Risk | Probability | Impact | Mitigation |
 |------|------------|--------|-----------|
-| Sibling `pretext` checkout moved/deleted → build red | MEDIUM (any machine/CI migration) | HIGH (blocks all builds) | Vendor or npm-publish pretext (CDD §9 Q1); add a build precheck that asserts the alias target exists with a clear error. |
+| Sibling `pretext` checkout moved/deleted → build red | **RESOLVED 2026-06-12 (S002-012 / TR-037)** | HIGH (blocks all builds) | Vendored into `web/src/vendor/pretext/`; alias repointed to the relative vendored path in all 3 configs. Build + test no longer depend on the sibling checkout. Residual: hand-sync the fork on upstream pretext bumps (`web/src/vendor/pretext/README.md`). |
 | lightweight-charts v5 API changes on upgrade | LOW (v5 is current) | MEDIUM (chart breaks) | Pin `lightweight-charts` minor version; re-validate `useKlineChart.ts:38-66` on upgrade. |
 | SSE stream drops without terminal event → stuck `running` | MEDIUM (network blips on localhost are rare but possible) | LOW (operator can re-trigger) | **RESOLVED 2026-06-12 (S002-010/TR-036):** watchdog in `useSSE` surfaces a terminal `stream_stalled` error within `stallTimeoutMs` (default 30s); scan does not auto-reconnect (operator Retry). See Amendment A1. |
 | jsdom limitations block view-level tests | HIGH (already the case) | LOW (smoke suite still covers pure logic) | Add a Playwright/Cypress E2E against dev server + mocked API for critical paths (CDD §9 Q4). |
@@ -271,12 +272,12 @@ falls back to `internal_error`. This is a forward-compatible seam, not a gap.
 
 ## Migration Plan
 
-This ADR reverse-documents an already-shipped architecture; there is no migration FROM an alternative. The forward migration it implies is the `@pretext` portability remediation:
+This ADR reverse-documents an already-shipped architecture; there is no migration FROM an alternative. The forward migration it implied — the `@pretext` portability remediation — was **executed 2026-06-12 by S002-012 / TR-037** (Option (a) vendoring):
 
-1. **Decide pretext sourcing** — vendor vs. npm-publish vs. workspace-alias (CDD §9 Q1). Vendoring is lowest-effort.
-2. **If vendoring**: copy `pretext/src/layout.ts` (+ its `Intl.Segmenter`/canvas-measure deps) into `web/src/vendor/pretext/`, update the alias to a relative path, remove the sibling-checkout build precondition.
-3. **If npm-publish**: publish pretext, add it to `web/package.json` `dependencies`, remove the alias from `vite.config.ts` / `vitest.config.ts` / `tsconfig.app.json`.
-4. **Verify**: `npm run build` + `npm test` green on a clean machine without the sibling checkout; add a CI check.
+1. **Decide pretext sourcing** — vendor vs. npm-publish vs. workspace-alias (CDD §9 Q1). **DECIDED: vendor** (lowest-effort; matches this ADR's preferred order).
+2. **Vendored (DONE)**: copied the 5-file import closure of `pretext/src/layout.ts` (`layout.ts` + `analysis.ts` + `line-break.ts` + `measurement.ts` + `bidi.ts`, upstream `4e71390` / `v0.0.4`) verbatim into `web/src/vendor/pretext/`; repointed the alias in `vite.config.ts` / `vitest.config.ts` / `tsconfig.app.json` to the relative vendored path; removed the sibling-checkout build precondition.
+3. ~~If npm-publish~~ (not taken — see Alternative 3 Resolution).
+4. **Verify (DONE)**: `cd web && npm run build` + `cd web && npm test` green with the sibling checkout absent from the alias resolution. `grep -rn 'pretext/src' web/` returns only the vendor README provenance rows. A machine-clean CI gate is the remaining future hardening (no CI workflow exists in this repo yet — CDD §9 Q4).
 
 **Rollback plan**: revert the alias changes in `vite.config.ts` / `vitest.config.ts` / `tsconfig.app.json` to the absolute path; the sibling-checkout precondition returns.
 
@@ -287,7 +288,7 @@ This ADR reverse-documents an already-shipped architecture; there is no migratio
 - [x] The `@pretext` alias resolves in both build and test (mirrored in both configs).
 - [x] The six `ViewId` literals match `VIEW_REGISTRY` keys.
 - [x] The SSE reader's `{progress, message}` parse matches Module #9's payload.
-- [ ] **OPEN**: the `@pretext` dependency is portable (vendored or npm-published) — build green on a machine without the sibling checkout. (CDD §9 Q1.)
+- [x] **RESOLVED (2026-06-12, S002-012 / TR-037)**: the `@pretext` dependency is portable — vendored into `web/src/vendor/pretext/` (upstream commit `4e71390` / tag `v0.0.4`); `cd web && npm run build` and `cd web && npm test` are green with the alias resolved to the vendored copy, no sibling checkout required. (CDD §9 Q1.)
 - [ ] **OPEN**: explicit `browserslist` declares the browser target. (CDD §9 Q4.)
 
 ## CDD Requirements Addressed
