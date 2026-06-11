@@ -1,0 +1,279 @@
+# Memory Bank Document Map
+# Generated or initialized by /constitute. Keep this as the routing map between
+# canonical documents, source documents, mirrors, indexes, and archives.
+
+documents:
+  memory_bank/t0_core/basic_law_index.md:
+    tier: T0
+    role: canonical
+    owner: /constitute
+    update_rule: amendment_only
+
+  memory_bank/t0_core/active_context.md:
+    tier: T0
+    role: canonical
+    owner: /constitute
+    update_rule: amendment_or_state_update
+
+  memory_bank/t0_core/current_state.md:
+    tier: T0
+    role: canonical
+    owner: /constitute
+    mirrors:
+      - production/stage.txt
+
+  memory_bank/t0_core/release_state.md:
+    tier: T0
+    role: canonical
+    owner: /team-release and /hotfix
+    evidence_index: memory_bank/t3_archive/release_evidence/
+
+  memory_bank/t0_core/amendment_log.md:
+    tier: T0
+    role: canonical
+    owner: /constitute
+    archive: memory_bank/t3_archive/amendments/
+
+  standards/technical-preferences.md:
+    tier: T1
+    role: source
+    owner: /setup-engine
+    memory_index: memory_bank/t1_axioms/tech_context.md
+
+  memory_bank/t1_axioms/tech_context.md:
+    tier: T1
+    role: index
+    owner: /setup-engine
+    indexes:
+      - CLAUDE.md
+      - AGENTS.md
+      - standards/technical-preferences.md
+      - docs/engine-reference/**/VERSION.md
+      - docs/reference/**/VERSION.md
+
+  design/cdd/*-concept.md:
+    tier: T1
+    role: source
+    owner: /brainstorm
+    memory_index: memory_bank/t1_axioms/behavior_context.md
+
+  docs/architecture/architecture.md:
+    tier: T1
+    role: source
+    owner: /create-architecture
+    memory_index: memory_bank/t1_axioms/architecture_context.md
+
+  docs/architecture/adr-*.md:
+    tier: T1
+    role: source
+    owner: /architecture-decision
+    memory_index: memory_bank/t1_axioms/architecture_context.md
+
+  memory_bank/t1_axioms/architecture_context.md:
+    tier: T1
+    role: index
+    owner: /create-architecture
+    indexes:
+      - docs/architecture/architecture.md
+      - docs/architecture/adr-*.md
+
+  memory_bank/t1_axioms/knowledge_graph.md:
+    tier: T1
+    role: index
+    owner: /constitute
+    indexes:
+      - design/cdd/*.md
+      - docs/architecture/*.md
+      - production/epics/**/*.md
+
+  workflow/workflow-catalog.yaml:
+    tier: T2
+    role: canonical
+    owner: maintainers
+    generated_views:
+      - docs/PHASE-CHECKLISTS.md
+      - workflow/generated/gate-required-artifacts.md
+      - memory_bank/t2_execution/phase_checklists.md
+      - memory_bank/t2_execution/gate_required_artifacts.md
+
+  docs/PHASE-CHECKLISTS.md:
+    tier: T2
+    role: mirror
+    owner: scripts/generate_phase_checklists.py
+    source: workflow/workflow-catalog.yaml
+
+  workflow/generated/gate-required-artifacts.md:
+    tier: T2
+    role: mirror
+    owner: scripts/generate_gate_required_sections.py
+    source: workflow/workflow-catalog.yaml
+
+  memory_bank/t2_execution/phase_checklists.md:
+    tier: T2
+    role: mirror
+    owner: scripts/generate_phase_checklists.py --memory-bank
+    source: workflow/workflow-catalog.yaml
+
+  memory_bank/t2_execution/gate_required_artifacts.md:
+    tier: T2
+    role: mirror
+    owner: scripts/generate_gate_required_sections.py --memory-bank
+    source: workflow/workflow-catalog.yaml
+
+  production/project-roadmap.md:
+    tier: T2
+    role: source
+    owner: /cdd-status
+    memory_mirror: memory_bank/t2_execution/current_roadmap.md
+
+  memory_bank/t2_execution/current_roadmap.md:
+    tier: T2
+    role: mirror
+    owner: /cdd-status
+    source: production/project-roadmap.md
+
+  skill_testing/catalog.yaml:
+    tier: T2
+    role: canonical
+    owner: /skill-test and /skill-improve
+    asset_scope: cross_project
+    indexes:
+      - skill_testing/specs/skills/**
+      - skill_testing/specs/agents/**
+    evidence_index: memory_bank/t3_archive/skill_testing/coverage-index.yaml
+
+  skill_testing/quality-rubric.md:
+    tier: T2
+    role: canonical
+    owner: /skill-test
+    used_by:
+      - /skill-test category
+      - /skill-improve
+
+  skill_testing/specs/skills/**:
+    tier: T2
+    role: source
+    owner: /skill-test
+    memory_index: skill_testing/catalog.yaml
+
+  skill_testing/specs/agents/**:
+    tier: T2
+    role: source
+    owner: /skill-test
+    memory_index: skill_testing/catalog.yaml
+
+  skill_testing/templates/**:
+    tier: T2
+    role: source
+    owner: /skill-test
+    used_by:
+      - /skill-test audit
+
+  production/qa/evidence/**:
+    tier: T3
+    role: archive
+    owner: QA and validation workflows
+    memory_index: memory_bank/t3_archive/qa_evidence_index.md
+
+  production/qa/bug-triage-*.md:
+    tier: T3
+    role: archive
+    owner: /bug-triage
+    memory_index: memory_bank/t3_archive/qa_evidence_index.md
+
+  memory_bank/t3_archive/qa_evidence_index.md:
+    tier: T3
+    role: index
+    owner: /playtest-report, /smoke-check, /team-qa, /test-evidence-review, /bug-triage
+    indexes:
+      - production/qa/evidence/**
+      - production/qa/bug-triage-*.md
+
+  memory_bank/t3_archive/gate_runs/:
+    tier: T3
+    role: archive
+    owner: /gate-check
+    indexes:
+      - memory_bank/t0_core/current_state.md
+
+  memory_bank/t3_archive/release_evidence/:
+    tier: T3
+    role: archive
+    owner: /team-release and /hotfix
+    indexes:
+      - memory_bank/t0_core/release_state.md
+
+  memory_bank/t3_archive/reviews/:
+    tier: T3
+    role: archive
+    owner: review workflows
+
+  memory_bank/t3_archive/reviews/review-index.md:
+    tier: T3
+    role: index
+    owner: review workflows
+    indexes:
+      - design/cdd/reviews/*.md
+      - design/cdd/cross-review-*.md
+      - docs/architecture/architecture-review-*.md
+      - production/qa/evidence-review-*.md
+      - prototypes/*/REPORT.md
+      - production/code-reviews/code-review-*.md
+      - production/scope/scope-check-*.md
+
+  memory_bank/t3_archive/sprint_snapshots/:
+    tier: T3
+    role: archive
+    owner: sprint and milestone workflows
+
+  memory_bank/t3_archive/sprint_snapshots/story-closure-index.md:
+    tier: T3
+    role: index
+    owner: /story-done
+    indexes:
+      - production/epics/**/*.md
+      - production/sprint-status.yaml
+
+  memory_bank/t3_archive/sprint_snapshots/sprint-*-closeout-*.md:
+    tier: T3
+    role: archive
+    owner: /retrospective
+    source: production/sprints/*-retrospective.md
+
+  memory_bank/t3_archive/sprint_snapshots/milestone-*-review-*.md:
+    tier: T3
+    role: archive
+    owner: /milestone-review
+    source: production/milestones/*-review.md
+
+  memory_bank/t3_archive/amendments/:
+    tier: T3
+    role: archive
+    owner: /constitute
+    current_index: memory_bank/t0_core/amendment_log.md
+
+  memory_bank/t3_archive/amendments/amendment-v*-*.md:
+    tier: T3
+    role: archive
+    owner: /constitute
+    source: memory_bank/t0_core/basic_law_index.md
+
+  memory_bank/t3_archive/skill_testing/coverage-index.yaml:
+    tier: T3
+    role: index
+    owner: /skill-test and /skill-improve
+    indexes:
+      - memory_bank/t3_archive/skill_testing/results/**
+      - memory_bank/t3_archive/skill_testing/improvements/**
+
+  memory_bank/t3_archive/skill_testing/results/**:
+    tier: T3
+    role: archive
+    owner: /skill-test
+    source: skill_testing/catalog.yaml
+
+  memory_bank/t3_archive/skill_testing/improvements/**:
+    tier: T3
+    role: archive
+    owner: /skill-improve
+    source: skill_testing/catalog.yaml

@@ -1,0 +1,13 @@
+# Module Support Map
+# Index modules to the laws, CDDs, ADRs, and evidence that support them.
+
+modules:
+  example-module:
+    laws:
+      - BL-02
+    cdds:
+      - design/cdd/example-module.md
+    adrs:
+      - docs/architecture/adr-0001-example.md
+    evidence:
+      - production/qa/evidence/example.md

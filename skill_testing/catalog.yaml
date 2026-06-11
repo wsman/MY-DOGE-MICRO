@@ -1,0 +1,639 @@
+version: 3
+asset_scope: cross_project
+registry:
+  skills:
+    - name: gate-check
+      category: gate
+      priority: critical
+      spec: skill_testing/specs/skills/gate/gate-check.md
+
+    - name: design-review
+      category: review
+      priority: critical
+      spec: skill_testing/specs/skills/review/design-review.md
+
+    - name: story-readiness
+      category: readiness
+      priority: critical
+      spec: skill_testing/specs/skills/readiness/story-readiness.md
+
+    - name: story-done
+      category: readiness
+      priority: critical
+      spec: skill_testing/specs/skills/readiness/story-done.md
+
+    - name: review-all-gdds
+      category: review
+      priority: critical
+      spec: skill_testing/specs/skills/review/review-all-gdds.md
+
+    - name: architecture-review
+      category: review
+      priority: critical
+      spec: skill_testing/specs/skills/review/architecture-review.md
+
+    - name: create-epics
+      category: pipeline
+      priority: high
+      spec: skill_testing/specs/skills/pipeline/create-epics.md
+
+    - name: create-stories
+      category: pipeline
+      priority: high
+      spec: skill_testing/specs/skills/pipeline/create-stories.md
+
+    - name: dev-story
+      category: pipeline
+      priority: high
+      spec: skill_testing/specs/skills/pipeline/dev-story.md
+
+    - name: create-control-manifest
+      category: pipeline
+      priority: high
+      spec: skill_testing/specs/skills/pipeline/create-control-manifest.md
+
+    - name: propagate-design-change
+      category: pipeline
+      priority: high
+      spec: skill_testing/specs/skills/pipeline/propagate-design-change.md
+
+    - name: architecture-decision
+      category: authoring
+      priority: high
+      spec: skill_testing/specs/skills/authoring/architecture-decision.md
+
+    - name: map-systems
+      category: pipeline
+      priority: high
+      spec: skill_testing/specs/skills/pipeline/map-systems.md
+
+    - name: design-system
+      category: authoring
+      priority: high
+      spec: skill_testing/specs/skills/authoring/design-system.md
+
+    - name: consistency-check
+      category: analysis
+      priority: high
+      spec: skill_testing/specs/skills/analysis/consistency-check.md
+
+    - name: sprint-plan
+      category: sprint
+      priority: medium
+      spec: skill_testing/specs/skills/sprint/sprint-plan.md
+
+    - name: sprint-status
+      category: sprint
+      priority: medium
+      spec: skill_testing/specs/skills/sprint/sprint-status.md
+
+    - name: team-ui
+      category: team
+      priority: medium
+      spec: skill_testing/specs/skills/team/team-ui.md
+
+    - name: team-combat
+      category: team
+      priority: medium
+      spec: skill_testing/specs/skills/team/team-combat.md
+
+    - name: team-narrative
+      category: team
+      priority: medium
+      spec: skill_testing/specs/skills/team/team-narrative.md
+
+    - name: team-audio
+      category: team
+      priority: medium
+      spec: skill_testing/specs/skills/team/team-audio.md
+
+    - name: team-level
+      category: team
+      priority: medium
+      spec: skill_testing/specs/skills/team/team-level.md
+
+    - name: team-polish
+      category: team
+      priority: medium
+      spec: skill_testing/specs/skills/team/team-polish.md
+
+    - name: team-release
+      category: team
+      priority: medium
+      spec: skill_testing/specs/skills/team/team-release.md
+
+    - name: team-live-ops
+      category: team
+      priority: medium
+      spec: skill_testing/specs/skills/team/team-live-ops.md
+
+    - name: team-qa
+      category: team
+      priority: medium
+      spec: skill_testing/specs/skills/team/team-qa.md
+
+    - name: skill-test
+      category: utility
+      priority: medium
+      spec: skill_testing/specs/skills/utility/skill-test.md
+
+    - name: skill-improve
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/skill-improve.md
+
+    - name: constitute
+      category: utility
+      priority: high
+      spec: skill_testing/specs/skills/utility/constitute.md
+
+    - name: constitute-check
+      category: utility
+      priority: medium
+      spec: skill_testing/specs/skills/utility/constitute-check.md
+
+    - name: help
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/help.md
+
+    - name: cdd-status
+      category: utility
+      priority: high
+      spec: skill_testing/specs/skills/utility/cdd-status.md
+
+    - name: brainstorm
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/brainstorm.md
+
+    - name: project-stage-detect
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/project-stage-detect.md
+
+    - name: setup-engine
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/setup-engine.md
+
+    - name: quick-design
+      category: authoring
+      priority: low
+      spec: skill_testing/specs/skills/authoring/quick-design.md
+
+    - name: ux-design
+      category: authoring
+      priority: low
+      spec: skill_testing/specs/skills/authoring/ux-design.md
+
+    - name: ux-review
+      category: authoring
+      priority: low
+      spec: skill_testing/specs/skills/authoring/ux-review.md
+
+    - name: art-bible
+      category: authoring
+      priority: low
+      spec: skill_testing/specs/skills/authoring/art-bible.md
+
+    - name: create-architecture
+      category: authoring
+      priority: low
+      spec: skill_testing/specs/skills/authoring/create-architecture.md
+
+    - name: code-review
+      category: analysis
+      priority: low
+      spec: skill_testing/specs/skills/analysis/code-review.md
+
+    - name: balance-check
+      category: analysis
+      priority: low
+      spec: skill_testing/specs/skills/analysis/balance-check.md
+
+    - name: asset-audit
+      category: analysis
+      priority: low
+      spec: skill_testing/specs/skills/analysis/asset-audit.md
+
+    - name: content-audit
+      category: analysis
+      priority: low
+      spec: skill_testing/specs/skills/analysis/content-audit.md
+
+    - name: tech-debt
+      category: analysis
+      priority: low
+      spec: skill_testing/specs/skills/analysis/tech-debt.md
+
+    - name: scope-check
+      category: analysis
+      priority: low
+      spec: skill_testing/specs/skills/analysis/scope-check.md
+
+    - name: estimate
+      category: analysis
+      priority: low
+      spec: skill_testing/specs/skills/analysis/estimate.md
+
+    - name: perf-profile
+      category: analysis
+      priority: low
+      spec: skill_testing/specs/skills/analysis/perf-profile.md
+
+    - name: security-audit
+      category: analysis
+      priority: low
+      spec: skill_testing/specs/skills/analysis/security-audit.md
+
+    - name: test-evidence-review
+      category: analysis
+      priority: low
+      spec: skill_testing/specs/skills/analysis/test-evidence-review.md
+
+    - name: test-flakiness
+      category: analysis
+      priority: low
+      spec: skill_testing/specs/skills/analysis/test-flakiness.md
+
+    - name: reverse-document
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/reverse-document.md
+
+    - name: bug-report
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/bug-report.md
+
+    - name: hotfix
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/hotfix.md
+
+    - name: prototype
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/prototype.md
+
+    - name: playtest-report
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/playtest-report.md
+
+    - name: milestone-review
+      category: sprint
+      priority: low
+      spec: skill_testing/specs/skills/sprint/milestone-review.md
+
+    - name: retrospective
+      category: sprint
+      priority: low
+      spec: skill_testing/specs/skills/sprint/retrospective.md
+
+    - name: changelog
+      category: sprint
+      priority: low
+      spec: skill_testing/specs/skills/sprint/changelog.md
+
+    - name: patch-notes
+      category: sprint
+      priority: low
+      spec: skill_testing/specs/skills/sprint/patch-notes.md
+
+    - name: onboard
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/onboard.md
+
+    - name: localize
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/localize.md
+
+    - name: launch-checklist
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/launch-checklist.md
+
+    - name: release-checklist
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/release-checklist.md
+
+    - name: adopt
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/adopt.md
+
+    - name: smoke-check
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/smoke-check.md
+
+    - name: soak-test
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/soak-test.md
+
+    - name: test-setup
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/test-setup.md
+
+    - name: test-helpers
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/test-helpers.md
+
+    - name: regression-suite
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/regression-suite.md
+
+    - name: qa-plan
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/qa-plan.md
+
+    - name: bug-triage
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/bug-triage.md
+
+    - name: asset-spec
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/asset-spec.md
+
+    - name: day-one-patch
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/day-one-patch.md
+
+  agents:
+    - name: creative-director
+      tier: director
+      priority: standard
+      spec: skill_testing/specs/agents/directors/creative-director.md
+
+    - name: technical-director
+      tier: director
+      priority: standard
+      spec: skill_testing/specs/agents/directors/technical-director.md
+
+    - name: producer
+      tier: director
+      priority: standard
+      spec: skill_testing/specs/agents/directors/producer.md
+
+    - name: art-director
+      tier: director
+      priority: standard
+      spec: skill_testing/specs/agents/directors/art-director.md
+
+    - name: lead-programmer
+      tier: lead
+      priority: standard
+      spec: skill_testing/specs/agents/leads/lead-programmer.md
+
+    - name: qa-lead
+      tier: lead
+      priority: standard
+      spec: skill_testing/specs/agents/leads/qa-lead.md
+
+    - name: narrative-director
+      tier: lead
+      priority: standard
+      spec: skill_testing/specs/agents/leads/narrative-director.md
+
+    - name: audio-director
+      tier: lead
+      priority: standard
+      spec: skill_testing/specs/agents/leads/audio-director.md
+
+    - name: game-designer
+      tier: lead
+      priority: standard
+      spec: skill_testing/specs/agents/leads/game-designer.md
+
+    - name: systems-designer
+      tier: lead
+      priority: standard
+      spec: skill_testing/specs/agents/leads/systems-designer.md
+
+    - name: level-designer
+      tier: lead
+      priority: standard
+      spec: skill_testing/specs/agents/leads/level-designer.md
+
+    - name: gameplay-programmer
+      tier: specialist
+      priority: standard
+      spec: skill_testing/specs/agents/specialists/gameplay-programmer.md
+
+    - name: ai-programmer
+      tier: specialist
+      priority: standard
+      spec: skill_testing/specs/agents/specialists/ai-programmer.md
+
+    - name: technical-artist
+      tier: specialist
+      priority: standard
+      spec: skill_testing/specs/agents/specialists/technical-artist.md
+
+    - name: sound-designer
+      tier: specialist
+      priority: standard
+      spec: skill_testing/specs/agents/specialists/sound-designer.md
+
+    - name: engine-programmer
+      tier: specialist
+      priority: standard
+      spec: skill_testing/specs/agents/specialists/engine-programmer.md
+
+    - name: tools-programmer
+      tier: specialist
+      priority: standard
+      spec: skill_testing/specs/agents/specialists/tools-programmer.md
+
+    - name: network-programmer
+      tier: specialist
+      priority: standard
+      spec: skill_testing/specs/agents/specialists/network-programmer.md
+
+    - name: security-engineer
+      tier: qa
+      priority: standard
+      spec: skill_testing/specs/agents/qa/security-engineer.md
+
+    - name: accessibility-specialist
+      tier: qa
+      priority: standard
+      spec: skill_testing/specs/agents/qa/accessibility-specialist.md
+
+    - name: ux-designer
+      tier: specialist
+      priority: standard
+      spec: skill_testing/specs/agents/specialists/ux-designer.md
+
+    - name: ui-programmer
+      tier: specialist
+      priority: standard
+      spec: skill_testing/specs/agents/specialists/ui-programmer.md
+
+    - name: performance-analyst
+      tier: specialist
+      priority: standard
+      spec: skill_testing/specs/agents/specialists/performance-analyst.md
+
+    - name: python-specialist
+      tier: language
+      priority: standard
+      spec: skill_testing/specs/agents/language/python-specialist.md
+
+    - name: typescript-specialist
+      tier: language
+      priority: standard
+      spec: skill_testing/specs/agents/language/typescript-specialist.md
+
+    - name: rust-specialist
+      tier: language
+      priority: standard
+      spec: skill_testing/specs/agents/language/rust-specialist.md
+
+    - name: go-specialist
+      tier: language
+      priority: standard
+      spec: skill_testing/specs/agents/language/go-specialist.md
+
+    - name: godot-specialist
+      tier: engine
+      priority: standard
+      spec: skill_testing/specs/agents/engine/godot/godot-specialist.md
+
+    - name: godot-gdscript-specialist
+      tier: engine
+      priority: standard
+      spec: skill_testing/specs/agents/engine/godot/godot-gdscript-specialist.md
+
+    - name: godot-csharp-specialist
+      tier: engine
+      priority: standard
+      spec: skill_testing/specs/agents/engine/godot/godot-csharp-specialist.md
+
+    - name: godot-shader-specialist
+      tier: engine
+      priority: standard
+      spec: skill_testing/specs/agents/engine/godot/godot-shader-specialist.md
+
+    - name: godot-gdextension-specialist
+      tier: engine
+      priority: standard
+      spec: skill_testing/specs/agents/engine/godot/godot-gdextension-specialist.md
+
+    - name: unity-specialist
+      tier: engine
+      priority: standard
+      spec: skill_testing/specs/agents/engine/unity/unity-specialist.md
+
+    - name: unity-ui-specialist
+      tier: engine
+      priority: standard
+      spec: skill_testing/specs/agents/engine/unity/unity-ui-specialist.md
+
+    - name: unity-shader-specialist
+      tier: engine
+      priority: standard
+      spec: skill_testing/specs/agents/engine/unity/unity-shader-specialist.md
+
+    - name: unity-dots-specialist
+      tier: engine
+      priority: standard
+      spec: skill_testing/specs/agents/engine/unity/unity-dots-specialist.md
+
+    - name: unity-addressables-specialist
+      tier: engine
+      priority: standard
+      spec: skill_testing/specs/agents/engine/unity/unity-addressables-specialist.md
+
+    - name: unreal-specialist
+      tier: engine
+      priority: standard
+      spec: skill_testing/specs/agents/engine/unreal/unreal-specialist.md
+
+    - name: ue-blueprint-specialist
+      tier: engine
+      priority: standard
+      spec: skill_testing/specs/agents/engine/unreal/ue-blueprint-specialist.md
+
+    - name: ue-gas-specialist
+      tier: engine
+      priority: standard
+      spec: skill_testing/specs/agents/engine/unreal/ue-gas-specialist.md
+
+    - name: ue-umg-specialist
+      tier: engine
+      priority: standard
+      spec: skill_testing/specs/agents/engine/unreal/ue-umg-specialist.md
+
+    - name: ue-replication-specialist
+      tier: engine
+      priority: standard
+      spec: skill_testing/specs/agents/engine/unreal/ue-replication-specialist.md
+
+    - name: devops-engineer
+      tier: operations
+      priority: standard
+      spec: skill_testing/specs/agents/operations/devops-engineer.md
+
+    - name: release-manager
+      tier: operations
+      priority: standard
+      spec: skill_testing/specs/agents/operations/release-manager.md
+
+    - name: live-ops-designer
+      tier: operations
+      priority: standard
+      spec: skill_testing/specs/agents/operations/live-ops-designer.md
+
+    - name: community-manager
+      tier: operations
+      priority: standard
+      spec: skill_testing/specs/agents/operations/community-manager.md
+
+    - name: analytics-engineer
+      tier: operations
+      priority: standard
+      spec: skill_testing/specs/agents/operations/analytics-engineer.md
+
+    - name: economy-designer
+      tier: operations
+      priority: standard
+      spec: skill_testing/specs/agents/operations/economy-designer.md
+
+    - name: localization-lead
+      tier: operations
+      priority: standard
+      spec: skill_testing/specs/agents/operations/localization-lead.md
+
+    - name: qa-tester
+      tier: qa
+      priority: standard
+      spec: skill_testing/specs/agents/qa/qa-tester.md
+
+    - name: prototyper
+      tier: specialist
+      priority: standard
+      spec: skill_testing/specs/agents/specialists/prototyper.md
+
+    - name: writer
+      tier: specialist
+      priority: standard
+      spec: skill_testing/specs/agents/specialists/writer.md
+
+    - name: world-builder
+      tier: specialist
+      priority: standard
+      spec: skill_testing/specs/agents/specialists/world-builder.md
