@@ -21,7 +21,7 @@
 # READ BY: /sprint-status, /story-readiness, /story-done, CI sprint-gate jobs.
 
 version: 1
-last_updated: "2026-06-12"
+last_updated: "2026-06-13"
 # 2026-06-12 (Wave 4 cleanup): Sprint 002 implementation complete. All 13
 # stories shipped: S002-001..013 done. ADR governance — ADR-0002/0003/0005
 # Accepted in S002; ADR-0009/0010 Accepted by Wave 4 review. ADR-0004/0007
@@ -32,6 +32,13 @@ last_updated: "2026-06-12"
 # 2026-06-12 (S003-012 + S003-013 done): perf baseline delivered (8/8 surfaces
 # within budget; harness tools/perf/profile_baseline.py + evidence) and CORS
 # deferral recorded (ADR-0007 stays Proposed, gated on S003-014). Rollup 5/13.
+# 2026-06-13 (UX cluster S003-006/007/008/009 done): design tokens + art bible
+# (S003-007), StatusView loading/empty/error triad + store error exposure across
+# 5 views + ScannerView aria-live (S003-009), 3 per-view flow specs (S003-006),
+# accessibility baseline closure incl. browserslist (S003-008). Suite 508 passed/
+# 2 skip/0 xfail (5 doc-coverage xfails flipped); web build + 70 vitest green.
+# Rollup 9/13. Remaining: S003-001 milestone, S003-002 user-test (operator),
+# S003-010 key rotation (operator), S003-014 FRESH /architecture-review.
 
 sprints:
   - id: S001
@@ -346,8 +353,15 @@ sprints:
         priority: MED
         effort: M
         owner: ux-designer
-        status: todo
+        status: done
         blocking_gate: false
+        note: >-
+          2026-06-13: 3 per-view flow specs authored (design/ux/ticker-flow.md,
+          archive-flow.md, analysis-flow.md) mirroring scanner-flow.md's 10-section
+          template; each documents the S003-009 StatusView triad actually shipped.
+          README flipped to Published. Creating the 3 exact filenames flipped the 5
+          doc-coverage xfail cases to pass (503/5xfail -> 508/0xfail). Adversarial
+          review: 0 must-fix.
 
       - id: S003-007
         title: "Art bible / product style guide + design tokens"
@@ -357,8 +371,15 @@ sprints:
         priority: MED
         effort: M
         owner: art-director
-        status: todo
+        status: done
         blocking_gate: false
+        note: >-
+          2026-06-13: design tokens (web/src/styles/tokens.css :root --dgm-* + CJK
+          font stacks + global prefers-reduced-motion guard) + Naive theme bridge
+          (theme.ts); wired into main.ts/App.vue/useKlineChart/ScannerView. Art bible
+          at design/art/art-bible.md with a WCAG-correct contrast baseline (adversarially
+          recomputed: text 15.5:1 ... accent 5.46:1 AA; status-unknown 2.7:1 decoration-
+          only). Adversarial review: 0 must-fix.
 
       - id: S003-008
         title: "可访问性基线闭合"
@@ -368,8 +389,15 @@ sprints:
         priority: MED
         effort: M
         owner: accessibility-specialist
-        status: todo
+        status: done
         blocking_gate: false
+        note: >-
+          2026-06-13: accessibility-requirements.md items closed — browserslist
+          (web/package.json field), contrast/tokens (WCAG-correct table from art-bible),
+          triad gaps (StatusView), CJK font (--dgm-font-sans), reduced-motion (tokens.css
+          global + StatusView scoped), aria-live (StatusView + ScannerView wrappers); SR
+          testing ADVISORY; VirtualTable keyboard nav DOCUMENTED-DEFERRED. art-bible §6
+          contrast table re-published WCAG-accurate. Adversarial review: 0 must-fix.
 
       - id: S003-009
         title: "5/6 视图的 loading/empty/error 三态补齐"
@@ -379,8 +407,16 @@ sprints:
         priority: MED
         effort: M
         owner: typescript-specialist
-        status: todo
+        status: done
         blocking_gate: false
+        note: >-
+          2026-06-13: shared StatusView triad component (web/src/components/common/
+          StatusView.vue; loading n-skeleton/n-spin, empty n-empty, error n-result + Retry;
+          a11y role=alert/aria-live baked in) + fetchError.ts (one REST/SSE error dialect;
+          network_error parity) + marketData store error exposure (loadAllRows/loadMoreRows/
+          loadPage). 5 views wired (Analysis/Insights/Ticker/CnArchive/UsArchive); ScannerView
+          gained aria-live wrappers only. 70 vitest (+21); build green. Adversarial review:
+          0 must-fix. Deferred should-fix (loadTables, archive onRowClick kline catch) noted.
 
       - id: S003-010
         title: "DeepSeek 密钥轮换操作"
@@ -428,11 +464,11 @@ rollup:
   sprint: S003
   total_stories: 13
   by_status:
-    todo: 8
+    todo: 4
     in_progress: 0
     blocked: 0
     review: 0
-    done: 5
+    done: 9
     deferred: 0
   by_priority:
     HIGH: 6
