@@ -19,7 +19,7 @@
 
 | # | Check | Command / evidence | Expected |
 |---|---|---|---|
-| P1 | Full pytest | `python -m pytest -q` | **493 passed / 2 skipped / 6 xfailed / 0 failed** |
+| P1 | Full pytest | `python -m pytest -q` | **499 passed / 2 skipped / 6 xfailed / 0 failed** |
 | P2 | Web build | `cd web && npm run build` | green (vendored @pretext) |
 | P3 | Web tests | `cd web && npm test` | 49 passed |
 | P4 | `src/` sys.path gate | `grep -rnE "sys.path.insert\|sys.path.append" src/` | only .pyc binaries; 0 source hits |
@@ -62,10 +62,11 @@ The fresh review decides 4 categories. **Prepare evidence for each.**
 
 After approval: flip ADR Status lines + update `tr-registry.yaml` (TR-041/042 revised dates) + run governance tests.
 
-### 3.2 Batch-6 (`mcp_server.py` deletion) — two prerequisites confirmed by code review
-- **[B1]** Retarget `tests/test_mcp_notes_softdelete.py` onto the modular `stock_overview` (currently guards the legacy monolith; modular path has zero soft-delete coverage).
-- **[B2]** Add a 6-tool modular-vs-legacy output-parity test (`tests/integration/mcp/test_modular_legacy_parity.py`, `@pytest.mark.integration`, must exist BEFORE deletion).
-- Both done + reviewer confirms parity → delete `mcp_server.py` + clean `doge_mcp.py` sys.path compat shim + update the layer-gate tolerated-entrypoints list.
+### 3.2 Batch-6 (`mcp_server.py` deletion) — prerequisites **LANDED** (commit `3916ff9`)
+- **[B1 ✅ DONE]** `tests/test_mcp_notes_softdelete.py` retargeted onto the modular `stock_overview` (the live path; was guarding the dead legacy monolith). 3 original scenarios + assertions preserved; patches via `DOGE_RESEARCH_DB` + `reset_settings()` + a fake `build_stock_service`.
+- **[B2 ✅ DONE]** `tests/integration/mcp/test_modular_legacy_parity.py` — parametrized 6-tool byte-for-byte parity (`@pytest.mark.integration`, auto-skips without the live DB, CI-excludable). **Result: all 6 tools hold EXACT parity — zero modular divergences, no live-server code changes needed.** Strong evidence the modular server is a true drop-in.
+- **Reviewer action:** confirm the parity test, then delete `mcp_server.py` + clean `doge_mcp.py`'s sys.path compat shim + drop the layer-gate tolerated-entrypoints carve-out (`tests/unit/layer_gates/test_no_sys_path_shims_under_src.py`).
+- **One nuance for the reviewer (non-blocking):** modular `stock_overview` uses a single try/except for names+notes vs legacy's two-block form — invisible on any populated DB, behavior-neutral. Decide converge-vs-leave; does not block deletion.
 
 ### 3.3 Three "known issue" decisions (reviewer must rule)
 | Issue | Current state | Decision needed |
@@ -84,7 +85,7 @@ After approval: flip ADR Status lines + update `tr-registry.yaml` (TR-041/042 re
 
 | Item | Category | Disposition | Evidence / location |
 |---|---|---|---|
-| Batch-6 monolith deletion | gate prerequisite | **In Wave 4** (after B1+B2) | §3.2 |
+| Batch-6 monolith deletion | gate prerequisite | **B1+B2 DONE** (`3916ff9`); reviewer confirms parity + deletes | §3.2 |
 | ADR-0009/0010 promotion | governance | **In Wave 4** | §3.1 |
 | API router DI | architecture | Reviewer rules (recommend Wave 5) | §3.3 |
 | TDX adapter migration | architecture | Reviewer rules (recommend Wave 5) | §3.3 |
@@ -116,7 +117,7 @@ After approval: flip ADR Status lines + update `tr-registry.yaml` (TR-041/042 re
 **Session ② — architecture-review**
 ```
 1. /architecture-review    (review ADRs; promote 0009/0010 per §3.1)
-2. Rule on §3.2 → add B1/B2 tests → delete mcp_server.py → update layer-gate
+2. §3.2 — B1+B2 already DONE (3916ff9); confirm parity, then delete mcp_server.py + clean doge_mcp.py shim + drop layer-gate carve-out
 3. Rule on §3.3 → decide RSRS view fix + router-DI/TDX Wave-5 ownership
 4. Re-run adoption audit → expect 0/0/0
 5. /story-done  to close S002-011
