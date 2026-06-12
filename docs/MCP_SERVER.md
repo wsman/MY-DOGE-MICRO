@@ -63,8 +63,8 @@ mcp__doge-db__list_views
 
 | 模式 | 用途 | 启动方式 |
 |------|------|----------|
-| **stdio** | Claude Code 本地集成（默认） | `python mcp_server.py` |
-| **SSE** | HTTP 服务，供 Web 应用调用 | `python mcp_server.py --transport sse --host 127.0.0.1 --port 8902` |
+| **stdio** | Claude Code 本地集成（默认） | `python doge_mcp.py` |
+| **SSE** | HTTP 服务，供 Web 应用调用 | `python doge_mcp.py --transport sse --host 127.0.0.1 --port 8902` |
 
 ### 命令行参数
 
@@ -504,7 +504,7 @@ python src/cli.py anomaly --min-ratio 5.0 --top 10
 
 **原因：** MCP SDK 内部创建 `TextIOWrapper(sys.stdout.buffer)` 与 Python 原始 `sys.stdout` 共享同一个 `BufferedWriter`。Windows 上两个 TextIOWrapper 同时 flush 导致冲突。
 
-**修复：** `mcp_server.py` 的 stdio 模式已包含修复——在 SDK 接管前将 `sys.stdout.buffer` 保存到独立变量，`sys.stdout` 替换为 `io.StringIO()`，然后传自定义 stdout 给 `stdio_server(stdout=cl_stdout)`。
+**修复：** `doge_mcp.py` / `src/doge/interfaces/mcp/server.py` 的 stdio 模式已包含修复——在 SDK 接管前将 `sys.stdout.buffer` 保存到独立变量，`sys.stdout` 替换为 `io.StringIO()`，然后传自定义 stdout 给 `stdio_server(stdout=cl_stdout)`。
 
 ### ticker 格式
 

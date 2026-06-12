@@ -9,8 +9,9 @@ Governance gate: enforces the ADR lifecycle defined in ``docs/CLAUDE.md``::
 This test reads the Markdown of every ``docs/architecture/adr-*.md`` file and
 asserts:
 
-1. Each promoted ADR (ADR-0001/0002/0003/0005) carries ``Status: Accepted``.
-2. Each gated ADR (ADR-0004/0007/0009/0010) carries ``Status: Proposed`` AND a
+1. Each promoted ADR (ADR-0001/0002/0003/0005/0009/0010) carries
+   ``Status: Accepted``.
+2. Each gated ADR (ADR-0004/0007) carries ``Status: Proposed`` AND a
    ``Promotion gate`` callout in the Status section that names what is MET and
    what REMAINS.
 3. No ADR has skipped ``Accepted`` — the only legal Status tokens are
@@ -46,6 +47,8 @@ _EXPECTED_ACCEPTED = {
     "adr-0002": "ADR-0002 (centralized-configuration) — gate met: get_settings singleton, frozen dataclasses, _env_path, reset_settings, tests/test_settings.py; ADR-0001 Accepted.",
     "adr-0003": "ADR-0003 (storage-repository-contract) — both gates met: S002-006 StorageWriteError + S002-007 DOGE_RETENTION_DAYS; IStockRepository/IReportRepository ports exist; SQLiteStorageRepository raises StorageWriteError.",
     "adr-0005": "ADR-0005 (llm-client-strategy) — gate met: OpenAI(api_key, base_url), stream=False temp=0.6, None-on-error, DEEPSEEK_API_KEY/DEEPSEEK_MODEL overrides; S002-013 closed the committed-key OPEN item.",
+    "adr-0009": "ADR-0009 (cache-metadata-port-split) — Wave-4 accepted: ITickerNameCache + ITickerMetadataSource split realized; real yfinance metadata adapter is follow-on implementation work.",
+    "adr-0010": "ADR-0010 (view-service-port-injection) — Wave-4 accepted: IMarketViewRepository + DuckDBMarketViewRepository + composition root are implemented and tested.",
 }
 
 # ADRs that STAY Proposed and must carry a Promotion gate callout.
@@ -69,19 +72,6 @@ _EXPECTED_PROPOSED_GATES = {
             "loopback",
         ],
         "story_keywords": ["S002-009"],
-    },
-    "adr-0009": {
-        "met_keywords": ["ITickerNameCache", "ITickerMetadataSource", "decision"],
-        "remains_keywords": [
-            "industry_analyzer.py",           # the :190 .info migration target
-            "NotImplementedError",
-        ],
-        "story_keywords": ["Wave-4"],         # recommend promotion at architecture-review
-    },
-    "adr-0010": {
-        "met_keywords": ["IMarketViewRepository", "composition"],
-        "remains_keywords": ["Wave-4"],       # recommend promotion at architecture-review
-        "story_keywords": ["Wave-4"],
     },
 }
 

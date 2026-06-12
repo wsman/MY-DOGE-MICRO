@@ -12,7 +12,7 @@ What this test guards (the three quick-entry surfaces in README.md):
       scripts/mcp_stdio.sh         (POSIX stdio)
       scripts/start_mcp_sse.bat    (Windows SSE)
       scripts/start_mcp_sse.sh     (POSIX SSE)
-      mcp_server.py                (the entrypoint the scripts invoke)
+      doge_mcp.py                  (the entrypoint the scripts invoke)
 
   Surface B — FastAPI + Vue web console:
       src/api/main.py              (FastAPI backend, binds 127.0.0.1:8901)
@@ -50,7 +50,6 @@ REQUIRED_QUICKSTART_PATHS = (
     "scripts/mcp_stdio.sh",
     "scripts/start_mcp_sse.bat",
     "scripts/start_mcp_sse.sh",
-    "mcp_server.py",
     "doge_mcp.py",
     # Surface B — FastAPI + web console
     "src/api/main.py",

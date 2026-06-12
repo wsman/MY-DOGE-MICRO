@@ -19,7 +19,7 @@ From ADR-0001 + `clean-architecture-migration.md §4.3`. This is the invariant e
 | `src/doge/infrastructure/*` | `core.ports` (to implement), `config`, drivers (`sqlite3`, `duckdb`, `opentdx`, `yfinance`, `openai`) | `core.services`, `interfaces` |
 | `src/doge/config/*` | stdlib only | any other layer |
 
-**Dependency direction**: interfaces → services → ports ← infrastructure. Never point inward. The four view-backed services take a concrete `DuckDBConnection` adapter today — an interim deviation permitted by ADR-0001 (reconcile in TR-041 / OQ-5).
+**Dependency direction**: interfaces → services → ports ← infrastructure. Never point inward. The four view-backed services now depend on `IMarketViewRepository`; `src/doge/core/services/composition.py` is the single wiring site that imports the DuckDB adapter (ADR-0010 / TR-041).
 
 ### Required
 
@@ -40,16 +40,16 @@ From ADR-0001 + `clean-architecture-migration.md §4.4` + `standards/technical-p
 |---|---|---|
 | `direct_sqlite_import_in_interface` | `import sqlite3` / `sqlite3.connect` in an interface layer | `src/api/**`, `src/doge/interfaces/**`, `src/interface/**`, MCP server, web backend |
 | `direct_duckdb_connect_in_interface` | `duckdb.connect` / `connect_duckdb()` in an interface layer | same |
-| `sys_path_insert` | `sys.path.insert` / `sys.path.append` bootstrapping outside a documented compatibility shim | any new module under `src/doge/**`; legacy modules are migration targets |
+| `sys_path_insert` | `sys.path.insert` / `sys.path.append` bootstrapping | any module under `src/**`, any new runtime entrypoint, and `doge_mcp.py` |
 | `_PROJECT_ROOT_recalculation` | `Path(__file__).resolve().parents[N]` / `os.path.dirname(...)` chains to derive the project root | anywhere except `src/doge/config/settings.py:15` |
 | `cross_layer_state_write` | interface/framework modules writing shared module-level DB state; mutating process-global env (`HTTP_PROXY`, `OPENBLAS_NUM_THREADS`) from impl modules | any layer |
 | hardcoded secrets / credentials / model ids / package versions in implementation modules | secrets, API keys, provider URLs, timeouts in `.py` impl files | everywhere (must live in `settings.py` or `models_config.json` + env override) |
-| scattered `sys.path.insert` bootstrapping outside compatibility shims | — | everywhere (ADR-0001) |
+| scattered `sys.path.insert` bootstrapping | — | everywhere (ADR-0001) |
 | interface/API layers directly opening SQLite or DuckDB connections | — | everywhere (ADR-0001) |
 | cross-layer imports that bypass ports/services | — | everywhere (ADR-0001) |
 | network-dependent tests without isolation/fixtures | — | `tests/**` |
 
-**Legacy tolerance**: legacy modules under `src/micro`, `src/macro`, `src/api`, `src/ai_analysis`, `src/interface`, and root `mcp_server.py` still contain these patterns. They are documented migration targets owned by Module #12 — they receive **no new** architectural coupling, and each retired offender is struck through in the CDD's offender list.
+**Legacy tolerance**: legacy modules under `src/micro`, `src/macro`, `src/api`, `src/ai_analysis`, and `src/interface` may still contain documented brownfield offenders. Root `mcp_server.py` has been retired and `doge_mcp.py` is not a compatibility shim. Legacy offenders receive **no new** architectural coupling, and each retired offender is struck through in the CDD's offender list.
 
 ---
 
@@ -109,13 +109,15 @@ Proposed  ──►  Accepted  ──►  Superseded
 | ADR | Status | Note |
 |---|---|---|
 | 0001 Brownfield Clean Architecture Migration | **Accepted** | Foundational. |
-| 0002 Centralized Runtime Configuration | Proposed | Module ships working code; recommend promote (see traceability FINDING-1). |
-| 0003 Storage Repository Contract | Proposed | Gated on `save_prices` + `StorageWriteError` + `DOGE_RETENTION_DAYS` (TR-006). |
+| 0002 Centralized Runtime Configuration | **Accepted** | Settings singleton, env defaults, and tests are implemented. |
+| 0003 Storage Repository Contract | **Accepted** | StorageWriteError and retention gates are met. |
 | 0004 Data Source Adapter Contract | Proposed | yfinance half done; TDX half gated on TR-011. |
-| 0005 LLM Client Strategy | Proposed | Strategy frozen; recommend promote (FINDING-1). |
+| 0005 LLM Client Strategy | **Accepted** | Strategy frozen; key handling moved to env. |
 | 0006 MCP Transport Strategy | **Accepted** | 77 transport tests green. |
 | 0007 API Surface and CORS | Proposed | Gating work (CORS hardening + error envelope) genuinely open. |
 | 0008 Vue Web Console Architecture | **Accepted** | Build-green, reverse-documented. |
+| 0009 Cache/Metadata Port Split | **Accepted** | Port split realized; real yfinance metadata adapter is follow-on implementation work. |
+| 0010 View-Service Port Injection | **Accepted** | IMarketViewRepository and composition-root wiring are implemented and tested. |
 
 ---
 
@@ -168,8 +170,8 @@ python -m pytest tests/test_pyqt_smoke.py -q            # TR-033, TR-034 (smoke 
 
 **MCP startup smoke** (manual — requires the runtime, advisory):
 ```bash
-python mcp_server.py --transport stdio --log-level INFO        # stdio (Claude Code path)
-python mcp_server.py --transport sse --host 127.0.0.1 --port 8902   # SSE (web console path)
+python doge_mcp.py --transport stdio --log-level INFO        # stdio (Claude Code path)
+python doge_mcp.py --transport sse --host 127.0.0.1 --port 8902   # SSE (web console path)
 ```
 
 ### Web (Vue 3 + Vite 8)
@@ -190,8 +192,8 @@ grep -rnE "import sqlite3|import duckdb|sqlite3\.connect|duckdb\.connect" \
 # No project-root recalculation outside settings.py:15
 grep -rnE "_PROJECT_ROOT|parents\[3\]|parents\[2\]" src/doge/   # must return exactly one line: settings.py:15
 
-# No sys.path.insert in the clean-architecture tree
-grep -rn "sys.path.insert" src/doge/                            # must return ZERO hits
+# No sys.path.insert in the clean-architecture tree or canonical MCP entrypoint
+grep -rn "sys.path.insert" src/doge/ doge_mcp.py                # must return ZERO hits
 ```
 
 ### Stack-version consistency (advisory — run when bumping a dependency)
@@ -214,11 +216,11 @@ The migration is incremental (ADR-0001). Legacy entrypoints stay live until repl
 | 1 | `pyproject.toml` editable install; `settings.py`; eliminate `sys.path.insert` | TR-001 grep gate passes; AC-1 (no new `sys.path.insert` under `src/doge/`) |
 | 2 | Repository ports + DuckDB/SQLite adapters + repositories | TR-005, TR-008 (DB port contract + PK) |
 | 3 | TDX data-source adapter (replace stub) | TR-011 (TDX no longer raises NotImplementedError) |
-| 4 | Core services (route view-backed services through ports OR amend ADR-0001) | TR-041 |
+| 4 | Core services (view-backed services routed through `IMarketViewRepository`) | TR-041 |
 | 5 | Interface rewire (API/CLI/GUI routed through services) | TR-031 + AC-6 (routers obtain data via injected services) |
-| 6 | Cleanup + full test pass; delete legacy compat | AC-8 (`ai_analysis/__init__.py` reduced to a re-export shim or deleted) |
+| 6 | Cleanup + full test pass; delete remaining legacy compat | AC-8 (`ai_analysis/__init__.py` reduced to a re-export shim or deleted) |
 
-**Compatibility entrypoints (must stay live until replacement verified)**: `mcp_server.py` (legacy monolith, tested by `test_mcp_tools.py`), `doge_mcp.py` (modular shim with a tolerated `sys.path.insert` fallback until editable install is enforced). Deleting `mcp_server.py` before `test_mcp_tools.py` is retargeted at the modular server is a contract violation.
+**MCP entrypoint status**: `doge_mcp.py` is the canonical repo-root MCP entrypoint for stdio and SSE. The legacy `mcp_server.py` monolith was deleted after modular parity was verified; no layer-gate carve-out remains for root entrypoints.
 
 **Rollback plan** (ADR-0001): if a migrated service breaks a workflow, route that interface back to the legacy implementation while the service contract is fixed. Legacy entrypoints remain installed until the replacement passes tests.
 

@@ -113,7 +113,7 @@ class TestGettingStartedPathsResolve:
         markdown = DOC.read_text(encoding="utf-8")
         required = {
             "src/api/main.py",
-            "mcp_server.py",
+            "doge_mcp.py",
             "src/interface/dashboard.py",
             "scripts/mcp_stdio.bat",
             "scripts/start_mcp_sse.sh",

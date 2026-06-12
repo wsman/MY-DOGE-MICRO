@@ -14,7 +14,7 @@
 The Clean Architecture Migration module is the governance and execution track that
 moves MY-DOGE-MICRO from a legacy flat layout — where business logic, database
 access, path discovery, and interface wiring are tangled across `src/micro`,
-`src/api`, `src/ai_analysis`, root scripts, and `mcp_server.py` — onto a layered
+`src/api`, `src/ai_analysis`, root scripts, and the retired legacy MCP monolith — onto a layered
 Ports & Adapters structure under `src/doge/` (config / core / infrastructure /
 interfaces). The migration is **incremental and brownfield**: existing working
 entrypoints stay live while each workflow is re-routed through shared services
@@ -38,7 +38,7 @@ the project root, or opening a database connection inside an interface module.
 
 - One place owns runtime configuration: `src/doge/config/settings.py`. No module
   outside that file should recompute `_PROJECT_ROOT` or insert into `sys.path`
-  for its own use (legacy compat shims excepted while they still exist).
+  for its own use.
 - Business rules live in `src/doge/core/services/*` and depend only on ports
   (`src/doge/core/ports/*`), never on `sqlite3`, `duckdb`, or interface
   frameworks.
@@ -46,9 +46,10 @@ the project root, or opening a database connection inside an interface module.
   *implement* the ports.
 - Every interface (MCP / FastAPI / CLI / GUI / Web) reaches the data through a
   service, not by importing a database driver.
-- During migration, both legacy (`mcp_server.py`) and modular
-  (`doge_mcp.py → src/doge/interfaces/mcp/server.py`) entrypoints must run; the
-  operator never loses a working workflow because a batch is mid-flight.
+- During migration, working workflows stay live while each surface moves to the
+  layered implementation. For MCP, Wave 4 completed the handoff:
+  `doge_mcp.py -> src/doge/interfaces/mcp/server.py` is the only live root
+  entrypoint.
 
 ---
 
@@ -65,7 +66,7 @@ The legacy layer is the running implementation for several workflows. The
 anti-patterns ADR-0001 forbids are *currently present* here and are the migration
 backlog.
 
-- **`mcp_server.py` (root, 504 lines)** — monolithic MCP server. Opens DuckDB
+- **Retired root MCP monolith (`mcp_server.py`, deleted in Wave 4)** — opened DuckDB
   directly via `from ai_analysis import get_duckdb_connection` (mcp_server.py:38)
   and SQLite directly via a module-level `import sqlite3` (mcp_server.py:23),
   used inside `stock_overview` via `sqlite3.connect(...)` at mcp_server.py:304
@@ -189,7 +190,7 @@ injection:
   and :215) and the tool modules go through services/repositories. This is the
   target shape every other interface must reach.
 
-### 3.3 Migration Path (batched; compat entrypoints preserved)
+### 3.3 Migration Path (batched; live entrypoints preserved)
 
 Per `docs/MODULARIZATION_PLAN.md:108-144` and ADR-0001:200-209. Each batch is
 gated by tests before the next begins:
@@ -201,19 +202,15 @@ gated by tests before the next begins:
 | 3 | TDX data source adapter | `data_source/tdx.py` is a stub raising `NotImplementedError` | Not started — logic still in `micro/tdx_downloader.py` |
 | 4 | Core services | All 5 services exist; all now take ports — `StockService` uses `IStockRepository`, the 4 view-backed services use `IMarketViewRepository` (ADR-0010) | Implemented (port-injected; composition root owns infra wiring) |
 | 5 | Interface rewire (MCP/CLI/API/GUI) | MCP done (`interfaces/mcp/`); `src/api/routers/*` still legacy; `src/cli.py` still legacy | MCP complete; API/CLI/GUI pending |
-| 6 | Cleanup + full test pass | Legacy code still present | Pending |
+| 6 | Cleanup + full test pass | MCP monolith deleted; broader legacy API/CLI/GUI code still present | MCP cleanup complete; broader cleanup pending |
 
-**Compatibility entrypoints (must stay live until replacement verified —
-ADR-0001:41, :209):**
-- `mcp_server.py` (legacy monolith) — still the file `tests/test_mcp_tools.py`
-  imports (`import mcp_server as srv`, test_mcp_tools.py:14).
-- `doge_mcp.py` (modular entrypoint) — thin shim that delegates to
-  `doge.interfaces.mcp.server.main` (doge_mcp.py:17). **Note:** it still
-  contains a `sys.path.insert` fallback (doge_mcp.py:13-15) — tolerated only
-  because editable install is not yet enforced everywhere (see §8 AC-1, open
-  question OQ-1).
-- `scripts/mcp_stdio_modular.bat` / `scripts/mcp_stdio.sh` — launch `doge_mcp.py`.
-- `scripts/mcp_stdio.bat` (and SSE scripts) — launch legacy `mcp_server.py`.
+**MCP entrypoint status (Wave 4):**
+- `doge_mcp.py` is the canonical repo-root entrypoint and contains no
+  `sys.path.insert` fallback.
+- `scripts/mcp_stdio.bat`, `scripts/mcp_stdio.sh`, and the SSE scripts launch
+  `doge_mcp.py`.
+- The legacy `mcp_server.py` monolith was deleted after modular parity evidence;
+  the old layer-gate carve-out is gone.
 
 ---
 
@@ -298,9 +295,9 @@ Read-only view port (`src/doge/core/ports/market_view.py`):
 ### 4.4 Forbidden patterns (ADR-0001 forbidden_patterns registry)
 
 These are the lint/invariant rules the migration eliminates:
-- `direct_sqlite_import_in_interface` — e.g. `mcp_server.py:23`, `src/api/routers/data.py:7`.
-- `direct_duckdb_connect_in_interface` — e.g. `mcp_server.py:38`, `scan.py:210-211`.
-- `sys_path_insert` — 14 insert sites across 13 distinct legacy files (`src/micro`, `src/api`, `src/ai_analysis`, `src/cli.py`, `src/macro/cli.py`, `src/interface/scanner_gui.py`; `tdx_downloader.py` holds two), plus `mcp_server.py:33` and the tolerated shim in `doge_mcp.py:15`.
+- `direct_sqlite_import_in_interface` — e.g. `src/api/routers/data.py:7`.
+- `direct_duckdb_connect_in_interface` — e.g. `scan.py:210-211`.
+- `sys_path_insert` — remaining legacy insert sites are under `src/micro`, `src/api`, `src/ai_analysis`, `src/cli.py`, `src/macro/cli.py`, and `src/interface/scanner_gui.py`; `doge_mcp.py` has no shim.
 - `_PROJECT_ROOT_recalculation` — 7+ legacy occurrences (`tdx_downloader.py:23`, `market_scanner.py:24`, all 5 `api/routers/*.py`, `api/main.py:9`, `ai_analysis/__init__.py:21`).
 - `cross_layer_state_write` — interface modules writing shared module-level DB state (e.g. legacy `ai_analysis` connection globals).
 
@@ -308,8 +305,7 @@ These are the lint/invariant rules the migration eliminates:
 
 | Entrypoint | Transports | Imports legacy `ai_analysis`? | Status |
 |-----------|-----------|-------------------------------|--------|
-| `mcp_server.py` | stdio, sse | Yes (`mcp_server.py:38`) | Legacy, live, under test |
-| `doge_mcp.py` → `doge.interfaces.mcp.server.main` | stdio, sse | No (only `doge.*`) | Modular, live |
+| `doge_mcp.py` → `doge.interfaces.mcp.server.main` | stdio, sse | No (only `doge.*`) | Canonical, live |
 | `src/api/main.py` (FastAPI) | http | Indirectly via routers | Legacy routers, pending rewire |
 | `src/cli.py` | CLI | Yes | Legacy, pending rewire |
 
@@ -321,25 +317,21 @@ services** — it defines the integration surface that the feature modules'
 interfaces must conform to. The enforced integration surface is:
 
 - **MCP transport contract** (owned in detail by **Module #8 — MCP Server**):
-  both the legacy `mcp_server.py` and the modular `doge.interfaces.mcp.server`
-  must expose stdio and SSE transports with identical tool semantics, the same
-  `_timed` 30 s timeout (TOOL_TIMEOUT), and the same validation rules
+  `doge_mcp.py` / `doge.interfaces.mcp.server` must expose stdio and SSE
+  transports with identical tool semantics, the same `_timed` 30 s timeout
+  (TOOL_TIMEOUT), and the same validation rules
   (`_validate_market` / `_validate_ticker` / `_validate_int` / `_validate_float`).
   Cross-ref: Module #8 (`mcp-server`).
 - **HTTP/FastAPI contract** (owned in detail by **Module #9 — FastAPI Service**):
   routers under `src/api/routers/*` must, post-migration, obtain data via injected
   services rather than opening DB connections or recomputing the project root.
   Cross-ref: Module #9 (`fastapi-service`).
-- **Entrypoint concurrency guarantee**: both MCP entrypoints and the FastAPI app
+- **Entrypoint concurrency guarantee**: the MCP entrypoint and the FastAPI app
   may run concurrently against the same DuckDB file; queries open DuckDB
-  `read_only=True` (duckdb.py:23, server.py:150) so concurrent readers do not
-  lock, and `mcp_server.py` only *logs* orphaned sibling PIDs rather than killing
-  them (see §5). This concurrency guarantee is part of the integration contract
-  this module preserves during migration.
-- **Health/metrics integration surface**: the modular server's `/health`
-  (server.py:211) and `/metrics` (server.py:222) routes are the monitoring
-  integration points and must match legacy `mcp_server.py` behavior so external
-  monitoring does not regress (AC-14).
+  `read_only=True` so concurrent readers do not lock, and the modular MCP server
+  only logs orphaned sibling PIDs rather than killing them (see §5).
+- **Health/metrics integration surface**: the modular server's `/health` and
+  `/metrics` routes are the monitoring integration points (AC-14).
 
 This module defers all transport-level *protocol* details (MCP framing, FastAPI
 schema, request/response shapes) to Modules #8 and #9; it owns only the
@@ -372,16 +364,13 @@ never through a database driver.
 
 Stated behavior — what *actually happens* today or is contractually required.
 
-- **Both MCP entrypoints run concurrently.** An operator may start
-  `mcp_server.py` and `doge_mcp.py` at once. DuckDB is opened `read_only=True`
-  for queries (duckdb.py:23, server.py:150), so concurrent readers do not lock.
-  `mcp_server.py` even detects orphaned sibling processes via a PID file and
-  only *logs a warning* (mcp_server.py:118-154) — it does not kill them.
-- **Editable install not present.** If `pip install -e .` was not run,
-  `doge_mcp.py` falls back to `sys.path.insert(0, …/src)` (doge_mcp.py:13-15)
-  so the modular server still starts. This shim is the *only* sanctioned
-  `sys.path.insert` in the target tree and is itself an open removal item
-  (AC-1).
+- **MCP + FastAPI run concurrently.** An operator may start `doge_mcp.py` and
+  the FastAPI app at once. DuckDB is opened `read_only=True` for queries, so
+  concurrent readers do not lock. The MCP server detects orphaned sibling PIDs
+  via a PID file and only logs a warning; it does not kill them.
+- **Editable install not present.** `doge_mcp.py` no longer has a `sys.path`
+  fallback. If the project is not importable through the package/editable
+  layout, the MCP server should fail fast and the environment should be fixed.
 - **`views.sql` missing or a single view statement fails.** `DuckDBConnection.
   refresh_views()` (duckdb.py:58-83) swallows per-statement exceptions and
   continues; a missing `views.sql` returns silently. Behavior: best-effort,
@@ -397,8 +386,8 @@ Stated behavior — what *actually happens* today or is contractually required.
   `_timed` decorator catches and returns as `"Error: …"` string (never an
   uncaught exception, never an HTTP 500 in SSE).
 - **Tool exceeds 30 s.** `_timed` wraps each tool in
-  `asyncio.wait_for(timeout=TOOL_TIMEOUT)` (TOOL_TIMEOUT=30, server.py:78,
-  mcp_server.py:157) and returns `"Error: <tool> timed out after 30s"`. ADR-0001
+  `asyncio.wait_for(timeout=TOOL_TIMEOUT)` (TOOL_TIMEOUT=30, server.py) and
+  returns `"Error: <tool> timed out after 30s"`. ADR-0001
   MCP latency budget (Under 30 s, ADR-0001:194) is enforced by this same
   constant.
 - **TDX adapter called before migration.** `TDXDataSource.download_kline` /
@@ -408,10 +397,8 @@ Stated behavior — what *actually happens* today or is contractually required.
   legacy `micro/tdx_downloader.py`).
 - **Partial migration rollback.** Per ADR-0001:209: if a migrated service breaks
   a workflow, route that interface back to the legacy implementation while the
-  service contract is fixed. The legacy entrypoint must remain installed until
-  the replacement passes tests — so deleting `mcp_server.py` before
-  `test_mcp_tools.py` is retargeted at the modular server would be a contract
-  violation.
+  service contract is fixed. For MCP, Wave 4 already passed the replacement
+  gate: tests target the modular server and the legacy monolith is deleted.
 - **Config drift between legacy and new path sources.** Legacy
   `ai_analysis/__init__.py:30-36` and `doge/config/settings.py:26-38` define the
   *same* env var names (`DOGE_DB_DIR`, `DOGE_CN_DB`, `DOGE_US_DB`,
@@ -460,8 +447,8 @@ Stated behavior — what *actually happens* today or is contractually required.
 - **#6 AI Industry Analysis**, **#7 Research Insight Knowledge Base** — use
   `IReportRepository` / `SQLiteReportRepository` for report and note persistence.
 - **#8 MCP Server** — modular server (`src/doge/interfaces/mcp/server.py`) is
-  the reference implementation of a correctly-wired interface; legacy
-  `mcp_server.py` is the rollback path.
+  the reference implementation of a correctly-wired interface; `doge_mcp.py`
+  is the canonical root entrypoint.
 - **#9 FastAPI Service** — routers under `src/api/routers/` must be re-routed
   through services (Batch 5, currently legacy).
 - **#10 PyQt Desktop Dashboard**, **#11 Vue Web Console** — presentation layers
@@ -502,15 +489,15 @@ migration boundaries.
 | `DOGE_DUCKDB_PATH` | settings.py:37 | `<dir>/market.duckdb` | absolute file path | operator | DuckDB file; opened read_only for queries, read-write for `refresh_views` |
 | `OPENBLAS_NUM_THREADS` / `OMP_NUM_THREADS` | duckdb.py:16-17, ai_analysis/__init__.py:15-16 | `"1"` | `"1"` recommended | runtime (setdefault) | OOM guard during pandas `.df()` conversion; duplicated in legacy and new — must dedupe post-migration |
 | DuckDB `threads` | duckdb.py:39 | `4` | 1–8 | hardcoded in adapter | Adapter-owned; not operator-configurable yet (open question OQ-3). **Rationale for 1–8:** bounded by the local single-operator workload (one desktop, no concurrent heavy queries) and the same peak-memory concern that pins `OPENBLAS_NUM_THREADS=1` (duckdb.py:16-17) — DuckDB result rows are materialized to pandas via `.df()`, so more DuckDB threads fan out more concurrent conversion work and raise peak RSS. **Operational risk:** raising `threads` increases peak memory during `.df()` conversion and interacts with the `OPENBLAS_NUM_THREADS=1` OOM guard; a value near the upper bound (8) risks OOM on large result sets on a constrained local machine. **Rollout:** until OQ-3 resolves, this knob cannot be tuned at runtime without editing `duckdb.py:39` (`con.execute("SET threads=4")`). |
-| MCP `TOOL_TIMEOUT` | server.py:78, mcp_server.py:157 | `30` (s) | 1–120 | hardcoded | Matches ADR-0001 MCP latency budget; both entrypoints must keep identical value during migration |
-| MCP SSE host/port | settings.py:68 (`MCPConfig` class; fields `tool_timeout`/`stdio_transport`/`sse_host`/`sse_port` at settings.py:70-73) | `127.0.0.1:8902` | valid host:port | `MCPConfig` dataclass (no env override yet) | Modular server reads `MCPConfig`; legacy reads argparse defaults — must stay aligned |
+| MCP `TOOL_TIMEOUT` | server.py | `30` (s) | 1–120 | hardcoded | Matches ADR-0001 MCP latency budget; mirrors `MCPConfig.tool_timeout` |
+| MCP SSE host/port | settings.py (`MCPConfig` fields `tool_timeout`/`stdio_transport`/`sse_host`/`sse_port`) | `127.0.0.1:8902` | valid host:port | `MCPConfig` dataclass (scripts also accept env overrides) | `doge_mcp.py` / modular server are the live path |
 | `pytest` `asyncio_mode` | pyproject.toml:38 | `"strict"` | `strict`/`auto` | pyproject | Migration tests rely on explicit async markers |
 
 **Operational risk summary:** The chief migration risk is the *temporary dual
 source of truth* for paths/constants (legacy `ai_analysis/__init__.py` vs
 `doge/config/settings.py`). They agree today; if a developer edits only one,
-the two entrypoints will silently diverge. Mitigation: AC-3 (parity test) and
-AC-8 (delete legacy constants once all imports move).
+legacy API/CLI paths can diverge from the clean architecture path. Mitigation:
+AC-3 and AC-8 (delete legacy constants once all imports move).
 
 ---
 
@@ -519,10 +506,9 @@ AC-8 (delete legacy constants once all imports move).
 Testable pass/fail. Each criterion names the artifact or grep that proves it.
 
 **Layer-rule enforcement**
-- [ ] **AC-1.** No file under `src/doge/interfaces/` contains
+- [x] **AC-1.** No file under `src/doge/interfaces/` contains
   `import sqlite3`, `import duckdb`, or `from ai_analysis` (grep must return 0
-  hits). *Exception audit: the sanctioned shim in `doge_mcp.py:13-15` is allowed
-  only until editable install is enforced; its removal is a sub-item.*
+  hits). `doge_mcp.py` contains no `sys.path` fallback.
 - [ ] **AC-2.** No file under `src/doge/core/services/` imports `sqlite3`,
   `duckdb`, `ai_analysis`, `micro`, or any interface framework (`fastapi`,
   `mcp`, `PyQt6`), nor `from doge.infrastructure`. (Resolved 2026-06-12 by
@@ -574,28 +560,25 @@ Testable pass/fail. Each criterion names the artifact or grep that proves it.
   (`ITickerMetadataSource` + `ITickerNameCache`). See ADR-0009.
 
 **Entrypoint / test gates (from ADR-0001:212-217)**
-- [ ] **AC-11.** `pytest` passes for MCP tools, database, and transport in the
-  source repository. During migration `test_mcp_tools.py` may target the legacy
-  `mcp_server.py`; before legacy deletion it must be retargeted at
-  `doge_mcp.py` / `doge.interfaces.mcp.server` and still pass.
-- [ ] **AC-12.** MCP stdio and SSE startup both work for `doge_mcp.py`
-  (`scripts/mcp_stdio_modular.bat`, `scripts/start_mcp_sse*.sh/.bat`).
-- [ ] **AC-13.** No *new* interface code introduces `sys.path.insert` or
+- [x] **AC-11.** `pytest` passes for MCP tools, database, and transport in the
+  source repository. MCP tests target `doge_mcp.py` / `doge.interfaces.mcp.server`;
+  the legacy monolith is deleted.
+- [x] **AC-12.** MCP stdio and SSE startup scripts launch `doge_mcp.py`
+  (`scripts/mcp_stdio.*`, `scripts/start_mcp_sse*.sh/.bat`).
+- [x] **AC-13.** No *new* interface code introduces `sys.path.insert` or
   repeated project-root discovery (review checklist item; enforced by grep in
-  CI on `src/doge/interfaces/**`).
+  CI on `src/doge/interfaces/**` and `doge_mcp.py`).
 
 **Observability**
-- [ ] **AC-14.** The modular server's `/health` (server.py:211) and `/metrics`
-  (server.py:222) routes return 200/503 and Prometheus-style text respectively,
-  matching the legacy `mcp_server.py` behavior so monitoring does not regress.
+- [x] **AC-14.** The modular server's `/health` and `/metrics` routes return
+  200/503 and Prometheus-style text respectively; transport tests pin this.
 
 ---
 
 ## Open Questions
 
-- **OQ-1.** When is `doge_mcp.py:13-15` `sys.path.insert` fallback removed?
-  Gated on enforcing `pip install -e .` (Batch 1 completion). Until then it is
-  the one sanctioned shim.
+- **OQ-1.** **RESOLVED (2026-06-12, Wave 4).** `doge_mcp.py` no longer has a
+  `sys.path.insert` fallback; package/editable importability is required.
 - **OQ-2.** **RESOLVED (2026-06-12, ADR-0009 / story S002-003 / TR-042).**
   ADR-0001 port names are reconciled with source ABC names by **keeping the
   I-prefix** and recording a registry alias map. The `TickerMetadataSource` vs

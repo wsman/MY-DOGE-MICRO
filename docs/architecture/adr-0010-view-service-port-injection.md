@@ -2,25 +2,13 @@
 
 ## Status
 
-Proposed
+Accepted
 
-> **Promotion gate (S002-011 governance review, 2026-06-12).** This ADR stays
-> Proposed for Sprint 002 even though its validation gate **IS met**.
-> **MET (fully realized)**: `IMarketViewRepository` is declared in
-> `src/doge/core/ports/market_view.py`; `DuckDBMarketViewRepository` wraps a
-> read-only `DuckDBConnection` in
-> `src/doge/infrastructure/database/market_view_repository.py`; all four
-> services (`ViewService`, `RankingService`, `BreadthService`, `AnomalyService`)
-> take the port as a REQUIRED arg with no infrastructure import (AC-2 grep
-> clean); the composition root `src/doge/core/services/composition.py` is the
-> single infrastructure-import site; the three MCP tool files use the
-> `build_*()` factories.
-> **REMAINS**: none at the contract level — the gate is satisfied. The ADR is
-> brand-new this sprint, so self-promotion in the same commit window is
-> intentionally deferred.
-> **Recommend promotion at `/architecture-review` (Wave-4)** — the decision is
-> fully realized; the FRESH Wave-4 review should confirm rather than this
-> sprint self-promoting in the same window.
+> **Accepted via Wave-4 architecture review (2026-06-12).** The validation gate
+> is fully realized: `IMarketViewRepository` exists, `DuckDBMarketViewRepository`
+> wraps read-only DuckDB access, all four view-backed services require the port
+> and import no infrastructure, and the composition root owns the adapter
+> wiring. No contract-level work remains for ADR acceptance.
 
 ## Date
 
@@ -63,7 +51,7 @@ removes a standing clean-architecture layer violation and resolves OQ-5 / TR-041
 | **Depends On** | ADR-0001 (Accepted) — its `:125` "exact method signatures owned by implementation stories" escape hatch is what this ADR fills |
 | **Enables** | clean-architecture-migration AC-2 / AC-9 closure; S002-011 ADR gate definitions |
 | **Blocks** | New core.services code may no longer import `DuckDBConnection` directly (the grep-able invariant now holds for all of `core/services/`) |
-| **Ordering Note** | S002-011 owns promotion to Accepted; the service rewrite + tests are authored now so promotion is mechanical |
+| **Ordering Note** | Accepted in Wave 4 after service port injection, composition-root wiring, and the port-injection tests were verified |
 
 ## Context
 
@@ -261,7 +249,8 @@ class RankingService:
 1. **Done (this story)**: Declare `IMarketViewRepository` + `DuckDBMarketViewRepository`;
    convert the 4 services to required-port construction; add composition root;
    update the 3 MCP tool files to use factories.
-2. **S002-011**: Promote this ADR to Accepted; update AC-9/OQ-5 to Resolved.
+2. **Follow-on**: Keep AC-9/OQ-5 marked resolved in traceability and story
+   gates; no additional ADR acceptance work remains.
 
 **Rollback plan**: The port/adapter/factory are additive. To roll back,
 re-add `from doge.infrastructure.database.duckdb import DuckDBConnection` to the

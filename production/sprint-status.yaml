@@ -22,11 +22,10 @@
 
 version: 1
 last_updated: "2026-06-12"
-# 2026-06-12 (S002-011): Sprint 002 implementation complete. All 13 stories
-# shipped: S002-001..013 done. ADR governance — ADR-0002/0003/0005 Accepted
-# (gates met); ADR-0004/0007/0009/0010 carry Promotion gate callouts and stay
-# Proposed (0009/0010 recommended for Wave-4 promotion; 0004/0007 deferred
-# beyond Sprint 002).
+# 2026-06-12 (Wave 4 cleanup): Sprint 002 implementation complete. All 13
+# stories shipped: S002-001..013 done. ADR governance — ADR-0002/0003/0005
+# Accepted in S002; ADR-0009/0010 Accepted by Wave 4 review. ADR-0004/0007
+# remain Proposed with Promotion gate callouts.
 
 sprints:
   - id: S001
@@ -58,7 +57,7 @@ sprints:
       - "python -m pytest -q green on Windows 10 LTSC."
       - "npm run build and npm test green in web/ on a clean checkout."
       - "Layer-rule grep gates pass for the remediated sites."
-      - "ADR-0002/0003/0005 Accepted (S002-006/007 met ADR-0003's gates after shipping); ADR-0004/0007/0009/0010 carry Promotion gate callouts and stay Proposed (0009/0010 recommended for Wave-4 promotion)."
+      - "ADR-0002/0003/0005/0009/0010 Accepted; ADR-0004/0007 carry Promotion gate callouts and stay Proposed."
       - "No real API key in models_config.json; on-disk key rotated."
       - "All 13 stories' acceptance criteria met or explicitly deferred."
     stories:
@@ -184,7 +183,7 @@ sprints:
         story_type: "Web / App Workflow"
 
       - id: S002-011
-        title: "Promote ADR-0002 + ADR-0003 + ADR-0005 to Accepted; define promotion gates for ADR-0004/0007/0009/0010"
+        title: "Promote ADR-0002 + ADR-0003 + ADR-0005 to Accepted; define promotion gates for ADR-0004/0007"
         epic: ep-governance-security
         tr: null
         source: "FINDING-1 (ADR lifecycle)"
@@ -198,13 +197,13 @@ sprints:
         note: >-
           ADR-0002/0003/0005 Accepted (gates met against shipped code:
           S002-006 StorageWriteError, S002-007 DOGE_RETENTION_DAYS, S002-013
-          DeepSeek-key env rotation, ADR-0001 dependency Accepted). ADR-0004/
-          0007/0009/0010 carry Promotion gate callouts and stay Proposed:
+          DeepSeek-key env rotation, ADR-0001 dependency Accepted). Wave 4
+          accepted ADR-0009/0010 after architecture review confirmed the
+          realized port split and view-service port injection. ADR-0004/
+          0007 carry Promotion gate callouts and stay Proposed:
           0004 (TDX adapter still NotImplementedError), 0007 (CORS hardening
-          out of Sprint 002 scope), 0009 + 0010 (decision realized but
-          self-promotion deferred) recommended for Wave-4 /architecture-review
-          promotion. Contract enforced by
-          tests/unit/governance/test_adr_lifecycle_status.py (11 passed).
+          out of Sprint 002 scope). Contract enforced by
+          tests/unit/governance/test_adr_lifecycle_status.py.
 
       - id: S002-012
         title: "Make @pretext sibling-project alias portable (vendor / npm-publish / workspace-alias)"

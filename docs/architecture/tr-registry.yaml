@@ -282,23 +282,23 @@ requirements:
     system: ai-industry-analysis
     cdd: "(CDD NOT YET AUTHORED — see architecture-traceability.md FINDINGS)"
     section: "n/a"
-    requirement: "Module #6 CDD must be authored to cover src/micro/industry_analyzer.py (CSV → yfinance .info metadata calibration → DeepSeek industry-chain report → research DB archive), declare its dependency on Module #4's LLM client and Module #5's Top-200 CSV, and add #7 to its depended-on-by list (bidirectional gap)."
+    requirement: "Superseded by TR-043 after Module #6 was renamed/re-scoped to Market Reporting with an authored CDD. The LLM-based industry analyzer is documented under Module #5 instead of Module #6."
     adr: docs/architecture/adr-0005-llm-client-strategy.md
     test: "(none — blocked on CDD authoring)"
     created: 2026-06-12
-    revised: ""
-    status: active
+    revised: "2026-06-12"
+    status: "superseded-by: TR-043"
 
   - id: TR-021
     system: ai-industry-analysis
     cdd: design/cdd/micro-momentum-scanner.md
     section: "3.8 (Module #6 boundary)"
-    requirement: "industry_analyzer.py file ownership is reconciled in Phase 5 (relocate/rename; reconcile 'has NO LLM client' note — it DOES call DeepSeekStrategist; the gap is the missing clean-architecture LLM port, not absent LLM use)."
+    requirement: "Superseded by TR-044 after Module #6 was renamed/re-scoped to Market Reporting. industry_analyzer.py ownership is now documented under Module #5; Module #6 contains no LLM client."
     adr: docs/architecture/adr-0005-llm-client-strategy.md
     test: "(none — blocked on CDD authoring + Phase 5)"
     created: 2026-06-12
-    revised: ""
-    status: active
+    revised: "2026-06-12"
+    status: "superseded-by: TR-044"
 
   # ────────────────────────────────────────────────────────────────────
   # Module #7 — research-insight-knowledge-base (Core)
@@ -377,12 +377,12 @@ requirements:
   - id: TR-028
     system: mcp-server
     cdd: design/cdd/mcp-server.md
-    section: "2 / 8 (OPEN — parity)"
-    requirement: "Modular create_mcp_server() exposes the same six tools with matching signatures/validation as mcp_server.py (parity test); .mcp.json points at the modular server once parity is proven."
+    section: "1 / 3.1 / 8 (Wave 4 entrypoint)"
+    requirement: "doge_mcp.py is the canonical repo-root MCP entrypoint; .mcp.json and scripts launch the modular server, which exposes the six tools with matching signatures/validation and no sys.path fallback."
     adr: docs/architecture/adr-0006-mcp-transport-strategy.md
     test: tests/test_transport.py
     created: 2026-06-12
-    revised: ""
+    revised: "2026-06-12"
     status: active
 
   # ────────────────────────────────────────────────────────────────────
@@ -553,4 +553,31 @@ requirements:
     test: tests/unit/core/ports/test_port_inventory.py
     created: 2026-06-12
     revised: "2026-06-12"
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Module #6 — market-reporting (Feature)
+  # CDD: design/cdd/market-reporting.md · ADR-0001, ADR-0002
+  # Appended after superseding the old AI Industry Analysis placeholders.
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-043
+    system: market-reporting
+    cdd: design/cdd/market-reporting.md
+    section: "1 / 2 / 3.2-3.4"
+    requirement: "Market Reporting produces pure SQL Markdown/JSON artifacts from Module #2 DuckDB views and local SQLite data — market overview, anomaly detection, and data catalog — with no LLM calls and no industry-analysis ownership."
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    test: tests/test_market_reporting.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-044
+    system: market-reporting
+    cdd: design/cdd/market-reporting.md
+    section: "5 / 8 (edge cases and acceptance criteria)"
+    requirement: "Market Reporting tests isolate DuckDB/network access with fakes and pin empty-result rendering: report sections remain present with placeholders instead of silently omitting empty detectors."
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    test: tests/test_market_reporting.py
+    created: 2026-06-12
+    revised: ""
     status: active

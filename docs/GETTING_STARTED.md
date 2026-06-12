@@ -17,7 +17,7 @@ to loopback so it is safe to run on a developer workstation:
 |---------|-------------|--------------|---------|
 | **PyQt desktop dashboard** | `src/interface/dashboard.py` | local GUI window | Operator scan / macro / notes UI |
 | **FastAPI HTTP backend** | `src/api/main.py` | `127.0.0.1:8901` | REST + SSE API consumed by the web console |
-| **MCP server** | `mcp_server.py` (or `doge_mcp.py`) | stdio, or `127.0.0.1:8902` (SSE) | Tool layer for Claude Code / MCP clients |
+| **MCP server** | `doge_mcp.py` | stdio, or `127.0.0.1:8902` (SSE) | Tool layer for Claude Code / MCP clients |
 
 You do not need all three at once. The two most common setups are:
 
@@ -165,14 +165,12 @@ scripts\mcp_stdio.bat
 ./scripts/mcp_stdio.sh
 ```
 
-Both invoke `mcp_server.py --transport stdio`
+Both invoke `doge_mcp.py --transport stdio`
 (`scripts/mcp_stdio.bat:18`, `scripts/mcp_stdio.sh:18`). The project-level
 `.mcp.json` registers `doge-db` against `scripts\mcp_stdio.bat` for Claude Code.
 
-**Modular stdio entrypoint:** `scripts/mcp_stdio_modular.bat` runs the
-`doge_mcp.py` entrypoint (`scripts/mcp_stdio_modular.bat:18`) instead of the
-monolithic `mcp_server.py`. Use it when you want the modular package layout;
-behavior is equivalent for the operator.
+`doge_mcp.py` is the canonical repo-root MCP entrypoint; the old monolithic
+entrypoint has been retired.
 
 **SSE (for the web console or any HTTP MCP client):**
 
@@ -183,7 +181,7 @@ scripts\start_mcp_sse.bat
 MCP_HOST=127.0.0.1 MCP_PORT=8902 ./scripts/start_mcp_sse.sh
 ```
 
-Both invoke `mcp_server.py --transport sse --host … --port …`
+Both invoke `doge_mcp.py --transport sse --host … --port …`
 (`scripts/start_mcp_sse.bat:21`, `scripts/start_mcp_sse.sh:23`) and default
 `MCP_HOST=127.0.0.1`, `MCP_PORT=8902` if unset.
 
@@ -280,7 +278,7 @@ Confirm each surface is up with a one-line health check:
 ```bash
 # MCP SSE server (must be started in SSE mode first)
 curl http://127.0.0.1:8902/health
-# → {"status": "ok"}   (mcp_server.py:449-454 also pings DuckDB SELECT 1)
+# → {"status": "ok"}   (doge_mcp.py routes through src/doge/interfaces/mcp/server.py)
 
 # FastAPI backend
 curl http://127.0.0.1:8901/api/health

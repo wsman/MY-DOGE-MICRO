@@ -6,7 +6,7 @@
 
 | 反模式 | 数量 | 文件示例 | 危害 |
 |---|---|---|---|
-| `sys.path.insert` | 15+ | `ai_analysis/*.py`, `micro/*.py`, `mcp_server.py` | 项目不是真正的 Python 包 |
+| `sys.path.insert` | legacy sites remain | `ai_analysis/*.py`, `micro/*.py`, API/CLI legacy modules | 项目不是真正的 Python 包；根 MCP monolith 已在 Wave 4 删除 |
 | `_PROJECT_ROOT` 重复计算 | 10+ | `api/routers/*.py`, `interface/*.py` | 硬编码路径分散，维护困难 |
 | 路由直接 `import sqlite3` | 8+ | `macro.py`, `data.py`, `analysis.py` | API 层耦合数据库实现 |
 | `connect_duckdb()` 直接调用 | 6+ | `cli.py`, `market_overview.py` | 无连接抽象，难以测试 |
@@ -132,7 +132,7 @@ interfaces/ ──→ application/ ──→ core/services/ ──→ core/ports
 - 服务通过构造函数接收 Repository 端口
 
 ### 批次 5：接口层重构
-- `mcp_server.py` → `src/doge/interfaces/mcp/server.py`
+- MCP 已完成：`doge_mcp.py` → `src/doge/interfaces/mcp/server.py`（Wave 4 删除旧 monolith）
 - `src/cli.py` → `src/doge/interfaces/cli/main.py`
 - `src/api/routers/*.py` — 注入服务替代直接 DB 操作
 - 添加 `deps.py` 依赖注入容器

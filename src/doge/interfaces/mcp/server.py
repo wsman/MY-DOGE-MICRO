@@ -1,6 +1,6 @@
-"""Modular MCP server — all tools delegate to doge.core.services.
+"""Canonical modular MCP server — all tools delegate to doge.core.services.
 
-This is a drop-in replacement for the monolithic mcp_server.py.
+The legacy root monolith was retired; doge_mcp.py is the canonical entrypoint.
 It wires tools through the service layer, not direct DB access.
 """
 
@@ -122,9 +122,8 @@ def _detect_orphan_processes():
     """Log warning if orphaned MCP server processes are detected."""
     if not PID_FILE.exists():
         return
-    # Match the entrypoint this server runs as. Both legacy mcp_server.py and
-    # the modular doge_mcp.py serve the same role, so flag either.
-    _markers = ("mcp_server.py", "doge_mcp.py")
+    # Match the canonical repo-root entrypoint for this server.
+    _markers = ("doge_mcp.py",)
     try:
         pids = [p.strip() for p in PID_FILE.read_text(encoding="utf-8").splitlines() if p.strip()]
         alive = []

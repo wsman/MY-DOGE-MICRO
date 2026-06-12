@@ -3,10 +3,9 @@
 Guards the Phase-2 consistency fix (CDD module #7 §3.3 / #8) on the **MODULAR
 stock_overview** — the live MCP path
 (``src/doge/interfaces/mcp/tools/query_stock.py``), reached via the composition
-root ``build_stock_service`` + ``get_settings().db.research_db``. The legacy
-``mcp_server.py`` monolith is dead code pending Batch-6; this regression guard
-must protect the path operators actually hit, so it was retargeted off the
-monolith onto the modular tool.
+root ``build_stock_service`` + ``get_settings().db.research_db``. Batch-6
+deleted the legacy monolith, so this regression guard protects the path
+operators actually hit.
 
 History: ``stock_overview`` previously read ``stock_notes`` with a raw
 ``SELECT ... WHERE ticker=?`` that did NOT filter ``deleted_at IS NULL``.

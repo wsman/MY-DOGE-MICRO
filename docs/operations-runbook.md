@@ -39,7 +39,7 @@ This is a **local-first, single-operator** system:
 | Port  | Process / surface                                   | Source |
 |-------|-----------------------------------------------------|--------|
 | 8901  | FastAPI app (Tauri sidecar) — `src/api/main.py`     | `src/api/main.py:120` (`uvicorn.run(app, host="127.0.0.1", port=8901)`) |
-| 8902  | MCP SSE transport — `mcp_server.py`                 | `mcp_server.py:481` (`--port` default 8902); `MCPConfig.sse_port`, `src/doge/config/settings.py:134` |
+| 8902  | MCP SSE transport — `doge_mcp.py`                   | `src/doge/interfaces/mcp/server.py` (`--port` default 8902); `MCPConfig.sse_port`, `src/doge/config/settings.py:134` |
 | 7709  | TDX **CN** quote server                             | `TDXConfig.cn_port`, `src/doge/config/settings.py:81` |
 | 7727  | TDX **US** quote server                             | `TDXConfig.us_port`, `src/doge/config/settings.py:82` |
 
@@ -302,7 +302,7 @@ DuckDBConnection(read_only=False).refresh_views()
 ### Verify a refresh
 
 Use the `mcp__doge-db__list_views` MCP tool, which enumerates every view with
-its row count and columns (`mcp_server.py:419-444`). After a refresh, every
+its row count and columns (`src/doge/interfaces/mcp/tools/views.py`). After a refresh, every
 view should report a non-null, non-zero row count (for markets that have data).
 A view showing `"rows": null` means its `COUNT(*)` failed — investigate that
 view's SQL against the underlying SQLite table.
@@ -363,7 +363,7 @@ same caveat. This is tracked as a known issue pending the `views.sql` fix.
 | Macro run returns `None` / "无法获取市场数据" (exits 1) | Network failure fetching market data (yfinance/TDX upstream), not a key problem | Check network reachability to the data source; `data_loader` returned `None` and the CLI exited at `src/macro/cli.py:82-87` | `src/macro/cli.py:82-87`; `design/cdd/macro-strategy-engine.md` §3.2 |
 | `database is locked` during a scan | Two writers hit the same SQLite DB concurrently — no `WAL`, no `busy_timeout` is configured | Ensure only one scan per market runs at a time (the scan lock normally serializes this, `src/api/routers/scan.py:46,157`); stop the second writer and retry | `design/cdd/market-data-storage.md` §9.3, Open Question 6 |
 | DuckDB `ATTACH ... AS cn/us` fails | `DOGE_CN_DB` / `DOGE_US_DB` paths do not sit alongside `DOGE_DUCKDB_PATH` under the resolved `DOGE_DB_DIR` — path mismatch between the DuckDB file and the SQLite files it attaches | Confirm all DB env vars resolve under the same `DOGE_DB_DIR`; `DBConfig` derives `cn_db`/`us_db`/`duckdb` from one `dir` (`__post_init__`), so mixing absolute overrides across the three breaks the attach | `src/doge/config/settings.py:62-67`; `design/cdd/runtime-configuration.md` §3.4 |
-| MCP tool returns "timed out after 30s" | Tool execution exceeded `TOOL_TIMEOUT` (30 s) | Narrow the query (fewer tickers / smaller `days`); for sustained heavy queries, raise is governed by `MCPConfig.tool_timeout` (`src/doge/config/settings.py:131`) | `mcp_server.py:157,172,184` |
+| MCP tool returns "timed out after 30s" | Tool execution exceeded `TOOL_TIMEOUT` (30 s) | Narrow the query (fewer tickers / smaller `days`); for sustained heavy queries, raise is governed by `MCPConfig.tool_timeout` (`src/doge/config/settings.py:131`) | `src/doge/interfaces/mcp/server.py:80,173,182` |
 | SSE scan stream stuck on `running` after a dropped connection | (Resolved in S002-010) The scan now emits a terminal error event (`progress: -1`) and resets status to `idle` in `finally` | If you still observe a stuck `running`, the consumer predates S002-010 — restart the FastAPI app on the current build | `src/api/routers/scan.py:97-103` |
 | API returns `{"error":{"code":"internal_error",...}}` | An unexpected exception reached the global handler; the envelope never leaks `str(e)` | Inspect `logs/app.log` server-side for the stack trace; the response message is deliberately generic | `src/api/routers/data.py:108-112`; S002-009 |
 
@@ -375,14 +375,14 @@ same caveat. This is tracked as a known issue pending the `views.sql` fix.
 
 | Log | Path | Writer | Rotation |
 |-----|------|--------|----------|
-| MCP server log | `logs/mcp_server.log` | `mcp_server.py:53-79` (root logger, `RotatingFileHandler`) | 10 MB × 5 backups (`mcp_server.py:57-59`) |
+| MCP server log | `logs/mcp_server.log` | `src/doge/interfaces/mcp/server.py` (root logger, `RotatingFileHandler`) | 10 MB × 5 backups |
 | App / macro log | `logs/app.log` | `src/macro/utils.py:13-65` (`setup_logging`, `RotatingFileHandler`) | 10 MB × 5 backups |
 | Generated reports | `macro_report/*.md`, `micro_report/*.csv`, `ai_report/*.md` | macro strategist / momentum scanner / ai_analysis | (not rotated — operator-managed) |
 
 ### Correlation IDs
 
 Every MCP log line carries a `correlation_id` field
-(`mcp_server.py:44,49,54`):
+(`src/doge/interfaces/mcp/server.py`):
 
 ```
 2026-06-12 10:14:02 [INFO] [a1b2c3d4] doge.mcp: list_views ok
@@ -395,11 +395,11 @@ log lines.
 ### PID orphan detection
 
 The MCP server registers its PID in `data/.mcp_server.pid` on startup
-(`mcp_server.py:87-99`) and removes it on clean shutdown (`:102-114`). On
+(`src/doge/interfaces/mcp/server.py`) and removes it on clean shutdown. On
 startup it scans the PID file and warns if it detects processes that are no
-longer alive (`_detect_orphan_processes`, `mcp_server.py:118-154`). Detection
+longer alive (`_detect_orphan_processes`). Detection
 is **read-only** — it logs a warning; it does **not** kill orphans. If you see
-the warning, manually stop the orphaned `mcp_server.py` process and delete
+the warning, manually stop the orphaned `doge_mcp.py` process and delete
 stale lines from `data/.mcp_server.pid`.
 
 ### Health & metrics endpoints (SSE mode)
@@ -407,9 +407,9 @@ stale lines from `data/.mcp_server.pid`.
 When the MCP server runs in SSE transport (`--transport sse`, default port
 8902), it exposes two custom routes:
 
-- `GET /health` (`mcp_server.py:449-459`) — runs `SELECT 1` against DuckDB;
+- `GET /health` (`src/doge/interfaces/mcp/server.py`) — runs `SELECT 1` against DuckDB;
   returns `{"status":"ok"}` (200) or `{"status":"error","detail":...}` (503).
-- `GET /metrics` (`mcp_server.py:460-471`) — returns a Prometheus-style
+- `GET /metrics` (`src/doge/interfaces/mcp/server.py`) — returns a Prometheus-style
   exposition of `mcp_requests_total{tool=...}` and
   `mcp_request_duration_seconds_{sum,count}` from the in-memory counters.
 

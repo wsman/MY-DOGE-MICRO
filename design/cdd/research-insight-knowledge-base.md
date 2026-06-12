@@ -243,7 +243,7 @@ Every read path returns rows as `list[dict]` built via `dict(zip(cols, row))` (`
 - **Python packages**: `sqlite3` (stdlib), `duckdb` (transitively, via `connect_duckdb`), `fastapi`, `pydantic`.
 
 **Downstream (depend on this module):**
-- **#8 `mcp-server`** — `mcp_server.py` reads `stock_notes` directly (`SELECT created_at, content FROM stock_notes WHERE ticker=? ORDER BY created_at DESC LIMIT 5`) to enrich MCP tool responses. **RESOLVED (Phase 3)**: CDD #8 now appends `AND deleted_at IS NULL` to the count and select predicates via PRAGMA-based column detection, with a legacy-schema fallback when the column is absent. Verified by `tests/test_mcp_notes_softdelete.py`. (Was previously an open consistency gap — see §9 OQ-4, now closed.)
+- **#8 `mcp-server`** — the modular `stock_overview` tool reads `stock_notes` to enrich MCP responses. **RESOLVED (Phase 3 / Wave 4)**: CDD #8 appends `AND deleted_at IS NULL` to the count and select predicates via PRAGMA-based column detection, with a legacy-schema fallback when the column is absent. Verified by `tests/test_mcp_notes_softdelete.py`. (Was previously an open consistency gap — see §9 OQ-4, now closed.)
 - **#9 `fastapi-service`** — `src/api/routers/notes.py` is the HTTP surface; the Vue Web Console (#11) reaches notes through it.
 
 **Documents / ADRs:**
@@ -290,7 +290,7 @@ Every read path returns rows as `list[dict]` built via `dict(zip(cols, row))` (`
 - [x] **Pre-existing import bug fixed**: `stock_notes.py:15` no longer imports the non-existent `get_project_path`; uses `RESEARCH_DB`/`CN_DB`/`US_DB` from `ai_analysis`.
 - [ ] Module #2 cold-start `initialize_system_dbs()` creates the `stock_notes` table (OPEN — Module #2 §3.4 confirms it does not today).
 - [ ] `IReportRepository` gains `delete_note` + the four read entry points (OPEN — Module #12 reconciliation).
-- [x] `mcp_server.py` notes query filters `deleted_at IS NULL` — **DONE (Phase 3, CDD #8)** via PRAGMA-based column detection; proven by `tests/test_mcp_notes_softdelete.py`.
+- [x] Modular MCP `stock_overview` notes query filters `deleted_at IS NULL` — **DONE (Phase 3, CDD #8; kept after Wave 4 monolith deletion)** via PRAGMA-based column detection; proven by `tests/test_mcp_notes_softdelete.py`.
 
 **Docs:**
 - [x] This CDD cites real `file:line` for every claim (auditable).
@@ -301,7 +301,7 @@ Every read path returns rows as `list[dict]` built via `dict(zip(cols, row))` (`
 1. **No `stock_notes` table bootstrap**: Module #2's cold-start does not create this table (Module #2 §3.4, §9 #4). The live schema exists because of out-of-band creation. Should cold-start own it, or should `stock_notes.py` lazily `CREATE TABLE IF NOT EXISTS` on first write? (Currently neither.)
 2. **`price_at_note` never populated by the API or CLI** — the column exists but `NoteCreate` omits it and `add_note` defaults it to `None`. Should the router auto-capture the latest close from the DuckDB price view at insert time? (Would couple this module to Module #2's read path at write time.)
 3. **`search_notes` LIKE-injection** — `%` and `_` are interpreted as wildcards; an operator searching for a literal `%` gets every note. Should keywords be escaped?
-4. ~~**`mcp_server.py:346` does not filter `deleted_at`**~~ — **RESOLVED (Phase 3)**: CDD #8 (`mcp-server`) now filters `deleted_at IS NULL` on the count and select predicates via PRAGMA-based column detection, with a legacy-schema fallback. Verified by `tests/test_mcp_notes_softdelete.py`. (Soft-deleted notes no longer leak into MCP tool responses.)
+4. ~~**MCP `stock_overview` did not filter `deleted_at`**~~ — **RESOLVED (Phase 3, retained after Wave 4 monolith deletion)**: CDD #8 (`mcp-server`) now filters `deleted_at IS NULL` on the count and select predicates via PRAGMA-based column detection, with a legacy-schema fallback. Verified by `tests/test_mcp_notes_softdelete.py`. (Soft-deleted notes no longer leak into MCP tool responses.)
 5. **`source` column drift**: legacy `add_note` never sets `source` (relies on DB default `'user'`); `SQLiteReportRepository.add_note` accepts and sets it. Which is canonical once the two surfaces merge?
 6. **`search_notes` search scope drift**: legacy searches `content OR title`; `SQLiteReportRepository.search_notes` searches `ticker OR content OR title`. Which is the intended scope?
 7. **No `delete` CLI subcommand** — should `python src/ai_analysis/stock_notes.py delete <id>` be added for parity with the API?

@@ -181,7 +181,7 @@ interfaces:
     consumers: [mcp-server, fastapi-service, pyqt-desktop-dashboard, market-reporting, research-insight-knowledge-base]
     adr: docs/architecture/adr-0003-storage-repository-contract.md
     signature: "IStockRepository / IReportRepository ports (no direct sqlite3/duckdb in interface layers)"
-    notes: "Target shape. Legacy direct-connect still present in monolith mcp_server.py and src/api/routers/* (Module #12 migration)."
+    notes: "Target shape. The MCP monolith is retired; legacy direct-connect remains in src/api/routers/* (Module #12 migration)."
     referenced_by:
       - docs/architecture/adr-0001-brownfield-clean-architecture.md
     added: "2026-06-12"
@@ -234,7 +234,7 @@ forbidden_patterns:
     description: "No file under src/api/, src/doge/interfaces/, src/interface/, or the MCP/web layers may import sqlite3 or call sqlite3.connect(). All storage access via IStockRepository / IReportRepository."
     why: "Direct SQLite access in interfaces duplicates connection logic, bypasses retention/error contracts, and makes the layer untestable in isolation."
     adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
-    current_offenders: "mcp_server.py:23, src/api/routers/data.py:7, src/api/routers/scan.py:150 (init_db_custom), src/api/routers/notes.py (lazy stock_notes import)"
+    current_offenders: "src/api/routers/data.py:7, src/api/routers/scan.py:150 (init_db_custom), src/api/routers/notes.py (lazy stock_notes import)"
     added: "2026-06-12"
 
   - pattern: direct_duckdb_connect_in_interface
@@ -242,12 +242,12 @@ forbidden_patterns:
     description: "No interface module may import duckdb or call duckdb.connect / connect_duckdb. Use DuckDBConnection adapter."
     why: "Same as above for the analytical-read layer; preserves zero-copy read-only contract."
     adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
-    current_offenders: "mcp_server.py:38, src/api/routers/scan.py:210-211, src/ai_analysis/__init__.py:97-114 (legacy connect_duckdb)"
+    current_offenders: "src/api/routers/scan.py:210-211, src/ai_analysis/__init__.py:97-114 (legacy connect_duckdb)"
     added: "2026-06-12"
 
   - pattern: sys_path_insert
     status: active
-    description: "No module under src/doge/** may call sys.path.insert/append for bootstrapping, except documented compatibility shims. Legacy files: 14 insert sites across 13 files."
+    description: "No module under src/** and no root runtime entrypoint may call sys.path.insert/append for bootstrapping. The doge_mcp.py canonical entrypoint contains no shim."
     why: "sys.path mutation creates hidden import dependencies, breaks test isolation, and fails across alternative launchers (MCP stdio vs SSE vs uvicorn vs PyQt)."
     adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
     referenced_by:

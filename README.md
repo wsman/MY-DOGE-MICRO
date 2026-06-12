@@ -741,8 +741,7 @@ python src/interface/dashboard.py
     -   `src/doge`: 清洁架构目标层（集中配置 `config/settings.py`、单一配置来源，遵循 ADR-0001 / ADR-0002）
     -   `src/cli.py`: 查询 CLI（DuckDB 只读分析）
     -   `web/`: Vue 3 + Vite + Pinia + Naive UI Web 控制台（运行面 B）
-    -   `mcp_server.py`: doge-db MCP 服务器主入口（运行面 A）
-    -   `doge_mcp.py`: MCP 模块化入口
+    -   `doge_mcp.py`: doge-db MCP 服务器主入口（运行面 A）
 -   **扩展**:
     -   若需添加新指标，请修改 `src/macro/data_loader.py` 中的 `calculate_advanced_metrics`。
     -   若需调整 AI 提示词，请修改 `src/macro/strategist.py` 或 `src/micro/industry_analyzer.py`。

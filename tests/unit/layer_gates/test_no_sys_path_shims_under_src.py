@@ -1,4 +1,4 @@
-"""Forbidden-pattern grep-gate: NO ``sys.path`` shims anywhere under ``src/``.
+"""Forbidden-pattern grep-gate: NO ``sys.path`` shims under ``src/``.
 
 S002-009 / TR-011 (Batch-1): the editable install (``pip install -e .``) makes
 ``micro``, ``macro``, ``ai_analysis``, ``api``, ``interface``, and ``doge``
@@ -16,12 +16,9 @@ package install and made import order machine-dependent.
 Scope:
   - ``src/**`` must contain ZERO ``sys.path.insert`` / ``sys.path.append``
     occurrences.
-  - The two tolerated COMPAT ENTRYPOINTS (``mcp_server.py`` and
-    ``doge_mcp.py``) live at the REPO ROOT, NOT under ``src/``, so the
-    ``src/``-scoped gate naturally excludes them. They are removed in Batch-6.
-    As a defensive belt-and-braces, the gate ALSO tolerates those two
-    filenames by basename (so the test stays correct even if a future
-    refactor relocates them).
+  - The canonical repo-root MCP entrypoint (``doge_mcp.py``) must also contain
+    no ``sys.path`` manipulation. Batch-6 deleted the legacy monolith and the
+    old entrypoint carve-out.
 
 Determinism: pure filesystem grep — no network, no DB, no imports.
 """
@@ -34,26 +31,18 @@ import pytest
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _SRC = _REPO_ROOT / "src"
 
-# The two tolerated compat entrypoints (Batch-6 owns their removal). These live
-# at repo root today; matched by basename so the test is robust to relocation.
-_TOLERATED_ENTRYPOINTS = {"mcp_server.py", "doge_mcp.py"}
-
 _FORBIDDEN_NEEDLES = ("sys.path.insert", "sys.path.append")
 
 
 def _grep_src_for_sys_path_shims() -> list[str]:
     """Return ``file:lineno: line`` for every forbidden ``sys.path`` shim hit.
 
-    Walks every ``.py`` under ``src/``. Hits inside the two tolerated
-    entrypoints (by basename) are excluded even though those files are not
-    under ``src/`` today — defensive against future relocation.
+    Walks every ``.py`` under ``src/``.
     """
     hits: list[str] = []
     if not _SRC.exists():
         return hits
     for py in _SRC.rglob("*.py"):
-        if py.name in _TOLERATED_ENTRYPOINTS:
-            continue
         try:
             text = py.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
@@ -85,6 +74,22 @@ class TestNoSysPathShimsUnderSrc:
             + "\n".join(hits)
         )
 
+    def test_root_doge_mcp_entrypoint_has_no_sys_path_shim(self):
+        """The canonical MCP entrypoint relies on editable/package install."""
+        entrypoint = _REPO_ROOT / "doge_mcp.py"
+        assert entrypoint.exists(), "doge_mcp.py is the canonical MCP entrypoint"
+        text = entrypoint.read_text(encoding="utf-8")
+        hits = [
+            needle
+            for needle in _FORBIDDEN_NEEDLES
+            if needle in text
+        ]
+        assert hits == [], (
+            "doge_mcp.py must not reintroduce a sys.path compatibility shim; "
+            "install the package/editable project instead. Found: "
+            + ", ".join(hits)
+        )
+
     @pytest.mark.parametrize(
         "rel",
         [
@@ -109,25 +114,3 @@ class TestNoSysPathShimsUnderSrc:
     def test_remediated_module_still_exists(self, rel):
         """Sanity: no remediated file was accidentally deleted."""
         assert (_SRC / rel).exists(), f"{rel} missing after Batch-1 remediation"
-
-
-# ---------------------------------------------------------------------------
-# Tolerated-entrypoint sanity: the two compat shims still live at repo root
-# (Batch-6 removes them). This sub-test DOCUMENTS the carve-out and will start
-# FAILING once Batch-6 lands — at which point Batch-6 should delete this class.
-# ---------------------------------------------------------------------------
-class TestToleratedEntrypointsStillPresent:
-    @pytest.mark.parametrize("name", sorted(_TOLERATED_ENTRYPOINTS))
-    def test_entrypoint_exists_at_repo_root(self, name):
-        """mcp_server.py / doge_mcp.py are the ONLY tolerated sys.path shims.
-
-        They are NOT under ``src/`` so the ``src/`` gate above excludes them.
-        This test exists so Batch-6 (which removes them) knows to also delete
-        this carve-out documentation. If you are seeing this fail because the
-        file moved INTO ``src/``, the ``src/`` gate will catch the shim first.
-        """
-        assert (_REPO_ROOT / name).exists(), (
-            f"{name} removed from repo root — Batch-6 done? Delete this "
-            "TestToleratedEntrypointsStillPresent class and drop the basename "
-            "tolerance in _grep_src_for_sys_path_shims."
-        )

@@ -226,7 +226,7 @@ constants:
     value: ["cn", "us"]
     owner: runtime-configuration
     source: "src/doge/config/settings.py:58"
-    also_at: "mcp_server.py:198 (_MARKET_WHITELIST)"
+    also_at: "src/doge/interfaces/mcp/server.py:192 (_MARKET_WHITELIST)"
 
   - name: market.cn_min_volume
     value: 200000000
@@ -351,7 +351,7 @@ constants:
     unit: seconds
     owner: runtime-configuration
     source: "src/doge/config/settings.py:68 (MCPConfig.tool_timeout)"
-    also_at: "mcp_server.py:157 (TOOL_TIMEOUT); src/doge/interfaces/mcp/server.py:78"
+    also_at: "src/doge/interfaces/mcp/server.py:80 (TOOL_TIMEOUT)"
     notes: "Matches standards/technical-preferences.md MCP latency budget. asyncio.wait_for enforces."
 
   - name: mcp.stdio_transport
@@ -381,17 +381,17 @@ constants:
   - name: mcp.int_range.days
     value: "[1, 500]"
     owner: mcp-server
-    source: "mcp_server.py:214-217 (_validate_int)"
+    source: "src/doge/interfaces/mcp/server.py:209-213 (_validate_int)"
 
   - name: mcp.int_range.top
     value: "[1, 100]"
     owner: mcp-server
-    source: "mcp_server.py:214-217"
+    source: "src/doge/interfaces/mcp/server.py:209-213"
 
   - name: mcp.float_range.min_ratio
     value: "[1.0, 1000.0]"
     owner: mcp-server
-    source: "mcp_server.py:220-223 (_validate_float)"
+    source: "src/doge/interfaces/mcp/server.py:215-219 (_validate_float)"
 
   # --- FastAPI (Module #9) ---
   - name: api.fastapi.title
@@ -682,29 +682,29 @@ entities:
     - name: query_stock
       signature: "(ticker: str, market: str = 'cn', days: int = 20) -> str"
       owner: mcp-server
-      source: "mcp_server.py:266-291"
+      source: "src/doge/interfaces/mcp/tools/query_stock.py:59-66"
     - name: stock_overview
       signature: "(ticker: str, market: str = 'cn') -> str"
       owner: mcp-server
-      source: "mcp_server.py:294-360"
+      source: "src/doge/interfaces/mcp/tools/query_stock.py:69-108"
       notes: "Filters deleted_at IS NULL (Phase-2 soft-delete fix)."
     - name: rsrs_ranking
       signature: "(market: str = 'cn', top: int = 20) -> str"
       owner: mcp-server
-      source: "mcp_server.py:375-385"
+      source: "src/doge/interfaces/mcp/tools/ranking.py:24-29"
     - name: market_breadth
       signature: "(market: str = 'cn', days: int = 10) -> str"
       owner: mcp-server
-      source: "mcp_server.py:388-398"
+      source: "src/doge/interfaces/mcp/tools/ranking.py:32-37"
     - name: volume_anomalies
       signature: "(min_ratio: float = 3.0, top: int = 20) -> str"
       owner: mcp-server
-      source: "mcp_server.py:401-415"
+      source: "src/doge/interfaces/mcp/tools/anomaly.py:24-28"
       notes: "CN-only."
     - name: list_views
       signature: "() -> str"
       owner: mcp-server
-      source: "mcp_server.py:418-442"
+      source: "src/doge/interfaces/mcp/tools/views.py:6-10"
       notes: "run_sql explicitly ABSENT (pinned by test_run_sql_removed)."
 
   # --- FastAPI routes (26 canonical product routes) owned by Module #9 ---

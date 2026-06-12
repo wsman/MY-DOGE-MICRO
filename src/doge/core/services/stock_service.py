@@ -1,6 +1,6 @@
 """Stock query service — pure business logic, no external dependencies.
 
-Replaces the scattered SQL in cli.py, mcp_server.py query_stock,
+Replaces the scattered SQL in cli.py, the retired MCP monolith query_stock,
 and api/routers/data.py get_kline.
 """
 

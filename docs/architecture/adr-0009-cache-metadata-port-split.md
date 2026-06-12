@@ -2,24 +2,14 @@
 
 ## Status
 
-Proposed
+Accepted
 
-> **Promotion gate (S002-011 governance review, 2026-06-12).** This ADR stays
-> Proposed for Sprint 002. **The decision itself is realized** (the split is
-> not contested): `ITickerNameCache` is left unchanged in
-> `src/doge/core/ports/cache.py`; `ITickerMetadataSource` is declared in
-> `src/doge/core/ports/metadata.py`; the `YFinanceMetadataSource` stub in
-> `src/doge/infrastructure/data_source/yfinance_metadata.py` mirrors the
-> `TDXDataSource` stub pattern. **REMAINS** before the *implementation* is
-> complete: the real yfinance-backed metadata adapter — migrate the
-> `yf.Ticker(yf_ticker).info` call at `src/micro/industry_analyzer.py:190`
-> (plus its in-memory `metadata_cache` and local retry loop at `:180-203`) onto
-> `YFinanceMetadataSource.get_metadata`. That follow-on story removes the
-> `NotImplementedError` and is the natural promotion trigger.
-> **Recommend promotion at `/architecture-review` (Wave-4)** — the port-split
-> *decision* is accepted; only the real adapter implementation is a follow-on.
-> Self-promotion in the same Sprint-002 commit window is intentionally
-> deferred so the FRESH Wave-4 review confirms.
+> **Accepted via Wave-4 architecture review (2026-06-12).** The port-split
+> decision is realized: `ITickerNameCache` remains the local JSON name-cache
+> port, `ITickerMetadataSource` is declared for remote yfinance `.info`
+> metadata, and `YFinanceMetadataSource` exists as the stub adapter. The real
+> `industry_analyzer.py:190` metadata migration remains follow-on
+> implementation work, not an ADR acceptance gate.
 
 ## Date
 
@@ -61,7 +51,7 @@ line and resolves OQ-2 / TR-042.
 | **Depends On** | ADR-0001 (Accepted) — refines its `TickerMetadataSource` / data-source port inventory |
 | **Enables** | ADR-0004 step 5 (consolidate yfinance `.info` metadata behind the now-declared port); ADR-0003's `ICache` reconciliation (S002-011 gate work) |
 | **Blocks** | Migration of `industry_analyzer.py:190` onto a port (now unblocked once this ADR is Accepted) |
-| **Ordering Note** | S002-011 owns promotion of this ADR to Accepted; stories referencing a Proposed ADR are auto-blocked, so the stub adapter + tests are authored now to make promotion mechanical |
+| **Ordering Note** | Accepted in Wave 4 after the stub adapter, port inventory, and registry alias map were verified; the real yfinance metadata adapter is follow-on implementation work |
 
 ## Context
 
@@ -242,8 +232,8 @@ class ITickerMetadataSource(ABC):
    `ITickerNameCache` unchanged.
 2. **Follow-on**: Migrate `industry_analyzer.py:190` onto `YFinanceMetadataSource`
    (remove the in-memory `metadata_cache` dict and the local retry loop).
-3. **S002-011**: Promote this ADR to Accepted as part of the ADR gate
-   definitions; reconcile ADR-0003's `ICache` to `ITickerNameCache`.
+3. **Follow-on governance**: Reconcile ADR-0003's `ICache` to
+   `ITickerNameCache` when ADR-0003 is promoted.
 
 **Rollback plan**: The split is additive. If it proves wrong, delete
 `metadata.py` + `yfinance_metadata.py` and revert `ports/__init__.py`; the

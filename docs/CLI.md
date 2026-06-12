@@ -2,7 +2,7 @@
 
 MY-DOGE 提供两个独立的命令行入口，覆盖「只读行情查询」与「LLM 宏观报告生成」两类本地操作。本文档为操作者的命令参考，所有命令均基于本地 DuckDB / SQLite 数据与（可选）DeepSeek API。
 
-> **适用范围**：本文档仅描述产品 CLI。Claude Code / MCP 客户端通过 `mcp_server.py` 调用工具的方式，参见 [docs/MCP_SERVER.md](MCP_SERVER.md)。
+> **适用范围**：本文档仅描述产品 CLI。Claude Code / MCP 客户端通过 `doge_mcp.py` 调用工具的方式，参见 [docs/MCP_SERVER.md](MCP_SERVER.md)。
 
 ## 目录
 
@@ -295,7 +295,7 @@ python -m macro.cli --verbose
 
 ## MCP 服务器命令行参数
 
-`mcp_server.py` 严格意义上**不是**产品查询 CLI（它服务于 MCP 客户端），但操作者常以命令行启动它。为便于交叉查阅，此处列出其 `argparse` 参数（`mcp_server.py:475-483`）：
+`doge_mcp.py` 严格意义上**不是**产品查询 CLI（它服务于 MCP 客户端），但操作者常以命令行启动它。为便于交叉查阅，此处列出其 `argparse` 参数（由 `src/doge/interfaces/mcp/server.py` 提供）：
 
 | 参数 | 可选值 | 默认 | 说明 |
 |------|--------|------|------|
