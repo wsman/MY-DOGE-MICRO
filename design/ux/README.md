@@ -54,15 +54,15 @@ UX spec reference the corrected one.
 | Spec | Surface | Status |
 |---|---|---|
 | [`scanner-flow.md`](./scanner-flow.md) | Web `ScannerView` + Desktop `ScannerWidget` (tab 1) | Seed (this wave) |
-| `ticker-flow.md` | Web `TickerView` (panel-only, no router route) | Follow-on |
-| `archive-flow.md` | Web `CnArchiveView`/`UsArchiveView` + Desktop editors (tabs 2–4) | Follow-on |
-| `analysis-flow.md` | Web `InsightsView`/`AnalysisView` + Desktop `AnalysisWidget` (tab 5) | Follow-on |
+| [`ticker-flow.md`](./ticker-flow.md) | Web `TickerView` (panel-only, no router route) | Published |
+| [`archive-flow.md`](./archive-flow.md) | Web `CnArchiveView`/`UsArchiveView` + Desktop editors (tabs 2–4) | Published |
+| [`analysis-flow.md`](./analysis-flow.md) | Web `InsightsView`/`AnalysisView` + Desktop `AnalysisWidget` (tab 5) | Published |
 
 > **Note on the desktop "Insights" tab**: the desktop tab 4 (`🧠 研报智库`,
 > `dashboard.py:76-79`) is a `DBEditorWidget` bound to `research_insights.db` —
 > a raw SQLite table editor, *not* the report-masonry surface the web `InsightsView`
 > provides. The two are not the same journey; the desktop has no masonry/report
-> reader. See `analysis-flow.md` (follow-on) for the divergence.
+> reader. See [`analysis-flow.md`](./analysis-flow.md) §5 for the divergence.
 
 ## How UX specs relate to the registered views
 
@@ -70,8 +70,9 @@ The web console registers exactly six views (`web/src/views/registry.ts:18-61`,
 `web/src/types/splitTree.ts:22`): `scanner`, `cn-archive`, `us-archive`,
 `ticker`, `insights`, `analysis`. The intent is one per-flow UX spec per view.
 This wave ships the cross-cutting framework + the scanner flow (the most
-critical, SSE-driven, watchdog-gated flow); the remaining three follow-on specs
-will be derived from the cross-cutting patterns established here.
+critical, SSE-driven, watchdog-gated flow); the remaining three per-flow specs
+(`ticker-flow.md`, `archive-flow.md`, `analysis-flow.md`) are now published,
+derived from the cross-cutting patterns established here.
 
 ## Validation
 
