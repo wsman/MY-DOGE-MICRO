@@ -1,14 +1,16 @@
 # Accessibility Requirements — Web Console & Desktop Baseline
 
-> **Status**: Seed (Wave 2 docs, 2026-06-12)
+> **Status**: Updated (Sprint 003 — 2026-06-13). Baseline a11y items closed by
+> S003-007 (design tokens) and S003-009 (`StatusView` triad + `aria-live`).
 > **Surfaces**: Vue Web Console (primary) + PyQt Desktop Dashboard.
-> **Authoritative contracts**: [`design/cdd/vue-web-console.md`](../cdd/vue-web-console.md) §9.4–9.5; [`design/cdd/pyqt-desktop-dashboard.md`](../cdd/pyqt-desktop-dashboard.md) §3.2.
+> **Authoritative contracts**: [`design/cdd/vue-web-console.md`](../cdd/vue-web-console.md) §9.4–9.5; [`design/cdd/pyqt-desktop-dashboard.md`](../cdd/pyqt-desktop-dashboard.md) §3.2; [`design/art/art-bible.md`](../art/art-bible.md) §6 (measured contrast baseline).
 
 This document establishes the **baseline** accessibility expectations for the
-local operator. Several sub-areas (contrast ratio, reduced-motion, screen-reader
-semantics) are **not yet addressed** in code and are flagged OPEN below; they are
-advisory today and become acceptance criteria when the corresponding code task
-lands.
+local operator. The originally-open sub-areas (contrast ratio, reduced-motion,
+`aria-live`, CJK font, loading/empty/error triad) are **closed** below as of
+Sprint 003; two items remain advisory (screen-reader testing) or documented-deferred
+(VirtualTable keyboard row navigation). The closed items are no longer aspirational
+— they are now acceptance criteria backed by shipped code.
 
 ---
 
@@ -25,13 +27,13 @@ lands.
 
 ---
 
-## 2. Browser target — declared `browserslist`
+## 2. Browser target — declared `browserslist` — CLOSED (S003)
 
-> This section **declares** the project `browserslist` (closing `vue-web-console.md`
-> §9.4 Open Question 6 at the spec level; the code change to add the key to
-> `web/package.json` is a follow-on).
+> **CLOSED.** The project `browserslist` now ships in
+> [`web/package.json`](../../web/package.json) (added during Sprint 003), closing
+> `vue-web-console.md` §9.4 Open Question 6 at both the spec and the code level.
 
-**browserslist** (to be added to `web/package.json`):
+**browserslist** (declared in `web/package.json`):
 
 ```json
 "browserslist": [
@@ -42,7 +44,9 @@ lands.
 ]
 ```
 
-**Rationale** — the runtime relies on two features with a hard floor:
+The realistic in-practice target is **the operator's local Chrome/Edge/Firefox on
+Windows**; Safari is the only floor worth flagging (see below). **Rationale** — the
+runtime relies on two features with a hard floor:
 
 | Feature | Used by | Floor | Below the floor |
 |---|---|---|---|
@@ -54,9 +58,6 @@ Safari **< 16.4** is the only realistic loss: canvas measurement degrades to the
 DOM-canvas fallback (`useTextMeasure.ts:23-26`), but pretext's own assumptions
 are not guaranteed. **Safari < 16.4 is not a supported target.** `EventSource`
 is intentionally NOT used — the console streams via raw `fetch` (`useSSE.ts`).
-
-The realistic in-practice target is **the operator's local Chrome/Edge/Firefox
-on Windows** (`vue-web-console.md` §9.4).
 
 ---
 
@@ -93,9 +94,10 @@ documented per flow.
 | Insights | Open a report | `Tab` to the masonry card, `Enter` |
 | Analysis | Refresh report list | `Tab` to refresh affordance, `Enter` |
 
-> VirtualTable keyboard row navigation is **OPEN** — flag for the archive-flow
-> follow-on. The split-tree shortcuts themselves are bound/unbound cleanly, which
-> the docs-consistency test could pin.
+> **DOCUMENTED-DEFERRED.** VirtualTable keyboard row navigation is tracked in
+> [`archive-flow.md`](./archive-flow.md) (target interaction described but not
+> implemented this batch). The split-tree shortcuts themselves are bound/unbound
+> cleanly.
 
 ### 3.3 Desktop dashboard
 
@@ -107,38 +109,74 @@ shortcuts are defined today.
 
 ---
 
-## 4. Color and contrast
+## 4. Color and contrast — CLOSED (S003-007)
 
 - **Theme**: Naive UI `darkTheme` is the default and only shipped theme
   ([`web/src/App.vue:81`](../../web/src/App.vue): `<n-config-provider :theme="darkTheme">`).
   The desktop applies `Microsoft YaHei 9` globally (`dashboard.py:133-134`) on
   the native Qt palette.
-- **Contrast baseline**: **NONE documented.** There is no measured contrast
-  ratio, no project-wide color tokens, and no `prefers-color-scheme` handling.
-  Status colors are inline (`ScannerView.vue:234,297-298`):
-  `ok=#63e2b7` (green), `failed=#ef5350` (red), untested=`rgba(255,255,255,0.3)`.
-- **OPEN (advisory)**: establish a minimum contrast ratio for status colors and
-  a token set. May warrant a future ADR if it becomes a project-wide standard.
+- **Token set — CLOSED by S003-007.** Project-wide color tokens now ship in
+  [`web/src/styles/tokens.css`](../../web/src/styles/tokens.css) and feed Naive
+  UI via `themeOverrides`; status colors are no longer inlined per-view. The
+  authoritative token table and the contrast rationale live in
+  [`design/art/art-bible.md`](../art/art-bible.md) §2 and §6; the table below is
+  the WCAG-correct measured baseline reproduced here so this a11y doc is
+  self-contained.
+
+**Measured contrast baseline** (against `--dgm-bg` `#1a1a2e`, per WCAG 2.1):
+
+| Token / use | Contrast vs `#1a1a2e` | WCAG level | Note |
+|---|---|---|---|
+| `--dgm-text` | 15.5:1 | **AAA** | Primary text everywhere |
+| `--dgm-text-muted` | 11.7:1 | **AAA** | Secondary text (captions, table secondary columns) |
+| `--dgm-text-faint` | 6.8:1 | **AAA** | Tertiary text (placeholders, disabled labels) |
+| `--dgm-status-ok` / `--dgm-accent-warm` (`#63e2b7`) | 10.6:1 | **AAA** | Green status (server ok, scan complete) |
+| `--dgm-status-fail` / `--dgm-market-cn` (`#ef5350`) | 4.9:1 | **AA** | Red status (server fail, scan error) |
+| `--dgm-chart-text` (`#d1d4dc`) | 11.5:1 | **AAA** | Chart axis/tooltip text |
+| `--dgm-accent` / `--dgm-market-us` (`#2196f3`) | 5.46:1 | **AA** (normal text) | Reserved for icons, indicators, large text, and links — see rule below |
+| `--dgm-status-unknown` (`rgba(255,255,255,0.30)`) | 2.7:1 | **EXCEPTION** | Decoration dots only — never text |
+
+**Governing rule — the blue accent.** `--dgm-accent` measures 5.46:1, which
+passes WCAG AA for normal-size text, but it is **reserved for icons, indicators,
+large text (≥18pt / 14pt bold), and links** as a deliberate brand/legibility
+choice: body copy stays on the higher-contrast `--dgm-text` (15.5:1) for maximum
+readability. **Small and body text always uses `--dgm-text` (or `--dgm-text-muted`
+/ `--dgm-text-faint`); the blue accent is never used for body copy.**
+
+**Recorded exception — status-unknown.** `--dgm-status-unknown` (2.7:1) is too
+low for text and is therefore **forbidden as text**; it renders a decoration dot
+only, with any accompanying label using `--dgm-text-muted`.
+
+**Out of scope — light theme / `prefers-color-scheme` toggle.** MY-DOGE-MICRO is
+dark-only for now; a light theme is a future ADR, not a current capability.
 
 ---
 
-## 5. Loading / empty / error triad — closing the §9.5 gaps
+## 5. Loading / empty / error triad — CLOSED (S003-009)
 
 The triad is a **per-view acceptance criterion** (see
 [`interaction-patterns.md`](./interaction-patterns.md) §5 for the full table).
-The gaps from `vue-web-console.md` §9.5 (Open Question 9) are tracked here so
-each follow-on per-flow spec inherits a concrete checklist:
 
-| View | Gap to close |
+**CLOSED by S003-009.** The 5/6-view triad gap is resolved by
+[`web/src/components/common/StatusView.vue`](../../web/src/components/common/StatusView.vue),
+a shared loading / empty / error / idle component. The five non-scanner views
+(Ticker, CnArchive, UsArchive, Insights, Analysis) now wrap their content area in
+`StatusView`, which renders the matching Naive UI primitive (`n-skeleton` /
+`n-spin` for loading, `n-empty` for empty, `n-result` error variant for error) and
+only yields the default slot when `status === 'idle'` — so a view never shows
+stale content behind a skeleton or an error banner.
+
+| View | Triad status |
 |---|---|
-| Scanner | **CLOSED (S002-010)** — `n-alert` + Retry now ships (`ScannerView.vue:115-131`) |
-| Ticker | kline-fetch errors uncaught — add an error surface |
-| CnArchive / UsArchive | no explicit empty message; `loadAllRows` errors uncaught |
-| Insights | research tab has no empty state |
-| Analysis | no explicit empty state; fetch errors uncaught |
+| Scanner | **CLOSED (S002-010)** — `n-alert` + Retry ships (`ScannerView.vue`); `aria-live` wrappers added (S003-009, §7) |
+| Ticker | **CLOSED (S003-009)** — kline-fetch errors surface via `StatusView` |
+| CnArchive / UsArchive | **CLOSED (S003-009)** — explicit empty message + `loadAllRows` error surface via `StatusView` |
+| Insights | **CLOSED (S003-009)** — research-tab empty state via `StatusView` |
+| Analysis | **CLOSED (S003-009)** — explicit empty state + fetch-error surface via `StatusView` |
 
-These remain ADVISORY per `coding-standards.md` ("Web/App Workflow" gate) until
-the corresponding code task lands; this spec records them so they are not lost.
+`StatusView` consumes the shared `{ code, message }` error vocabulary
+(`utils/fetchError.ts` `FetchError` / `composables/useSSE.ts` `SSEError`) so one
+component renders both REST and SSE failures identically.
 
 ---
 
@@ -152,24 +190,51 @@ on a CN-market stack.
   (e.g. `"贵茅"` matching `"贵州茅台"`) via grapheme-subsequence scoring
   (`useFuzzySearch.ts:51-58`). **No fallback** — requires the browserslist floor
   in §2.
-- **Font**: desktop uses `Microsoft YaHei` (`dashboard.py:133-134`). Web relies
-  on the browser default CJK fallback; no web font is shipped.
-
-> OPEN: declare a web CJK font stack consistent with the desktop YaHei choice.
+- **Font — CLOSED (S003-007).** Desktop uses `Microsoft YaHei`
+  (`dashboard.py:133-134`). Web now declares the CJK-first sans-serif stack
+  `--dgm-font-sans` in [`web/src/styles/tokens.css`](../../web/src/styles/tokens.css):
+  `'Microsoft YaHei','PingFang SC','Hiragino Sans GB',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`.
+  The web stack leads with `Microsoft YaHei` so Chinese ticker names and report
+  content render identically on desktop and web, then falls back through
+  `PingFang SC` (macOS) and `Hiragino Sans GB` before the generic Latin stack.
+  No web font is bundled (the operator's system CJK fallback is used).
 
 ---
 
-## 7. Reduced motion and screen-reader support
+## 7. Reduced motion, `aria-live`, and screen-reader support
 
-**Current state: NOT addressed.** There is:
+### 7.1 Reduced motion — CLOSED (S003-007 / S003-009)
 
-- No `prefers-reduced-motion` handling (the `processing` `n-progress`
-  (`ScannerView.vue:109`) and Naive UI transitions are always animated).
-- No ARIA live region for SSE progress/error (the watchdog's terminal
-  `stream_stalled` error appears in an `n-alert`, but is not announced).
-- No documented screen-reader testing (the operator is sighted + mouse/keyboard;
-  SR support is not a stated need).
+**CLOSED.** A global `prefers-reduced-motion` guard ships in
+[`web/src/styles/tokens.css`](../../web/src/styles/tokens.css): it collapses
+every transition/animation to a near-zero duration (0.01ms) and neutralizes the
+Naive UI `n-progress` indeterminate spin, so motion-sensitive operators never see
+a transition or animation when they request reduced motion. `StatusView.vue`
+mirrors this with a scoped reduced-motion rule that neutralizes its `n-spin`
+rotation and `n-skeleton` shimmer.
 
-These are flagged **OPEN** and are advisory. If a future operator requires SR
-support, the SSE progress pattern and the terminal-error banner are the first
-candidates for `aria-live` regions.
+### 7.2 `aria-live` regions — CLOSED (S003-009)
+
+**CLOSED.** Async progress and terminal errors are now announced to assistive
+tech:
+
+- **`StatusView`** ([`web/src/components/common/StatusView.vue`](../../web/src/components/common/StatusView.vue)):
+  the **error** branch renders `role="alert"` + `aria-live="assertive"` so
+  screen readers announce the failure immediately; the **loading** branch renders
+  `aria-live="polite"` + `aria-busy="true"` so a screen reader cues the operator
+  that content is arriving.
+- **`ScannerView`** ([`web/src/views/ScannerView.vue`](../../web/src/views/ScannerView.vue)):
+  the scan `n-progress` is wrapped in a `div aria-live="polite"` (SSE progress),
+  and the terminal-error `n-alert` (the watchdog `stream_stalled` banner) is
+  wrapped in a `div role="alert" aria-live="assertive"`.
+
+### 7.3 Screen-reader testing — ADVISORY (not a current requirement)
+
+**ADVISORY — not a current requirement.** The single operator is sighted and
+works mouse/keyboard; screen-reader (SR) support is not a stated need. The
+`aria-live` infrastructure in §7.2 is **forward-compatible plumbing, not a tested
+SR contract**: it is correct, well-formed markup that an SR *can* consume, but no
+SR (NVDA/VoiceOver) regression test is run today. Formal SR testing is deferred
+until there is an operator who needs it; at that point the SSE progress pattern
+(§7.2) and the terminal-error banner are the first candidates to verify under a
+real SR.

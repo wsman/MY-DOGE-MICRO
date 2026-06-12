@@ -32,5 +32,11 @@
     "vite": "^8.0.10",
     "vitest": "^2.1.9",
     "vue-tsc": "^3.2.7"
-  }
+  },
+  "browserslist": [
+    "Chrome >= 110",
+    "Edge >= 110",
+    "Firefox >= 115",
+    "Safari >= 16.4"
+  ]
 }

@@ -85,7 +85,7 @@ request reduced motion never see a transition or animation (closes
     scroll-behavior: auto !important;
   }
   .n-progress .n-progress-graph-line-indicator {
-    animation: none !important;
+    animation-duration: 0.01ms !important;
   }
 }
 ```
@@ -168,14 +168,20 @@ for added headroom; one deliberate reservation is recorded.
 
 | Token / use | Contrast vs `#1a1a2e` | WCAG level | Note |
 |---|---|---|---|
-| `--dgm-text` (`.95`) | 12.6:1 | **AAA** | Primary text everywhere |
-| `--dgm-text-muted` (`.82`) | 9.4:1 | **AAA** | Secondary text |
+| `--dgm-text` (`.95`) | 15.5:1 | **AAA** | Primary text everywhere |
+| `--dgm-text-muted` (`.82`) | 11.7:1 | **AAA** | Secondary text |
 | `--dgm-text-faint` (`.60`) | ~6.8:1 | **AAA** | Prior `.50` was already ~5.2:1 (AA); raised to `.60` for additional AAA headroom, not to clear AA |
-| `--dgm-status-ok` / `--dgm-accent-warm` `#63e2b7` | 7.8:1 | **AAA** | Green status |
-| `--dgm-status-fail` / `--dgm-market-cn` `#ef5350` | 4.6:1 | **AA** | Red status |
-| `--dgm-chart-text` `#d1d4dc` | 9.5:1 | **AAA** | Chart axis/tooltip text |
+| `--dgm-status-ok` / `--dgm-accent-warm` `#63e2b7` | 10.6:1 | **AAA** | Green status |
+| `--dgm-status-fail` / `--dgm-market-cn` `#ef5350` | 4.9:1 | **AA** | Red status |
+| `--dgm-chart-text` `#d1d4dc` | 11.5:1 | **AAA** | Chart axis/tooltip text |
 | `--dgm-accent` / `--dgm-market-us` `#2196f3` | 5.46:1 | **AA** (passes normal text) | Reserved for icons, indicators, large text, and links — see rule below |
 | `--dgm-status-unknown` `rgba(.30)` | decoration only | **EXCEPTION** | Recorded exception — never used as text |
+
+> **Contrast source of truth.** The values above are re-derived against the
+> `#1a1a2e` baseline and match [`accessibility-requirements.md`](../ux/accessibility-requirements.md)
+> §4 exactly; that document is the authoritative WCAG baseline. Earlier drafts
+> here understated these ratios (measured against a lighter surface); the
+> corrected figures are the ones used for §6/§7.
 
 **Fix 1 — faint text.** `--dgm-text-faint` alpha was raised from `0.50` (~5.2:1,
 already AA) to `0.60` (~6.8:1, AAA-level headroom) for additional legibility
@@ -190,7 +196,7 @@ decoration dot only (§5).
 against the background, which **passes WCAG AA for normal-size text** (and nearly
 clears AA Large). It is nonetheless **reserved for icons, indicators, large text
 (≥18pt / 14pt bold), and links** as a deliberate brand/legibility choice: body
-copy stays on the higher-contrast `--dgm-text` (~12.6:1) for maximum readability,
+copy stays on the higher-contrast `--dgm-text` (~15.5:1) for maximum readability,
 preserving the blue as a high-signal interactive accent rather than spending it
 on running prose. **RULE: small and body text always uses `--dgm-text`; the blue
 accent is never used for body copy.**
@@ -225,7 +231,7 @@ loading/empty/error triad across views, closing the §9.5 gaps in
 uses `--dgm-text` (or `--dgm-text-muted` / `--dgm-text-faint`), **never the blue
 `--dgm-accent`** (§6 exception). Although `--dgm-accent` passes AA at 5.46:1, it
 is reserved for icons, indicators, large headings, and links so body copy stays
-on the higher-contrast `--dgm-text` (~12.6:1) for maximum readability.
+on the higher-contrast `--dgm-text` (~15.5:1) for maximum readability.
 
 ---
 
