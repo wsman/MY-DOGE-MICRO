@@ -286,8 +286,9 @@ sprints:
         priority: HIGH
         effort: L
         owner: python-specialist
-        status: todo
+        status: done
         blocking_gate: false
+        note: "2026-06-12: ISchemaBrowser + IReportRepository extensions; SQLiteSchemaBrowser + DuckDBStockRepository.get_kline; deps.py DI container; routers migrated; tests use dependency_overrides; src/api grep gate clean."
 
       - id: S003-005
         title: "RSRS 视图符号修复 + DDL 版本化"
@@ -312,8 +313,9 @@ sprints:
         priority: HIGH
         effort: M
         owner: qa-lead
-        status: todo
+        status: done
         blocking_gate: false
+        note: "2026-06-12: production/qa/qa-plan-verification.md + production/qa/smoke/smoke-2026-06-12.md created; 5 surfaces covered; stale evidence files marked superseded."
 
       - id: S003-012
         title: "性能基线 profile"
@@ -404,24 +406,25 @@ sprints:
         depends_on: [S003-003, S003-005, S003-013]
         blocking_gate: false
 
-# Rollup counts (kept in sync with the stories list above).
+# Rollup counts for the active sprint (S003).
 rollup:
+  sprint: S003
   total_stories: 13
   by_status:
-    todo: 0
+    todo: 10
     in_progress: 0
     blocked: 0
     review: 0
-    done: 13
+    done: 3
     deferred: 0
   by_priority:
-    HIGH: 2
-    MED: 11
+    HIGH: 6
+    MED: 7
     LOW: 0
   by_epic:
-    ep-architecture-debt: 6
-    ep-storage-consistency: 2
-    ep-api-resilience: 2
-    ep-governance-security: 3
-  blocking_gated_stories: [S002-006, S002-007, S002-009, S002-010]
-  top_priority_stories: [S002-007, S002-013]
+    ep-verification-evidence: 5
+    ep-architecture-cleanup: 2
+    ep-ux-polish: 4
+    ep-governance: 2
+  blocking_gated_stories: []
+  top_priority_stories: [S003-002, S003-003, S003-005, S003-011, S003-012]

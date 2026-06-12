@@ -1,5 +1,10 @@
 # Source Pytest Evidence
 
+> **⚠️ SUPERSEDED** — This file was generated during Sprint 002 metadata import
+> and is retained for historical context only. The current Sprint 003 smoke
+> evidence is in `production/qa/smoke/smoke-2026-06-12.md`. The latest full
+> suite run is `499 passed, 2 skipped, 5 xfailed` (2026-06-12).
+
 > **Generated**: 2026-06-11
 > **Source repository**: `D:\Users\WSMAN\Desktop\Coding Task\MY-DOGE-MICRO`
 > **Command**: `pytest`
