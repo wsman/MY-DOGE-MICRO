@@ -1,35 +1,64 @@
 """Regression tests for the MCP stock_overview soft-delete consistency fix.
 
-Guards the Phase-2 consistency fix documented in CDD module #8:
-``mcp_server.py`` previously read ``stock_notes`` with a raw
+Guards the Phase-2 consistency fix (CDD module #7 §3.3 / #8) on the **MODULAR
+stock_overview** — the live MCP path
+(``src/doge/interfaces/mcp/tools/query_stock.py``), reached via the composition
+root ``build_stock_service`` + ``get_settings().db.research_db``. The legacy
+``mcp_server.py`` monolith is dead code pending Batch-6; this regression guard
+must protect the path operators actually hit, so it was retargeted off the
+monolith onto the modular tool.
+
+History: ``stock_overview`` previously read ``stock_notes`` with a raw
 ``SELECT ... WHERE ticker=?`` that did NOT filter ``deleted_at IS NULL``.
 Module #7 (research-insight-knowledge-base) soft-deletes notes by setting a
 nullable ``deleted_at`` timestamp and hiding such rows from every read path.
-The MCP tool was the one consumer that leaked soft-deleted notes.
+The MCP tool was the one consumer that leaked soft-deleted notes. The modular
+tool replicates the fix (dynamic ``PRAGMA table_info`` detection + the
+``AND deleted_at IS NULL`` predicate).
 
 These tests pin the fixed behaviour:
   * soft-deleted notes are excluded from the ``stock_overview`` note count and list
   * the count and list stay correct when the ``deleted_at`` column is absent
     (pre-migration legacy DB) — the fix must not break the legacy schema path.
 
-Isolation: every test redirects ``mcp_server.RESEARCH_DB`` at a throwaway temp
-SQLite file and replaces the DuckDB price path with a stub so no live market DB
-and no network are touched. Fully deterministic.
+Isolation: every test redirects ``get_settings().db.research_db`` at a throwaway
+temp SQLite file (via ``DOGE_RESEARCH_DB`` env + ``reset_settings()``) and
+replaces the DuckDB price path (``build_stock_service``) with a stub returning
+``{'prices': []}`` so no live market DB and no network are touched. Fully
+deterministic.
 """
+import os
 import sqlite3
 import sys
 from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+# The editable install resolves ``doge`` as a top-level package, so no sys.path
+# shim is needed (Batch-1 removed them). ``pythonpath=["src"]`` in pyproject is
+# sufficient for collection.
+from doge.config.settings import get_settings, reset_settings  # noqa: E402
 
-import mcp_server as srv  # noqa: E402
+# Explicitly load the modular tool SUBMODULE. The package ``__init__``
+# re-exports the ``query_stock``/``stock_overview`` FUNCTION names, which shadow
+# the submodule attribute on the parent package, so a plain
+# ``import ... as qs`` would bind the function, not the module. ``monkeypatch``
+# needs the real module object to patch ``build_stock_service`` on it, so we
+# trigger the import then pull the module back out of ``sys.modules``.
+import doge.interfaces.mcp.tools.query_stock  # noqa: E402, F401
+qs_module = sys.modules["doge.interfaces.mcp.tools.query_stock"]
 
 
 # Live schema minus deleted_at (the pre-Phase-2 legacy shape).
+# stock_names is included (empty) because the modular stock_overview reads
+# name/sector and notes in ONE connection — a missing stock_names would raise
+# OperationalError and swallow the notes read with it.
 SCHEMA_NO_SOFTDELETE = """
+CREATE TABLE stock_names (
+    ticker TEXT PRIMARY KEY,
+    name_cn TEXT,
+    sector TEXT
+);
 CREATE TABLE stock_notes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ticker TEXT NOT NULL,
@@ -46,6 +75,11 @@ CREATE TABLE stock_notes (
 
 # Live schema with the Phase-2 soft-delete column (post-migration shape).
 SCHEMA_WITH_SOFTDELETE = """
+CREATE TABLE stock_names (
+    ticker TEXT PRIMARY KEY,
+    name_cn TEXT,
+    sector TEXT
+);
 CREATE TABLE stock_notes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ticker TEXT NOT NULL,
@@ -80,36 +114,51 @@ def _seed_two_notes(db_path: str, *, with_softdelete: bool) -> None:
     conn.close()
 
 
+@pytest.fixture(autouse=True)
+def _isolate_settings():
+    """Reset the settings singleton around every test.
+
+    Each test sets ``DOGE_RESEARCH_DB`` to point at its temp SQLite file and
+    then calls ``reset_settings()`` so ``get_settings().db.research_db`` resolves
+    to that file. This teardown clears any leftover env + singleton state so no
+    test leaks the temp path into neighbours or the live process.
+    """
+    yield
+    # Drop the override (if set) and reseal the singleton so the next test (or
+    # the live process afterwards) re-reads real defaults.
+    monkeypatch_env = os.environ.pop("DOGE_RESEARCH_DB", None)
+    reset_settings()
+
+
 @pytest.fixture
-def stub_price_path(monkeypatch):
+def stub_price_service(monkeypatch):
     """Neutralise the DuckDB price block so only the notes block is exercised.
 
-    ``stock_overview`` opens a DuckDB read for recent prices; in this isolated
-    test there is no market DB. We stub ``get_duckdb_connection`` to raise, which
-    the handler swallows into a benign ``价格查询失败`` line — the notes block
-    still runs and is what we assert on.
+    The modular ``stock_overview`` builds a ``StockService`` via the composition
+    root (``build_stock_service``) for recent prices; in this isolated test
+    there is no market DB. We stub ``build_stock_service`` on the modular tool
+    module to return a fake service whose ``.overview(t, m)`` returns
+    ``{'prices': []}``, so the price block renders nothing and the notes block
+    (the asserted surface) still runs.
     """
 
-    class _Boom:
-        def __enter__(self):
-            raise RuntimeError("price path stubbed for unit test")
+    class _FakeStockService:
+        def overview(self, ticker, market):
+            return {"prices": []}
 
-        def __exit__(self, *a):
-            return False
+        def query(self, ticker, market, days):
+            return []
 
-    def _boom(*a, **kw):
-        return _Boom()
-
-    monkeypatch.setattr(srv, "get_duckdb_connection", _boom)
+    monkeypatch.setattr(qs_module, "build_stock_service", _FakeStockService)
 
 
 # ---------------------------------------------------------------------------
-# Soft-delete leak fix — the load-bearing regression
+# Soft-delete leak fix — the load-bearing regression (MODULAR live path)
 # ---------------------------------------------------------------------------
 class TestStockOverviewSoftDeleteLeak:
     @pytest.mark.asyncio
     async def test_soft_deleted_note_excluded_from_count_and_list(
-        self, tmp_path, monkeypatch, stub_price_path
+        self, tmp_path, monkeypatch, stub_price_service
     ):
         # Arrange — temp research DB with the soft-delete column, one active +
         # one soft-deleted note for the same ticker.
@@ -119,10 +168,12 @@ class TestStockOverviewSoftDeleteLeak:
         conn.commit()
         conn.close()
         _seed_two_notes(str(db_path), with_softdelete=True)
-        monkeypatch.setattr(srv, "RESEARCH_DB", db_path)
+        monkeypatch.setenv("DOGE_RESEARCH_DB", str(db_path))
+        reset_settings()
+        assert get_settings().db.research_db == Path(str(db_path))
 
-        # Act
-        result = await srv.stock_overview("600000", "cn")
+        # Act — modular stock_overview (the live MCP path).
+        result = await qs_module.stock_overview("600000", "cn")
 
         # Assert — count reflects only the active note; the retracted note is
         # invisible to the MCP consumer.
@@ -134,7 +185,7 @@ class TestStockOverviewSoftDeleteLeak:
 
     @pytest.mark.asyncio
     async def test_legacy_schema_without_deleted_at_still_works(
-        self, tmp_path, monkeypatch, stub_price_path
+        self, tmp_path, monkeypatch, stub_price_service
     ):
         # Arrange — pre-Phase-2 legacy schema has no deleted_at column. The fix
         # must detect its absence and skip the predicate (no OperationalError).
@@ -144,10 +195,12 @@ class TestStockOverviewSoftDeleteLeak:
         conn.commit()
         conn.close()
         _seed_two_notes(str(db_path), with_softdelete=False)
-        monkeypatch.setattr(srv, "RESEARCH_DB", db_path)
+        monkeypatch.setenv("DOGE_RESEARCH_DB", str(db_path))
+        reset_settings()
+        assert get_settings().db.research_db == Path(str(db_path))
 
         # Act — must not raise OperationalError on the missing column.
-        result = await srv.stock_overview("600000", "cn")
+        result = await qs_module.stock_overview("600000", "cn")
 
         # Assert — the single legacy note is surfaced, count is 1.
         assert "ACTIVE note visible to the operator" in result
@@ -155,7 +208,7 @@ class TestStockOverviewSoftDeleteLeak:
 
     @pytest.mark.asyncio
     async def test_no_notes_shows_empty_marker(
-        self, tmp_path, monkeypatch, stub_price_path
+        self, tmp_path, monkeypatch, stub_price_service
     ):
         # Arrange — soft-delete schema, zero rows for the ticker.
         db_path = tmp_path / "research_insights_empty.db"
@@ -163,10 +216,12 @@ class TestStockOverviewSoftDeleteLeak:
         conn.executescript(SCHEMA_WITH_SOFTDELETE)
         conn.commit()
         conn.close()
-        monkeypatch.setattr(srv, "RESEARCH_DB", db_path)
+        monkeypatch.setenv("DOGE_RESEARCH_DB", str(db_path))
+        reset_settings()
+        assert get_settings().db.research_db == Path(str(db_path))
 
         # Act
-        result = await srv.stock_overview("999999.SH", "cn")
+        result = await qs_module.stock_overview("999999.SH", "cn")
 
         # Assert — the documented empty marker is shown.
         assert "暂无笔记" in result
