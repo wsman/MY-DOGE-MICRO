@@ -297,8 +297,12 @@ sprints:
         priority: HIGH
         effort: M
         owner: python-specialist
-        status: todo
+        status: done
         blocking_gate: false
+        # 2026-06-12 (S003-005): fixed via separate rn_asc ascending time index (kept DESC rn
+        # for the 5 CTEs depending on rn=1=newest); DDL version-controlled at
+        # src/doge/infrastructure/database/views.sql (DBConfig.views_sql_tracked + resolved_views_sql);
+        # latent refresh comment-stripping bug fixed; strict xfail removed; view==Python to 1e-5.
 
       - id: S003-011
         title: "QA / smoke 计划（Verification → Release 硬性交付物）"
