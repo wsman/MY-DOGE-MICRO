@@ -1,13 +1,10 @@
-"""MCP tool: query_stock — delegates to StockService."""
+"""MCP tool: query_stock — delegates to StockService via the composition root."""
 
 import logging
 import sqlite3
 
 from doge.config import get_settings
-from doge.core.services import StockService
-from doge.infrastructure.database.repositories import DuckDBStockRepository
-from doge.infrastructure.database.duckdb import DuckDBConnection
-from doge.infrastructure.cache.ticker_cache import JSONTickerNameCache
+from doge.core.services.composition import build_stock_service
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +59,7 @@ def _fmt(columns, rows):
 async def query_stock(ticker: str, market: str = "cn", days: int = 20) -> str:
     """Query stock OHLCV + indicators."""
     t = normalize_ticker(ticker, market)
-    repo = DuckDBStockRepository(DuckDBConnection(read_only=True))
-    svc = StockService(repo)
+    svc = build_stock_service()
     data = svc.query(t, market, days)
     if not data:
         return f"No data for {t}"
@@ -81,28 +77,44 @@ async def stock_overview(ticker: str, market: str = "cn") -> str:
     directly for output parity until that repository lands.
     """
     t = normalize_ticker(ticker, market)
-    repo = DuckDBStockRepository(DuckDBConnection(read_only=True))
-    svc = StockService(repo)
+    svc = build_stock_service()
     overview = svc.overview(t, market)
 
     lines = [f"=== {t} ({market.upper()}) ==="]
 
-    # 名称 + 板块 (stock_names table — JSONTickerNameCache only carries names,
-    # so read sector directly for parity with the legacy tool).
+    # 名称 + 板块 + 笔记 — all read from the research SQLite in ONE connection
+    # (context-managed so it closes on exception). Soft-delete-aware: detect the
+    # deleted_at column once and filter it so soft-deleted notes do not leak.
+    name = sector = None
+    note_count = 0
+    notes = []
     try:
-        conn = sqlite3.connect(str(get_settings().db.research_db))
-        cur = conn.cursor()
-        row = cur.execute(
-            "SELECT name_cn, sector FROM stock_names WHERE ticker=?", (t,)
-        ).fetchone()
-        if row:
-            if row[0]:
-                lines.append(f"名称: {row[0]}")
-            if row[1]:
-                lines.append(f"板块: {row[1]}")
-        conn.close()
+        with sqlite3.connect(str(get_settings().db.research_db)) as conn:
+            cur = conn.cursor()
+            row = cur.execute(
+                "SELECT name_cn, sector FROM stock_names WHERE ticker=?", (t,)
+            ).fetchone()
+            if row:
+                name, sector = row[0], row[1]
+            has_deleted_at = "deleted_at" in {
+                r[1] for r in cur.execute("PRAGMA table_info(stock_notes)").fetchall()
+            }
+            deleted_pred = " AND deleted_at IS NULL" if has_deleted_at else ""
+            note_count = cur.execute(
+                f"SELECT COUNT(*) FROM stock_notes WHERE ticker=?{deleted_pred}", (t,)
+            ).fetchone()[0]
+            notes = cur.execute(
+                f"SELECT created_at, content FROM stock_notes WHERE ticker=?{deleted_pred} "
+                f"ORDER BY created_at DESC LIMIT 5",
+                (t,),
+            ).fetchall()
     except sqlite3.Error as exc:
-        logger.error("stock_overview SQLite error (names): %s", exc, exc_info=True)
+        logger.error("stock_overview SQLite error (names/notes): %s", exc, exc_info=True)
+
+    if name:
+        lines.append(f"名称: {name}")
+    if sector:
+        lines.append(f"板块: {sector}")
 
     prices = overview.get("prices", [])
     if prices:
@@ -115,32 +127,11 @@ async def stock_overview(ticker: str, market: str = "cn") -> str:
         for p in prices:
             lines.append(f"  {p['date']} | O:{p['open']} H:{p['high']} L:{p['low']} C:{p['close']} V:{p['volume']}")
 
-    # 笔记 (notes) — soft-delete-aware: detect the deleted_at column once and
-    # filter it so soft-deleted notes do not leak into MCP responses.
-    try:
-        conn = sqlite3.connect(str(get_settings().db.research_db))
-        cur = conn.cursor()
-        has_deleted_at = "deleted_at" in {
-            row[1] for row in cur.execute("PRAGMA table_info(stock_notes)").fetchall()
-        }
-        deleted_pred = " AND deleted_at IS NULL" if has_deleted_at else ""
-        n = cur.execute(
-            f"SELECT COUNT(*) FROM stock_notes WHERE ticker=?{deleted_pred}", (t,)
-        ).fetchone()[0]
-        notes = cur.execute(
-            f"SELECT created_at, content FROM stock_notes WHERE ticker=?{deleted_pred} "
-            f"ORDER BY created_at DESC LIMIT 5",
-            (t,),
-        ).fetchall()
-        conn.close()
-        if notes:
-            lines.append(f"\n笔记 ({n} 条):")
-            for x in notes:
-                lines.append(f"  [{x[0]}] {x[1][:80]}")
-        else:
-            lines.append("\n暂无笔记")
-    except sqlite3.Error as exc:
-        logger.error("stock_overview SQLite error (notes): %s", exc, exc_info=True)
+    if notes:
+        lines.append(f"\n笔记 ({note_count} 条):")
+        for x in notes:
+            lines.append(f"  [{x[0]}] {x[1][:80]}")
+    else:
         lines.append("\n暂无笔记")
 
     return "\n".join(lines)

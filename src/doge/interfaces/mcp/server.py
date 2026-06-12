@@ -111,8 +111,11 @@ def _unregister_pid():
             PID_FILE.write_text("\n".join(pids) + "\n", encoding="utf-8")
         else:
             PID_FILE.unlink(missing_ok=True)
-    except Exception:
-        pass
+    except (OSError, ValueError) as exc:
+        # Fail-open: the reader tolerates a stale/malformed PID file, so a write
+        # failure here only risks a false-positive orphan warning later. Log at
+        # DEBUG (do not swallow KeyboardInterrupt/SystemExit — no bare except).
+        logger.debug("PID unregister failed: %s", exc, exc_info=True)
 
 
 def _detect_orphan_processes():
