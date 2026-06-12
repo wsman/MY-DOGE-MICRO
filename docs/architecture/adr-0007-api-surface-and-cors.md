@@ -22,6 +22,40 @@ Proposed
 > (sprint-002:47). Promotion to Accepted is the gating ADR-lifecycle event for
 > the CORS-hardening follow-on.
 
+## Deferral Decision (S003-013, 2026-06-12)
+
+**Decision.** CORS hardening remains deferred through the Verification stage, and
+ADR-0007 intentionally stays **Proposed** through Verification. This extends the
+prior "out of Sprint 002 scope" note (above, S002-011) through the Verification
+stage. This is a *deferral record*, not a promotion: per the
+`docs/CLAUDE.md` ADR lifecycle (`Proposed → Accepted → Superseded`, never
+skipped), promotion to Accepted is owned by story **S003-014** — a FRESH
+`/architecture-review` run — and is not performed here.
+
+**Security argument.** The FastAPI server binds to `127.0.0.1:8901`
+(`src/api/main.py:115`); no remote client can reach it in the default deployment.
+The platform is single-operator, local-first, and has **no authentication by
+design** (local-first constraint — see §Context/Constraints). Therefore the
+current `allow_origins=["*"]` (Decision 2; `main.py:35-40`) is acceptable for the
+current loopback-only scope. The permissiveness is safe **only because** of the
+loopback bind; it is not safe under any other bind.
+
+**Promotion gate.** A non-loopback `bind_host` (e.g. `0.0.0.0`) **REQUIRES**,
+before it may be set: (a) tightening CORS to an explicit localhost allow-list
+(Migration Plan step 3 / Alternative 1), AND (b) adding auth (Alternative 2) —
+auth FIRST. Promotion of ADR-0007 from Proposed to Accepted is gated on the
+CORS-hardening story landing OR an explicit strengthened-loopback-guarantee
+decision, signed off by **S003-014** (the promotion authority; FRESH
+`/architecture-review`).
+
+**Cross-reference.** Until S003-014 lands that sign-off, no story may claim
+"CORS is production-hardened", "CORS is satisfied", or "ADR-0007 is satisfied /
+Accepted". This deferral closes the gate-check Technical Director CONCERN
+"ADR-0007 remains Proposed (CORS hardening incomplete)" in
+`production/gate-checks/gate-implementation-verification-2026-06-12.md` by
+recording the deferral formally; it does **not** resolve the CONCERN by
+promotion.
+
 ## Date
 
 2026-06-12
