@@ -32,8 +32,49 @@ CN_DB = _env_path("DOGE_CN_DB", DB_DIR / "market_data_cn.db")
 US_DB = _env_path("DOGE_US_DB", DB_DIR / "market_data_us.db")
 RESEARCH_DB = _env_path("DOGE_RESEARCH_DB", DB_DIR / "research_insights.db")
 DUCKDB_PATH = _env_path("DOGE_DUCKDB_PATH", DB_DIR / "market.duckdb")
+# S003-005: the version-controlled DDL now ships inside the package at
+# src/doge/infrastructure/database/views.sql. VIEWS_SQL remains the data-dir
+# mirror (data/views.sql) for backward compat with the CLI invocation
+# ``duckdb data/market.duckdb < data/views.sql``; resolve_views_sql() prefers
+# the tracked copy when present.
 VIEWS_SQL = DB_DIR / "views.sql"
+VIEWS_SQL_TRACKED = PROJECT_ROOT / "src" / "doge" / "infrastructure" / "database" / "views.sql"
 REPORT_DIR = PROJECT_ROOT / "ai_report"
+
+
+def resolve_views_sql() -> Path:
+    """Return the DDL path loaders should execute.
+
+    Prefers the tracked, version-controlled DDL (VIEWS_SQL_TRACKED) when it
+    exists; falls back to the data-dir mirror (VIEWS_SQL) for backward
+    compatibility. Mirrors DBConfig.resolved_views_sql() in the clean path so
+    both loaders stay consistent without a hard dependency on doge.config here.
+    """
+    if VIEWS_SQL_TRACKED.exists():
+        return VIEWS_SQL_TRACKED
+    return VIEWS_SQL
+
+
+def _strip_sql_comments(sql_text: str) -> str:
+    """Remove full-line and trailing ``--`` comments before statement splitting.
+
+    S003-005: the version-controlled ``views.sql`` carries a multi-paragraph
+    header comment whose prose contains semicolons (e.g. "sign convention; the
+    downstream ..."). The naive ``sql.split(';')`` breaks such prose into
+    fragments that don't start with ``--`` and fail to parse — and can absorb a
+    real statement into a comment fragment so the view never updates. Mirrors
+    ``doge.infrastructure.database.duckdb._strip_sql_comments`` and the test
+    helpers in tests/migration/.
+    """
+    cleaned_lines = []
+    for line in sql_text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("--"):
+            continue  # drop full-line comments
+        if "--" in line:
+            line = line.split("--", 1)[0]  # drop trailing inline comments
+        cleaned_lines.append(line)
+    return "\n".join(cleaned_lines)
 
 
 def normalize_ticker(ticker: str, market: str = "cn") -> str:
@@ -115,18 +156,24 @@ def connect_duckdb(read_only=False):
 
 
 def run_views_sql(con=None):
-    """执行 views.sql 创建/刷新所有视图 (逐条执行以控制内存)"""
+    """执行 views.sql 创建/刷新所有视图 (逐条执行以控制内存).
+
+    S003-005: DDL resolved via resolve_views_sql() (tracked-first, data-dir
+    fallback) so the version-controlled copy is preferred when present.
+    """
     close_on_exit = False
     if con is None:
         con = connect_duckdb()
         close_on_exit = True
     try:
-        with open(VIEWS_SQL, "r", encoding="utf-8") as f:
+        views_sql_path = resolve_views_sql()
+        with open(views_sql_path, "r", encoding="utf-8") as f:
             sql = f.read()
+        sql = _strip_sql_comments(sql)
         # 逐条执行 CREATE VIEW, 而非批量执行, 避免同时物化所有视图
         for stmt in sql.split(";"):
             stmt = stmt.strip()
-            if stmt and not stmt.startswith("--"):
+            if stmt:
                 try:
                     con.execute(stmt)
                 except Exception as e:

@@ -1,18 +1,22 @@
 """BLOCKING migration test: the DuckDB ``vw_rsrs_ranking_cn`` view's RSRS column
 agrees with the canonical Python ``MomentumRanker.calculate_rsrs`` on the same
 18-bar window — including the zero-slope-with-nonzero-variance edge case
-(S002-001, OQ-11 / TR-016 RESOLVED).
+(S002-001, OQ-11 / TR-016 RESOLVED) and the sign convention (S003-005
+RESOLVED).
 
 This is the cross-implementation parity gate that runs the REAL DuckDB view text
-from ``data/views.sql`` against an in-memory DuckDB attached to a fixture SQLite
-DB. It is NOT a Python re-implementation of the formula (that lives in
+from the canonical, version-controlled DDL
+(``src/doge/infrastructure/database/views.sql`` — the file the production
+refresh path executes via ``DBConfig.resolved_views_sql()``) against an
+in-memory DuckDB attached to a fixture SQLite DB. It is NOT a Python
+re-implementation of the formula (that lives in
 ``tests/unit/momentum/test_rsrs_parity.py``); this test exercises the actual
 SQL the production refresh path executes.
 
 Pipeline under test:
   fixture SQLite cn DB (one ticker whose last 18 bars form a V-shape:
     OLS slope == 0 but variance >> 1e-10)
-    -> EXECUTE data/views.sql against in-memory DuckDB (catalog refresh)
+    -> EXECUTE views.sql against in-memory DuckDB (catalog refresh)
     -> re-ATTACH the SQLite read-only at query time (attachments are
        connection-scoped, not persisted with the view definition — same pattern
        as tests/migration/test_retention_view_window_safety.py)
@@ -20,9 +24,10 @@ Pipeline under test:
     -> assert view rsrs == Python calculate_rsrs on the same window to 1e-6
 
 Also asserts:
-  - a perfectly increasing series yields +1.0 (confirms REGR_R2(rn, close)
-    argument order X=time Y=price is correct — guards against a future editor
-    'fixing' the order backwards and flipping every sign)
+  - a perfectly increasing series yields +1.0 (confirms the regression's time
+    index is ASC oldest->newest, matching Python's ``x = np.arange(len(y))``;
+    guards against a future editor reverting to the DESC rn-ordering that
+    inverted every sign — S003-005 regression guard).
   - a flat-constant series yields 0.0 (the zero-variance path)
 
 Determinism: no network; SQLite + DuckDB over local fixture files only.
@@ -46,7 +51,10 @@ from scipy import stats  # noqa: E402
 
 from micro.momentum_scanner import MomentumRanker  # noqa: E402
 
-VIEWS_SQL_PATH = _PROJECT_ROOT / "data" / "views.sql"
+# S003-005: the canonical, version-controlled DDL now ships inside the package.
+VIEWS_SQL_PATH = (
+    _PROJECT_ROOT / "src" / "doge" / "infrastructure" / "database" / "views.sql"
+)
 
 
 # ---------------------------------------------------------------------------
@@ -103,7 +111,7 @@ def _seed_ticker(cn_db_path: str, ticker: str, closes: list[float]) -> None:
 
 
 def _rewrite_attach_paths(sql_text: str, cn_db_path: str, us_db_path: str) -> str:
-    """Rewrite the relative ATTACH paths in data/views.sql to absolute tmp paths
+    """Rewrite the relative ATTACH paths in views.sql to absolute tmp paths
     (same technique as test_retention_view_window_safety.py)."""
     sql_text = re.sub(
         r"ATTACH\s+IF\s+NOT\s+EXISTS\s+'[^']+'\s+AS\s+cn\s+\(TYPE\s+sqlite\)",
@@ -135,7 +143,7 @@ def _strip_sql_comments(sql_text: str) -> str:
 
 
 def _create_views(duckdb_path: str, cn_db_path: str, us_db_path: str) -> None:
-    """Execute data/views.sql against the tmp DuckDB, creating the analytical
+    """Execute views.sql against the tmp DuckDB, creating the analytical
     views over the fixture SQLite files."""
     sql_text = VIEWS_SQL_PATH.read_text(encoding="utf-8")
     sql_text = _rewrite_attach_paths(sql_text, cn_db_path, us_db_path)
@@ -286,36 +294,19 @@ def test_flat_constant_view_matches_python(tmp_path, ranker):
 
 
 # ---------------------------------------------------------------------------
-# Scenario 3: perfectly increasing series -> SHOULD yield +1.0 under Python's
-# convention (slope of price-on-time > 0, R2=1). This test exists to confirm the
-# SQL REGR_*(rn, close) argument order / rn-ordering matches Python's intent.
+# Scenario 3 (BLOCKING regression guard, S003-005): a perfectly increasing
+# series MUST yield +1.0 from BOTH the view and Python's
+# ``calculate_rsrs`` (slope of price-on-time > 0, R2=1).
 #
-# BLOCKER DISCOVERED (S002-001): the view currently returns **-1.0** for a
-# perfectly increasing series, NOT +1.0. Root cause: the `recent` CTE computes
-# `ROW_NUMBER() OVER (... ORDER BY date DESC) AS rn` so rn=1 is the NEWEST bar
-# (highest close for an uptrend), making cov(rn, close) < 0 and the SQL sign
-# negative — INVERTED relative to the Python scalar path (which uses
-# x = arange(0..17) oldest->newest, so slope > 0 for an uptrend). This inversion
-# is independent of the zero->+1 boundary convention S002-001 unified; it affects
-# the sign of EVERY monotonic series. Fixing it requires changing the rn ordering
-# in data/views.sql (gitignored, owned by the market-data-storage refresh path)
-# plus a view re-materialization — explicitly OUT OF SCOPE for S002-001
-# (orchestrator decision #2: "NO change to data/views.sql"). Recorded as a
-# BLOCKER for a follow-up story. This xfail is strict=True so it FAILS LOUD the
-# moment the SQL sign inversion is corrected (the test then becomes an assertion
-# that the view agrees with Python's +1.0).
+# This test was an xfail (strict=True) pinning the S002-001 sign-inversion
+# blocker: the view's regression time index was
+# ``ROW_NUMBER() OVER (... ORDER BY date DESC) AS rn`` (rn=1=NEWEST), which made
+# cov(time, price) < 0 for an uptrend and inverted the view's RSRS sign relative
+# to the canonical Python path (``x = np.arange(len(y))`` oldest->newest). S003-005
+# corrected the view to regress on an ASC time index (``rn_asc``), and the xfail
+# was removed. The assertion below is now a hard cross-implementation gate:
+# any future editor that reverts to the DESC time index will fail this test.
 # ---------------------------------------------------------------------------
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "BLOCKER S002-001: vw_rsrs_ranking_cn rn-ordering (ORDER BY date DESC) "
-        "inverts the sign relative to Python's price-on-time regression. View "
-        "returns -1.0 for an uptrend; Python returns +1.0. Fix is a data/views.sql "
-        "rn-ordering change (out of scope, gitignored, owned by market-data-storage). "
-        "This xfail flips to a hard failure the moment the SQL is corrected, at "
-        "which point the assertion below becomes the cross-implementation gate."
-    ),
-)
 def test_perfectly_increasing_view_is_positive_one(tmp_path, ranker):
     cn_db_path = str(tmp_path / "market_data_cn.db")
     us_db_path = str(tmp_path / "market_data_us.db")
@@ -349,9 +340,8 @@ def test_perfectly_increasing_view_is_positive_one(tmp_path, ranker):
     python_rsrs = ranker.calculate_rsrs(pd.Series(closes))
     # Python correctly returns +1.0 (the canonical convention).
     assert python_rsrs == pytest.approx(1.0, abs=1e-9)
-    # The view SHOULD return +1.0 too once the rn-ordering inversion is fixed.
-    # Today it returns -1.0 (the xfail above absorbs this); after the fix this
-    # assertion becomes the cross-implementation gate.
+    # The view now returns +1.0 too (S003-005: ASC time index). Any sign
+    # regression flips this to -1.0 and fails the gate.
     assert view_rsrs == pytest.approx(1.0, abs=1e-6), (
         f"increasing series view rsrs {view_rsrs} != +1.0 (Python={python_rsrs})"
     )

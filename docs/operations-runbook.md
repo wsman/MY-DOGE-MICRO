@@ -27,7 +27,7 @@ This is a **local-first, single-operator** system:
 - [Retention tuning](#retention-tuning)
 - [DeepSeek API key rotation](#deepseek-api-key-rotation)
 - [DuckDB view refresh](#duckdb-view-refresh)
-- [Known issue: `vw_rsrs_ranking` sign convention](#known-issue-vw_rsrs_ranking-sign-convention)
+- [Resolved: `vw_rsrs_ranking` sign convention (S003-005)](#resolved-vw_rsrs_ranking-sign-convention-s003-005)
 - [Troubleshooting](#troubleshooting)
 - [Logging & observability](#logging--observability)
 - [Concurrency & single-writer contract](#concurrency--single-writer-contract)
@@ -309,47 +309,53 @@ view's SQL against the underlying SQLite table.
 
 ---
 
-## Known issue: `vw_rsrs_ranking` sign convention
+## Resolved: `vw_rsrs_ranking` sign convention (S003-005)
 
-The DuckDB RSRS ranking views (`vw_rsrs_ranking_cn`, `vw_rsrs_ranking_us`,
-`data/views.sql:72-137`, `:305-320`) compute the slope with the regression
-axes inverted relative to the canonical Python path, which **inverts the sign
-of the RSRS score for monotonic series**. The view ranks are therefore not
-directly comparable to the Python momentum ranking.
+The DuckDB RSRS ranking views (`vw_rsrs_ranking_cn`, `vw_rsrs_ranking_us`)
+previously computed the regression slope with the time index ordered newest
+first (`ROW_NUMBER() OVER (PARTITION BY ticker ORDER BY date DESC) AS rn`,
+rn=1=newest), which **inverted the RSRS sign for every monotonic series**
+relative to the canonical Python path. The MCP `rsrs_ranking` tool and the
+`doge rsrs` CLI (which read the view) inherited the inversion. **This is now
+fixed.**
 
-**Root cause.** The view regresses the time index on price:
+**Fix (S003-005).** The two RSRS views now regress on an ascending time index
+`ROW_NUMBER() OVER (PARTITION BY ticker ORDER BY date ASC) AS rn_asc`
+(rn_asc=1=oldest), matching the canonical Python
+`MomentumRanker.calculate_rsrs` convention (`x = np.arange(len(y))` oldest ->
+newest, `src/micro/momentum_scanner.py:95-116`). The downstream liquidity and
+60-day-change CTEs keep the original DESC `rn` (rn=1=newest) so their
+semantics are unchanged — only the regression's time index was corrected. A
+perfectly increasing 18-bar window now yields RSRS = **+1.0** from both the
+view and Python.
 
-```sql
-REGR_R2(rn, close) * (CASE WHEN REGR_SLOPE(rn, close) >= 0 THEN 1 ELSE -1 END)
---                       ^^^ rn (time) regressed ON close (price)
+**Version-controlled DDL.** The view DDL was previously gitignored at
+`data/views.sql` (untracked, owned by the market-data-storage refresh path).
+It now ships under version control at the canonical, package-relative path:
+
+```
+src/doge/infrastructure/database/views.sql
 ```
 
-(`data/views.sql` `regression` CTE, lines ~114-122). The canonical Python
-`MomentumRanker.calculate_rsrs` regresses **price on the time index**
-(`x = np.arange(len(y))`, `y = close`; `stats.linregress(x, y)`,
-`src/micro/momentum_scanner.py:95-116`). For a steadily rising series the two
-conventions give slopes of opposite sign, so the `+1 / -1` sign multiplier
-flips and the view's ranking order diverges from the Python path's.
+A mirror copy remains at `data/views.sql` for backward compatibility with the
+`duckdb data/market.duckdb < data/views.sql` CLI invocation. The refresh path
+resolves the DDL via `DBConfig.resolved_views_sql()` (tracked-first,
+data-dir fallback), so the version-controlled copy is always preferred when
+present. Both the clean-arch refresh (`DuckDBConnection.refresh_views`) and
+the legacy `ai_analysis.run_views_sql` loader now strip SQL comments before
+statement-splitting (the tracked DDL's header prose contains semicolons that
+previously broke the naive `split(';')`).
 
-> The CDD `design/cdd/market-data-storage.md` §4.4 currently states the view
-> "matches the canonical RSRS formula in module #5". That statement is
-> **inaccurate** for the sign convention; it is pending correction alongside
-> the `views.sql` fix.
+**Verification.** Cross-implementation parity holds: querying the live view
+and `MomentumRanker.calculate_rsrs` on the same 18-bar window agrees to 1e-5
+on both sign and magnitude for uptrend and downtrend tickers. Regression
+guard: `tests/migration/test_rsrs_view_sign_convention.py`
+(`test_perfectly_increasing_view_is_positive_one`) is now a hard assertion
+(the strict xfail that previously pinned the inversion was removed).
 
-**Operator guidance until the `views.sql` fix lands.** Prefer the **Python
-momentum path**, which is the canonical sign convention:
-
-- **Top200 CSV** — `MomentumRanker.analyze_market(...)` writes
-  `micro_report/Top200_Momentum_{CN,US}_*.csv` from the Python vectorized RSRS
-  (`src/micro/momentum_scanner.py:341,350-371`). This is the authoritative
-  ranking.
-- **`doge rsrs` CLI caveat** — `src/cli.py:57-67` `cmd_rsrs` currently reads
-  the **DuckDB view** (`vw_rsrs_ranking_cn/us`), so it inherits the sign
-  inversion. Until the view is fixed, do **not** treat `doge rsrs` output as
-  sign-canonical; use the Top200 CSV for ranking decisions.
-
-The MCP `rsrs_ranking` tool surfaces the same inverted view and carries the
-same caveat. This is tracked as a known issue pending the `views.sql` fix.
+**Operator guidance.** The MCP `rsrs_ranking` tool, the `doge rsrs` CLI, the
+Top200 CSV, and the DuckDB view now all use the same canonical sign
+convention. No workaround is required; the view output is sign-canonical.
 
 ---
 

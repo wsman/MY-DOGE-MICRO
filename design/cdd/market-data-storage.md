@@ -35,7 +35,8 @@ Resolved through `Settings().db` (`src/doge/config/settings.py:23-38`):
 | `us_db` | `<PROJECT_ROOT>/data/market_data_us.db` | `DOGE_US_DB` | US-share `stock_prices` rows |
 | `research_db` | `<PROJECT_ROOT>/data/research_insights.db` | `DOGE_RESEARCH_DB` | `macro_reports`, `research_reports`, `insights`, `knowledge_entities`, `knowledge_graph`, `stock_notes`, `stock_names` |
 | `duckdb` | `<PROJECT_ROOT>/data/market.duckdb` | `DOGE_DUCKDB_PATH` | Analytical engine file; hosts the views |
-| `views_sql` | `<PROJECT_ROOT>/data/views.sql` | (not overridable) | DDL executed by `DuckDBConnection.refresh_views()` |
+| `views_sql` | `<PROJECT_ROOT>/data/views.sql` | (not overridable) | DDL mirror executed by `DuckDBConnection.refresh_views()` as a backward-compat fallback (S003-005) |
+| `views_sql_tracked` | `src/doge/infrastructure/database/views.sql` | `DOGE_VIEWS_SQL_TRACKED` | **Canonical, version-controlled DDL** (S003-005). Preferred by `DBConfig.resolved_views_sql()` over the `data/` mirror when present |
 
 > **Legacy note (Current State vs Target)**: `src/micro/database.py` also opens a fourth legacy path `data/market_data.db` as the *default* when no path is supplied (`get_db_connection`, `database.py:15-16`). This default is **not** wired to `DBConfig` and is superseded by `init_db_custom(db_path)` calls in `market_scanner.py`. The target is to delete the un-parameterized default and route every open through `DBConfig`. See Open Questions.
 
@@ -197,7 +198,8 @@ The following constants/formulas/entities should later be promoted to `docs/regi
   - `storage.sqlite_db.us` — `market_data_us.db` (env `DOGE_US_DB`)
   - `storage.sqlite_db.research` — `research_insights.db` (env `DOGE_RESEARCH_DB`)
   - `storage.duckdb.path` — `market.duckdb` (env `DOGE_DUCKDB_PATH`)
-  - `storage.duckdb.views_sql` — `data/views.sql`
+  - `storage.duckdb.views_sql` — `data/views.sql` (backward-compat mirror)
+  - `storage.duckdb.views_sql_tracked` — `src/doge/infrastructure/database/views.sql` (canonical, version-controlled; S003-005)
   - `storage.view.vw_daily_enriched_cn` (columns as enumerated)
   - `storage.view.vw_rsrs_ranking_cn` / `vw_rsrs_ranking_us`
   - `storage.view.vw_market_breadth_cn` / `vw_market_breadth_us`

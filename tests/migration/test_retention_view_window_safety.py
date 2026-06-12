@@ -9,7 +9,7 @@ INTERVAL 730 DAYS).
 Pipeline under test:
   SQLite cn DB (seeded with N tickers x 400 calendar days)
     -> save_stock_data_custom(retention_days=None -> Settings default 730)
-    -> DuckDB views refreshed against the tmp SQLite (data/views.sql)
+    -> DuckDB views refreshed against the tmp SQLite (views.sql)
     -> SELECT from vw_market_breadth_cn
     -> assert MIN(date) <= today - 180d  (rows survive past the OLD 180d boundary)
 
@@ -20,10 +20,10 @@ Plus regression guards:
   - widest view window (max INTERVAL N DAYS) <= retention_days
 
 TRAP (per spec synthesis note #7): the DuckDB views are absent until
-data/views.sql is EXECUTED against the tmp DuckDB. This test does that
+views.sql is EXECUTED against the tmp DuckDB. This test does that
 explicitly between seed and assert — without it vw_market_breadth_cn is absent.
 
-TRAP #2: data/views.sql ATTACHes 'data/market_data_cn.db' by RELATIVE path.
+TRAP #2: views.sql ATTACHes 'data/market_data_cn.db' by RELATIVE path.
 The test rewrites those ATTACH paths in-flight to point at the tmp SQLite
 files so the view sees the seeded rows.
 """
@@ -46,7 +46,12 @@ from doge.config import get_settings
 from doge.config.settings import reset_settings
 from micro.database import init_db_custom, save_stock_data_custom
 
-VIEWS_SQL_PATH = _PROJECT_ROOT / "data" / "views.sql"
+# S003-005: the canonical, version-controlled DDL now ships inside the package
+# (src/doge/infrastructure/database/views.sql). The retention-window regex below
+# parses INTERVAL N DAYS from the same file the production refresh path executes.
+VIEWS_SQL_PATH = (
+    _PROJECT_ROOT / "src" / "doge" / "infrastructure" / "database" / "views.sql"
+)
 
 
 def _make_row(ticker: str, date_str: str, close: float) -> dict:
@@ -92,9 +97,9 @@ def _seed_cn_db(cn_db_path: str, tickers: list[str], calendar_days: int) -> None
 
 
 def _rewrite_attach_paths(sql_text: str, cn_db_path: str, us_db_path: str) -> str:
-    """Rewrite the relative ATTACH paths in data/views.sql to absolute tmp paths.
+    """Rewrite the relative ATTACH paths in views.sql to absolute tmp paths.
 
-    data/views.sql uses:
+    views.sql uses:
       ATTACH IF NOT EXISTS 'data/market_data_cn.db' AS cn (TYPE sqlite);
       ATTACH IF NOT EXISTS 'data/market_data_us.db' AS us (TYPE sqlite);
     We redirect both to the test-controlled tmp files so the view sees seeded rows.
@@ -117,7 +122,7 @@ def _rewrite_attach_paths(sql_text: str, cn_db_path: str, us_db_path: str) -> st
 def _strip_sql_comments(sql_text: str) -> str:
     """Remove full-line and trailing ``--`` comments so statement splitting on
     ``;`` yields executable bodies (mirrors the production refresh which parses
-    data/views.sql statement-by-statement). Inline ``--`` inside a statement is
+    views.sql statement-by-statement). Inline ``--`` inside a statement is
     left untouched where it begins a line.
     """
     cleaned_lines = []
@@ -134,7 +139,7 @@ def _strip_sql_comments(sql_text: str) -> str:
 
 
 def _refresh_views(duckdb_path: str, cn_db_path: str, us_db_path: str) -> None:
-    """Execute data/views.sql against a tmp DuckDB, creating the analytical views
+    """Execute views.sql against a tmp DuckDB, creating the analytical views
     over the tmp SQLite files. This is the catalog_generator refresh step the
     spec synthesis (note #7) warns is required or vw_market_breadth_cn is absent.
     """
@@ -232,7 +237,7 @@ class TestRetentionViewWindowSafety:
         )
 
     def test_widest_view_window_does_not_exceed_retention(self):
-        """Regression guard: parse data/views.sql, extract every INTERVAL N DAYS,
+        """Regression guard: parse views.sql, extract every INTERVAL N DAYS,
         assert max(N) <= retention_days. Prevents re-widening a view without
         raising retention. (vw_volume_anomalies_cn hard-codes '2025-01-01' not
         INTERVAL — it is naturally excluded by the regex.)
@@ -240,7 +245,7 @@ class TestRetentionViewWindowSafety:
         # Arrange
         sql_text = VIEWS_SQL_PATH.read_text(encoding="utf-8")
         windows = [int(m) for m in re.findall(r"INTERVAL\s+(\d+)\s+DAYS", sql_text, flags=re.IGNORECASE)]
-        assert windows, "no INTERVAL N DAYS found in data/views.sql — regex is stale"
+        assert windows, "no INTERVAL N DAYS found in views.sql — regex is stale"
         # Act / Assert
         widest = max(windows)
         retention = get_settings().market.retention_days

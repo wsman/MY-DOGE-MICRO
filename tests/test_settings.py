@@ -30,6 +30,7 @@ DOGE_PATH_VARS = [
     "DOGE_US_DB",
     "DOGE_RESEARCH_DB",
     "DOGE_DUCKDB_PATH",
+    "DOGE_VIEWS_SQL_TRACKED",
 ]
 
 
@@ -153,6 +154,56 @@ class TestDerivedProperties:
         # Act / Assert
         assert settings.stock_names_csv == settings.data_dir / "stock_names_cn.csv"
         assert settings.catalog_json == settings.data_dir / "catalog.json"
+
+
+class TestViewsSqlTrackedResolution:
+    """S003-005: the DuckDB view DDL is version-controlled inside the package.
+
+    ``views_sql_tracked`` points at src/doge/infrastructure/database/views.sql
+    (shipped in the repo); ``views_sql`` remains the data-dir mirror
+    (data/views.sql, gitignored). ``resolved_views_sql()`` prefers the tracked
+    copy and falls back to the data-dir mirror for backward compat.
+    """
+
+    def test_views_sql_tracked_points_inside_package(self):
+        # Arrange / Act
+        settings = get_settings()
+        # Assert — the tracked DDL lives with the database infrastructure layer.
+        assert settings.db.views_sql_tracked.name == "views.sql"
+        assert "infrastructure" in settings.db.views_sql_tracked.parts
+        assert "doge" in settings.db.views_sql_tracked.parts
+
+    def test_views_sql_mirror_still_derives_from_db_dir(self, monkeypatch, tmp_path):
+        # Arrange — DOGE_DB_DIR override must still propagate to the mirror path.
+        monkeypatch.setenv("DOGE_DB_DIR", str(tmp_path))
+        reset_settings()
+        # Act
+        db = get_settings().db
+        # Assert
+        assert db.views_sql == tmp_path / "views.sql"
+
+    def test_resolved_views_sql_prefers_tracked_when_present(self):
+        # Arrange — the tracked DDL ships with the repo, so it exists in this
+        # checkout. resolved_views_sql() must return it (not the data mirror).
+        settings = get_settings()
+        # Act / Assert
+        assert settings.db.views_sql_tracked.exists(), (
+            "tracked views.sql missing — the version-controlled DDL must ship "
+            "at src/doge/infrastructure/database/views.sql"
+        )
+        assert settings.db.resolved_views_sql() == settings.db.views_sql_tracked
+
+    def test_resolved_views_sql_falls_back_to_data_mirror_when_tracked_absent(
+        self, monkeypatch, tmp_path
+    ):
+        # Arrange — point the tracked path at a nonexistent file and confirm
+        # the resolver falls back to the data-dir mirror.
+        monkeypatch.setenv("DOGE_VIEWS_SQL_TRACKED", str(tmp_path / "nope.sql"))
+        reset_settings()
+        db = get_settings().db
+        # Act / Assert
+        assert not db.views_sql_tracked.exists()
+        assert db.resolved_views_sql() == db.views_sql
 
 
 class TestKnownConstants:

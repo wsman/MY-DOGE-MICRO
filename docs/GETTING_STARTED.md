@@ -84,6 +84,7 @@ is read via the `_env_path` / `_env_int` helpers (`settings.py:18-49`).
 | `DOGE_US_DB` | `{DOGE_DB_DIR}/market_data_us.db` | US-equity OHLCV SQLite database. |
 | `DOGE_RESEARCH_DB` | `{DOGE_DB_DIR}/research_insights.db` | Research notes + stock names SQLite database. |
 | `DOGE_DUCKDB_PATH` | `{DOGE_DB_DIR}/market.duckdb` | DuckDB analytical file (attached read-only to the SQLite sources for cross-database views). |
+| `DOGE_VIEWS_SQL_TRACKED` | `src/doge/infrastructure/database/views.sql` | Canonical, version-controlled DuckDB view DDL (S003-005). Preferred by the refresh path over the `data/views.sql` mirror when present. |
 
 > `DOGE_DUCKDB_PATH` is documented here but is currently **omitted** from the
 > older `docs/MCP_SERVER.md` env-var table (`docs/MCP_SERVER.md:386-389`) — a

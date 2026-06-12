@@ -72,7 +72,7 @@ kept ADR-0004/0007 gated.
 ### 3.3 Three "known issue" decisions (reviewer must rule)
 | Issue | Current state | Decision needed |
 |---|---|---|
-| **DuckDB vw_rsrs_ranking sign inversion** | xfail-pinned; Python path correct, SQL view inverts sign for monotonic series | Fix `data/views.sql` (`ORDER BY date DESC`→`ASC`) + re-materialize; **but views.sql is gitignored** → must also bring the DDL under version control (move into catalog_generator.py or a tracked .sql) |
+| **DuckDB vw_rsrs_ranking sign inversion** | **RESOLVED (S003-005, 2026-06-12)** — view now regresses on ASC time index (`rn_asc`); live view re-materialized; view+Python parity verified to 1e-5 on real tickers; DDL moved under VCS at `src/doge/infrastructure/database/views.sql`; strict `xfail` removed (now a hard regression guard) | n/a — done |
 | API router DI (§6 partial red) | data/macro/analysis/main still direct sqlite3.connect | Do deps.py + 6-router service-injection now, or defer to Wave 5? |
 | TDX adapter | tdx.py stub | Migrate now, or defer (blocks tdx_downloader full retirement + ADR-0004 promotion)? |
 

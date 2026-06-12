@@ -60,7 +60,8 @@ def generate_catalog():
         },
         "duckdb": {
             "path": "data/market.duckdb",
-            "views_sql": "data/views.sql",
+            "views_sql": "src/doge/infrastructure/database/views.sql",
+            "views_sql_mirror": "data/views.sql",
             "engine": "duckdb",
             "description": "Columnar analytics - reads SQLite zero-copy",
             "views": duckdb_views,

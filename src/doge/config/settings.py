@@ -51,13 +51,24 @@ def _env_int(name: str, default: int) -> int:
 
 @dataclass(frozen=True)
 class DBConfig:
-    """Database paths (override via env vars)."""
+    """Database paths (override via env vars).
+
+    ``views_sql_tracked`` (S003-005) is the **canonical, version-controlled**
+    DuckDB view DDL location, shipped inside the package at
+    ``src/doge/infrastructure/database/views.sql``. ``views_sql`` remains the
+    data-dir mirror (``data/views.sql``, gitignored) used by the legacy
+    ``duckdb data/market.duckdb < data/views.sql`` CLI invocation and as a
+    backward-compat fallback. Loaders resolve the DDL via
+    :meth:`resolved_views_sql` (tracked-first, data-dir fallback) so the
+    version-controlled copy is always preferred when present.
+    """
     dir: Path = field(default_factory=lambda: _env_path("DOGE_DB_DIR", _PROJECT_ROOT / "data"))
     cn_db: Path = field(init=False)
     us_db: Path = field(init=False)
     research_db: Path = field(init=False)
     duckdb: Path = field(init=False)
     views_sql: Path = field(init=False)
+    views_sql_tracked: Path = field(init=False)
 
     def __post_init__(self):
         object.__setattr__(self, "cn_db", _env_path("DOGE_CN_DB", self.dir / "market_data_cn.db"))
@@ -65,6 +76,35 @@ class DBConfig:
         object.__setattr__(self, "research_db", _env_path("DOGE_RESEARCH_DB", self.dir / "research_insights.db"))
         object.__setattr__(self, "duckdb", _env_path("DOGE_DUCKDB_PATH", self.dir / "market.duckdb"))
         object.__setattr__(self, "views_sql", self.dir / "views.sql")
+        # Tracked, version-controlled DDL — lives with the package, not under
+        # the gitignored data dir. Resolved relative to this settings module
+        # (src/doge/config/settings.py -> src/doge/infrastructure/database/).
+        _settings_dir = Path(__file__).resolve().parent
+        object.__setattr__(
+            self,
+            "views_sql_tracked",
+            _env_path(
+                "DOGE_VIEWS_SQL_TRACKED",
+                _settings_dir.parent / "infrastructure" / "database" / "views.sql",
+            ),
+        )
+
+    def resolved_views_sql(self) -> Path:
+        """Return the DDL path actually used by refresh loaders.
+
+        Prefers the tracked, version-controlled DDL
+        (:attr:`views_sql_tracked`) when it exists on disk; falls back to the
+        data-dir mirror (:attr:`views_sql`) for backward compatibility with
+        deployments that ship only ``data/views.sql``.
+
+        Returns:
+            The path whose contents the refresh path will execute. The path
+            may not exist (callers should handle the missing-file case as they
+            do today).
+        """
+        if self.views_sql_tracked.exists():
+            return self.views_sql_tracked
+        return self.views_sql
 
 
 @dataclass(frozen=True)
