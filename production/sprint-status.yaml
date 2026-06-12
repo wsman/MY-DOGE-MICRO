@@ -26,6 +26,9 @@ last_updated: "2026-06-12"
 # stories shipped: S002-001..013 done. ADR governance — ADR-0002/0003/0005
 # Accepted in S002; ADR-0009/0010 Accepted by Wave 4 review. ADR-0004/0007
 # remain Proposed with Promotion gate callouts.
+# 2026-06-12 (Sprint 003 ratified): Stage advanced Implementation → Verification
+# under CONCERNS verdict. Sprint 003 planning ratified; 6 Must-Haves, 4
+# Should-Haves, 3 Nice-to-Haves; TDX adapter formally deferred.
 
 sprints:
   - id: S001
@@ -226,6 +229,175 @@ sprints:
         effort: S
         owner: security-engineer
         status: done
+        blocking_gate: false
+
+  - id: S003
+    name: "Verification"
+    plan: production/sprints/sprint-003-verification.md
+    milestone: production/milestones/verification-milestone.md
+    epics_index: production/epics/index.md
+    start: "2026-06-12"
+    end: "2026-06-26"
+    status: in_progress
+    control_manifest: "2026-06-12"
+    duration_assumption: "2 weeks"
+    goal: >-
+      Complete Verification stage exit evidence and close high-impact CONCERNS
+      from the Implementation → Verification gate check: user-test validation,
+      QA/smoke plan, performance baseline, API router DI, RSRS view fix, and
+      governance decisions for ADR-0004/0007.
+    exit_criteria:
+      - "At least one user-test report exists in production/qa/evidence/user-tests/."
+      - "QA plan and smoke report cover at least 3 surfaces."
+      - "Performance baseline profile exists and is compared against declared budgets."
+      - "src/api/routers/ and src/api/main.py contain no direct sqlite3.connect / connect_duckdb calls."
+      - "RSRS DuckDB view sign convention matches Python path; DDL is version controlled."
+      - "ADR-0004 and ADR-0007 states are finalized with documented rationale."
+      - "python -m pytest -q green; web build and web tests green; layer gates pass."
+    stories:
+      - id: S003-001
+        title: "里程碑截止日定义 + Sprint 003 基线"
+        epic: ep-verification-evidence
+        tr: null
+        source: "gate-check producer concern: no milestone deadline"
+        priority: HIGH
+        effort: S
+        owner: producer
+        status: todo
+        blocking_gate: false
+
+      - id: S003-002
+        title: "核心工作流用户验证报告（scanner → report → archive）"
+        epic: ep-verification-evidence
+        tr: null
+        source: "gate-check creative concern: no user-validation evidence"
+        priority: HIGH
+        effort: M
+        owner: ux-designer
+        status: todo
+        blocking_gate: false
+        note: "Critical path — start Day 1 due to real-world scheduling uncertainty."
+
+      - id: S003-003
+        title: "API 路由依赖注入（deps.py + 路由脱离 sqlite3.connect）"
+        epic: ep-architecture-cleanup
+        tr: TR-041
+        source: "gate-check technical concern: direct DB connections in src/api/routers/"
+        priority: HIGH
+        effort: L
+        owner: python-specialist
+        status: todo
+        blocking_gate: false
+
+      - id: S003-005
+        title: "RSRS 视图符号修复 + DDL 版本化"
+        epic: ep-architecture-cleanup
+        tr: TR-016
+        source: "gate-check technical concern: DuckDB vw_rsrs_ranking sign inversion xfail-pinned"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: todo
+        blocking_gate: false
+
+      - id: S003-011
+        title: "QA / smoke 计划（Verification → Release 硬性交付物）"
+        epic: ep-verification-evidence
+        tr: null
+        source: "gate-check quality gap: no QA plan or smoke-check artifact"
+        priority: HIGH
+        effort: M
+        owner: qa-lead
+        status: todo
+        blocking_gate: false
+
+      - id: S003-012
+        title: "性能基线 profile"
+        epic: ep-verification-evidence
+        tr: null
+        source: "gate-check quality gap: no profiling data"
+        priority: HIGH
+        effort: M
+        owner: performance-analyst
+        status: todo
+        blocking_gate: false
+
+      - id: S003-006
+        title: "缺失的 per-view UX flow specs（ticker/archive/analysis/insights）"
+        epic: ep-ux-polish
+        tr: null
+        source: "gate-check creative/art concern: only scanner-flow.md exists"
+        priority: MED
+        effort: M
+        owner: ux-designer
+        status: todo
+        blocking_gate: false
+
+      - id: S003-007
+        title: "Art bible / product style guide + design tokens"
+        epic: ep-ux-polish
+        tr: null
+        source: "gate-check art concern: no art bible or product style guide"
+        priority: MED
+        effort: M
+        owner: art-director
+        status: todo
+        blocking_gate: false
+
+      - id: S003-008
+        title: "可访问性基线闭合"
+        epic: ep-ux-polish
+        tr: null
+        source: "gate-check art concern: accessibility doc has OPEN items"
+        priority: MED
+        effort: M
+        owner: accessibility-specialist
+        status: todo
+        blocking_gate: false
+
+      - id: S003-009
+        title: "5/6 视图的 loading/empty/error 三态补齐"
+        epic: ep-ux-polish
+        tr: TR-036
+        source: "gate-check art concern: triad gaps on 5 of 6 views"
+        priority: MED
+        effort: M
+        owner: typescript-specialist
+        status: todo
+        blocking_gate: false
+
+      - id: S003-010
+        title: "DeepSeek 密钥轮换操作"
+        epic: ep-verification-evidence
+        tr: TR-015
+        source: "S002-013 operator-only follow-up"
+        priority: MED
+        effort: S
+        owner: operator
+        status: todo
+        blocking_gate: false
+
+      - id: S003-013
+        title: "CORS（ADR-0007）延期决策记录"
+        epic: ep-governance
+        tr: null
+        source: "gate-check technical concern: ADR-0007 remains Proposed"
+        priority: MED
+        effort: S
+        owner: lead-programmer
+        status: todo
+        blocking_gate: false
+
+      - id: S003-014
+        title: "FRESH /architecture-review（ADR-0004/0007 终态签字）"
+        epic: ep-governance
+        tr: null
+        source: "gate-check governance follow-up"
+        priority: MED
+        effort: S
+        owner: lead-programmer
+        status: todo
+        depends_on: [S003-003, S003-005, S003-013]
         blocking_gate: false
 
 # Rollup counts (kept in sync with the stories list above).
