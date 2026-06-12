@@ -29,6 +29,9 @@ last_updated: "2026-06-12"
 # 2026-06-12 (Sprint 003 ratified): Stage advanced Implementation → Verification
 # under CONCERNS verdict. Sprint 003 planning ratified; 6 Must-Haves, 4
 # Should-Haves, 3 Nice-to-Haves; TDX adapter formally deferred.
+# 2026-06-12 (S003-012 + S003-013 done): perf baseline delivered (8/8 surfaces
+# within budget; harness tools/perf/profile_baseline.py + evidence) and CORS
+# deferral recorded (ADR-0007 stays Proposed, gated on S003-014). Rollup 5/13.
 
 sprints:
   - id: S001
@@ -325,8 +328,15 @@ sprints:
         priority: HIGH
         effort: M
         owner: performance-analyst
-        status: todo
+        status: done
         blocking_gate: false
+        note: >-
+          2026-06-12: reproducible harness tools/perf/profile_baseline.py (warmup + median of
+          5, local-only invariant, not pytest-collected) + evidence
+          production/qa/evidence/perf/perf-baseline-2026-06-12.md. All 8 surfaces PASS budget:
+          6 MCP tools + /api/health (1.27ms < 50ms) + CLI rsrs (865ms); slowest = list_views
+          ~2.9s (~9.6% of 30s TOOL_TIMEOUT). Import-only test tests/tools/test_perf_harness.py.
+          Adversarial review: PASS, 0 must-fix. Suite 503 passed/2 skip/5 xfail.
 
       - id: S003-006
         title: "缺失的 per-view UX flow specs（ticker/archive/analysis/insights）"
@@ -391,8 +401,15 @@ sprints:
         priority: MED
         effort: S
         owner: lead-programmer
-        status: todo
+        status: done
         blocking_gate: false
+        note: >-
+          2026-06-12: ADR-0007 §Deferral Decision (S003-013) records the Verification-stage
+          deferral (loopback bind 127.0.0.1:8901 => no remote reachability =>
+          allow_origins=['*'] acceptable for current scope; non-loopback bind REQUIRES CORS
+          allow-list tightening + auth first; promotion gated on S003-014 FRESH
+          /architecture-review). ADR-0007 STAYS Proposed (deferral, NOT promotion); gate-check
+          report cross-ref added. Adversarial review: 0 must-fix.
 
       - id: S003-014
         title: "FRESH /architecture-review（ADR-0004/0007 终态签字）"
@@ -411,11 +428,11 @@ rollup:
   sprint: S003
   total_stories: 13
   by_status:
-    todo: 10
+    todo: 8
     in_progress: 0
     blocked: 0
     review: 0
-    done: 3
+    done: 5
     deferred: 0
   by_priority:
     HIGH: 6
