@@ -8,7 +8,7 @@ import sqlite3
 from typing import List, Optional
 
 from doge.config import get_settings
-from doge.core.ports.repository import IStockRepository, IReportRepository
+from doge.core.ports.repository import IStockRepository, IReportRepository, ISchemaBrowser
 from .duckdb import DuckDBConnection
 from .sqlite import SQLiteConnection
 
@@ -77,6 +77,36 @@ class DuckDBStockRepository(IStockRepository):
                 LIMIT ?
             """
         df = self._conn.execute(sql, [ticker, days])
+        return df.to_dict(orient="records")
+
+    def get_kline(self, ticker: str, market: str, days: int = 120) -> List[dict]:
+        """Return OHLCV + indicators in the legacy /api/data kline shape.
+
+        The API contract expects ``atr_14`` (not ``atr14``) for CN and
+        ``amount`` for US. We query the same analytical views as
+        :meth:`get_prices` but select only the columns the router has always
+        returned, then sort ascending by date.
+        """
+        if market == "cn":
+            sql = """
+                SELECT date, open, high, low, close, volume,
+                       ma_5, ma_10, ma_20, ma_60,
+                       ROUND(atr_14, 2) AS atr_14
+                FROM vw_daily_enriched_cn
+                WHERE ticker = ?
+                ORDER BY date DESC
+                LIMIT ?
+            """
+        else:
+            sql = """
+                SELECT date, open, high, low, close, volume, amount
+                FROM us.stock_prices
+                WHERE ticker = ?
+                ORDER BY date DESC
+                LIMIT ?
+            """
+        df = self._conn.execute(sql, [ticker, days])
+        df = df.sort_values("date")
         return df.to_dict(orient="records")
 
     def get_overview(self, ticker: str, market: str) -> dict:
@@ -168,6 +198,13 @@ class SQLiteReportRepository(IReportRepository):
         )
         return dict(row) if row else None
 
+    def get_latest_macro_report(self) -> Optional[dict]:
+        """Return the single most recent macro report, or ``None``."""
+        row = self._conn.execute_one(
+            "SELECT * FROM macro_reports ORDER BY date DESC, timestamp DESC LIMIT 1"
+        )
+        return dict(row) if row else None
+
     def save_macro_report(
         self, *, content: str, risk_signal: str,
         volatility: str, tags: str, analyst: str,
@@ -201,6 +238,24 @@ class SQLiteReportRepository(IReportRepository):
                 (date_str, time_str, tags, analyst, title, content),
             )
             conn.commit()
+
+    def list_research_reports(self, limit: int = 100) -> List[dict]:
+        """List research reports ordered newest-first."""
+        rows = self._conn.execute(
+            """SELECT id, date, timestamp, tags, analyst, title
+               FROM research_reports
+               ORDER BY date DESC, timestamp DESC
+               LIMIT ?""",
+            (limit,),
+        )
+        return [dict(r) for r in rows]
+
+    def get_research_report(self, report_id: int) -> Optional[dict]:
+        """Fetch a single research report by id, or ``None``."""
+        row = self._conn.execute_one(
+            "SELECT * FROM research_reports WHERE id = ?", (report_id,)
+        )
+        return dict(row) if row else None
 
     def add_note(
         self, *, ticker: str, content: str, market: str,
@@ -236,3 +291,130 @@ class SQLiteReportRepository(IReportRepository):
             "SELECT ticker, name_cn, sector FROM stock_names"
         )
         return [dict(r) for r in rows]
+
+
+class SQLiteSchemaBrowser(ISchemaBrowser):
+    """Schema-introspection adapter backed by SQLiteConnection.
+
+    This adapter implements the generic table-browsing surface the API data
+    router exposes. It resolves DB paths from centralized settings and uses
+    the existing :class:`~doge.infrastructure.database.sqlite.SQLiteConnection`
+    adapter so no raw ``sqlite3.connect`` leaks into the interface layer.
+    """
+
+    _MARKET_TO_PATH_ATTR = {
+        "cn": "cn_db",
+        "us": "us_db",
+        "research": "research_db",
+    }
+
+    def __init__(self):
+        self._settings = get_settings()
+
+    def _db_path(self, market: str) -> str:
+        if market not in self._MARKET_TO_PATH_ATTR:
+            raise ValueError(f"unknown market: {market}")
+        return str(getattr(self._settings.db, self._MARKET_TO_PATH_ATTR[market]))
+
+    def list_tables(self, market: str) -> List[str]:
+        """Return sorted table names for ``market``; missing DB returns []."""
+        import os
+
+        db_path = self._db_path(market)
+        if not os.path.exists(db_path):
+            return []
+        conn = SQLiteConnection(db_path)
+        rows = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+        )
+        return [r[0] for r in rows]
+
+    def query_table(
+        self,
+        market: str,
+        table_name: str,
+        page: int = 1,
+        page_size: int = 50,
+        search: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        sort_order: str = "asc",
+    ) -> dict:
+        import os
+
+        db_path = self._db_path(market)
+        if not os.path.exists(db_path):
+            raise FileNotFoundError(f"database not found: {db_path}")
+
+        conn = SQLiteConnection(db_path, use_row_factory=True)
+        with conn.connect() as cursor_conn:
+            cur = cursor_conn.cursor()
+            # Validate table exists
+            cur.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                (table_name,),
+            )
+            if not cur.fetchone():
+                raise FileNotFoundError(f"table '{table_name}' not found")
+
+            # Column list
+            cur.execute(f"PRAGMA table_info([{table_name}])")
+            columns = [r[1] for r in cur.fetchall()]
+
+            # Build WHERE / params
+            where = ""
+            params: List[object] = []
+            if search and columns:
+                conditions = " OR ".join(
+                    [f"CAST([{col}] AS TEXT) LIKE ?" for col in columns[:5]]
+                )
+                where = f"WHERE {conditions}"
+                params = [f"%{search}%"] * min(5, len(columns))
+
+            # Total count
+            cur.execute(f"SELECT COUNT(*) FROM [{table_name}] {where}", params)
+            total = cur.fetchone()[0]
+
+            # Order
+            order = ""
+            if sort_by and sort_by in columns:
+                direction = "DESC" if sort_order == "desc" else "ASC"
+                order = f"ORDER BY [{sort_by}] {direction}"
+            elif "date" in columns and "ticker" in columns:
+                order = "ORDER BY date DESC, ticker ASC"
+
+            # Page
+            offset = (page - 1) * page_size
+            cur.execute(
+                f"SELECT * FROM [{table_name}] {where} {order} LIMIT ? OFFSET ?",
+                params + [page_size, offset],
+            )
+            rows = [dict(r) for r in cur.fetchall()]
+
+        return {
+            "columns": columns,
+            "rows": rows,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+        }
+
+    def database_stats(self) -> dict:
+        """Return row counts per table for all configured databases."""
+        import os
+
+        result = {}
+        for market, attr in self._MARKET_TO_PATH_ATTR.items():
+            db_path = str(getattr(self._settings.db, attr))
+            db_name = os.path.basename(db_path)
+            if not os.path.exists(db_path):
+                continue
+            conn = SQLiteConnection(db_path)
+            tables = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )
+            db_stats = {}
+            for (table_name,) in tables:
+                count = conn.execute_scalar(f"SELECT COUNT(*) FROM [{table_name}]")
+                db_stats[table_name] = count
+            result[db_name] = db_stats
+        return result

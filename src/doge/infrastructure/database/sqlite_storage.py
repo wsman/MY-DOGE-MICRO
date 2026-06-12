@@ -194,3 +194,6 @@ class SQLiteStorageRepository(IStockRepository):
 
     def get_sync_state(self, tickers):
         return self._read_repo.get_sync_state(tickers)
+
+    def get_kline(self, ticker: str, market: str, days: int = 120):
+        return self._read_repo.get_kline(ticker, market, days)

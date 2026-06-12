@@ -2,23 +2,16 @@
 宏观分析路由
 """
 
-import os
 import json
+import os
 import asyncio
 import threading
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 
-# S002-009 / TR-011: project root sourced from get_settings() (ADR-0001
-# forbidden pattern ``_PROJECT_ROOT`` dirname-walk). The module-global name is
-# KEPT so the contract test (tests/test_api_routers.py:151) can monkeypatch it
-# to a temp dir; only the *derivation* changed (settings vs os.path.dirname
-# walk). The router STILL does sqlite3.connect directly; the clean-layer
-# router DI is deferred to Batch-5 (out of scope here).
-from doge.config import get_settings
-
-_PROJECT_ROOT = str(get_settings().project_root)
+from doge.core.ports.repository import IReportRepository
+from doge.interfaces.api import deps
 
 router = APIRouter()
 
@@ -28,49 +21,36 @@ class MacroRunRequest(BaseModel):
 
 
 @router.get("/reports")
-async def list_macro_reports():
+async def list_macro_reports(
+    repo: IReportRepository = Depends(deps.get_report_repository),
+):
     """列出所有宏观报告"""
-    import sqlite3
-    db_path = os.path.join(_PROJECT_ROOT, "data", "research_insights.db")
+    db_path = str(deps.get_settings_dep().db.research_db)
     if not os.path.exists(db_path):
         return {"reports": []}
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    cur.execute("SELECT id, date, timestamp, tags, analyst, risk_signal, volatility FROM macro_reports ORDER BY date DESC, timestamp DESC")
-    reports = [dict(r) for r in cur.fetchall()]
-    conn.close()
-    return {"reports": reports}
+    return {"reports": repo.list_macro_reports()}
 
 
 @router.get("/reports/latest")
-async def latest_macro_report():
+async def latest_macro_report(
+    repo: IReportRepository = Depends(deps.get_report_repository),
+):
     """最新宏观报告"""
-    import sqlite3
-    db_path = os.path.join(_PROJECT_ROOT, "data", "research_insights.db")
+    db_path = str(deps.get_settings_dep().db.research_db)
     if not os.path.exists(db_path):
         raise HTTPException(404, "no reports")
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM macro_reports ORDER BY date DESC, timestamp DESC LIMIT 1")
-    row = cur.fetchone()
-    conn.close()
+    row = repo.get_latest_macro_report()
     if not row:
         raise HTTPException(404, "no reports")
     return dict(row)
 
 
 @router.get("/reports/{report_id}")
-async def get_macro_report(report_id: int):
-    import sqlite3
-    db_path = os.path.join(_PROJECT_ROOT, "data", "research_insights.db")
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM macro_reports WHERE id = ?", (report_id,))
-    row = cur.fetchone()
-    conn.close()
+async def get_macro_report(
+    report_id: int,
+    repo: IReportRepository = Depends(deps.get_report_repository),
+):
+    row = repo.get_macro_report(report_id)
     if not row:
         raise HTTPException(404, "not found")
     return dict(row)

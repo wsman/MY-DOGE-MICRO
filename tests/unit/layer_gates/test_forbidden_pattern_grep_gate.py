@@ -176,12 +176,43 @@ class TestDogeSysPathGate:
 
 
 # ---------------------------------------------------------------------------
+# src/api/ routers + main.py — interface-layer forbidden patterns (S003-003)
+# ---------------------------------------------------------------------------
+API_DIR = _SRC / "api"
+
+
+class TestApiRouterForbiddenPatterns:
+    """After S003-003 no src/api/ file imports sqlite3 or calls connect_duckdb."""
+
+    def test_no_sqlite3_or_connect_duckdb_in_api_layer(self):
+        """Broad §6 gate: src/api/**/*.py must be free of forbidden DB symbols."""
+        hits = _grep_dir(
+            [API_DIR],
+            ["import sqlite3", "sqlite3.connect", "connect_duckdb"],
+        )
+        assert hits == [], f"forbidden DB pattern in src/api: {hits}"
+
+    def test_api_deps_py_is_sanctioned_infra_site(self):
+        """deps.py is allowed to import infrastructure via composition.py.
+
+        The gate above would already fail if deps.py imported sqlite3/duckdb
+        directly; this test documents that deps.py is the intended seam.
+        """
+        assert (_SRC / "doge" / "interfaces" / "api" / "deps.py").exists(), "deps.py seam missing"
+
+
+# ---------------------------------------------------------------------------
 # Sanity: the remediated files still exist (no accidental deletion).
 # ---------------------------------------------------------------------------
 @pytest.mark.parametrize(
     "rel",
     [
         "api/routers/scan.py",
+        "api/routers/data.py",
+        "api/routers/macro.py",
+        "api/routers/analysis.py",
+        "api/main.py",
+        "doge/interfaces/api/deps.py",
         "micro/momentum_scanner.py",
         "micro/tdx_downloader.py",
     ],

@@ -4,42 +4,31 @@
 
 import json
 import os
-import sqlite3
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
+
+from doge.config import get_settings
+from doge.core.ports.repository import ISchemaBrowser, IStockRepository
+from doge.interfaces.api import deps
 
 # S002-009 / TR-011: project root sourced from get_settings() (ADR-0001
 # forbidden pattern ``_PROJECT_ROOT`` dirname-walk). The module-global name is
-# KEPT so the contract test (tests/test_api_routers.py:151,156) can monkeypatch
-# it / the _DB_MAP to a temp dir; only the *derivation* changed (settings vs
-# os.path.dirname walk). The router STILL does sqlite3.connect directly; the
-# clean-layer router DI is deferred to Batch-5 (out of scope here).
-from doge.config import get_settings
-
+# KEPT only for the ticker-names JSON cache, which is file I/O rather than a
+# database connection.
 _PROJECT_ROOT = str(get_settings().project_root)
-
-_DB_MAP = {
-    "cn": os.path.join(_PROJECT_ROOT, "data", "market_data_cn.db"),
-    "us": os.path.join(_PROJECT_ROOT, "data", "market_data_us.db"),
-    "research": os.path.join(_PROJECT_ROOT, "data", "research_insights.db"),
-}
 
 router = APIRouter()
 
 
 @router.get("/{market}/tables")
-async def list_tables(market: str):
-    if market not in _DB_MAP:
-        raise HTTPException(400, f"market must be one of {list(_DB_MAP.keys())}")
-    db_path = _DB_MAP[market]
-    if not os.path.exists(db_path):
-        return {"tables": []}
-    conn = sqlite3.connect(db_path)
-    cur = conn.cursor()
-    cur.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
-    tables = [r[0] for r in cur.fetchall()]
-    conn.close()
-    return {"tables": tables}
+async def list_tables(
+    market: str,
+    browser: ISchemaBrowser = Depends(deps.get_schema_browser),
+):
+    valid_markets = {"cn", "us", "research"}
+    if market not in valid_markets:
+        raise HTTPException(400, f"market must be one of {sorted(valid_markets)}")
+    return {"tables": browser.list_tables(market)}
 
 
 @router.get("/{market}/table/{table_name}")
@@ -51,104 +40,39 @@ async def query_table(
     search: Optional[str] = None,
     sort_by: Optional[str] = None,
     sort_order: str = Query("asc", pattern="^(asc|desc)$"),
+    browser: ISchemaBrowser = Depends(deps.get_schema_browser),
 ):
-    if market not in _DB_MAP:
+    valid_markets = {"cn", "us", "research"}
+    if market not in valid_markets:
         raise HTTPException(400, "invalid market")
-    db_path = _DB_MAP[market]
-    if not os.path.exists(db_path):
-        raise HTTPException(404, "database not found")
 
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-
-    # 安全检查表名
-    cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
-    if not cur.fetchone():
-        conn.close()
-        raise HTTPException(404, f"table '{table_name}' not found")
-
-    # 获取列名
-    cur.execute(f"PRAGMA table_info([{table_name}])")
-    columns = [r[1] for r in cur.fetchall()]
-
-    # 构建查询
-    where = ""
-    params = []
-    if search and columns:
-        conditions = " OR ".join([f"CAST([{col}] AS TEXT) LIKE ?" for col in columns[:5]])
-        where = f"WHERE {conditions}"
-        params = [f"%{search}%"] * min(5, len(columns))
-
-    # 总行数
-    cur.execute(f"SELECT COUNT(*) FROM [{table_name}] {where}", params)
-    total = cur.fetchone()[0]
-
-    # 排序
-    order = ""
-    if sort_by and sort_by in columns:
-        direction = "DESC" if sort_order == "desc" else "ASC"
-        order = f"ORDER BY [{sort_by}] {direction}"
-    elif "date" in columns and "ticker" in columns:
-        order = "ORDER BY date DESC, ticker ASC"
-
-    # 分页
-    offset = (page - 1) * page_size
-    cur.execute(f"SELECT * FROM [{table_name}] {where} {order} LIMIT ? OFFSET ?",
-                params + [page_size, offset])
-    rows = [dict(r) for r in cur.fetchall()]
-    conn.close()
-
-    return {
-        "columns": columns,
-        "rows": rows,
-        "total": total,
-        "page": page,
-        "page_size": page_size,
-    }
+    try:
+        return browser.query_table(
+            market=market,
+            table_name=table_name,
+            page=page,
+            page_size=page_size,
+            search=search,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(404, str(exc)) from exc
 
 
 @router.get("/{market}/ticker/{ticker}/kline")
-async def get_kline(market: str, ticker: str, days: int = Query(120, ge=1, le=365)):
+async def get_kline(
+    market: str,
+    ticker: str,
+    days: int = Query(120, ge=1, le=365),
+    repo: IStockRepository = Depends(deps.get_stock_repository),
+):
     """获取 K 线 OHLCV 数据 (含 MA 指标)"""
     if market not in ("cn", "us"):
         raise HTTPException(400, "market must be cn or us")
 
-    # NOTE: the body runs unwrapped (S002-009). Any failure (e.g. duckdb
-    # connection error) surfaces through the global Exception handler in
-    # src/api/main.py, which logs server-side and returns the stable
-    # {"error": {"code", "message"}} envelope — it never leaks str(e).
-    from src.ai_analysis import connect_duckdb
-    con = connect_duckdb()
-
-    if market == "cn":
-        view = "vw_daily_enriched_cn"
-        base_table = "cn.stock_prices"
-    else:
-        view = None
-        base_table = "us.stock_prices"
-
-    if view:
-        df = con.execute(f"""
-            SELECT date, open, high, low, close, volume,
-                   ma_5, ma_10, ma_20, ma_60, atr_14
-            FROM {view}
-            WHERE ticker = ?
-            ORDER BY date DESC
-            LIMIT ?
-        """, [ticker, days]).df()
-    else:
-        df = con.execute(f"""
-            SELECT date, open, high, low, close, volume, amount
-            FROM {base_table}
-            WHERE ticker = ?
-            ORDER BY date DESC
-            LIMIT ?
-        """, [ticker, days]).df()
-
-    con.close()
-    df = df.sort_values("date")
-    return {"data": df.to_dict(orient="records")}
+    data = repo.get_kline(ticker=ticker, market=market, days=days)
+    return {"data": data}
 
 
 # --- 股票名称映射缓存 ---
@@ -162,8 +86,7 @@ def _load_ticker_names(market: str) -> dict[str, str]:
 
     names: dict[str, str] = {}
 
-    # 1. 尝试从本地 JSON 文件加载 (S002-009: path derives from the
-    # monkeypatchable module-global _PROJECT_ROOT, no dirname walk here)
+    # 1. 尝试从本地 JSON 文件加载
     json_path = os.path.join(_PROJECT_ROOT, "data", f"{market}_ticker_names.json")
     if os.path.exists(json_path):
         try:

@@ -92,6 +92,7 @@ from src.api.routers import (  # noqa: E402
     macro as macro_router,
     notes as notes_router,
 )
+from doge.interfaces.api import deps  # noqa: E402
 
 # IMPORTANT: the notes router imports ``stock_notes`` via the fully-qualified
 # ``src.ai_analysis.stock_notes`` path (notes.py:25,38,55,65,75,88). That is a
@@ -137,31 +138,36 @@ def client():
 
 @pytest.fixture
 def temp_project_root(tmp_path, monkeypatch):
-    """Redirect every router's ``_PROJECT_ROOT`` and api_main's to a temp dir.
+    """Redirect DB paths and file-I/O roots to a temp dir.
 
-    This guarantees the read routers never see the live ``data/`` tree: the
-    temp dir starts empty, so DB-file-absent branches are exercised. Individual
-    tests create the specific DB files they need inside this temp root.
+    S003-003: routers now receive repositories via FastAPI ``Depends()`` rather
+    than module-global DB maps. The default providers resolve paths from
+    :func:`~doge.config.get_settings`, so we point ``DOGE_DB_DIR`` at the temp
+    ``data/`` directory and reset the settings singleton. ``_PROJECT_ROOT`` is
+    still monkeypatched for routers that perform file I/O (config JSON,
+    ticker-names JSON cache).
     """
     data_dir = tmp_path / "data"
     data_dir.mkdir()
-    for router in (
-        analysis_router, config_router, data_router, macro_router,
-    ):
+
+    # Point all Settings-derived DB paths at the temp data directory.
+    monkeypatch.setenv("DOGE_DB_DIR", str(data_dir))
+    from doge.config import settings as settings_module
+
+    settings_module.reset_settings()
+
+    # Clear any leftover dependency overrides from previous tests.
+    api_main.app.dependency_overrides = {}
+
+    # File-I/O routers still use module-global _PROJECT_ROOT.
+    for router in (config_router, data_router):
         monkeypatch.setattr(router, "_PROJECT_ROOT", str(tmp_path))
-    # api.main uses _PROJECT_ROOT for /api/stats
     monkeypatch.setattr(api_main, "_PROJECT_ROOT", str(tmp_path))
-    # The data router builds its _DB_MAP at import time from the original
-    # _PROJECT_ROOT, so it must be rebuilt against the temp root.
-    monkeypatch.setattr(
-        data_router, "_DB_MAP",
-        {
-            "cn": str(data_dir / "market_data_cn.db"),
-            "us": str(data_dir / "market_data_us.db"),
-            "research": str(data_dir / "research_insights.db"),
-        },
-    )
-    return tmp_path
+
+    yield tmp_path
+
+    # Ensure overrides never leak between tests.
+    api_main.app.dependency_overrides = {}
 
 
 @pytest.fixture
@@ -371,29 +377,29 @@ class TestDataRouter:
         r = client.get("/api/data/cn/ticker/000001.SZ/kline?days=99999")
         assert r.status_code == 422
 
-    def test_kline_success_returns_data_list(self, client, temp_project_root, monkeypatch):
-        # Success — connect_duckdb lazy import is monkeypatched to return
-        # deterministic rows (no live DuckDB / sqlite attach).
+    def test_kline_success_returns_data_list(self, client, temp_project_root):
+        # Success — the stock repository is replaced via dependency_overrides
+        # so the test uses deterministic rows (no live DuckDB / sqlite attach).
+        import pandas as pd
+        from doge.core.ports.repository import IStockRepository
+
         fake_df_rows = [
             {"date": "2026-06-10", "open": 10.0, "high": 10.5, "low": 9.8,
              "close": 10.2, "volume": 1000, "ma_5": 10.1, "ma_10": 10.0,
              "ma_20": 9.9, "ma_60": 9.5, "atr_14": 0.3},
         ]
-        fake_con = MagicMock()
-        # The handler calls .execute(...).df() then sort_values("date").
-        import pandas as pd
-        fake_con.execute.return_value.df.return_value = pd.DataFrame(fake_df_rows)
-        # Patch the connect_duckdb name the handler looks up inside src.ai_analysis.
-        import src.ai_analysis as ai_analysis_pkg
-        monkeypatch.setattr(ai_analysis_pkg, "connect_duckdb", lambda: fake_con)
+        fake_repo = MagicMock(spec=IStockRepository)
+        fake_repo.get_kline.return_value = fake_df_rows
+        api_main.app.dependency_overrides[deps.get_stock_repository] = lambda: fake_repo
 
         r = client.get("/api/data/cn/ticker/000001.SZ/kline?days=10")
         assert r.status_code == 200
         body = r.json()
         assert "data" in body and len(body["data"]) == 1
         assert body["data"][0]["close"] == 10.2
-        # The handler must close the connection (no resource leak).
-        fake_con.close.assert_called_once()
+        fake_repo.get_kline.assert_called_once_with(
+            ticker="000001.SZ", market="cn", days=10
+        )
 
     def test_ticker_names_rejects_invalid_market(self, client, temp_project_root):
         # Validation failure

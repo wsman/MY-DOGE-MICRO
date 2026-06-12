@@ -92,6 +92,28 @@ class IStockRepository(ABC):
         """
         ...
 
+    @abstractmethod
+    def get_kline(self, ticker: str, market: str, days: int = 120) -> List[dict]:
+        """Get OHLCV k-line data with moving-average indicators.
+
+        This is the API-facing contract for ``GET
+        /api/data/{market}/ticker/{ticker}/kline``. The returned records
+        preserve the existing field names ``date, open, high, low, close,
+        volume`` plus market-specific indicators:
+
+        - ``cn``: ``ma_5, ma_10, ma_20, ma_60, atr_14``
+        - ``us``: ``amount``
+
+        Args:
+            ticker: Ticker symbol (e.g. ``"000001.SZ"`` or ``"AAPL"``).
+            market: Market identifier (``"cn"`` or ``"us"``).
+            days: Number of trading days to return (ascending by date).
+
+        Returns:
+            A list of records, ascending by ``date``.
+        """
+        ...
+
 
 class IReportRepository(ABC):
     """Interface for research report / note data access."""
@@ -105,8 +127,23 @@ class IReportRepository(ABC):
         ...
 
     @abstractmethod
+    def get_latest_macro_report(self) -> Optional[dict]:
+        """Return the single most recent macro report, or ``None``."""
+        ...
+
+    @abstractmethod
     def save_macro_report(self, *, content: str, risk_signal: str,
                           volatility: str, tags: str, analyst: str) -> None:
+        ...
+
+    @abstractmethod
+    def list_research_reports(self, limit: int = 100) -> List[dict]:
+        """List research reports ordered newest-first."""
+        ...
+
+    @abstractmethod
+    def get_research_report(self, report_id: int) -> Optional[dict]:
+        """Fetch a single research report by id, or ``None``."""
         ...
 
     @abstractmethod
@@ -127,4 +164,69 @@ class IReportRepository(ABC):
 
     @abstractmethod
     def list_stock_names(self) -> List[dict]:
+        ...
+
+
+class ISchemaBrowser(ABC):
+    """Interface for low-level SQLite schema introspection.
+
+    This port lets the API data-browsing endpoints (``list_tables``,
+    ``query_table``, ``stats``) remain decoupled from ``sqlite3`` while still
+    supporting the generic table-exploration surface that is not a domain
+    stock/report query.
+    """
+
+    @abstractmethod
+    def list_tables(self, market: str) -> List[str]:
+        """Return table names in the database identified by ``market``.
+
+        Args:
+            market: One of ``"cn"``, ``"us"``, ``"research"``.
+
+        Returns:
+            Sorted list of table names. Missing DB files return ``[]``.
+        """
+        ...
+
+    @abstractmethod
+    def query_table(
+        self,
+        market: str,
+        table_name: str,
+        page: int = 1,
+        page_size: int = 50,
+        search: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        sort_order: str = "asc",
+    ) -> dict:
+        """Return a paginated, optionally filtered/sorted view of ``table_name``.
+
+        Args:
+            market: One of ``"cn"``, ``"us"``, ``"research"``.
+            table_name: Validated table name in the target DB.
+            page: 1-based page index.
+            page_size: Rows per page (``1..500``).
+            search: Optional substring matched against the first five textual
+                columns (combined with ``OR``).
+            sort_by: Optional column name to sort by.
+            sort_order: ``"asc"`` or ``"desc"``.
+
+        Returns:
+            ``{"columns": [...], "rows": [...], "total": int,
+            "page": int, "page_size": int}``.
+
+        Raises:
+            ValueError: When ``market`` is unknown.
+        """
+        ...
+
+    @abstractmethod
+    def database_stats(self) -> dict:
+        """Return row counts per table for all configured databases.
+
+        The implementation resolves the canonical DB paths from
+        :class:`~doge.config.settings.Settings` and returns a mapping of
+        ``{db_filename: {table_name: row_count}}``. Missing databases are
+        omitted.
+        """
         ...

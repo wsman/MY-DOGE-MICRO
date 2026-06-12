@@ -51,6 +51,8 @@ sys.path.insert(0, str(_PROJECT_ROOT))
 
 from src.api import main as api_main  # noqa: E402
 from src.api.routers import scan as scan_router  # noqa: E402
+from doge.interfaces.api import deps  # noqa: E402
+from doge.core.ports.repository import IStockRepository  # noqa: E402
 
 # The notes router imports stock_notes functions via the fully-qualified
 # ``from src.ai_analysis.stock_notes import <name>`` path inside each handler
@@ -108,16 +110,18 @@ class TestKlineInternalErrorEnvelope:
     def test_kline_internal_error_returns_stable_envelope_not_str_e(
         self, client, monkeypatch
     ):
-        # Arrange — force connect_duckdb to raise. The handler's
-        # ``from src.ai_analysis import connect_duckdb`` resolves this name at
-        # request time, so patching the package attribute is sufficient.
-        monkeypatch.setattr(ai_analysis_pkg, "connect_duckdb", _raise_boom)
+        # Arrange — force the stock repository dependency to raise. The
+        # kline handler now receives the repository via Depends(deps.get_stock_repository).
+        api_main.app.dependency_overrides[deps.get_stock_repository] = lambda: _raise_boom
 
-        # Act — valid market + ticker so the handler reaches connect_duckdb.
-        r = client.get("/api/data/cn/ticker/000001.SZ/kline?days=10")
+        try:
+            # Act — valid market + ticker so the handler reaches the repo call.
+            r = client.get("/api/data/cn/ticker/000001.SZ/kline?days=10")
 
-        # Assert — stable envelope, no leak.
-        _assert_internal_envelope(r)
+            # Assert — stable envelope, no leak.
+            _assert_internal_envelope(r)
+        finally:
+            api_main.app.dependency_overrides = {}
 
 
 # ===========================================================================

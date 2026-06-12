@@ -16,11 +16,13 @@ import os
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from doge.config import get_settings
+from doge.core.ports.repository import ISchemaBrowser
+from doge.interfaces.api import deps
 from src.api.routers import scan, data, notes, macro, analysis, config
 
 logger = logging.getLogger("doge.api")
@@ -101,28 +103,11 @@ async def health():
 
 
 @app.get("/api/stats")
-async def stats():
+async def stats(
+    browser: ISchemaBrowser = Depends(deps.get_schema_browser),
+):
     """数据库概览统计"""
-    import sqlite3
-    result = {}
-    # S002-009: the project root is the module-global (Settings-derived, and
-    # monkeypatchable by tests). DB paths derive from it so the test's
-    # temp-root redirect remains effective; no os.path.dirname walk here.
-    data_dir = os.path.join(_PROJECT_ROOT, "data")
-    for db_name in ["market_data_cn.db", "market_data_us.db", "research_insights.db"]:
-        db_path = os.path.join(data_dir, db_name)
-        if os.path.exists(db_path):
-            conn = sqlite3.connect(db_path)
-            cur = conn.cursor()
-            cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
-            tables = [r[0] for r in cur.fetchall()]
-            db_stats = {}
-            for t in tables:
-                cur.execute(f"SELECT COUNT(*) FROM [{t}]")
-                db_stats[t] = cur.fetchone()[0]
-            conn.close()
-            result[db_name] = db_stats
-    return result
+    return browser.database_stats()
 
 
 if __name__ == "__main__":
