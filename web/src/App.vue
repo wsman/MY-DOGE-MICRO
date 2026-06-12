@@ -4,6 +4,7 @@ import { darkTheme } from 'naive-ui'
 import {
   NConfigProvider, NMessageProvider, NButton, NSpace, NText, NTooltip,
 } from 'naive-ui'
+import { themeOverrides } from './styles/theme'
 import { useSplitTree } from './composables/useSplitTree'
 import SplitPane from './components/SplitPane.vue'
 
@@ -78,7 +79,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
 </script>
 
 <template>
-  <n-config-provider :theme="darkTheme">
+  <n-config-provider :theme="darkTheme" :theme-overrides="themeOverrides">
     <n-message-provider>
       <div class="app-root">
         <!-- Top toolbar -->
@@ -144,7 +145,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
 </template>
 
 <style>
-body { margin: 0; background: #1a1a2e; }
+body { margin: 0; background: var(--dgm-bg); font-family: var(--dgm-font-sans); }
 a { text-decoration: none; color: inherit; }
 * { box-sizing: border-box; }
 </style>
@@ -163,21 +164,21 @@ a { text-decoration: none; color: inherit; }
   align-items: center;
   justify-content: space-between;
   padding: 0 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--dgm-border);
+  background: var(--dgm-surface);
   flex-shrink: 0;
 }
 
 .app-title {
   font-size: 14px;
   letter-spacing: 1px;
-  background: linear-gradient(135deg, #63e2b7, #2196f3);
+  background: linear-gradient(135deg, var(--dgm-accent-warm), var(--dgm-accent));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .toolbar-sep {
-  color: rgba(255, 255, 255, 0.15);
+  color: var(--dgm-border-strong);
   font-size: 12px;
 }
 

@@ -1,0 +1,73 @@
+/**
+ * MY-DOGE-MICRO design tokens.
+ *
+ * Single source of truth for the dark-first palette. Every value below is a
+ * full rgba()/hex form usable directly inside var(...) — no bare alpha numbers
+ * that would break color-mix / gradient stops.
+ *
+ * Color conventions:
+ *   - Charts follow the CN market convention (red = up, teal = down).
+ *   - --dgm-status-unknown is decoration dots ONLY and must never be used for
+ *     text — it fails WCAG AA at any meaningful size.
+ *   - --dgm-text-faint was raised from 0.50 → 0.60 for added WCAG AA headroom
+ *     on small secondary text on the #1a1a2e base.
+ */
+:root {
+  /* ---- Surfaces & chrome ---- */
+  --dgm-bg: #1a1a2e;
+  --dgm-surface: rgba(255, 255, 255, 0.03);
+  --dgm-surface-hover: rgba(255, 255, 255, 0.06);
+  --dgm-border: rgba(255, 255, 255, 0.08);
+  --dgm-border-strong: rgba(255, 255, 255, 0.12);
+  --dgm-gridline: #2a2a3e;
+
+  /* ---- Text ---- */
+  --dgm-text: rgba(255, 255, 255, 0.95);
+  --dgm-text-muted: rgba(255, 255, 255, 0.82);
+  --dgm-text-faint: rgba(255, 255, 255, 0.60);   /* raised from 0.50 for added AA headroom */
+
+  /* ---- Accent & status ---- */
+  --dgm-accent: #2196f3;
+  --dgm-accent-warm: #63e2b7;
+  --dgm-status-ok: #63e2b7;
+  --dgm-status-fail: #ef5350;
+  --dgm-status-unknown: rgba(255, 255, 255, 0.30);   /* decoration dots ONLY, never text */
+
+  /* ---- Market / chart ---- */
+  --dgm-market-cn: #ef5350;
+  --dgm-market-us: #2196f3;
+  --dgm-chart-up: #ef5350;       /* CN convention: red = up */
+  --dgm-chart-down: #26a69a;
+  --dgm-chart-ma5: #2196f3;
+  --dgm-chart-ma20: #ff9800;
+  --dgm-chart-text: #d1d4dc;
+
+  /* ---- Table ---- */
+  --dgm-table-border: #3a3b52;
+
+  /* ---- Typography ---- */
+  --dgm-font-sans: 'Microsoft YaHei', 'PingFang SC', 'Hiragino Sans GB', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --dgm-font-mono: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+/* ---------------------------------------------------------------------------
+ * a11y reduced-motion baseline.
+ * Honors prefers-reduced-motion by collapsing every transition/animation to a
+ * near-zero duration (0.01ms keeps the property valid without snapping). The
+ * Naive UI n-progress indeterminate spinner is neutralized too.
+ * ------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Naive UI indeterminate progress bar spin */
+  .n-progress .n-progress-graph-line-indicator {
+    animation-duration: 0.01ms !important;
+  }
+}
