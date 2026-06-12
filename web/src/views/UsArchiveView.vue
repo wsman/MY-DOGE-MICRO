@@ -8,15 +8,21 @@
         <n-button size="small" @click="store.loadAllRows('us')">Refresh</n-button>
       </n-space>
     </div>
-    <VirtualTable
-      :columns="vtColumns"
-      :items="store.allRows"
-      :loading="store.loading"
-      :row-height="32"
-      row-key="ticker"
-      @row-click="onRowClick"
-      @scroll-end="onScrollEnd"
-    />
+    <StatusView
+      :status="derivedStatus"
+      :error="store.error"
+      empty-description="No rows match"
+      :on-retry="() => store.loadAllRows('us')"
+    >
+      <VirtualTable
+        :columns="vtColumns"
+        :items="store.allRows"
+        :row-height="32"
+        row-key="ticker"
+        @row-click="onRowClick"
+        @scroll-end="onScrollEnd"
+      />
+    </StatusView>
   </div>
 </template>
 
@@ -27,8 +33,27 @@ import { useMarketDataStore } from '../stores/marketData'
 import { getKline } from '../api/data'
 import VirtualTable from '../components/VirtualTable.vue'
 import type { VtColumn } from '../components/VirtualTable.vue'
+import StatusView from '../components/common/StatusView.vue'
 
 const store = useMarketDataStore()
+
+/**
+ * Derive the StatusView lifecycle from store state so a single source of truth
+ * drives loading / empty / error / idle. Order matters: loading wins over an
+ * existing error (the store nulls error at fetch start, but this guards the
+ * race), error wins over empty, and empty only when the fetch succeeded with
+ * zero rows. The VirtualTable lives in the default slot and renders only when
+ * idle, so we never show stale rows behind a skeleton or error banner.
+ */
+const derivedStatus = computed<'idle' | 'loading' | 'empty' | 'error'>(() =>
+  store.loading
+    ? 'loading'
+    : store.error
+      ? 'error'
+      : store.allRows.length === 0
+        ? 'empty'
+        : 'idle',
+)
 
 const vtColumns = computed<VtColumn[]>(() =>
   store.columns.map(col => ({

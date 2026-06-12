@@ -102,33 +102,37 @@
 
     <!-- Shared progress / log -->
     <div class="scanner-bottom">
-      <n-progress
-        v-if="store.isRunning"
-        :percentage="store.progress"
-        :indicator-placement="'inside'"
-        processing
-        style="margin-bottom: 6px"
-      />
+      <div aria-live="polite">
+        <n-progress
+          v-if="store.isRunning"
+          :percentage="store.progress"
+          :indicator-placement="'inside'"
+          processing
+          style="margin-bottom: 6px"
+        />
+      </div>
       <!-- Terminal-error banner: a dropped stream surfaces here instead of an
            infinite spinner. The watchdog (useSSE.ts) guarantees isRunning is
            false when status==='error', so the n-progress above is hidden. -->
-      <n-alert
-        v-if="terminalError"
-        type="error"
-        :title="terminalError.title"
-        style="margin-bottom: 6px"
-        closable
-      >
-        {{ terminalError.message }}
-        <n-button
-          size="tiny"
+      <div role="alert" aria-live="assertive">
+        <n-alert
+          v-if="terminalError"
           type="error"
-          style="margin-left: 8px"
-          @click="terminalError.retry()"
+          :title="terminalError.title"
+          style="margin-bottom: 6px"
+          closable
         >
-          Retry
-        </n-button>
-      </n-alert>
+          {{ terminalError.message }}
+          <n-button
+            size="tiny"
+            type="error"
+            style="margin-left: 8px"
+            @click="terminalError.retry()"
+          >
+            Retry
+          </n-button>
+        </n-alert>
+      </div>
       <n-log
         :rows="8"
         :log="logText"

@@ -162,4 +162,94 @@ describe('useMarketDataStore', () => {
       expect(store.tables).toEqual(['stock_prices', 'stock_indicators'])
     })
   })
+
+  /**
+   * S003-009 — error exposure. The store used to swallow fetch rejections
+   * (try/finally with no catch), silently blanking the table. These tests pin
+   * the new contract: a rejection is surfaced on `store.error` as a
+   * { code, message } object, `loading` returns to false, and a successful
+   * load clears any prior error.
+   */
+  describe('error exposure', () => {
+    it('loadAllRows surfaces a queryTable rejection on store.error and leaves allRows empty', async () => {
+      const { queryTable } = await import('../api/data')
+      vi.mocked(queryTable).mockRejectedValueOnce(new Error('network down'))
+
+      const store = useMarketDataStore()
+      // Must NOT throw — the catch surfaces it on store.error instead.
+      await expect(store.loadAllRows('cn')).resolves.toBeUndefined()
+
+      // error is a structured { code, message }, not the raw Error.
+      expect(store.error).not.toBeNull()
+      expect(typeof store.error!.code).toBe('string')
+      expect(store.error!.message).toBe('network down')
+      // loading is back to false (finally ran).
+      expect(store.loading).toBe(false)
+      // allRows stays empty (reset at the start, never repopulated).
+      expect(store.allRows).toEqual([])
+    })
+
+    it('loadAllRows clears store.error on a successful load', async () => {
+      const { queryTable } = await import('../api/data')
+      const store = useMarketDataStore()
+
+      // First, prime an error so we can prove the success path nulls it.
+      vi.mocked(queryTable).mockRejectedValueOnce(new Error('boom'))
+      await store.loadAllRows('cn')
+      expect(store.error).not.toBeNull()
+
+      // Second call succeeds — error must be cleared.
+      vi.mocked(queryTable).mockResolvedValueOnce({
+        columns: ['ticker'], rows: [{ ticker: '600519' }], total: 1,
+        page: 1, page_size: 50,
+      })
+      await store.loadAllRows('cn')
+
+      expect(store.error).toBeNull()
+      expect(store.loading).toBe(false)
+      expect(store.allRows).toEqual([{ ticker: '600519' }])
+    })
+
+    it('loadMoreRows surfaces a queryTable rejection on store.error (regression guard)', async () => {
+      const { queryTable } = await import('../api/data')
+      const store = useMarketDataStore()
+
+      // Prime state so loadMoreRows doesn't early-return on !hasMore: load a
+      // first page successfully (total > page size → hasMore stays true).
+      vi.mocked(queryTable).mockResolvedValueOnce({
+        columns: ['ticker'], rows: [{ ticker: 'A' }], total: 5,
+        page: 1, page_size: 50,
+      })
+      await store.loadAllRows('cn')
+      expect(store.hasMore).toBe(true)
+      expect(store.error).toBeNull()
+
+      // The next page rejects — must surface on store.error, not swallow.
+      vi.mocked(queryTable).mockRejectedValueOnce(new Error('page 2 dropped'))
+      await expect(store.loadMoreRows('cn')).resolves.toBeUndefined()
+
+      expect(store.error).not.toBeNull()
+      expect(store.error!.message).toBe('page 2 dropped')
+      expect(store.loading).toBe(false)
+    })
+
+    it('loadPage surfaces a queryTable rejection on store.error (regression guard)', async () => {
+      const { queryTable } = await import('../api/data')
+      // Axios-shaped rejection: server answered 503. Proves the structured
+      // { code: 'http_<status>', message } path is surfaced end-to-end.
+      vi.mocked(queryTable).mockRejectedValueOnce({
+        isAxiosError: true,
+        response: { status: 503, data: { error: { message: 'upstream busy' } } },
+        message: 'Request failed with status code 503',
+      })
+
+      const store = useMarketDataStore()
+      await expect(store.loadPage('cn')).resolves.toBeUndefined()
+
+      expect(store.error).not.toBeNull()
+      expect(store.error!.code).toBe('http_503')
+      expect(store.error!.message).toBe('upstream busy')
+      expect(store.loading).toBe(false)
+    })
+  })
 })

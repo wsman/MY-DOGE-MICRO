@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { listTables, queryTable, fetchTickerNames } from '../api/data'
+import { toFetchError } from '../utils/fetchError'
+import type { FetchError } from '../utils/fetchError'
 import type { KlineData } from '../types/stock'
 
 export const useMarketDataStore = defineStore('marketData', () => {
@@ -16,6 +18,10 @@ export const useMarketDataStore = defineStore('marketData', () => {
   const selectedTicker = ref<string | null>(null)
   const selectedMarket = ref<'cn' | 'us' | null>(null)
   const klineData = ref<KlineData[]>([])
+  // Surfaced fetch failure (null = no error). Reuses the SSE { code, message }
+  // vocabulary so views render one shape across streaming + one-shot fetches.
+  // null'd at the start of every fetch so a Retry clears the stale banner.
+  const error = ref<FetchError | null>(null)
 
   // Ticker name mapping
   const tickerNames = ref<Record<string, string>>({})
@@ -50,6 +56,7 @@ export const useMarketDataStore = defineStore('marketData', () => {
 
   async function loadPage(market: string) {
     loading.value = true
+    error.value = null
     try {
       const result = await queryTable(
         market, currentTable.value,
@@ -59,6 +66,9 @@ export const useMarketDataStore = defineStore('marketData', () => {
       columns.value = result.columns
       rows.value = result.rows
       total.value = result.total
+    } catch (e: unknown) {
+      // Surface the rejection instead of silently blanking the table.
+      error.value = toFetchError(e)
     } finally {
       loading.value = false
     }
@@ -67,6 +77,7 @@ export const useMarketDataStore = defineStore('marketData', () => {
   // -- Infinite scroll: load all data progressively --
   async function loadAllRows(market: string) {
     loading.value = true
+    error.value = null
     allRows.value = []
     page.value = 1
     hasMore.value = true
@@ -81,6 +92,10 @@ export const useMarketDataStore = defineStore('marketData', () => {
       total.value = result.total
       hasMore.value = allRows.value.length < total.value
       page.value = 1
+    } catch (e: unknown) {
+      // Surface the rejection — allRows stays [] from the reset above so the
+      // view can render the error banner without a stale partial list.
+      error.value = toFetchError(e)
     } finally {
       loading.value = false
     }
@@ -89,6 +104,7 @@ export const useMarketDataStore = defineStore('marketData', () => {
   async function loadMoreRows(market: string) {
     if (loading.value || !hasMore.value) return
     loading.value = true
+    error.value = null
     try {
       const nextPage = Math.floor(allRows.value.length / fetchPageSize.value) + 1
       const result = await queryTable(
@@ -100,6 +116,11 @@ export const useMarketDataStore = defineStore('marketData', () => {
       allRows.value = allRows.value.concat(result.rows)
       total.value = result.total
       hasMore.value = allRows.value.length < total.value
+    } catch (e: unknown) {
+      // Surface the rejection. The already-accumulated rows are left in place
+      // (the user keeps what loaded); only the failed page is lost, and the
+      // banner tells them why the scroll stopped.
+      error.value = toFetchError(e)
     } finally {
       loading.value = false
     }
@@ -107,7 +128,7 @@ export const useMarketDataStore = defineStore('marketData', () => {
 
   return {
     tables, currentTable, rows, columns, total, page, pageSize,
-    searchQuery, loading, selectedTicker, selectedMarket, klineData,
+    searchQuery, loading, error, selectedTicker, selectedMarket, klineData,
     tickerNames, showNames,
     allRows, hasMore, fetchPageSize,
     loadTables, loadPage, loadTickerNames, getTickerDisplayName,

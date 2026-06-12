@@ -11,15 +11,28 @@
         <n-button size="small" @click="store.loadAllRows('cn')">Refresh</n-button>
       </n-space>
     </div>
-    <VirtualTable
-      :columns="vtColumns"
-      :items="store.allRows"
-      :loading="store.loading"
-      :row-height="32"
-      row-key="ticker"
-      @row-click="onRowClick"
-      @scroll-end="onScrollEnd"
-    />
+    <!--
+      StatusView triad (S003-009): replace the bare VirtualTable so fetch failures
+      surface via store.error instead of silently blanking. Derived status maps
+      loading -> skeleton, error -> retryable n-result, empty -> "No rows match",
+      idle -> the real VirtualTable (default slot, only rendered when idle).
+    -->
+    <StatusView
+      :status="tableStatus"
+      :error="store.error"
+      empty-description="No rows match"
+      :on-retry="retry"
+    >
+      <VirtualTable
+        :columns="vtColumns"
+        :items="store.allRows"
+        :loading="false"
+        :row-height="32"
+        row-key="ticker"
+        @row-click="onRowClick"
+        @scroll-end="onScrollEnd"
+      />
+    </StatusView>
   </div>
 </template>
 
@@ -30,8 +43,28 @@ import { useMarketDataStore } from '../stores/marketData'
 import { getKline } from '../api/data'
 import VirtualTable from '../components/VirtualTable.vue'
 import type { VtColumn } from '../components/VirtualTable.vue'
+import StatusView from '../components/common/StatusView.vue'
 
 const store = useMarketDataStore()
+
+/**
+ * Lifecycle status for the table area. StatusView only yields its default slot
+ * (the VirtualTable) when this is `idle`, so a loading/error/empty state always
+ * replaces the table wholesale — no stale rows behind a skeleton or error.
+ * Order matters: loading wins over error (an in-flight retry clears the prior
+ * failure) and an explicit error wins over an empty result set.
+ */
+const tableStatus = computed<'idle' | 'loading' | 'empty' | 'error'>(() => {
+  if (store.loading) return 'loading'
+  if (store.error) return 'error'
+  if (store.allRows.length === 0) return 'empty'
+  return 'idle'
+})
+
+/** Retry a failed fetch via the store action bound by StatusView's Retry button. */
+function retry() {
+  store.loadAllRows('cn')
+}
 
 const vtColumns = computed<VtColumn[]>(() =>
   store.columns.map(col => {

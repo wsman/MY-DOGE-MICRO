@@ -1,39 +1,61 @@
 <template>
   <div class="insights-view">
-    <n-tabs type="line" animated>
+    <!--
+      View-level status triad (S003-009). `derived` folds loading + error into
+      the StatusView lifecycle: only `idle` yields the slot, so a loading
+      skeleton or error result replaces the tabs wholesale instead of rendering
+      stale content behind them. The modal/report-detail error path below is a
+      separate concern and is left as-is.
+    -->
+    <StatusView
+      :status="derivedStatus"
+      :error="error"
+      :on-retry="reload"
+      :skeleton-rows="6"
+    >
+      <n-tabs type="line" animated>
       <n-tab-pane name="macro" tab="Macro Reports">
-        <n-spin :show="loading">
-          <div class="masonry-container">
-            <VirtualMasonry
-              v-if="macroMasonryItems.length"
-              :items="macroMasonryItems"
-              font="14px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif"
-              :lineHeight="20"
-              :gap="12"
-              :bufferPx="200"
-              :maxColWidth="400"
-            >
-              <template #card="{ item }">
-                <n-card size="small" hoverable @click="showMacroReport(asMacro(item.raw))">
-                  <template #header>{{ asMacro(item.raw).date }} {{ asMacro(item.raw).timestamp }}</template>
-                  <template #header-extra>
-                    <n-tag :type="riskTagType(asMacro(item.raw).risk_signal)" size="small">
-                      {{ asMacro(item.raw).risk_signal }}
-                    </n-tag>
-                  </template>
-                  <n-text depth="3">{{ asMacro(item.raw).analyst }} | Vol: {{ asMacro(item.raw).volatility }}</n-text>
-                </n-card>
-              </template>
-            </VirtualMasonry>
-            <n-empty v-else description="No reports" />
-          </div>
-        </n-spin>
+        <div class="masonry-container">
+          <VirtualMasonry
+            v-if="macroMasonryItems.length"
+            :items="macroMasonryItems"
+            font="14px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif"
+            :lineHeight="20"
+            :gap="12"
+            :bufferPx="200"
+            :maxColWidth="400"
+          >
+            <template #card="{ item }">
+              <n-card size="small" hoverable @click="showMacroReport(asMacro(item.raw))">
+                <template #header>{{ asMacro(item.raw).date }} {{ asMacro(item.raw).timestamp }}</template>
+                <template #header-extra>
+                  <n-tag :type="riskTagType(asMacro(item.raw).risk_signal)" size="small">
+                    {{ asMacro(item.raw).risk_signal }}
+                  </n-tag>
+                </template>
+                <n-text depth="3">{{ asMacro(item.raw).analyst }} | Vol: {{ asMacro(item.raw).volatility }}</n-text>
+              </n-card>
+            </template>
+          </VirtualMasonry>
+          <n-empty v-else description="No reports" />
+        </div>
       </n-tab-pane>
 
       <n-tab-pane name="research" tab="Research Reports">
         <div class="masonry-container">
+          <!--
+            Research-tab empty state (S003-009). The view-level StatusView above
+            only knows about the aggregate fetch; once idle, an individual tab
+            can still have zero items, so we surface a scoped empty status here
+            rather than leaving the pane blank.
+          -->
+          <StatusView
+            v-if="!researchMasonryItems.length"
+            status="empty"
+            empty-description="No research reports"
+          />
           <VirtualMasonry
-            v-if="researchMasonryItems.length"
+            v-else
             :items="researchMasonryItems"
             font="14px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif"
             :lineHeight="20"
@@ -63,6 +85,7 @@
         </n-space>
       </n-tab-pane>
     </n-tabs>
+    </StatusView>
 
     <!-- Report Detail Modal -->
     <n-modal
@@ -92,6 +115,8 @@ import {
 } from 'naive-ui'
 import api from '../api/client'
 import VirtualMasonry from '../components/VirtualMasonry.vue'
+import StatusView from '../components/common/StatusView.vue'
+import { toFetchError, type FetchError } from '../utils/fetchError'
 import type { MacroReport, ResearchReport } from '../types/report'
 import type { MasonryItem } from '../components/VirtualMasonry.vue'
 
@@ -105,6 +130,10 @@ const asMacro = (raw: unknown): MacroReport => raw as MacroReport
 const asResearch = (raw: unknown): ResearchReport => raw as ResearchReport
 
 const loading = ref(false)
+// Structured fetch error surfaced through the view-level StatusView (S003-009).
+// Null while loading/idle; populated by the onMounted catch via toFetchError so
+// REST rejections render the same { code, message } shape the SSE path uses.
+const error = ref<FetchError | null>(null)
 const macroReports = ref<MacroReport[]>([])
 const researchReports = ref<ResearchReport[]>([])
 const trackedTickers = ref<{ ticker: string; note_count: number }[]>([])
@@ -131,6 +160,17 @@ const researchMasonryItems = computed<MasonryItem[]>(() =>
     raw: r,
   }))
 )
+
+/**
+ * Fold loading + error into the StatusView lifecycle for the view-level wrapper.
+ * Only `idle` yields the slot (the tabs), so a loading skeleton or error result
+ * replaces the tabs wholesale instead of rendering stale content behind them.
+ */
+const derivedStatus = computed<'loading' | 'error' | 'idle'>(() => {
+  if (loading.value) return 'loading'
+  if (error.value) return 'error'
+  return 'idle'
+})
 
 function riskTagType(signal: string) {
   const s = signal?.toLowerCase() || ''
@@ -167,8 +207,18 @@ async function showResearchReport(report: ResearchReport) {
   }
 }
 
-onMounted(async () => {
+/**
+ * Load the three report feeds in parallel. Previously the onMounted Promise.all
+ * only had a `finally`, so a rejection was swallowed and the panels silently
+ * blanked. Now any thrown value is normalized via toFetchError into the shared
+ * { code, message } shape and surfaced through the view-level StatusView.
+ *
+ * `reload` is the same body wired to StatusView's Retry button so the operator
+ * can re-attempt a failed fetch without reloading the page.
+ */
+async function reload() {
   loading.value = true
+  error.value = null
   try {
     const [macroRes, researchRes, trackedRes] = await Promise.all([
       api.get('/macro/reports'),
@@ -178,10 +228,14 @@ onMounted(async () => {
     macroReports.value = macroRes.data.reports
     researchReports.value = researchRes.data.reports
     trackedTickers.value = trackedRes.data.tickers || []
+  } catch (e) {
+    error.value = toFetchError(e)
   } finally {
     loading.value = false
   }
-})
+}
+
+onMounted(reload)
 </script>
 
 <style scoped>
@@ -190,20 +244,20 @@ onMounted(async () => {
 
 .modal-markdown-body {
   padding: 12px 16px;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--dgm-text-muted);
 }
 .modal-markdown-body :deep(h1),
 .modal-markdown-body :deep(h2),
 .modal-markdown-body :deep(h3) {
   margin: 16px 0 8px;
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--dgm-text);
 }
 .modal-markdown-body :deep(p) {
   margin: 8px 0;
   line-height: 1.6;
 }
 .modal-markdown-body :deep(code) {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--dgm-border);
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 13px;
@@ -228,7 +282,7 @@ onMounted(async () => {
 }
 .modal-markdown-body :deep(th),
 .modal-markdown-body :deep(td) {
-  border: 1px solid #3a3b52;
+  border: 1px solid var(--dgm-table-border);
   padding: 6px 10px;
   text-align: left;
 }
