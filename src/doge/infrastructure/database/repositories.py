@@ -8,7 +8,7 @@ import sqlite3
 from typing import List, Optional
 
 from doge.config import get_settings
-from doge.core.ports.repository import IStockRepository, IReportRepository, ISchemaBrowser
+from doge.core.ports.repository import IStockRepository, IReportRepository, ISchemaBrowser, INoteRepository
 from .duckdb import DuckDBConnection
 from .sqlite import SQLiteConnection
 
@@ -417,4 +417,281 @@ class SQLiteSchemaBrowser(ISchemaBrowser):
                 count = conn.execute_scalar(f"SELECT COUNT(*) FROM [{table_name}]")
                 db_stats[table_name] = count
             result[db_name] = db_stats
+        return result
+
+
+class SQLiteNoteRepository(INoteRepository):
+    """Stock note repository backed by SQLite with soft-delete support.
+
+    Uses :class:`~doge.infrastructure.database.sqlite.SQLiteConnection` for
+    all database access — no raw ``sqlite3.connect`` calls. The soft-delete
+    behavior (``deleted_at`` column) mirrors the legacy
+    ``src/ai_analysis/stock_notes.py`` contract: reads exclude rows where
+    ``deleted_at IS NOT NULL`` unless explicitly requested.
+    """
+
+    def __init__(self, conn: SQLiteConnection | None = None):
+        self._conn = conn or SQLiteConnection(use_row_factory=True)
+
+    # ------------------------------------------------------------------
+    # Schema helpers
+    # ------------------------------------------------------------------
+    def _ensure_deleted_at_column(self) -> None:
+        """Idempotently add the ``deleted_at`` column for soft-delete support.
+
+        Safe to call on any DB: issues ``PRAGMA table_info`` first and only
+        runs ``ALTER TABLE ... ADD COLUMN`` when the column is missing.
+        """
+        try:
+            rows = self._conn.execute("PRAGMA table_info(stock_notes)")
+            existing = {r[1] for r in rows}
+            if "deleted_at" not in existing:
+                with self._conn.connect() as conn:
+                    conn.execute(
+                        "ALTER TABLE stock_notes ADD COLUMN deleted_at TIMESTAMP"
+                    )
+                    conn.commit()
+        except sqlite3.OperationalError:
+            # Table does not exist yet (fresh test DB). Test fixtures create
+            # the table with deleted_at directly; nothing to migrate.
+            pass
+
+    # ------------------------------------------------------------------
+    # INoteRepository implementation
+    # ------------------------------------------------------------------
+    def add_note(
+        self,
+        ticker: str,
+        note_text: str,
+        *,
+        market: str = "cn",
+        note_type: str = "comment",
+        title: Optional[str] = None,
+        tags: Optional[str] = None,
+        price_at_note: Optional[float] = None,
+        source: Optional[str] = None,
+        sentiment: Optional[str] = None,
+    ) -> int:
+        """Persist a new note and return its id.
+
+        Dynamically detects available columns via ``PRAGMA table_info`` so
+        the INSERT works on both the full schema (with ``sentiment``) and
+        legacy schemas (without it). This preserves backward compatibility
+        with existing DB files that predate the ``sentiment`` column.
+        """
+        from datetime import datetime
+
+        now = datetime.now().isoformat(sep=" ", timespec="microseconds")
+
+        # Build INSERT dynamically based on existing columns (legacy-safe)
+        rows = self._conn.execute("PRAGMA table_info(stock_notes)")
+        existing_cols = {r[1] for r in rows}
+
+        field_values = {
+            "ticker": ticker,
+            "market": market,
+            "created_at": now,
+            "note_type": note_type,
+            "title": title,
+            "content": note_text,
+            "tags": tags,
+            "price_at_note": price_at_note,
+            "source": source,
+            "sentiment": sentiment,
+        }
+        # Only include fields whose columns exist in the table
+        present = {k: v for k, v in field_values.items() if k in existing_cols}
+        cols = ", ".join(present.keys())
+        placeholders = ", ".join("?" * len(present))
+        values = list(present.values())
+
+        with self._conn.connect() as conn:
+            cur = conn.execute(
+                f"INSERT INTO stock_notes ({cols}) VALUES ({placeholders})",
+                values,
+            )
+            conn.commit()
+            return cur.lastrowid
+
+    def delete_note(self, note_id: int) -> bool:
+        """Soft-delete a note by id. Returns ``True`` if a row was affected."""
+        from datetime import datetime
+
+        self._ensure_deleted_at_column()
+        now = datetime.now().isoformat(sep=" ", timespec="microseconds")
+        with self._conn.connect() as conn:
+            cur = conn.execute(
+                "UPDATE stock_notes SET deleted_at = ? "
+                "WHERE id = ? AND deleted_at IS NULL",
+                (now, note_id),
+            )
+            conn.commit()
+            return cur.rowcount > 0
+
+    def get_notes(
+        self,
+        ticker: Optional[str] = None,
+        include_deleted: bool = False,
+    ) -> List[dict]:
+        """Return notes, optionally filtered by ticker."""
+        self._ensure_deleted_at_column()
+        sql = "SELECT * FROM stock_notes WHERE 1=1"
+        params: List[object] = []
+        if ticker:
+            sql += " AND ticker = ?"
+            params.append(ticker)
+        if not include_deleted:
+            sql += " AND deleted_at IS NULL"
+        sql += " ORDER BY created_at DESC"
+        rows = self._conn.execute(sql, params)
+        return [dict(r) for r in rows]
+
+    def search_notes(self, keyword: str, limit: int = 50) -> List[dict]:
+        """Search note content and title (soft-deleted excluded)."""
+        self._ensure_deleted_at_column()
+        pattern = f"%{keyword}%"
+        rows = self._conn.execute(
+            """SELECT ticker, created_at, note_type, title, content
+               FROM stock_notes
+               WHERE (content LIKE ? OR title LIKE ?) AND deleted_at IS NULL
+               ORDER BY created_at DESC
+               LIMIT ?""",
+            (pattern, pattern, limit),
+        )
+        return [dict(r) for r in rows]
+
+    def get_recent_notes(self, days: int = 7, limit: int = 100) -> List[dict]:
+        """Return the most recent notes within a date window."""
+        self._ensure_deleted_at_column()
+        from datetime import datetime, timedelta
+        cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+        rows = self._conn.execute(
+            """SELECT ticker, market, created_at, note_type, title, content, tags
+               FROM stock_notes
+               WHERE created_at >= ? AND deleted_at IS NULL
+               ORDER BY created_at DESC
+               LIMIT ?""",
+            (cutoff, limit),
+        )
+        return [dict(r) for r in rows]
+
+    def list_tracked_tickers(self) -> List[dict]:
+        """Return tickers with active notes and their metadata."""
+        self._ensure_deleted_at_column()
+        rows = self._conn.execute(
+            """SELECT ticker, market, COUNT(*) AS n, MAX(created_at) AS last_note
+               FROM stock_notes WHERE deleted_at IS NULL
+               GROUP BY ticker, market
+               ORDER BY last_note DESC"""
+        )
+        return [dict(r) for r in rows]
+
+    def get_ticker_with_context(self, ticker: str, market: str = "cn") -> dict:
+        """Return composite view: name/sector from stock_names + notes + prices.
+
+        Mirrors the legacy ``src/ai_analysis/stock_notes.py`` response shape
+        including ``price_data`` from DuckDB and ``name_cn`` / ``name_en``
+        / ``sector`` / ``industry`` from ``stock_names``.
+
+        Error semantics (S004 Wave A / ADR-0007 envelope contract): the
+        DuckDB price block is BEST-EFFORT — if the price DB is unavailable
+        ``price_data`` stays ``None`` and no exception is raised (mirrors
+        legacy best-effort intent and keeps tests with no DuckDB file
+        working). All other blocks (name lookup, notes count + select)
+        PROPAGATE their exceptions so the global
+        ``@app.exception_handler(Exception)`` in ``src/api/main.py`` can
+        shape them into the stable ``{"error": {"code": "internal_error",
+        "message": "internal server error"}}`` envelope — the previously
+        ``except Exception`` swallows that stuffed errors into
+        ``price_error`` / ``notes_error`` keys were a parity regression
+        (the contract tests in ``tests/contract/test_api_error_envelope.py``
+        pin the propagating behavior).
+        """
+        self._ensure_deleted_at_column()
+        result: dict = {
+            "ticker": ticker,
+            "market": market,
+            "name_cn": None,
+            "name_en": None,
+            "sector": None,
+            "industry": None,
+            "price_data": None,
+            "notes": [],
+            "note_count_total": 0,
+        }
+
+        # 0. Name / sector / industry from stock_names. The table may simply be
+        #    absent (fresh DB / test fixture) — that is benign and leaves the
+        #    name fields None; genuine (non-OperationalError) faults propagate.
+        try:
+            row = self._conn.execute_one(
+                "SELECT name_cn, name_en, sector, industry FROM stock_names WHERE ticker = ?",
+                (ticker,),
+            )
+            if row:
+                result["name_cn"] = row["name_cn"] if hasattr(row, "keys") else row[0]
+                result["name_en"] = row["name_en"] if hasattr(row, "keys") else row[1]
+                result["sector"] = row["sector"] if hasattr(row, "keys") else row[2]
+                result["industry"] = row["industry"] if hasattr(row, "keys") else row[3]
+        except sqlite3.OperationalError:
+            # stock_names table absent (fresh DB / test fixture) — benign.
+            pass
+
+        # 1. Price data from DuckDB (BEST-EFFORT: stays None if DuckDB / the
+        #    price SQLite file is unavailable — do NOT raise).
+        try:
+            from doge.infrastructure.database.duckdb import DuckDBConnection
+            from doge.config import get_settings
+
+            settings = get_settings()
+            db_label = "cn" if market == "cn" else "us"
+            price_db_path = str(
+                settings.db.cn_db if db_label == "cn" else settings.db.us_db
+            ).replace("\\", "/")
+
+            # DuckDBConnection exposes a ``connect()`` context manager that
+            # yields a configured ``duckdb.DuckDBPyConnection`` (auto-attaches
+            # cn/us SQLite, closes on exit). The previous code used a
+            # non-existent ``con._conn`` attribute, which only worked because
+            # the surrounding ``try/except Exception`` swallowed the
+            # ``AttributeError``.
+            with DuckDBConnection(read_only=True).connect() as con:
+                con.execute(
+                    "ATTACH IF NOT EXISTS '{}' AS {} (TYPE sqlite)".format(
+                        price_db_path, db_label
+                    )
+                )
+                price_df = con.execute(
+                    """SELECT date, open, high, low, close, volume, amount
+                       FROM {}.stock_prices
+                       WHERE ticker = ?
+                       ORDER BY date DESC""".format(db_label),
+                    [ticker],
+                ).df()
+            if not price_df.empty:
+                result["price_data"] = price_df.to_dict(orient="records")
+        except Exception:
+            # Best-effort parity with legacy: if DuckDB / the price DB is
+            # unavailable (e.g. fresh test fixture with no DuckDB file),
+            # leave ``price_data`` as None and do NOT raise.
+            pass
+
+        # 2. Note count and notes (SQLite, soft-deleted excluded — errors
+        #    PROPAGATE to the global exception handler for envelope shaping).
+        count_row = self._conn.execute_one(
+            "SELECT COUNT(*) FROM stock_notes WHERE ticker = ? AND deleted_at IS NULL",
+            (ticker,),
+        )
+        if count_row:
+            result["note_count_total"] = count_row[0] if not hasattr(count_row, "keys") else count_row["COUNT(*)"]
+
+        rows = self._conn.execute(
+            """SELECT id, created_at, note_type, title, content, tags, price_at_note, source
+               FROM stock_notes
+               WHERE ticker = ? AND deleted_at IS NULL
+               ORDER BY created_at DESC LIMIT 20""",
+            (ticker,),
+        )
+        result["notes"] = [dict(r) for r in rows]
+
         return result

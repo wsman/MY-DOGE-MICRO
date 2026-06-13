@@ -12,7 +12,7 @@ layer invariant stays grep-able.
 """
 
 from doge.core.ports.market_view import IMarketViewRepository
-from doge.core.ports.repository import IReportRepository, ISchemaBrowser, IStockRepository
+from doge.core.ports.repository import IReportRepository, ISchemaBrowser, IStockRepository, INoteRepository
 from doge.core.services.anomaly_service import AnomalyService
 from doge.core.services.breadth_service import BreadthService
 from doge.core.services.ranking_service import RankingService
@@ -27,6 +27,7 @@ from doge.infrastructure.database.repositories import (
     DuckDBStockRepository,
     SQLiteReportRepository,
     SQLiteSchemaBrowser,
+    SQLiteNoteRepository,
 )
 
 
@@ -73,6 +74,11 @@ def build_report_repository() -> IReportRepository:
 def build_schema_browser() -> ISchemaBrowser:
     """Construct the default SQLite-backed schema browser."""
     return SQLiteSchemaBrowser()
+
+
+def build_note_repository() -> INoteRepository:
+    """Construct the default SQLite-backed note repository."""
+    return SQLiteNoteRepository()
 
 
 def build_ranking_service(

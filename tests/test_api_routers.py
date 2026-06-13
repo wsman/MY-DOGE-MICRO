@@ -46,9 +46,10 @@ without isolation"):
     throwaway SQLite file is created in the temp dir.
   - The kline endpoint's ``connect_duckdb`` lazy import is monkeypatched with a
     fake that returns deterministic rows.
-  - The notes endpoints' ``stock_notes`` module global ``NOTES_DB`` is
-    redirected to a temp SQLite file with a fresh ``stock_notes`` table
-    (mirrors tests/test_notes_crud.py).
+  - The notes endpoints receive an :class:`INoteRepository` via FastAPI
+    ``Depends(deps.get_note_repository)``; the ``notes_db`` fixture isolates
+    its SQLite path by setting ``DOGE_RESEARCH_DB`` and resetting the settings
+    singleton (S004 Wave A; mirrors the ``temp_project_root`` pattern).
   - The config endpoints' ``_PROJECT_ROOT`` is redirected to a temp dir so the
     ``models_config.json`` / ``user_settings.json`` reads/writes never touch the
     repo working tree.
@@ -94,13 +95,10 @@ from src.api.routers import (  # noqa: E402
 )
 from doge.interfaces.api import deps  # noqa: E402
 
-# IMPORTANT: the notes router imports ``stock_notes`` via the fully-qualified
-# ``src.ai_analysis.stock_notes`` path (notes.py:25,38,55,65,75,88). That is a
-# DIFFERENT module object than the bare ``ai_analysis.stock_notes`` that the
-# ``pythonpath = ["src"]`` pytest config would otherwise expose. We import the
-# qualified one and patch ITS ``NOTES_DB`` so the router reads/writes the temp
-# DB. (Patching the bare-name module has no effect on the router — verified.)
-from src.ai_analysis import stock_notes  # noqa: E402
+# S004 Wave A: the notes router now receives an ``INoteRepository`` via
+# ``Depends(deps.get_note_repository)``; the legacy ``stock_notes.NOTES_DB``
+# module global is no longer consulted. DB isolation for notes tests is done
+# via ``DOGE_RESEARCH_DB`` + settings reset in the ``notes_db`` fixture below.
 
 
 # ---------------------------------------------------------------------------
@@ -174,17 +172,38 @@ def temp_project_root(tmp_path, monkeypatch):
 def notes_db(tmp_path, monkeypatch):
     """A temp SQLite file with a fresh ``stock_notes`` table.
 
-    Redirects ``stock_notes.NOTES_DB`` so every lazy
-    ``from src.ai_analysis.stock_notes import ...`` inside the notes router
-    resolves against the temp DB.
+    S004 Wave A: the notes router now receives an :class:`INoteRepository`
+    via FastAPI ``Depends(deps.get_note_repository)``. The default provider
+    (:func:`doge.interfaces.api.deps.get_note_repository`) builds a
+    :class:`SQLiteNoteRepository` whose :class:`SQLiteConnection` resolves
+    its DB path from ``settings.db.research_db`` (ADR-0002). The legacy
+    ``stock_notes.NOTES_DB`` module global is no longer consulted by the
+    router, so patching it would silently leak notes into the real
+    ``data/research_insights.db``.
+
+    Mirrors the settings-based isolation in :func:`temp_project_root`:
+    set ``DOGE_RESEARCH_DB`` to the temp file path, reset the settings
+    singleton so the next ``get_settings()`` re-reads the env, and clear
+    any leftover FastAPI dependency overrides defensively.
     """
     db_path = tmp_path / "test_research_insights.db"
     conn = sqlite3.connect(str(db_path))
     conn.executescript(NOTES_SCHEMA_SQL)
     conn.commit()
     conn.close()
-    monkeypatch.setattr(stock_notes, "NOTES_DB", str(db_path))
-    return str(db_path)
+
+    monkeypatch.setenv("DOGE_RESEARCH_DB", str(db_path))
+    from doge.config import settings as settings_module
+
+    settings_module.reset_settings()
+    api_main.app.dependency_overrides = {}
+
+    yield str(db_path)
+
+    # Ensure overrides and the settings override never leak between tests.
+    api_main.app.dependency_overrides = {}
+    settings_module.reset_settings()
+    monkeypatch.delenv("DOGE_RESEARCH_DB", raising=False)
 
 
 def _make_cn_db(root: Path) -> str:

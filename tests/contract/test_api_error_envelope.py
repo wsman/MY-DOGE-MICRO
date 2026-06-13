@@ -54,14 +54,6 @@ from src.api.routers import scan as scan_router  # noqa: E402
 from doge.interfaces.api import deps  # noqa: E402
 from doge.core.ports.repository import IStockRepository  # noqa: E402
 
-# The notes router imports stock_notes functions via the fully-qualified
-# ``from src.ai_analysis.stock_notes import <name>`` path inside each handler
-# (notes.py:24,36,52,63,72). Patching the attribute on the
-# ``src.ai_analysis.stock_notes`` module object affects that re-import because
-# it executes per-request.
-import src.ai_analysis as ai_analysis_pkg  # noqa: E402
-import src.ai_analysis.stock_notes as stock_notes  # noqa: E402
-
 # A sentinel the global handler must NEVER echo back. It contains an absolute
 # path fragment (the real leak shape is a DB path) and the exception class name
 # so we can assert neither surfaces.
@@ -127,50 +119,103 @@ class TestKlineInternalErrorEnvelope:
 # ===========================================================================
 # notes router internal-error envelopes (5 leak sites, removed in S002-009)
 # ===========================================================================
+# S004 Wave A: the notes router now receives an :class:`INoteRepository` via
+# ``Depends(deps.get_note_repository)``. Error injection mirrors the kline test
+# above — install a FastAPI dependency override that returns an object whose
+# relevant method raises the sentinel, then clear it in ``finally`` so the
+# override never leaks into neighbouring tests.
+class _RaisingNoteRepository:
+    """Stand-in repository whose every method raises the leak sentinel.
+
+    Only the method the handler actually calls before responding needs to
+    raise; the others are present so the override is a drop-in for any
+    notes-route code path.
+    """
+
+    def get_ticker_with_context(self, *_a, **_k):
+        raise RuntimeError(_LEAK_SENTINEL)
+
+    def add_note(self, *_a, **_k):
+        raise RuntimeError(_LEAK_SENTINEL)
+
+    def search_notes(self, *_a, **_k):
+        raise RuntimeError(_LEAK_SENTINEL)
+
+    def get_recent_notes(self, *_a, **_k):
+        raise RuntimeError(_LEAK_SENTINEL)
+
+    def list_tracked_tickers(self, *_a, **_k):
+        raise RuntimeError(_LEAK_SENTINEL)
+
+
 class TestNotesInternalErrorEnvelope:
-    def test_get_ticker_context_internal_error_returns_envelope(
-        self, client, monkeypatch
-    ):
-        # Arrange — covers notes.py get_ticker_context leak site.
-        monkeypatch.setattr(stock_notes, "get_ticker_with_context", _raise_boom)
-        # Act
-        r = client.get("/api/notes/ticker/600000.SH")
-        # Assert
-        _assert_internal_envelope(r)
-
-    def test_add_note_internal_error_returns_envelope(self, client, monkeypatch):
-        # Arrange — covers notes.py add_note leak site.
-        monkeypatch.setattr(stock_notes, "add_note", _raise_boom)
-        # Act
-        r = client.post(
-            "/api/notes", json={"ticker": "600000.SH", "content": "x"}
+    def test_get_ticker_context_internal_error_returns_envelope(self, client):
+        # Arrange — covers notes.py get_ticker_context leak site. The handler
+        # calls ``repo.get_ticker_with_context``; the override raises.
+        api_main.app.dependency_overrides[deps.get_note_repository] = (
+            lambda: _RaisingNoteRepository()
         )
-        # Assert
-        _assert_internal_envelope(r)
+        try:
+            # Act
+            r = client.get("/api/notes/ticker/600000.SH")
+            # Assert
+            _assert_internal_envelope(r)
+        finally:
+            api_main.app.dependency_overrides = {}
 
-    def test_search_notes_internal_error_returns_envelope(self, client, monkeypatch):
+    def test_add_note_internal_error_returns_envelope(self, client):
+        # Arrange — covers notes.py add_note leak site.
+        api_main.app.dependency_overrides[deps.get_note_repository] = (
+            lambda: _RaisingNoteRepository()
+        )
+        try:
+            # Act
+            r = client.post(
+                "/api/notes", json={"ticker": "600000.SH", "content": "x"}
+            )
+            # Assert
+            _assert_internal_envelope(r)
+        finally:
+            api_main.app.dependency_overrides = {}
+
+    def test_search_notes_internal_error_returns_envelope(self, client):
         # Arrange — covers notes.py search_notes leak site.
-        monkeypatch.setattr(stock_notes, "search_notes", _raise_boom)
-        # Act
-        r = client.get("/api/notes/search?q=anything")
-        # Assert
-        _assert_internal_envelope(r)
+        api_main.app.dependency_overrides[deps.get_note_repository] = (
+            lambda: _RaisingNoteRepository()
+        )
+        try:
+            # Act
+            r = client.get("/api/notes/search?q=anything")
+            # Assert
+            _assert_internal_envelope(r)
+        finally:
+            api_main.app.dependency_overrides = {}
 
-    def test_recent_notes_internal_error_returns_envelope(self, client, monkeypatch):
+    def test_recent_notes_internal_error_returns_envelope(self, client):
         # Arrange — covers notes.py recent_notes leak site.
-        monkeypatch.setattr(stock_notes, "get_recent_notes", _raise_boom)
-        # Act
-        r = client.get("/api/notes/recent")
-        # Assert
-        _assert_internal_envelope(r)
+        api_main.app.dependency_overrides[deps.get_note_repository] = (
+            lambda: _RaisingNoteRepository()
+        )
+        try:
+            # Act
+            r = client.get("/api/notes/recent")
+            # Assert
+            _assert_internal_envelope(r)
+        finally:
+            api_main.app.dependency_overrides = {}
 
-    def test_tracked_tickers_internal_error_returns_envelope(self, client, monkeypatch):
+    def test_tracked_tickers_internal_error_returns_envelope(self, client):
         # Arrange — covers notes.py tracked_tickers leak site.
-        monkeypatch.setattr(stock_notes, "list_tracked_tickers", _raise_boom)
-        # Act
-        r = client.get("/api/notes/tracked")
-        # Assert
-        _assert_internal_envelope(r)
+        api_main.app.dependency_overrides[deps.get_note_repository] = (
+            lambda: _RaisingNoteRepository()
+        )
+        try:
+            # Act
+            r = client.get("/api/notes/tracked")
+            # Assert
+            _assert_internal_envelope(r)
+        finally:
+            api_main.app.dependency_overrides = {}
 
 
 # ===========================================================================

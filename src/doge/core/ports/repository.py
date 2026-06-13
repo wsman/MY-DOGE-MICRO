@@ -166,6 +166,136 @@ class IReportRepository(ABC):
     def list_stock_names(self) -> List[dict]:
         ...
 
+class INoteRepository(ABC):
+    """Interface for stock note / annotation data access.
+
+    This port decouples the note domain from the underlying SQLite storage.
+    All read methods exclude soft-deleted rows (``deleted_at IS NOT NULL``)
+    unless ``include_deleted=True`` is passed. The soft-delete behavior
+    mirrors the legacy ``src/ai_analysis/stock_notes.py`` contract.
+    """
+
+    @abstractmethod
+    def add_note(
+        self,
+        ticker: str,
+        note_text: str,
+        *,
+        market: str = "cn",
+        note_type: str = "comment",
+        title: Optional[str] = None,
+        tags: Optional[str] = None,
+        price_at_note: Optional[float] = None,
+        source: Optional[str] = None,
+        sentiment: Optional[str] = None,
+    ) -> int:
+        """Persist a new note and return its auto-generated id.
+
+        Args:
+            ticker: Ticker symbol (e.g. ``"000001.SZ"`` or ``"AAPL"``).
+            note_text: Free-form note content.
+            market: Market identifier (``"cn"`` or ``"us"``).
+            note_type: Note category (e.g. ``"comment"``, ``"research"``).
+            title: Optional note title.
+            tags: Optional comma-separated tag string.
+            price_at_note: Optional price snapshot at note creation.
+            source: Optional source identifier (e.g. ``"manual"``, ``"ai"``).
+            sentiment: Optional sentiment label (e.g. ``"bullish"``, ``"bearish"``).
+
+        Returns:
+            The integer ``id`` of the inserted row (``lastrowid``).
+        """
+        ...
+
+    @abstractmethod
+    def delete_note(self, note_id: int) -> bool:
+        """Soft-delete a note by id.
+
+        Marks ``deleted_at = <now>`` on the matching active row. Returns
+        ``True`` when a row was affected, ``False`` when no active note
+        with ``note_id`` exists.
+        """
+        ...
+
+    @abstractmethod
+    def get_notes(
+        self,
+        ticker: Optional[str] = None,
+        include_deleted: bool = False,
+    ) -> List[dict]:
+        """Return notes, optionally filtered by ticker.
+
+        Args:
+            ticker: When given, restrict to this ticker. When ``None``,
+                return notes for all tickers.
+            include_deleted: When ``True``, include soft-deleted rows.
+
+        Returns:
+            List of note records ordered newest-first.
+        """
+        ...
+
+    @abstractmethod
+    def search_notes(self, keyword: str, limit: int = 50) -> List[dict]:
+        """Full-text search over note content and title (soft-deleted excluded).
+
+        Args:
+            keyword: Substring matched with ``LIKE`` against ``content``
+                and ``title``.
+            limit: Maximum rows to return (default 50).
+
+        Returns:
+            Matching note records ordered newest-first, with columns
+            ``ticker, created_at, note_type, title, content``.
+        """
+        ...
+
+    @abstractmethod
+    def get_recent_notes(self, days: int = 7, limit: int = 100) -> List[dict]:
+        """Return the most recent notes within a date window.
+
+        Args:
+            days: Number of days back from today to include.
+            limit: Maximum rows to return (default 100).
+
+        Returns:
+            Note records ordered newest-first, with columns
+            ``ticker, market, created_at, note_type, title, content, tags``.
+        """
+        ...
+
+    @abstractmethod
+    def list_tracked_tickers(self) -> List[dict]:
+        """Return tickers with active notes and their metadata.
+
+        Returns:
+            List of dicts with keys ``ticker, market, n, last_note``,
+            ordered by ``last_note`` descending.
+        """
+        ...
+
+    @abstractmethod
+    def get_ticker_with_context(self, ticker: str, market: str = "cn") -> dict:
+        """Return a composite view of a ticker: prices, name, sector, notes.
+
+        The implementation is adapter-specific: the SQLite adapter may
+        return name/sector from ``stock_names`` and delegate price data
+        to a DuckDB view (or leave ``prices`` empty if DuckDB is not
+        available). Callers should handle missing optional keys gracefully.
+
+        Args:
+            ticker: Ticker symbol.
+            market: Market identifier (``"cn"`` or ``"us"``).
+
+        Returns:
+            A dict with keys such as ``ticker``, ``market``, ``name_cn``,
+            ``name_en``, ``sector``, ``industry``, ``price_data`` (list of
+            OHLCV dicts), ``notes`` (list of note dicts),
+            ``note_count_total`` (int). Optional keys may be present
+            depending on adapter capabilities.
+        """
+        ...
+
 
 class ISchemaBrowser(ABC):
     """Interface for low-level SQLite schema introspection.

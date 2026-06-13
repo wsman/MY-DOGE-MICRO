@@ -25,6 +25,7 @@ from doge.core.ports import (
     IMarketDataSource,
     IMarketViewRepository,
     IReportRepository,
+    ISchemaBrowser,
     IStockRepository,
     ITickerMetadataSource,
     ITickerNameCache,
@@ -150,6 +151,8 @@ def test_ports_all_exports_all_declared_ports():
     expected = {
         "IStockRepository",
         "IReportRepository",
+        "ISchemaBrowser",
+        "INoteRepository",
         "IMarketDataSource",
         "ITickerNameCache",
         "ITickerMetadataSource",
@@ -190,6 +193,7 @@ def test_all_named_core_ports_are_abstract():
     for cls in (
         IStockRepository,
         IReportRepository,
+        ISchemaBrowser,
         IMarketDataSource,
         ITickerNameCache,
         ITickerMetadataSource,
