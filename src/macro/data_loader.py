@@ -1,4 +1,4 @@
-import yfinance as yf
+import yfinance as yf  # noqa: F401 — retained for compatibility shims / tests
 import pandas as pd
 import numpy as np
 import logging
@@ -9,12 +9,20 @@ from scipy import stats
 from .config import MacroConfig
 
 # S005-006 / ADR-0004 Migration Plan step 2: the legacy macro-layer retry loop
-# now delegates to the shared MarketDataSource helper. This import crosses
-# from ``src/macro`` (legacy) into ``src/doge.infrastructure`` (clean tree) —
-# the intended migration direction per ADR-0004. A1 wiring (routing the call
-# through ``YFinanceDataSource``) is a separate story (S005-007) and is NOT
-# in scope here.
+# delegates to the shared MarketDataSource helper. This import crosses from
+# ``src/macro`` (legacy) into ``src/doge.infrastructure`` (clean tree) — the
+# intended migration direction per ADR-0004.
+#
+# S005-007 / ADR-0004 Migration Plan step 4: ``fetch_combined_data`` is now
+# routed through ``YFinanceDataSource`` (the IMarketDataSource adapter),
+# closing the last direct ``yfinance.download`` call in the macro engine.
+# The adapter returns a long 8-column frame; this module pivots/merges the
+# per-ticker frames into the WIDE Close-only frame (DatetimeIndex + columns
+# = ticker symbols) that ``calculate_metrics`` / ``calculate_advanced_metrics``
+# / ``DeepSeekStrategist`` consume. Behavior at the strategist boundary is
+# preserved — only the data SOURCE changes (direct yfinance → adapter).
 from doge.infrastructure.data_source._retry import fetch_with_retry, is_rate_limited
+from doge.infrastructure.data_source.yfinance import YFinanceDataSource
 
 logger = logging.getLogger(__name__)
 
@@ -34,14 +42,22 @@ class GlobalMacroLoader:
         """
         获取并清洗全球核心资产的历史价格数据。
 
-        1. 下载包括科技股(QQQ)、黄金(GLD)、数字货币(BTC-USD)及A股(000300.SS)在内的多资产历史数据。
+        1. 通过 ``YFinanceDataSource``（ADR-0004 MarketDataSource 适配器）下载
+           包括科技股(QQQ)、黄金(GLD)、数字货币(BTC-USD)及A股(000300.SS)在内
+           的多资产历史数据。S005-007 / ADR-0004 Migration Plan step 4: 原直接
+           ``yfinance.download`` 调用已路由到适配器；适配器返回 LONG 8-col 帧
+           (``date, open, high, low, close, volume, amount, ticker``)，本方法
+           将其 pivot/merge 为 strategist 期望的 WIDE Close-only 帧
+           (DatetimeIndex + columns=tickers)。
         2. 强制对齐到股票交易日（以 config.tech_proxy 为基准），剔除周末和节假日的非交易日期。
         3. 对缺失值进行前向填充，确保数据完整性。
         4. 截取指定数量的最近交易日数据作为最终输出。
 
         Args:
-            max_retries: 最大重试次数（默认3次）
-            retry_delay: 重试间隔秒数（默认5秒）
+            max_retries: 最大重试次数（默认3次）。适配器内部已自带重试逻辑；
+                此参数作为整体多资产下载的外层重试边界，保留以便单元测试
+                控制（``retry_delay=0``）。
+            retry_delay: 重试间隔秒数（默认5秒）。
 
         Returns:
             Optional[pd.DataFrame]: 包含所有资产价格的历史数据，按交易日对齐并截取最新 lookback_days 行。
@@ -61,7 +77,10 @@ class GlobalMacroLoader:
 
         # 配置代理：通过环境变量设置，让 yfinance 内部处理
         # 注意：新版本 yfinance 要求使用 curl_cffi 会话，不支持直接传入 requests.Session
-        # 因此改为设置环境变量，让 yfinance 自动使用代理
+        # 因此改为设置环境变量，让 yfinance 自动使用代理。
+        # S005-007: ``YFinanceDataSource`` 自身不触碰代理环境变量
+        # (data-sources.md §7)，沿用调用方进程的代理设置，因此继续在
+        # 宏观层做 set/restore —— 与原直接调用路径保持完全一致。
         original_http_proxy = None
         original_https_proxy = None
         if self.config.proxy_enabled and self.config.proxy_url:
@@ -75,28 +94,77 @@ class GlobalMacroLoader:
             logger.info(f"🔗 使用代理: {proxy_url}")
 
         try:
-            # 获取足够长的数据以确保 lookback window 有效（超额获取）
+            # 获取足够长的数据以确保 lookback window 有效（超额获取）。
+            # ``calculate_advanced_metrics`` 需要 20-day 滚动窗口 + NaN-drop，
+            # 因此过度获取 lookback_days * 1.65 + 20 天。S005-007 trap-1 修复
+            # 后，适配器 ``download_kline(count=fetch_days)`` 会实际获取
+            # max(fetch_days, period_days) 天，不再受 120-day period 限制。
             fetch_days = int(self.config.lookback_days * 1.65) + 20
 
             # 重试机制：解决 Yahoo Finance API 速率限制问题。
-            # S005-006 / ADR-0004: 现委托给共享 ``_retry.fetch_with_retry``
-            # 助手，与 ``YFinanceDataSource`` / ``TDXDataSource`` 使用同一
-            # 原语。行为保持一致：固定延迟、None-on-exhaustion、相同的
-            # 速率限制子串启发式判定。
+            # S005-006 / ADR-0004: 委托给共享 ``_retry.fetch_with_retry`` 助手。
+            # S005-007: 实际抓取通过 ``YFinanceDataSource.download_kline``
+            # 完成（适配器内部同样委托给 ``_retry.fetch_with_retry``）；
+            # 此处的外层重试包裹多资产下载的整体边界，保留 None-on-exhaustion
+            # 与速率限制日志语义，与原 ``yf.download`` 路径行为一致。
             def _on_retry(attempt: int, max_retries: int, exc: BaseException) -> None:
                 if is_rate_limited(exc):
                     logger.warning(f"触发 Yahoo Finance 速率限制，等待 {retry_delay} 秒后重试...")
                 else:
                     logger.info(f"第 {attempt} 次重试（共 {max_retries} 次）...")
 
+            def _fetch_via_adapter() -> pd.DataFrame:
+                """Fetch each ticker via the adapter; return a wide Close frame.
+
+                The macro tickers (QQQ/GLD/BTC-USD/000300.SS) are US-style —
+                ``000300.SS`` is already in yfinance-native form, and the
+                adapter's ``_to_yf_ticker`` passes it through unchanged
+                (only ``.SH`` is remapped to ``.SS``). All four use
+                ``market="us"`` so the adapter treats them as US tickers.
+                """
+                # Macro tickers are yfinance-US-style (incl. 000300.SS which
+                # yfinance accepts natively as a Shanghai ADR). Using
+                # ``market="us"`` avoids the adapter's .SH→.SS remap, which is
+                # a no-op for these symbols anyway.
+                adapter = YFinanceDataSource(
+                    max_retries=max_retries,
+                    retry_delay=retry_delay,
+                )
+                adapter.connect()
+
+                per_ticker_close: dict[str, pd.Series] = {}
+                for ticker in tickers:
+                    long_df = adapter.download_kline(
+                        ticker, market="us", count=fetch_days
+                    )
+                    if long_df is None or long_df.empty:
+                        logger.warning(
+                            "适配器未返回 %s 的数据（可能限速或代码无效）", ticker
+                        )
+                        continue
+                    # Long → Close Series indexed by trading date.
+                    # ``_normalize`` sorts ascending by date; reuse that order.
+                    close_series = pd.Series(
+                        long_df["close"].to_numpy(),
+                        index=pd.to_datetime(long_df["date"]),
+                        name=ticker,
+                    )
+                    per_ticker_close[ticker] = close_series
+
+                if not per_ticker_close:
+                    return pd.DataFrame()
+
+                # Outer-join on a common DatetimeIndex to preserve each
+                # ticker's own trading calendar (BTC trades weekends; QQQ/GLD
+                # do not). This reproduces the alignment that the original
+                # ``yf.download(tickers=[...])`` single round-trip produced —
+                # a unioned calendar with NaN where a ticker had no bar.
+                wide = pd.DataFrame(per_ticker_close)
+                wide.index.name = "Date"
+                return wide
+
             data = fetch_with_retry(
-                lambda: yf.download(
-                    tickers=tickers,
-                    period=f"{fetch_days}d",
-                    interval="1d",
-                    auto_adjust=True,
-                    progress=False,
-                ),
+                _fetch_via_adapter,
                 max_retries=max_retries,
                 retry_delay=retry_delay,
                 # The original macro loop catches EVERY exception and retries
@@ -112,15 +180,9 @@ class GlobalMacroLoader:
                 logger.error("下载的数据为空")
                 return None
 
-            # 兼容性处理
-            if isinstance(data.columns, pd.MultiIndex):
-                try:
-                    if 'Close' in data.columns.levels[0]:
-                        data = data['Close']
-                except:
-                    pass
-
-            # 数据清洗：对齐到股票交易日（以科技股代理资产为基准）
+            # 数据清洗：对齐到股票交易日（以科技股代理资产为基准）。
+            # 保留 ``tickers`` 声明顺序作为列顺序（strategist 遍历
+            # ``data.columns`` 时不依赖顺序，但保持确定性有助于日志/调试）。
             tech_col = str(self.config.tech_proxy)
             data = data.dropna(subset=[tech_col])  # type: ignore
             # 填充其他资产可能缺失的数据（如加密货币在交易日可能缺失）
@@ -128,19 +190,24 @@ class GlobalMacroLoader:
             # 丢弃仍包含 NaN 的行（例如首行数据缺失）
             data = data.dropna()
 
+            # 恢复 ``tickers`` 声明顺序（outer-join 按字典插入顺序保留，
+            # 但 ffill/dropna 不应改变列序；显式 reindex 以防回归）。
+            present_cols = [t for t in tickers if t in data.columns]
+            data = data[present_cols]
+
             # 确保返回恰好指定数量的交易日数据（截取最后 N 行）
             if len(data) >= self.config.lookback_days:
                 data = data.tail(self.config.lookback_days)
                 logger.info(f"成功获取 {len(data)} 个交易日的数据")
             else:
                 logger.warning(f"数据不足，仅获取到 {len(data)} 个交易日（配置要求: {self.config.lookback_days}）")
-            
+
             return data
-            
+
         except Exception as e:
             logger.error(f"数据下载失败: {e}")
             return None
-            
+
         finally:
             # 恢复原始环境变量
             if self.config.proxy_enabled and self.config.proxy_url:
@@ -148,7 +215,7 @@ class GlobalMacroLoader:
                     os.environ['HTTP_PROXY'] = original_http_proxy
                 else:
                     os.environ.pop('HTTP_PROXY', None)
-                    
+
                 if original_https_proxy is not None:
                     os.environ['HTTPS_PROXY'] = original_https_proxy
                 else:

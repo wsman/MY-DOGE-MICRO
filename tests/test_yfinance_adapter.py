@@ -128,13 +128,42 @@ def test_download_kline_cn_ticker_remaps_sh_to_ss(monkeypatch):
     fake = FakeYFinance({"600000.SS": _make_raw_frame(rows, ticker="600000.SS")}, call_log=call_log)
     monkeypatch.setitem(sys.modules, "yfinance", fake)
 
-    # Act
+    # Act — count=120 means fetch max(120, period_days=120) = 120 days
+    # (S005-007 trap-1 fix: fetch_days = max(count, period_days)).
     ds = YFinanceDataSource()
-    df = ds.download_kline("600000.SH", "cn")
+    df = ds.download_kline("600000.SH", "cn", count=120)
 
     # Assert — yfinance received the .SS suffix; output keeps canonical .SH
     assert call_log == [("600000.SS", "120d")]
     assert (df["ticker"] == "600000.SH").all()
+
+
+def test_download_kline_fetches_max_of_count_and_period_days(monkeypatch):
+    """S005-007 / trap 1 (window starvation): when ``count`` exceeds
+    ``period_days`` (default 120), the adapter must fetch ``count`` days so a
+    caller like the macro engine that over-fetches ~218 days for a rolling
+    window actually receives enough rows. Before this fix the adapter always
+    fetched ``period_days`` regardless of ``count``, silently starving any
+    caller that needed a longer window."""
+    rows = [
+        {"date": f"2026-06-{i:02d}", "open": float(i), "high": float(i + 1),
+         "low": float(i), "close": float(i), "volume": i * 100}
+        for i in range(1, 6)
+    ]
+    call_log = []
+    fake = FakeYFinance({"AAPL": _make_raw_frame(rows, ticker="AAPL")}, call_log=call_log)
+    monkeypatch.setitem(sys.modules, "yfinance", fake)
+
+    # Act — caller asks for 218 rows; period_days default is 120. Fetch must
+    # request 218d, NOT 120d.
+    ds = YFinanceDataSource()
+    ds.download_kline("AAPL", "us", count=218)
+
+    # Assert — exactly one yfinance call, and its period honors count > period_days.
+    assert len(call_log) == 1
+    requested_ticker, requested_period = call_log[0]
+    assert requested_ticker == "AAPL"
+    assert requested_period == "218d"
 
 
 def test_download_kline_trims_to_count(monkeypatch):

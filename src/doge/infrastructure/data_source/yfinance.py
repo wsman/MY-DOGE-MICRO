@@ -188,9 +188,14 @@ class YFinanceDataSource(IMarketDataSource):
             market: ``"cn"`` or ``"us"``.
             start: Ignored — yfinance is date/period based, not offset based.
                 Accepted for port-compatibility with TDX.
-            count: Upper bound on rows to return. The yfinance request asks
-                for ``period_days`` and the result is trimmed to the most
-                recent ``count`` rows.
+            count: Target row count for the returned frame. The yfinance
+                request asks for ``max(count, period_days)`` days so callers
+                that need a longer window than ``period_days`` (e.g. the
+                macro engine's ~218-day over-fetch for rolling metrics) get
+                enough rows. If the fetched result exceeds ``count`` rows,
+                it is trimmed to the most recent ``count`` rows; otherwise
+                it is returned as-is (which can be fewer than ``count`` when
+                the asset has a shorter listing).
 
         Returns:
             Canonical 8-column DataFrame, or ``None`` if every retry fails
@@ -203,15 +208,32 @@ class YFinanceDataSource(IMarketDataSource):
             than silenced so reviewers understand the semantic mismatch
             between the offset-based TDX contract and the period-based
             yfinance API.
+
+        Window starvation (S005-007 / ADR-0004 Migration Plan step 4):
+            Prior to S005-007 the request always fetched exactly
+            ``period_days`` (120) days regardless of ``count``, then trimmed
+            to ``count``. That starved callers like the macro engine which
+            over-fetch ~218 days so :meth:`calculate_advanced_metrics` has a
+            20-day rolling window plus NaN-drop headroom. Fetching
+            ``max(count, period_days)`` lets those callers pass
+            ``count=fetch_days`` and receive enough rows without each caller
+            having to split the YFinanceConfig.
         """
         del start  # offset semantics do not apply to yfinance (see docstring)
 
         yf_ticker = self._to_yf_ticker(ticker, market)
 
+        # S005-007 / trap 1 (window starvation): fetch enough days to satisfy
+        # ``count`` when a caller asks for more than ``period_days``. The
+        # ``_fetch_with_retry`` default fetcher maps ``period_days`` to the
+        # ``yf.download(period=...)`` argument, so passing the larger of the
+        # two yields one HTTP round-trip that covers the caller's window.
+        fetch_days = max(count, self.period_days)
+
         # Lazy import so tests can monkeypatch and so module import is free.
         import yfinance as yf  # type: ignore[import-not-found]
 
-        raw_df = self._fetch_with_retry(yf, yf_ticker)
+        raw_df = self._fetch_with_retry(yf, yf_ticker, period_days=fetch_days)
         if raw_df is None or raw_df.empty:
             logger.warning("yfinance returned empty data for %s (%s)", ticker, yf_ticker)
             return None
