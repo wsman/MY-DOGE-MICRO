@@ -1,0 +1,62 @@
+{
+  "session": "user-test-002",
+  "scenario": "first-run / cold start",
+  "date": "2026-06-13",
+  "build_commit": "1cba49b",
+  "overallVerdict": "partial",
+  "environment": {
+    "dogeDbDir": "logs/phase2-first-run/data",
+    "backend": "http://127.0.0.1:8901",
+    "web": "http://127.0.0.1:5174",
+    "opentdxInstalled": false
+  },
+  "install": {
+    "command": "python -m pip install -e .",
+    "status": "pass",
+    "notes": "Editable install succeeded; pre-existing invalid distribution warnings did not block install."
+  },
+  "startup": {
+    "apiHealth": {
+      "statusCode": 200,
+      "body": {"status": "ok"}
+    },
+    "webHealth": {
+      "statusCode": 200,
+      "bodyContains": "<div id=\"app\"></div>"
+    },
+    "startupFriction": "Direct backend startup is sensitive to a local external top-level src package; evidence run used a temporary bootstrap."
+  },
+  "emptyScan": {
+    "endpoint": "POST /api/scan/us",
+    "statusCode": 200,
+    "events": [
+      {"event": "progress", "progress": 0, "message": "no tdx_path provided, skipping local scan"},
+      {"event": "progress", "progress": 100, "message": "done"}
+    ],
+    "verdict": "pass"
+  },
+  "dataSurface": {
+    "stats": {
+      "market_data_cn.db": {},
+      "market_data_us.db": {"stock_prices": 0}
+    },
+    "usStockPricesQuery": {
+      "columns": ["ticker", "date", "open", "high", "low", "close", "volume", "amount"],
+      "rows": [],
+      "total": 0,
+      "page": 1,
+      "page_size": 5
+    },
+    "verdict": "pass"
+  },
+  "yfinanceFirstIngest": {
+    "ticker": "AAPL",
+    "market": "us",
+    "ok": false,
+    "rowsDownloaded": 0,
+    "rowsWritten": 0,
+    "reason": "yfinance returned None after upstream rate limit",
+    "upstreamSignal": "YFRateLimitError: Too Many Requests",
+    "verdict": "safe_degradation"
+  }
+}

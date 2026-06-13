@@ -19,6 +19,10 @@ The milestone is complete when all of the following are true:
 1. **User Validation Evidence**
    - [x] At least one documented operator workflow validation report exists in `production/qa/evidence/user-tests/`.
    - [x] Report covers an unguided end-to-end core workflow (e.g., scanner → report → archive).
+   - [x] Three product validation sessions exist for the Verification → Release gate:
+     - `user-test-001-2026-06-13.md` — core workflow.
+     - `user-test-002-2026-06-13.md` — first-run / cold start.
+     - `user-test-003-2026-06-13.md` — failure / recovery.
 
 2. **QA / Smoke Evidence**
    - [x] `production/qa/qa-plan-verification.md` exists.

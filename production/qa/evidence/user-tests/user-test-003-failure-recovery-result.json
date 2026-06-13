@@ -1,0 +1,40 @@
+{
+  "session": "user-test-003",
+  "scenario": "failure / recovery",
+  "date": "2026-06-13",
+  "build_commit": "1cba49b",
+  "overallVerdict": "pass",
+  "macroMissingKey": {
+    "command": "python -m macro.cli",
+    "environment": {"DEEPSEEK_API_KEY": "unset"},
+    "exitCode": 1,
+    "outputContains": [
+      "DEEPSEEK_API_KEY environment variable is not set",
+      "Set DEEPSEEK_API_KEY=<your-key>",
+      "请检查 DEEPSEEK_API_KEY 环境变量配置"
+    ],
+    "secretLeakObserved": false,
+    "verdict": "pass"
+  },
+  "apiErrorEnvelope": {
+    "request": "POST /api/scan/bad",
+    "statusCode": 400,
+    "body": {
+      "error": {
+        "code": "bad_request",
+        "message": "market must be 'cn' or 'us'"
+      }
+    },
+    "verdict": "pass"
+  },
+  "apiRecovery": {
+    "request": "POST /api/scan/us",
+    "statusCode": 200,
+    "events": [
+      {"event": "progress", "progress": 0, "message": "no tdx_path provided, skipping local scan"},
+      {"event": "progress", "progress": 100, "message": "done"}
+    ],
+    "restartRequired": false,
+    "verdict": "pass"
+  }
+}

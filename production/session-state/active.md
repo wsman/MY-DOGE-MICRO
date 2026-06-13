@@ -15,8 +15,11 @@ Approved plan: `C:\Users\WSMAN\.claude\plans\14-stateless-kahn.md`.
   deliberately — §4 API router DI, §4 RSRS view sign, §6 layer-rule gate —
   these are the Release-gate-relevant gaps tied to ADR-0004/0007 (Phase 3/5
   verifies). `sprint-status.yaml` S003 `status:` → `done`.
-- **Phase 2 PENDING (operator)**: 2 more user-test sessions — **first-run**
-  and **failure/recovery** (core workflow already covered by user-test-001).
+- **Phase 2 DONE**: 3 user-test sessions now exist for Release-gate coverage:
+  **core workflow** (`user-test-001`), **first-run/cold-start**
+  (`user-test-002`), and **failure/recovery** (`user-test-003`).
+  First-run verdict is PARTIAL because live yfinance ingest was rate-limited;
+  startup/empty-scan path passed. Failure/recovery verdict is PASS.
 - **Phase 3 PENDING**: `/team-polish` (will assess ADR-0004/0007; refuses to
   fix ADR-0007 scope until promoted — correct behavior).
 - **Phase 4 DECISION (operator + me, after Phase 3)**: promote ADR-0004/0007
@@ -183,7 +186,7 @@ Deferred items (documented; see readiness doc §4 for full disposition):
 <!-- STATUS -->
 Epic: Verification / Release-Ready v1
 Feature: Verification → Release gate prep
-Task: Phase 1 housekeeping done; Phase 2 (2 user-test sessions) next
+Task: Phase 2 validation evidence done; Phase 3 /team-polish next
 <!-- /STATUS -->
 
 ## Session Extract — /architecture-review 2026-06-13
