@@ -1,12 +1,6 @@
 """MCP tool: query_stock — delegates to StockService via the composition root."""
 
-import logging
-import sqlite3
-
-from doge.config import get_settings
-from doge.core.services.composition import build_stock_service
-
-logger = logging.getLogger(__name__)
+from doge.core.services.composition import build_note_repository, build_stock_service
 
 
 def normalize_ticker(ticker: str, market: str = "cn") -> str:
@@ -71,10 +65,9 @@ async def stock_overview(ticker: str, market: str = "cn") -> str:
 
     Parity-faithful with the legacy ``mcp_server.stock_overview``: emits name +
     sector (from the stock_names table), latest prices (via StockService), and a
-    笔记 block read from stock_notes with dynamic ``deleted_at`` filtering so
-    soft-deleted notes do not leak (CDD module #7 §3.3 / #8 fix). The clean
-    NoteRepository port is module #7's own scope; this tool reads the notes table
-    directly for output parity until that repository lands.
+    笔记 block read via the INoteRepository port (S004-003) so soft-deleted
+    notes do not leak (CDD module #7 §3.3 / #8 fix). No raw ``sqlite3`` in the
+    interface layer — name/notes access goes through the port.
     """
     t = normalize_ticker(ticker, market)
     svc = build_stock_service()
@@ -82,34 +75,15 @@ async def stock_overview(ticker: str, market: str = "cn") -> str:
 
     lines = [f"=== {t} ({market.upper()}) ==="]
 
-    # 名称 + 板块 + 笔记 — all read from the research SQLite in ONE connection
-    # (context-managed so it closes on exception). Soft-delete-aware: detect the
-    # deleted_at column once and filter it so soft-deleted notes do not leak.
-    name = sector = None
-    note_count = 0
-    notes = []
-    try:
-        with sqlite3.connect(str(get_settings().db.research_db)) as conn:
-            cur = conn.cursor()
-            row = cur.execute(
-                "SELECT name_cn, sector FROM stock_names WHERE ticker=?", (t,)
-            ).fetchone()
-            if row:
-                name, sector = row[0], row[1]
-            has_deleted_at = "deleted_at" in {
-                r[1] for r in cur.execute("PRAGMA table_info(stock_notes)").fetchall()
-            }
-            deleted_pred = " AND deleted_at IS NULL" if has_deleted_at else ""
-            note_count = cur.execute(
-                f"SELECT COUNT(*) FROM stock_notes WHERE ticker=?{deleted_pred}", (t,)
-            ).fetchone()[0]
-            notes = cur.execute(
-                f"SELECT created_at, content FROM stock_notes WHERE ticker=?{deleted_pred} "
-                f"ORDER BY created_at DESC LIMIT 5",
-                (t,),
-            ).fetchall()
-    except sqlite3.Error as exc:
-        logger.error("stock_overview SQLite error (names/notes): %s", exc, exc_info=True)
+    # 名称 + 板块 + 笔记 — read via the INoteRepository port (S004-003; no raw
+    # sqlite3 in the interface layer). get_ticker_with_context returns the name
+    # / sector from stock_names and the soft-delete-aware note count + newest
+    # notes; missing stock_names / notes degrade gracefully to None / empty.
+    ctx = build_note_repository().get_ticker_with_context(t, market)
+    name = ctx.get("name_cn")
+    sector = ctx.get("sector")
+    note_count = ctx.get("note_count_total", 0)
+    notes = ctx.get("notes", [])[:5]  # already newest-first; show the last 5
 
     if name:
         lines.append(f"名称: {name}")
@@ -129,8 +103,9 @@ async def stock_overview(ticker: str, market: str = "cn") -> str:
 
     if notes:
         lines.append(f"\n笔记 ({note_count} 条):")
-        for x in notes:
-            lines.append(f"  [{x[0]}] {x[1][:80]}")
+        for n in notes:
+            content = n.get("content") or ""
+            lines.append(f"  [{n.get('created_at', '')}] {content[:80]}")
     else:
         lines.append("\n暂无笔记")
 
