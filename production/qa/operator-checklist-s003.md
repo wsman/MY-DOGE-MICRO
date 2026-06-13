@@ -81,14 +81,26 @@ production/qa/evidence/user-tests/user-test-001-YYYY-MM-DD.md
 
 ---
 
-## S003-010 密钥轮换 (MED)
+## S003-010 DeepSeek 环境验证 (MED)
 
-> **Story**: S003-010 — DeepSeek 密钥轮换操作
+> **Story**: S003-010 — DeepSeek API key 环境可用性验证
 > **Owner**: operator
 > **Priority**: MED
-> **Gate**: ADVISORY — security hygiene; does not block Verification → Release
-> **Rationale**: The old DeepSeek API key was present in git history. Rotating it
-> closes the exposure even though the repo is private.
+> **Gate**: ADVISORY — environment readiness; does not block Verification → Release
+> **Rationale**: A forensic audit of the repository confirmed that no real
+> DeepSeek API key was ever committed to git history. The original key-rotation
+> trigger ("key present in git history") is therefore invalid; this task is
+> downgraded to verifying that `DEEPSEEK_API_KEY` is exported locally and that
+> `python -m macro.cli` can generate a macro report.
+>
+> **Forensic basis** (operator may re-run any of these):
+> - `git ls-files models_config.json` → empty (not tracked)
+> - `git log --all -- models_config.json` → zero commits
+> - `.gitignore:11` has ignored `models_config.json` since the initial commit
+> - `git log -p -- models_config.template.json` → placeholder only (`YOUR_API_KEY_HERE`, later `REPLACE_WITH_DEEPSEEK_API_KEY`)
+> - `git log --all -G 'sk-[A-Za-z0-9_-]{20,}'` → only fake test keys in `tests/`
+> - `git log -g` reflog → linear, no force-push/rewrite
+> - `git fsck --unreachable` + grep → no real key in dangling objects
 
 ### Security rules (mandatory)
 
@@ -98,22 +110,13 @@ production/qa/evidence/user-tests/user-test-001-YYYY-MM-DD.md
 | **Do NOT paste the key into this chat** | The session log is file-backed; treat it as semi-public |
 | **Do NOT record the plaintext key in any file** | No notes, no screenshots of the key string, no shell history if possible |
 
-The key must live only in:
-- The DeepSeek console (where you revoke/reissue), and
-- Your local system environment (see Step 2 below).
+The key must live only in your local system environment.
 
 ### Step-by-step procedure
 
-#### Step 1 — Revoke old key in DeepSeek console
+#### Step 1 — Set local environment variable
 
-- [ ] **S003-010-a** — Log in to [DeepSeek Platform](https://platform.deepseek.com/) (or the console URL you use).
-- [ ] **S003-010-b** — Navigate to API Keys.
-- [ ] **S003-010-c** — Revoke the old key that was previously committed to git history.
-- [ ] **S003-010-d** — Generate a new key. **Copy it once** and proceed immediately to Step 2.
-
-#### Step 2 — Set local environment variable
-
-- [ ] **S003-010-e** — Set `DEEPSEEK_API_KEY` in your system environment or shell profile:
+- [ ] **S003-010-a** — Set `DEEPSEEK_API_KEY` in your system environment or shell profile:
 
   **Windows (system env, persistent)**:
   ```powershell
@@ -131,10 +134,10 @@ The key must live only in:
   # Add the above to ~/.bashrc or ~/.bash_profile for persistence
   ```
 
-  > Replace `your-new-key-here` with the actual key from Step 1-d. Do not save
+  > Replace `your-new-key-here` with your actual DeepSeek API key. Do not save
   > this command with the real key into any file in the repo.
 
-- [ ] **S003-010-f** — Verify the variable is set in a **fresh** terminal:
+- [ ] **S003-010-b** — Verify the variable is set in a **fresh** terminal:
   ```bash
   # Windows PowerShell
   $env:DEEPSEEK_API_KEY
@@ -143,9 +146,9 @@ The key must live only in:
   ```
   Confirm it prints a non-empty value (do not paste the value into chat).
 
-#### Step 3 — Verify macro report generation
+#### Step 2 — Verify macro report generation
 
-- [ ] **S003-010-g** — Run the macro CLI to confirm the new key works:
+- [ ] **S003-010-c** — Run the macro CLI to confirm the key works:
   ```bash
   python -m macro.cli
   ```
@@ -160,8 +163,7 @@ The key must live only in:
 
 | Scenario | Action |
 |----------|--------|
-| DeepSeek console unreachable | Mark **BLOCKED** — record "DeepSeek console unavailable" as reason. |
-| Key revoked but new key generation fails | Mark **BLOCKED** — record the console error. |
+| `DEEPSEEK_API_KEY` is not set | Export it as shown in Step 1 and re-verify. |
 | `DEEPSEEK_API_KEY` set but `python -m macro.cli` fails with auth error | Double-check the key string (no extra spaces/quotes); if still failing, mark **BLOCKED** with the CLI stderr. |
 | Network/provider failure (not auth) | Mark **BLOCKED** — record the network error; this is an operator blocker, not a "done" state. |
 
@@ -179,9 +181,9 @@ The key must live only in:
 
 - [ ] S003-002 user-test report exists with all required fields.
 - [ ] S003-002 core promise satisfied (or documented blockers recorded).
-- [ ] S003-010 old key revoked and new key active in DeepSeek console.
 - [ ] S003-010 `DEEPSEEK_API_KEY` exported in local environment.
 - [ ] S003-010 `python -m macro.cli` produces a macro report (or blocked with reason).
+- [ ] S003-010 forensic note recorded: no real key was committed to git history.
 
 ---
 

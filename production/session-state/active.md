@@ -1,21 +1,59 @@
 # Active Session State
 
 > Living checkpoint. Gitignored. Read this first after any compaction/crash.
-> Branch: `cdd-adoption-2026-06-11` · Date: 2026-06-12
+> Branch: `cdd-adoption-2026-06-11` · Date: 2026-06-13
 
 ## Current Task
 
-**Sprint 003 — Verification execution**
+**Sprint 003 — Verification closure artifacts (Step 1–3 done)**
 (`production/sprints/sprint-003-verification.md`, milestone `production/milestones/verification-milestone.md`).
 Stage advanced Implementation → Verification under CONCERNS verdict
 (`production/gate-checks/gate-implementation-verification-2026-06-12.md`).
-Release-Ready v1 plan complete; now executing Verification sprint to close
-high-impact CONCERNS and prepare for Verification → Release gate.
 
-- 6 Must-Haves, 4 Should-Haves, 3 Nice-to-Haves.
-- TDX adapter (S003-004) formally deferred.
-- Critical path: S003-002 user-test validation — start Day 1.
-- Governance: S003-014 requires a FRESH `/architecture-review` session.
+- Sprint 003 status synchronized: **10/13 done**, 3 remaining.
+- S003-001 marked done; sprint-status.yaml + sprint plan aligned.
+- S003-014 fresh `/architecture-review` brief created.
+- S003-002 + S003-010 operator checklist created.
+- Remaining work is operator-only / fresh-session governance:
+  - S003-002: unguided user walkthrough → `production/qa/evidence/user-tests/user-test-001-YYYY-MM-DD.md`.
+  - S003-010: verify `DEEPSEEK_API_KEY` env availability + run `python -m macro.cli`.
+  - S003-014: run `/architecture-review` in a fresh session using the brief.
+
+## Latest Verification Run (2026-06-13)
+
+- `python -m pytest -q` → **508 passed, 2 skipped, 0 failed** (PyQt6 DLL-load fatal exception remains ADVISORY-only; test skips cleanly).
+- `cd web && npm test` → **70 passed**.
+- `cd web && npm run build` → **green**.
+
+SSE transport test (`tests/test_transport.py::TestSseTransport::test_sse_endpoint_exists`) was failing due to a stale `.mcp_server.pid` file with 99 entries causing synchronous `wmic` subprocess calls to block the async SSE lifespan. Fixed in commit `02369b2`.
+
+## Blockers Cleared
+
+- ✅ SSE transport test stable.
+- ⏳ S003-002 / S003-010 / S003-014 remain operator-only / fresh-session work.
+
+## Next Step
+
+进入 Sprint 003 最后三项外部/治理收尾。执行顺序已确认：
+
+1. **S003-010** — DeepSeek key environment verification（operator-only）
+2. **S003-002** — 无引导用户走查，产物 `production/qa/evidence/user-tests/user-test-001-2026-06-13.md`
+3. **S003-014** — 新开会话运行 `/architecture-review`，brief 路径已准备
+
+**已同步更新**：基于操作员取证结论（无真实 DeepSeek key 进入 git 历史），已修正
+`production/qa/operator-checklist-s003.md`、`production/session-state/active.md`、
+`production/sprints/sprint-003-verification.md`、`production/sprint-status.yaml`、
+`production/wave-4-review-readiness.md`、`docs/MCP_SERVER.md`、
+`docs/GETTING_STARTED.md`、`docs/operations-runbook.md`、
+`docs/architecture/adr-0005-llm-client-strategy.md`、
+`design/cdd/macro-strategy-engine.md`、`production/epics/index.md`、
+`production/epics/ep-governance-security/EPIC.md`、
+`production/qa/qa-plan-verification.md`、
+`production/sprints/sprint-002-cdd-followup.md` 中的错误前提。
+
+三项全部完成后，本会话再执行最终关闭 commit：`chore(sprint): S003 all 13/13 done`。
+
+当前状态：**等待操作员完成 S003-010。**
 
 ## Orchestrator Decisions (adopted from recon recommendations)
 
@@ -33,11 +71,13 @@ high-impact CONCERNS and prepare for Verification → Release gate.
 | S002-010 SSE watchdog | 30s stall→terminal error; 0 auto-reconnect; status ref idle\|running\|error\|complete |
 | S002-011 ADR promotion | promote ADR-0002 + ADR-0005 → Accepted NOW; gate-notes for 0003/0004/0007 |
 | S002-012 @pretext | **vendor** 5 files (~3.2k LOC) into web/src/vendor/pretext/ |
-| S002-013 key rotation | placeholder + env-primary + hard RuntimeError; drop api_key from /config; GUI requires env export |
+| S002-013 key→env migration | placeholder + env-primary + hard RuntimeError; drop api_key from /config; GUI requires env export |
 
-**Operator-only step (cannot automate):** revoke + reissue the leaked DeepSeek key
-in the console. **NO git history rewrite** (destructive; revocation is the real fix).
-The key IS in git history (models_config.json tracked despite .gitignore:11).
+**Operator-only step:** verify `DEEPSEEK_API_KEY` is exported and `python -m macro.cli`
+runs. Forensic audit of 82 commits / 4 refs / reflog / all dangling objects confirmed
+no real DeepSeek key was ever committed to git history (`models_config.json` was
+gitignored from the initial commit). Revocation is unnecessary; only environment
+availability verification remains.
 
 ## Wave 1 — COMPLETE (all 13 stories, 9 commits 61617ca→9cb71d1)
 
@@ -100,7 +140,8 @@ Deferred items (documented; see readiness doc §4 for full disposition):
   ADR-0004 promotion + full tdx_downloader.py retirement. Recommend Wave 5.
 - DuckDB vw_rsrs_ranking sign-inversion — xfail-pinned; fix needs gitignored data/views.sql edit
   + re-materialize + DDL versioning. Runbook flags it (prefer 'doge rsrs' CLI over the MCP view).
-- Operator step: revoke+reissue the historically-on-disk DeepSeek key (S002-013).
+- Operator step: verify `DEEPSEEK_API_KEY` is exported and `python -m macro.cli` works
+  (S002-013). Forensic audit confirmed no real key was ever committed to git history.
 
 ## Verification Baseline (run between groups)
 
@@ -133,9 +174,11 @@ Deferred items (documented; see readiness doc §4 for full disposition):
 - S002-010 full error.code-branching deferred until S002-009's string-enum lands.
 - S002-004 INJECT-PORT default-adapter construction must move to a composition root
   or AC-2 (services import no infrastructure) still fails.
-- S002-013 operator must revoke key + export DEEPSEEK_API_KEY before GUI/macro runs work.
+- S002-013 operator must export `DEEPSEEK_API_KEY` and verify `python -m macro.cli` runs
+  before GUI/macro workflows work. No key rotation needed: forensic audit found no
+  real key in git history.
 <!-- STATUS -->
 Epic: Verification / Release-Ready v1
-Feature: Sprint 003 — Verification
-Task: S003-003 + S003-011 done; S003-002 user-test still needs operator action; next code story S003-012 perf profile or S003-013 CORS deferral record
+Feature: Sprint 003 — Verification closure
+Task: Awaiting operator-only/governance actions: S003-010 → S003-002 → S003-014
 <!-- /STATUS -->

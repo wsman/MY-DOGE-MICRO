@@ -68,8 +68,10 @@ This QA plan does **not** substitute for S003-012.
 2. **DuckDB views**: CLI and MCP smoke require the DuckDB database and
    analytical views to be present. The commands below were run against the
    operator's local dataset.
-3. **S002-013 key rotation**: Macro / LLM paths require `DEEPSEEK_API_KEY` to
-   be exported; smoke commands intentionally avoid those paths.
+3. **S002-013 key environment verification**: Macro / LLM paths require
+   `DEEPSEEK_API_KEY` to be exported; smoke commands intentionally avoid those
+   paths. A forensic audit confirmed no real key was ever committed to git
+   history, so rotation/revocation is not required.
 
 ---
 

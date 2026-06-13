@@ -110,7 +110,7 @@ These Wave-5 hygiene items are **deferred** and must not be pulled into Sprint 0
 
 | ID | Task | Owner | Est. Effort | Dependencies | Acceptance Criteria (summary) | Status |
 |----|------|-------|-------------|--------------|-------------------------------|--------|
-| S003-010 | DeepSeek key rotation | operator | S | None | Old key revoked and reissued in console; `DEEPSEEK_API_KEY` exported; `python -m macro.cli` produces a macro report | Todo |
+| S003-010 | DeepSeek key environment verification | operator | S | None | Forensic audit confirms no real key in git history; `DEEPSEEK_API_KEY` exported; `python -m macro.cli` produces a macro report | Todo |
 | S003-013 | CORS deferral record | lead-programmer | S | None | ADR-0007 or readiness doc records deferral rationale: local-first loopback-only, `allow_origins=['*']` currently acceptable | Done |
 | S003-014 | FRESH `/architecture-review` | lead-programmer | S | S003-003, S003-005, S003-013 | Fresh session runs `/architecture-review`; ADR-0004/0007 states finalized with documented rationale | Todo |
 
@@ -120,7 +120,7 @@ These Wave-5 hygiene items are **deferred** and must not be pulled into Sprint 0
 
 1. **Day 1**: Start **S003-002** (user test scheduling/execution) and **S003-001** (milestone baseline). User validation is the longest-lead real-world activity.
 2. **Week 1**: Run **S003-003** (API DI), **S003-005** (RSRS fix), and **S003-011** (QA plan) in parallel. Record **S003-013** (CORS deferral).
-3. **Week 2**: Run **S003-012** (perf profile), **S003-006~009** (UX polish, capacity permitting), **S003-014** (fresh `/architecture-review`), and **S003-010** (operator key rotation).
+3. **Week 2**: Run **S003-012** (perf profile), **S003-006~009** (UX polish, capacity permitting), **S003-014** (fresh `/architecture-review`), and **S003-010** (operator DeepSeek key environment verification).
 
 **Cut order if capacity is insufficient**: S003-007 → S003-009 → S003-008 → S003-006.
 

@@ -389,13 +389,14 @@ CREATE TABLE stock_prices (
 | `DOGE_RESEARCH_DB` | `{DB_DIR}/research_insights.db` | 研究数据库路径 |
 | `DEEPSEEK_API_KEY` | (无 — 生成 LLM 宏观报告必填) | Secret. 在 shell 环境中设置，切勿提交。`models_config.json` 只附带占位符 (`REPLACE_WITH_DEEPSEEK_API_KEY`)；`src/macro/config.py` 在缺失时会抛出 `RuntimeError`。 |
 
-> **Operator action — key rotation (S002-013):** the real DeepSeek key was
-> historically committed in `models_config.json` and remains retrievable from
-> git history. The code remediation (placeholder swap + env-var read) ships
-> here; the **operator must revoke and reissue the key** in the DeepSeek API
-> console to fully close the exposure. History rewriting (`git filter-repo` /
-> BFG) is intentionally NOT performed (lowest blast radius — revocation is the
-> real fix).
+> **Operator action — key verification (S002-013):** a forensic audit of the
+> repository confirmed that no real DeepSeek key was ever committed to git
+> history (`models_config.json` was gitignored from the initial commit; no
+> `sk-...` key appears in 82 commits, 4 refs, reflog, or dangling objects).
+> The code remediation (placeholder swap + env-var read) ships here; the
+> **operator must export `DEEPSEEK_API_KEY`** in the local environment and verify
+> that `python -m macro.cli` produces a macro report. No key rotation or history
+> rewriting is required.
 
 ### DeepSeek API Key
 

@@ -25,7 +25,7 @@ This is a **local-first, single-operator** system:
 - [Port reference](#port-reference)
 - [Backup & restore](#backup--restore)
 - [Retention tuning](#retention-tuning)
-- [DeepSeek API key rotation](#deepseek-api-key-rotation)
+- [DeepSeek API key environment verification](#deepseek-api-key-environment-verification)
 - [DuckDB view refresh](#duckdb-view-refresh)
 - [Resolved: `vw_rsrs_ranking` sign convention (S003-005)](#resolved-vw_rsrs_ranking-sign-convention-s003-005)
 - [Troubleshooting](#troubleshooting)
@@ -187,7 +187,7 @@ ls -lh data/market_data_cn.db
 
 ---
 
-## DeepSeek API key rotation
+## DeepSeek API key environment verification
 
 ### Shipped behavior (S002-013)
 
@@ -211,27 +211,26 @@ logged (`design/cdd/macro-strategy-engine.md` §3.3, §9.6). The local FastAPI
 `GET /api/config` additionally drops `api_key` from its HTTP response
 (`design/cdd/macro-strategy-engine.md` §4.2).
 
-> **History note.** `models_config.json` historically committed a real-looking
-> key. The file was rotated to the placeholder in S002-013, but the historical
-> key remains in git history (history rewrite intentionally not performed).
-> Operators MUST revoke and reissue the old key in the DeepSeek console to
-> fully close the exposure (`design/cdd/macro-strategy-engine.md` §4.2).
+> **History note.** A forensic audit of the repository confirmed that no real
+> DeepSeek key was ever committed to git history. `models_config.json` has been
+> gitignored since the initial commit; only `models_config.template.json` was
+> tracked, and it always contained a placeholder (`YOUR_API_KEY_HERE`, later
+> `REPLACE_WITH_DEEPSEEK_API_KEY`). Therefore no key rotation or history rewrite
+> is required. Operators only need to export a valid `DEEPSEEK_API_KEY` and
+> verify that macro report generation works.
 
-### Rotation procedure
+### Environment verification procedure
 
 ```bash
-# 1. Set the NEW key in the environment of every consumer:
+# 1. SET the key in the environment of every consumer:
 #    (MCP server, FastAPI app, GUI, CLI — each reads DEEPSEEK_API_KEY at startup)
-export DEEPSEEK_API_KEY="<your-new-key>"
+export DEEPSEEK_API_KEY="<your-key>"
 
-# 2. RESTART every consumer so the new env value is picked up. MacroConfig
+# 2. RESTART every consumer so the env value is picked up. MacroConfig
 #    reads the env once in __post_init__ (_apply_runtime_overrides); a live
-#    process will keep the old key until restarted.
+#    process will keep the previous value until restarted.
 
-# 3. REVOKE the old key at the DeepSeek console
-#    (https://platform.deepseek.com) once consumers are confirmed healthy.
-
-# 4. VERIFY a consumer produces a report end-to-end. The macro CLI exits 1
+# 3. VERIFY a consumer produces a report end-to-end. The macro CLI exits 1
 #    on any failure (src/macro/cli.py:82,87), so a 0 exit + a written report
 #    in macro_report/ is the success signal:
 python -m src.macro.cli && ls -t macro_report/ | head -1
@@ -365,7 +364,7 @@ convention. No workaround is required; the view output is sign-canonical.
 |---------|----------------|-----|--------|
 | Scan / query returns stale data | DuckDB views were not refreshed after the last write | Run a manual refresh ([DuckDB view refresh](#duckdb-view-refresh)); verify with `mcp__doge-db__list_views` | `src/micro/market_scanner.py:44-53`; `duckdb.py:58-83` |
 | `vw_market_breadth_cn` returns fewer rows than expected / breadth scan looks truncated | `DOGE_RETENTION_DAYS` < 730 (below the 730-day view window) — destructive prune cut rows the view expects | Set `DOGE_RETENTION_DAYS=730` (or higher) and restart; the guard `tests/migration/test_retention_view_window_safety.py` enforces `max(INTERVAL N DAYS) <= retention_days` | `data/views.sql:33`; `design/cdd/market-data-storage.md` §9.2, §7 |
-| `python -m src.macro.cli` prints a `RuntimeError` and exits 1 (`DEEPSEEK_API_KEY ... not set ... still carries the placeholder`) | `DEEPSEEK_API_KEY` env var unset/empty and `models_config.json` still has the placeholder | Set `DEEPSEEK_API_KEY=<key>` in the consumer's environment and restart; see [DeepSeek API key rotation](#deepseek-api-key-rotation) | `src/macro/config.py:193-200`; `src/macro/cli.py:79-87` |
+| `python -m src.macro.cli` prints a `RuntimeError` and exits 1 (`DEEPSEEK_API_KEY ... not set ... still carries the placeholder`) | `DEEPSEEK_API_KEY` env var unset/empty and `models_config.json` still has the placeholder | Set `DEEPSEEK_API_KEY=<key>` in the consumer's environment and restart; see [DeepSeek API key environment verification](#deepseek-api-key-environment-verification) | `src/macro/config.py:193-200`; `src/macro/cli.py:79-87` |
 | Macro run returns `None` / "无法获取市场数据" (exits 1) | Network failure fetching market data (yfinance/TDX upstream), not a key problem | Check network reachability to the data source; `data_loader` returned `None` and the CLI exited at `src/macro/cli.py:82-87` | `src/macro/cli.py:82-87`; `design/cdd/macro-strategy-engine.md` §3.2 |
 | `database is locked` during a scan | Two writers hit the same SQLite DB concurrently — no `WAL`, no `busy_timeout` is configured | Ensure only one scan per market runs at a time (the scan lock normally serializes this, `src/api/routers/scan.py:46,157`); stop the second writer and retry | `design/cdd/market-data-storage.md` §9.3, Open Question 6 |
 | DuckDB `ATTACH ... AS cn/us` fails | `DOGE_CN_DB` / `DOGE_US_DB` paths do not sit alongside `DOGE_DUCKDB_PATH` under the resolved `DOGE_DB_DIR` — path mismatch between the DuckDB file and the SQLite files it attaches | Confirm all DB env vars resolve under the same `DOGE_DB_DIR`; `DBConfig` derives `cn_db`/`us_db`/`duckdb` from one `dir` (`__post_init__`), so mixing absolute overrides across the three breaks the attach | `src/doge/config/settings.py:62-67`; `design/cdd/runtime-configuration.md` §3.4 |

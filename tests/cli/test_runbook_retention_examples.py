@@ -236,26 +236,32 @@ class TestRetentionSectionReflectsShippedReality:
 
 
 # ---------------------------------------------------------------------------
-# Contract 4: DeepSeek key-rotation section reflects shipped reality (S002-013)
+# Contract 4: DeepSeek key environment-verification section reflects shipped reality (S002-013)
 # ---------------------------------------------------------------------------
 class TestDeepSeekKeySectionReflectsShippedReality:
     def test_env_primary_documented(self, runbook):
         assert "`DEEPSEEK_API_KEY`" in runbook
         assert "PRIMARY" in runbook, (
-            "key-rotation section must state DEEPSEEK_API_KEY is the PRIMARY source (S002-013)"
+            "key-verification section must state DEEPSEEK_API_KEY is the PRIMARY source (S002-013)"
         )
 
     def test_placeholder_sentinel_documented(self, runbook):
         assert "REPLACE_WITH_DEEPSEEK_API_KEY" in runbook, (
-            "key-rotation section must document the shipped placeholder sentinel"
+            "key-verification section must document the shipped placeholder sentinel"
         )
 
-    def test_rotation_procedure_steps_present(self, runbook):
-        """The rotation procedure must cover set -> restart -> revoke -> verify."""
-        for step in ("RESTART", "REVOKE", "VERIFY"):
+    def test_verification_procedure_steps_present(self, runbook):
+        """The verification procedure must cover set -> restart -> verify, and
+        must NOT include a REVOKE step (no key rotation is required per the
+        history note; the word REVOKE does not appear in the section)."""
+        for step in ("SET", "RESTART", "VERIFY"):
             assert step in runbook, (
-                f"key-rotation procedure must include the {step} step"
+                f"key-verification procedure must include the {step} step"
             )
+        assert "REVOKE" not in runbook, (
+            "the word REVOKE must not appear in the runbook section — "
+            "no key rotation or history rewrite is required per shipped reality"
+        )
 
     def test_config_py_raises_on_missing(self):
         """config.py must still raise RuntimeError on a missing/placeholder

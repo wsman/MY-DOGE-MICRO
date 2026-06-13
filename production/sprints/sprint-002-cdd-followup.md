@@ -73,7 +73,7 @@ Out of scope for Sprint 002 (deferred to later sprints):
 | ID | Task | Owner | Est. Effort | Dependencies | Acceptance Criteria (summary) | Status |
 |----|------|-------|-------------|--------------|-------------------------------|--------|
 | S002-007 | Resolve retention_days vs view-window mismatch (silent-truncation fix) | python-specialist | M | None (pairs with S002-006 for TR-006) | `DOGE_RETENTION_DAYS` knob exists; default >= 730 OR view window <= retention; breadth scan returns window-promised rows past the old 180d boundary (BLOCKING migration test) | Todo |
-| S002-013 | Rotate DeepSeek API key to env var; placeholder in models_config.json | security-engineer | S | None | Key read from `DEEPSEEK_API_KEY`; `models_config.json` ships placeholder; key never logged/printed; old on-disk key rotated (revoked + reissued) | Todo |
+| S002-013 | Move DeepSeek API key to env var; placeholder in models_config.json | security-engineer | S | None | Key read from `DEEPSEEK_API_KEY`; `models_config.json` ships placeholder; key never logged/printed; operator verifies env works with `python -m macro.cli`; no rotation required (forensic audit: no real key in git history) | Todo |
 
 > **Rationale for Must Have**: S002-007 is the only **HIGH**-severity latent
 > *correctness* bug (silent data truncation affecting breadth scans). S002-013
@@ -143,14 +143,15 @@ Recommended execution order (top = start first):
 | RSRS sign-convention change alters historical scanner/CSV output, breaking downstream operator expectations | Medium | Medium | Pin the chosen convention in a parity test; document the before/after in `micro-momentum-scanner.md` §4.1 sign-convention note; communicate in patch notes | python-specialist |
 | Port-naming decisions (S002-003/004) trigger ADR-0001 amendments that ripple into Batch-4 of the migration sequence | Medium | Medium | Treat both as Proposed ADRs first; do not edit ADR-0001 in place to reverse its decision — supersede or amend formally | lead-programmer |
 | @pretext vendoring bloats the web bundle or breaks the lightweight-charts integration | Low | Medium | Verify `npm run build` bundle size before/after; run the full `npm test` smoke suite | typescript-specialist |
-| API-key rotation disrupts a live operator session using the old key | Low | High | Coordinate rotation window; ship the env-var read + placeholder before revoking the old key; document the `DEEPSEEK_API_KEY` setup in `docs/MCP_SERVER.md` and `runtime-configuration.md` | security-engineer |
+| API-key env migration temporarily disrupts a live operator session | Low | High | Ship the env-var read + placeholder first; operator exports `DEEPSEEK_API_KEY` before launching macro/GUI; document setup in `docs/MCP_SERVER.md` and `runtime-configuration.md` | security-engineer |
 | Sprint capacity (2 weeks) is insufficient for 13 stories | High | Medium | Cut order is defined (S002-003/004 first); BLOCKING-gated code stories (S002-006/007/009/010) are protected | lead-programmer |
 
 ## External Dependencies
 
 | Dependency | Status | Impact if Delayed | Contingency |
 |------------|--------|-------------------|-------------|
-| DeepSeek API console (for key rotation) | Available | S002-013 cannot fully close until the old key is revoked + reissued | Ship the env-var move + placeholder first; rotation can follow within days |
+| DeepSeek API availability (for env verification) | Available | S002-013 cannot fully close until operator verifies `DEEPSEEK_API_KEY` works with `python -m macro.cli` | Ship the env-var move + placeholder first; verification can follow within days |
+
 | Sibling `pretext` project (for S002-012 verification) | Local only | Cannot prove portability without a clean checkout test | Use a throwaway clean clone in CI or a fresh directory to verify the build |
 | `docs/architecture/tr-registry.yaml` (read-only reference) | Stable (2026-06-12) | Story TR-IDs must exist and be `active` for `/story-readiness` | All 13 stories reference existing active TRs (TR-006, TR-011, TR-015, TR-016, TR-019, TR-030, TR-036, TR-037, TR-040, TR-041, TR-042) |
 

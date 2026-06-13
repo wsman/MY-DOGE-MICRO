@@ -37,8 +37,8 @@ last_updated: "2026-06-13"
 # 5 views + ScannerView aria-live (S003-009), 3 per-view flow specs (S003-006),
 # accessibility baseline closure incl. browserslist (S003-008). Suite 508 passed/
 # 2 skip/0 xfail (5 doc-coverage xfails flipped); web build + 70 vitest green.
-# Rollup 9/13. Remaining: S003-002 user-test (operator), S003-010 key rotation
-# (operator), S003-014 FRESH /architecture-review.
+# Rollup 9/13. Remaining: S003-002 user-test (operator), S003-010 key env
+# verification (operator), S003-014 FRESH /architecture-review.
 # 2026-06-13 (S003-001 milestone done): verification-milestone.md exists with
 # 2026-06-26 target and 6 exit-criteria categories; S003-001 AC met by existing
 # file. Rollup 10/13.
@@ -74,7 +74,7 @@ sprints:
       - "npm run build and npm test green in web/ on a clean checkout."
       - "Layer-rule grep gates pass for the remediated sites."
       - "ADR-0002/0003/0005/0009/0010 Accepted; ADR-0004/0007 carry Promotion gate callouts and stay Proposed."
-      - "No real API key in models_config.json; on-disk key rotated."
+      - "No real API key in models_config.json; DEEPSEEK_API_KEY env-primary verified (forensic audit found no key in git history — no rotation required)."
       - "All 13 stories' acceptance criteria met or explicitly deferred."
     stories:
       - id: S002-001
@@ -423,7 +423,7 @@ sprints:
           0 must-fix. Deferred should-fix (loadTables, archive onRowClick kline catch) noted.
 
       - id: S003-010
-        title: "DeepSeek 密钥轮换操作"
+        title: "DeepSeek 密钥环境可用性验证"
         epic: ep-verification-evidence
         tr: TR-015
         source: "S002-013 operator-only follow-up"
@@ -432,6 +432,7 @@ sprints:
         owner: operator
         status: todo
         blocking_gate: false
+        note: "Forensic audit of 82 commits / 4 refs / reflog / fsck dangling objects found no real DeepSeek key in git history; models_config.json was gitignored from the initial commit. Revocation/reissue is unnecessary."
 
       - id: S003-013
         title: "CORS（ADR-0007）延期决策记录"

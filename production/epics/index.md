@@ -25,7 +25,7 @@ Each story in each epic embeds a **TR-ID** from
 | `ep-architecture-debt` | Architecture & Clean-Layer Debt | RSRS drift, port splits, forbidden-pattern fixes, storage error surfacing | 6 | Proposed |
 | `ep-storage-consistency` | Storage & Configuration Consistency | retention vs view-window silent truncation, config single-source-of-truth | 2 | Proposed |
 | `ep-api-resilience` | API & Transport Resilience | error envelope, SSE reconnect reliability | 2 | Proposed |
-| `ep-governance-security` | Governance, Portability & Security | ADR promotion, @pretext portability, API-key rotation | 3 | Proposed |
+| `ep-governance-security` | Governance, Portability & Security | ADR promotion, @pretext portability, API-key env migration | 3 | Proposed |
 | **Total** | | | **13** | |
 
 ## Epic Themes

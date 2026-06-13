@@ -35,13 +35,13 @@ These items are the difference between *the architecture being documented* and
   names this as an open build-portability gap: the web build depends on a
   sibling `pretext` project alias that only resolves with a local checkout.
   A clean clone should build.
-- **API-key rotation (TR-015, security)** — `models_config.json` ships a **real**
-  DeepSeek API key locally. It is gitignored and has **not** leaked to the
-  repo, but the key is on disk in a config file. TR-015 requires the key to
-  live in an env var (`DEEPSEEK_API_KEY`), with `models_config.json` carrying
-  a placeholder, and the key never logged or printed. Even though no leak
-  occurred, the key should be **rotated** as hygiene after the move, because
-  it sat in a config file through the brownfield period.
+- **API-key environment migration (TR-015, security)** — `models_config.json`
+  historically held a real DeepSeek API key on the local disk. It is gitignored
+  and has **not** leaked to the repo. TR-015 requires the key to live in an env
+  var (`DEEPSEEK_API_KEY`), with `models_config.json` carrying a placeholder,
+  and the key never logged or printed. A forensic audit confirmed no real key
+  was ever committed to git history, so revocation/reissue is not required; the
+  operator only needs to export `DEEPSEEK_API_KEY` and verify `python -m macro.cli`.
 
 ## Scope
 
@@ -108,5 +108,7 @@ These items are the difference between *the architecture being documented* and
 - [ ] The DeepSeek key is read from `DEEPSEEK_API_KEY` at runtime via
   `Settings()`; the key is never logged or printed (pinned by
   `tests/test_macro_strategist.py` redaction assertions).
-- [ ] The previously-on-disk key has been **rotated** (revoked + reissued) and
-  only the new key — sourced from env — is in use.
+- [ ] `DEEPSEEK_API_KEY` is exported in the operator's environment and
+  `python -m macro.cli` produces a macro report. (A forensic audit confirmed no
+  real DeepSeek key was ever committed to git history; rotation/revocation is not
+  required.)

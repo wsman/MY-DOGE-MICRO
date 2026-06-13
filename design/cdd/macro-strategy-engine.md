@@ -113,7 +113,15 @@ All file:line citations are against the current brownfield state on the `cdd-ado
 
 Validation is enforced by `_validate_config` (`config.py:43-98`): missing top-level fields, empty `profiles`, missing per-profile fields, a `default_profile` not present in `profiles`, missing assets, or missing `macro_settings`/`proxy_settings.enabled` each raise `ValueError`. **Note:** these `ValueError`s are caught by `_load_from_json`'s broad `except ValueError` (`config.py:158-159`) and only printed — the dataclass keeps its defaults. This is a current-state quirk (silent config-failure), recorded in section 5.
 
-> **Security note (BUG-adjacent, was committed; rotated in S002-013):** `models_config.json` historically committed a real-looking `api_key`. As of S002-013 the file ships only the `REPLACE_WITH_DEEPSEEK_API_KEY` placeholder and `DEEPSEEK_API_KEY` (env var) is the primary key source; the local FastAPI `GET /api/config` additionally drops `api_key` from its HTTP response. The historical key remains in git history — the operator must revoke + reissue it in the DeepSeek console to fully close the exposure (history rewrite intentionally not performed).
+> **Security note (BUG-adjacent, was on disk; env-migrated in S002-013):**
+> `models_config.json` historically held a real-looking `api_key` on the local
+> disk. As of S002-013 the file ships only the `REPLACE_WITH_DEEPSEEK_API_KEY`
+> placeholder and `DEEPSEEK_API_KEY` (env var) is the primary key source; the
+> local FastAPI `GET /api/config` additionally drops `api_key` from its HTTP
+> response. A later forensic audit confirmed no real key was ever committed to
+> git history (`models_config.json` was gitignored from the initial commit),
+> so no revocation or history rewrite is required. Operators must only export
+> `DEEPSEEK_API_KEY` and verify that `python -m macro.cli` works.
 
 ### 4.3 RSRS formulas
 
@@ -266,7 +274,7 @@ Module #4's `data_loader.calculate_rsrs` (`data_loader.py:167-193`) is a **separ
 **Migration / remediation:**
 - [ ] **BUG E RESOLVED**: `tests/test_macro_strategist.py` exists, mocks the OpenAI client, and is green (done — 9/9).
 - [ ] `src/macro/cli.py:12` `sys.path.insert` removed — replaced by import of `settings.py` or a package install (ADR-0001 forbidden pattern — OPEN).
-- [x] `models_config.json` real API key removed / replaced with a placeholder + `.gitignore` entry (security — RESOLVED in S002-013; `DEEPSEEK_API_KEY` env var is now the primary source, `models_config.json` ships the `REPLACE_WITH_DEEPSEEK_API_KEY` placeholder, and `GET /api/config` redacts `api_key` from the HTTP response). Operator must still revoke+reissue the historically-committed key.
+- [x] `models_config.json` real API key removed / replaced with a placeholder + `.gitignore` entry (security — RESOLVED in S002-013; `DEEPSEEK_API_KEY` env var is now the primary source, `models_config.json` ships the `REPLACE_WITH_DEEPSEEK_API_KEY` placeholder, and `GET /api/config` redacts `api_key` from the HTTP response). A forensic audit confirmed no real key was ever committed to git history, so no rotation/revocation is required; operators only need to export `DEEPSEEK_API_KEY` and verify `python -m macro.cli`.
 - [ ] `data_loader.py` yfinance calls routed through `YFinanceDataSource` (ADR-0004 item 4 — OPEN).
 - [ ] `DEEPSEEK_*` / `models_config.json` config consolidated under `settings.py` per ADR-0002 (OPEN).
 - [ ] Macro reports persisted to a `macro_reports` table (OPEN — section 9.4 target).
@@ -316,4 +324,4 @@ The schema is implicit (a formatted string), not a JSON/tool-call schema. Prompt
 
 ### 9.6 Secrets handling
 
-- The API key is sourced from `DEEPSEEK_API_KEY` (primary, as of S002-013) and passed only to `OpenAI(api_key=...)`. It is never logged by the strategist. `models_config.json` now ships only the `REPLACE_WITH_DEEPSEEK_API_KEY` placeholder; if the env var is unset and the on-disk value is the placeholder/empty/`None`, `MacroConfig` raises `RuntimeError` rather than letting a placeholder reach the SDK. The historically-committed key was rotated in S002-013 (operator revocation step in `docs/MCP_SERVER.md`); the local FastAPI `GET /api/config` also drops `api_key` from its HTTP response.
+- The API key is sourced from `DEEPSEEK_API_KEY` (primary, as of S002-013) and passed only to `OpenAI(api_key=...)`. It is never logged by the strategist. `models_config.json` now ships only the `REPLACE_WITH_DEEPSEEK_API_KEY` placeholder; if the env var is unset and the on-disk value is the placeholder/empty/`None`, `MacroConfig` raises `RuntimeError` rather than letting a placeholder reach the SDK. A forensic audit confirmed no real key was ever committed to git history, so no revocation or history rewrite is required; operators only need to export `DEEPSEEK_API_KEY` and verify `python -m macro.cli` (see `docs/MCP_SERVER.md`). The local FastAPI `GET /api/config` also drops `api_key` from its HTTP response.

@@ -144,12 +144,14 @@ export DEEPSEEK_API_KEY=sk-your-real-key-here
 To switch LLM models at runtime (used by the GUI model-switcher), also export
 `DEEPSEEK_MODEL` (e.g. `deepseek-chat` or `deepseek-reasoner`).
 
-> **Security action for existing operators:** the real DeepSeek key was
-> historically committed in `models_config.json` and remains retrievable from
-> git history. The code remediation (placeholder swap + env-var read) shipped
-> with S002-013, but the **operator must revoke and reissue the key** in the
-> DeepSeek API console to fully close the exposure. See
-> `docs/MCP_SERVER.md` "Operator action — key rotation".
+> **Security verification for operators:** a forensic audit of the repository
+> confirmed that no real DeepSeek key was ever committed to git history
+> (`models_config.json` was gitignored from the initial commit; no `sk-...`
+> key appears in 82 commits, 4 refs, reflog, or dangling objects). The code
+> remediation (placeholder swap + env-var read) shipped with S002-013. The
+> **operator must export `DEEPSEEK_API_KEY`** and verify that
+> `python -m macro.cli` works. No key rotation or history rewrite is required.
+> See `docs/MCP_SERVER.md` "Operator action — key verification".
 
 ## Start the MCP server
 
@@ -295,8 +297,8 @@ not be established — check `DOGE_DB_DIR` and that the `*.db` files exist.
   schemas, the SSE contract, and the error-envelope codes).
 - **CLI command reference** — `docs/CLI.md` (Wave 2; the `doge` query CLI and
   the `macro.cli` macro CLI).
-- **Operations runbook** — `docs/operations-runbook.md` (Wave 2; key rotation,
-  database backup, retention tuning, log inspection).
+- **Operations runbook** — `docs/operations-runbook.md` (Wave 2; key environment
+  verification, database backup, retention tuning, log inspection).
 - **MCP tool catalog** — `docs/MCP_SERVER.md` (the six read-only analytical
   tools and the DuckDB views behind them).
 - **Configuration source of truth** — `src/doge/config/settings.py` and

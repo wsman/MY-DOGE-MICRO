@@ -52,7 +52,7 @@ The macro engine depends on an external LLM to turn quantitative indicators into
 
 - `DeepSeekStrategist` (`src/macro/strategist.py:10-179`) constructs `openai.OpenAI(api_key=config.api_key, base_url=config.base_url)` — OpenAI SDK in OpenAI-compatible mode against `https://api.deepseek.com`.
 - Provider/model/key come from `models_config.json` (profiles + `default_profile`) with `DEEPSEEK_API_KEY` / `DEEPSEEK_MODEL` env overrides (`src/macro/config.py:163-176`).
-- `models_config.json` ships a real-looking API key committed to the repo — a security violation per `.claude/rules/config-files.md`. (**Remediated in S002-013**: the file now ships the `REPLACE_WITH_DEEPSEEK_API_KEY` placeholder and `DEEPSEEK_API_KEY` env var is the primary source; the historical key remains in git history and requires operator revocation — see `docs/MCP_SERVER.md`.)
+- `models_config.json` ships a real-looking API key on disk — a security violation per `.claude/rules/config-files.md`. (**Remediated in S002-013**: the file now ships the `REPLACE_WITH_DEEPSEEK_API_KEY` placeholder and `DEEPSEEK_API_KEY` env var is the primary source; a forensic audit later confirmed no real key was ever committed to git history, so no revocation or history rewrite is required — see `docs/MCP_SERVER.md`.)
 - The strategist issues a single `chat.completions.create(model, messages=[system,user], stream=False, temperature=0.6)`; on exception it logs and returns `None`; there is **no retry and no explicit timeout** on the LLM call.
 - `temperature=0.6`, `stream=False`, and `report_dir="macro_report"` are hardcoded in the implementation module, violating the "no hardcoded config in impl modules" rule.
 - No `ILLMClient` port exists; the strategist is the only LLM call site. Module #6 ("AI Industry Analysis") has **no** LLM despite its name.
@@ -194,7 +194,7 @@ class DeepSeekStrategist:
 
 | Risk | Probability | Impact | Mitigation |
 |------|------------|--------|------------|
-| Committed `models_config.json` API key is leaked | Low (Mitigated as of S002-013) | High | Remediation DONE (S002-013): replaced with `REPLACE_WITH_DEEPSEEK_API_KEY` placeholder, `DEEPSEEK_API_KEY` env var is the primary source, `MacroConfig` raises `RuntimeError` on a missing/placeholder key, and `GET /api/config` redacts `api_key` from the HTTP response. Residual: the historical key is in git history — operator must revoke+reissue in the DeepSeek console (documented in `docs/MCP_SERVER.md`); history rewrite intentionally not performed. |
+| Committed `models_config.json` API key is leaked | Low (Mitigated as of S002-013) | High | Remediation DONE (S002-013): replaced with `REPLACE_WITH_DEEPSEEK_API_KEY` placeholder, `DEEPSEEK_API_KEY` env var is the primary source, `MacroConfig` raises `RuntimeError` on a missing/placeholder key, and `GET /api/config` redacts `api_key` from the HTTP response. Residual: a forensic audit confirmed no real key was ever committed to git history — only the tracked `models_config.template.json` ever existed, and it always contained a placeholder. No key rotation or history rewrite is required; operators only need to export `DEEPSEEK_API_KEY` and verify `python -m macro.cli` runs (documented in `docs/MCP_SERVER.md`). |
 | Provider API shape change breaks strategist | Medium | Medium | Pin `openai==1.62.0`; mock tests catch request-shape drift on dependency bump; live smoke before model bumps |
 | No client timeout hangs the session on provider outage | Medium | Medium | Add explicit `timeout` to `OpenAI(...)` as part of config consolidation |
 | Hardcoded `temperature` violates config rules | High (current state) | Low | Move to `MacroConfig`/`settings.py` (migration target) |
@@ -228,7 +228,7 @@ class DeepSeekStrategist:
 - [ ] Empty-content response → fixed message returned (verified).
 - [ ] No test in `tests/test_macro_strategist.py` performs a real network call (verified — all `MagicMock`).
 - [ ] `python -m pytest tests/test_macro_strategist.py -q` passes 9/9 (verified — ~6s).
-- [x] Committed API key removed from `models_config.json` (DONE — S002-013: placeholder swap + env-primary read + HTTP redaction; operator revocation of the historical key documented in `docs/MCP_SERVER.md`).
+- [x] API key removed from `models_config.json` (DONE — S002-013: placeholder swap + env-primary read + HTTP redaction; forensic audit confirmed no real key was ever committed to git history, so no revocation or history rewrite is required; operator environment verification documented in `docs/MCP_SERVER.md`).
 - [ ] `temperature`/`stream`/`timeout`/`report_dir` moved to config (OPEN — migration).
 - [ ] `ILLMClient` port extracted and strategist depends on it (OPEN — Module #12).
 

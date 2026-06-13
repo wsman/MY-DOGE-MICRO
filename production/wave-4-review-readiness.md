@@ -94,16 +94,15 @@ kept ADR-0004/0007 gated.
 | Test-bootstrap sys.path (12 sites) | cleanup | Wave 5 (out of control-manifest scope) | recon record |
 | MCP tool error-text sanitization | security/hygiene | Wave 5 (suggestion) | code-review W-01 |
 | `wmic` → CIM | portability | Wave 5 (before Win11/Server 2025) | code-review W-02 |
-| **DeepSeek key rotation** | security | **Operator — do now** | revoke+reissue at console; env path ready |
+| **DeepSeek key verification** | security | **Operator — verify env** | `DEEPSEEK_API_KEY` exported; `python -m macro.cli` runs |
 
 ---
 
 ## §5 Operator Steps (cannot be automated)
 
-1. In the DeepSeek console, **revoke** the historically-on-disk key (sk-72a6f08d…) and **reissue**.
-2. `set DEEPSEEK_API_KEY=<new-key>` (or PowerShell / bash equivalent).
-3. Verify: `python -m macro.cli` (or the GUI) produces a macro report.
-4. Note: the key was NEVER in git history (gitignored + untracked — confirmed); no history scrub needed.
+1. Verify `DEEPSEEK_API_KEY` is exported in your environment (PowerShell: `$env:DEEPSEEK_API_KEY`, Bash: `echo $DEEPSEEK_API_KEY`).
+2. Run `python -m macro.cli` (or the GUI) and confirm it produces a macro report.
+3. **Note**: the key was NEVER in git history (gitignored + untracked — confirmed); no history scrub or key rotation needed. The original "revoke+reissue" trigger was based on a false premise.
 
 ---
 
