@@ -582,6 +582,76 @@ def _refresh_views():
 #  CLI
 # ========================================================================
 
+def main(argv=None):
+    """ADR-0004 migration demonstration entrypoint.
+
+    Constructs the new :class:`doge.infrastructure.data_source.tdx.TDXDataSource`
+    port adapter and drives a single-ticker fetch through it, returning the
+    normalized 8-column frame. This is the bridgehead for routing consumers
+    through the port (ADR-0004 Migration Plan step 4) — the full legacy CLI
+    block below remains the operator-facing path and is untouched.
+
+    Lazy import of :class:`TDXDataSource` so that simply importing
+    ``micro.tdx_downloader`` does NOT pull opentdx eagerly (and so tests that
+    block opentdx continue to work). When opentdx is absent or no server is
+    reachable, this function prints a degraded message and returns ``None``
+    (ADR-0004 offline-tolerance contract).
+
+    Args:
+        argv: Optional explicit argv list (``["--market", "cn", "--ticker",
+            "600000.SH"]``). When ``None``, ``sys.argv[1:]`` is used.
+
+    Returns:
+        The canonical 8-column ``pandas.DataFrame`` on success, or ``None``
+        when the adapter cannot connect / cannot fetch.
+    """
+    import sys as _sys
+
+    # Tiny dedicated parser — kept separate from the legacy CLI parser so the
+    # legacy block stays byte-stable.
+    demo_parser = argparse.ArgumentParser(
+        description="TDXDataSource port-adapter demo (ADR-0004 migration step 4)",
+    )
+    demo_parser.add_argument("--market", default="cn", choices=["cn", "us"])
+    demo_parser.add_argument("--ticker", default="600000.SH",
+                             help="Single ticker to fetch through the port adapter")
+    demo_parser.add_argument("--count", type=int, default=120,
+                             help="Max bars to fetch (default: 120)")
+    demo_parser.add_argument("--db", default=None,
+                             help="Optional: write fetched frame via save_stock_data_custom")
+    demo_args = demo_parser.parse_args(argv)
+
+    # Lazy import: doge is required, but deferring keeps the import side-effect
+    # surface minimal and respects the ADR-0004 "lazy third-party import" rule.
+    from doge.infrastructure.data_source.tdx import TDXDataSource
+
+    ds = TDXDataSource()
+    ds.connect(demo_args.market)
+    if not ds.is_connected():
+        print("TDXDataSource: not connected (opentdx absent or no server)")
+        return None
+    try:
+        df = ds.download_kline(demo_args.ticker, demo_args.market, count=demo_args.count)
+    finally:
+        ds.disconnect()
+
+    if df is None or df.empty:
+        print("TDXDataSource: no data for {} ({})".format(demo_args.ticker, demo_args.market))
+        return None
+
+    print("TDXDataSource: fetched {} rows for {}".format(len(df), demo_args.ticker))
+
+    # Persistence stays opt-in and explicit — ADR-0004 item 6 keeps adapters
+    # persistence-free; this CLI helper is the explicit caller that owns the
+    # write when --db is supplied.
+    if demo_args.db:
+        from micro.database import save_stock_data_custom  # noqa: WPS433
+        save_stock_data_custom(df, demo_args.db)
+        print("TDXDataSource: wrote {} rows to {}".format(len(df), demo_args.db))
+
+    return df
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="TDX Server Data Downloader")
     parser.add_argument("--market", default="cn", choices=["cn", "us"])
