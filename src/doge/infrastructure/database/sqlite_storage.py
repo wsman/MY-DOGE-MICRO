@@ -197,3 +197,8 @@ class SQLiteStorageRepository(IStockRepository):
 
     def get_kline(self, ticker: str, market: str, days: int = 120):
         return self._read_repo.get_kline(ticker, market, days)
+
+    def list_distinct_tickers(self, market: str) -> list:
+        """Delegate to the read repo (S005-009 port addition; this writer is
+        also an IStockRepository and must satisfy the abstract method)."""
+        return self._read_repo.list_distinct_tickers(market)
