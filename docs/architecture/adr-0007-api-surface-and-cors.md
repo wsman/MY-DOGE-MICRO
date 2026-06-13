@@ -2,59 +2,46 @@
 
 ## Status
 
-Proposed
+Accepted (S004-008b, 2026-06-14)
 
-> **Promotion gate (S002-011 governance review, 2026-06-12).** This ADR stays
-> Proposed because one of its two gating items is incomplete. Per the
-> docs/CLAUDE.md ADR lifecycle, stories referencing a Proposed ADR are
-> auto-blocked — the FastAPI service CDD references this ADR for rationale only;
-> its blocking ACs are written as explicit open items, not as
-> satisfied-by-ADR-0007.
-> **MET**: the error envelope — S002-009 shipped the two global handlers
-> (`@app.exception_handler(HTTPException)` + `@app.exception_handler(Exception)`
-> at `src/api/main.py:45,60`), removed the six `try/except ... raise
-> HTTPException(500, str(e))` wrappers in `data.py` and `notes.py`, and locked
-> the no-`str(e)` regression behind `tests/contract/test_api_error_envelope.py`.
-> **REMAINS**: CORS hardening — `allow_origins=["*"]` (`src/api/main.py:28`)
-> must be tightened to an explicit loopback-guarantee allow-list (or an explicit
-> decision to keep `*` under a strengthened loopback bind), and a non-loopback
-> `bind_host` must be gated on it. This is explicitly out of Sprint 002 scope
-> (sprint-002:47). Promotion to Accepted is the gating ADR-lifecycle event for
-> the CORS-hardening follow-on.
+> **Promotion authorized by fresh `/architecture-review`**
+> (`production/architecture-reviews/architecture-review-s004-2026-06-14.md`).
+> The strengthened-loopback-guarantee path (1b) is now implemented and verified:
+> `src/api/main.py:119-134` asserts a fail-closed loopback bind via
+> `DOGE_BIND_HOST`; `tests/test_api_loopback_guarantee.py` covers the guarantee;
+> and the full suite is green (568 passed / 2 skipped / 0 failed). CORS remains
+> `allow_origins=["*"]`, safe only under this loopback guarantee; any future
+> non-loopback bind requires CORS allow-list hardening + auth first. The posture
+> is **loopback-guaranteed**, not "production-hardened".
 
-## Deferral Decision (S003-013, 2026-06-12)
+## Deferral Decision (S003-013, 2026-06-12) — CLOSED by S004-008b
 
 **Decision.** CORS hardening remains deferred through the Verification stage, and
-ADR-0007 intentionally stays **Proposed** through Verification. This extends the
-prior "out of Sprint 002 scope" note (above, S002-011) through the Verification
-stage. This is a *deferral record*, not a promotion: per the
-`docs/CLAUDE.md` ADR lifecycle (`Proposed → Accepted → Superseded`, never
-skipped), promotion to Accepted is owned by story **S003-014** — a FRESH
-`/architecture-review` run — and is not performed here.
+ADR-0007 intentionally stayed **Proposed** through Verification. Sprint 004 chose
+path (1b) — a strengthened loopback guarantee — rather than the original
+CORS-hardening path. The deferral is now closed by promotion to **Accepted**.
 
 **Security argument.** The FastAPI server binds to `127.0.0.1:8901`
-(`src/api/main.py:115`); no remote client can reach it in the default deployment.
-The platform is single-operator, local-first, and has **no authentication by
-design** (local-first constraint — see §Context/Constraints). Therefore the
-current `allow_origins=["*"]` (Decision 2; `main.py:35-40`) is acceptable for the
-current loopback-only scope. The permissiveness is safe **only because** of the
-loopback bind; it is not safe under any other bind.
+(`src/api/main.py:139`) via the `_resolve_bind_host()` fail-closed assertion; no
+remote client can reach it in the default deployment. The platform is
+single-operator, local-first, and has **no authentication by design**
+(local-first constraint — see §Context/Constraints). Therefore the current
+`allow_origins=["*"]` (Decision 2; `main.py:35-40`) is acceptable for the current
+loopback-only scope. The permissiveness is safe **only because** of the loopback
+bind; it is not safe under any other bind.
 
 **Promotion gate.** A non-loopback `bind_host` (e.g. `0.0.0.0`) **REQUIRES**,
 before it may be set: (a) tightening CORS to an explicit localhost allow-list
 (Migration Plan step 3 / Alternative 1), AND (b) adding auth (Alternative 2) —
-auth FIRST. Promotion of ADR-0007 from Proposed to Accepted is gated on the
+auth FIRST. Promotion of ADR-0007 from Proposed to Accepted was gated on the
 CORS-hardening story landing OR an explicit strengthened-loopback-guarantee
-decision, signed off by **S003-014** (the promotion authority; FRESH
-`/architecture-review`).
+decision, signed off by **Sprint 004 fresh `/architecture-review`** — this
+sign-off is recorded in
+`production/architecture-reviews/architecture-review-s004-2026-06-14.md`.
 
-**Cross-reference.** Until S003-014 lands that sign-off, no story may claim
-"CORS is production-hardened", "CORS is satisfied", or "ADR-0007 is satisfied /
-Accepted". This deferral closes the gate-check Technical Director CONCERN
-"ADR-0007 remains Proposed (CORS hardening incomplete)" in
-`production/gate-checks/gate-implementation-verification-2026-06-12.md` by
-recording the deferral formally; it does **not** resolve the CONCERN by
-promotion.
+**Cross-reference.** ADR-0007 is now **Accepted**. No story may claim
+"CORS is production-hardened" — the posture is explicitly
+**loopback-guaranteed**.
 
 ## Date
 
@@ -378,11 +365,7 @@ returned to `["*"]`; repository routing is backward-compatible by definition.
   for S002-009); S002-011 owns any follow-on.
 - [ ] After the CORS hardening: `allow_origins` is an explicit list and a
   non-loopback `bind_host` is gated on it.
-- [ ] This ADR is promoted from Proposed to Accepted once the CORS hardening
-  story (or an explicit decision to keep `*` under a strengthened loopback
-  guarantee) lands. **(S002-009 closes only the error-envelope half of this
-  gate; the CORS-hardening half remains out of Sprint 002 scope. S002-011 owns
-  the promotion-gate cross-reference note.)**
+- [x] This ADR is promoted from Proposed to Accepted. The strengthened-loopback-guarantee path (1b) was signed off by Sprint 004 fresh `/architecture-review` (`production/architecture-reviews/architecture-review-s004-2026-06-14.md`). Posture is **loopback-guaranteed**, not "production-hardened".
 
 ## CDD Requirements Addressed
 

@@ -9,15 +9,16 @@ Governance gate: enforces the ADR lifecycle defined in ``docs/CLAUDE.md``::
 This test reads the Markdown of every ``docs/architecture/adr-*.md`` file and
 asserts:
 
-1. Each promoted ADR (ADR-0001/0002/0003/0004/0005/0009/0010) carries
+1. Each promoted ADR (ADR-0001/0002/0003/0004/0005/0007/0009/0010) carries
    ``Status: Accepted``.
-2. Each gated ADR (ADR-0007) carries ``Status: Proposed`` AND a
-   ``Promotion gate`` callout in the Status section that names what is MET and
-   what REMAINS.
+2. Each gated ADR carries ``Status: Proposed`` AND a ``Promotion gate`` callout
+   in the Status section that names what is MET and what REMAINS. (Currently
+   none remain Proposed with active gates; the collection is kept empty so
+   future gated ADRs are added here.)
 3. No ADR has skipped ``Accepted`` — the only legal Status tokens are
    ``Proposed``, ``Accepted``, and ``Superseded``.
 4. Each ``Promotion gate`` callout references the relevant story IDs and
-   remaining work named in S002-011.
+   remaining work.
 
 The test is deterministic and filesystem-only: it parses the ADR Markdown under
 ``docs/architecture/`` and asserts on the parsed Status section. No network,
@@ -50,22 +51,14 @@ _EXPECTED_ACCEPTED = {
     "adr-0009": "ADR-0009 (cache-metadata-port-split) — Wave-4 accepted: ITickerNameCache + ITickerMetadataSource split realized; real yfinance metadata adapter is follow-on implementation work.",
     "adr-0010": "ADR-0010 (view-service-port-injection) — Wave-4 accepted: IMarketViewRepository + DuckDBMarketViewRepository + composition root are implemented and tested.",
     "adr-0004": "ADR-0004 (data-source-adapter-contract) — S004-004 promoted: TDXDataSource implements IMarketDataSource without NotImplementedError; tdx_downloader.py thin-wrapped as CLI shim; sys.path.insert removed (S002-005). _retry.py extraction deferred to a follow-on (not a promotion gate).",
+    "adr-0007": "ADR-0007 (api-surface-and-cors) — S004-005 + S004-008b promoted: strengthened-loopback-guarantee implemented (src/api/main.py fail-closed DOGE_BIND_HOST assertion), covered by tests/test_api_loopback_guarantee.py, signed off by fresh /architecture-review (architecture-review-s004-2026-06-14.md). CORS remains allow_origins=['*'] under loopback; non-loopback bind requires CORS hardening + auth first.",
 }
 
 # ADRs that STAY Proposed and must carry a Promotion gate callout.
 # Each value maps the ADR stem -> a dict of (substr) -> required-mention substrings
 # that must appear inside the Status section's Promotion-gate callout.
-_EXPECTED_PROPOSED_GATES = {
-    "adr-0007": {
-        "met_keywords": ["S002-009", "error envelope"],
-        "remains_keywords": [
-            "allow_origins",                  # CORS hardening
-            "CORS hardening",
-            "loopback",
-        ],
-        "story_keywords": ["S002-009"],
-    },
-}
+# Currently empty: all gated ADRs were promoted in S004-008b.
+_EXPECTED_PROPOSED_GATES: dict[str, dict[str, list[str]]] = {}
 
 # ADR stems that exist but are NOT in either promotion set this sprint.
 # Their Status is asserted legal (one of _LEGAL_STATUSES) but not pinned.
