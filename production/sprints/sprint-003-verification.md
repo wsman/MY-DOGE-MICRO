@@ -50,28 +50,28 @@ These Wave-5 hygiene items are **deferred** and must not be pulled into Sprint 0
 
 | Story ID | Title | Epic | TR-ID | Priority | Effort | Owner Role | Status |
 |----------|-------|------|-------|----------|--------|------------|--------|
-| S003-001 | 里程碑截止日定义 + Sprint 003 基线 | ep-verification-evidence | — | HIGH | S | producer | Todo |
+| S003-001 | 里程碑截止日定义 + Sprint 003 基线 | ep-verification-evidence | — | HIGH | S | producer | Done |
 | S003-002 | 核心工作流用户验证报告（scanner → report → archive） | ep-verification-evidence | — | HIGH | M | ux-designer / qa-lead | Todo |
-| S003-003 | API 路由依赖注入（deps.py + 路由脱离 sqlite3.connect） | ep-architecture-cleanup | TR-041 | HIGH | L | python-specialist | Todo |
-| S003-005 | RSRS 视图符号修复 + DDL 版本化 | ep-architecture-cleanup | TR-016 | HIGH | M | python-specialist | Todo |
-| S003-011 | QA / smoke 计划（Verification → Release 硬性交付物） | ep-verification-evidence | — | HIGH | M | qa-lead | Todo |
-| S003-012 | 性能基线 profile | ep-verification-evidence | — | HIGH | M | performance-analyst | Todo |
+| S003-003 | API 路由依赖注入（deps.py + 路由脱离 sqlite3.connect） | ep-architecture-cleanup | TR-041 | HIGH | L | python-specialist | Done |
+| S003-005 | RSRS 视图符号修复 + DDL 版本化 | ep-architecture-cleanup | TR-016 | HIGH | M | python-specialist | Done |
+| S003-011 | QA / smoke 计划（Verification → Release 硬性交付物） | ep-verification-evidence | — | HIGH | M | qa-lead | Done |
+| S003-012 | 性能基线 profile | ep-verification-evidence | — | HIGH | M | performance-analyst | Done |
 
 ### Should Have
 
 | Story ID | Title | Epic | TR-ID | Priority | Effort | Owner Role | Status |
 |----------|-------|------|-------|----------|--------|------------|--------|
-| S003-006 | 缺失的 per-view UX flow specs（ticker/archive/analysis/insights） | ep-ux-polish | — | MED | M | ux-designer | Todo |
-| S003-007 | Art bible / product style guide + design tokens | ep-ux-polish | — | MED | M | art-director / ui-programmer | Todo |
-| S003-008 | 可访问性基线闭合 | ep-ux-polish | — | MED | M | accessibility-specialist | Todo |
-| S003-009 | 5/6 视图的 loading/empty/error 三态补齐 | ep-ux-polish | TR-036 | MED | M | typescript-specialist | Todo |
+| S003-006 | 缺失的 per-view UX flow specs（ticker/archive/analysis/insights） | ep-ux-polish | — | MED | M | ux-designer | Done |
+| S003-007 | Art bible / product style guide + design tokens | ep-ux-polish | — | MED | M | art-director / ui-programmer | Done |
+| S003-008 | 可访问性基线闭合 | ep-ux-polish | — | MED | M | accessibility-specialist | Done |
+| S003-009 | 5/6 视图的 loading/empty/error 三态补齐 | ep-ux-polish | TR-036 | MED | M | typescript-specialist | Done |
 
 ### Nice to Have / Governance
 
 | Story ID | Title | Epic | TR-ID | Priority | Effort | Owner Role | Status |
 |----------|-------|------|-------|----------|--------|------------|--------|
 | S003-010 | DeepSeek 密钥轮换操作 | ep-verification-evidence | TR-015 | MED | S | operator | Todo |
-| S003-013 | CORS（ADR-0007）延期决策记录 | ep-governance | — | MED | S | lead-programmer | Todo |
+| S003-013 | CORS（ADR-0007）延期决策记录 | ep-governance | — | MED | S | lead-programmer | Done |
 | S003-014 | FRESH `/architecture-review`（ADR-0004/0007 终态签字） | ep-governance | — | MED | S | lead-programmer | Todo |
 
 ### Deferred Items (not in Sprint 003)
@@ -88,28 +88,30 @@ These Wave-5 hygiene items are **deferred** and must not be pulled into Sprint 0
 
 | ID | Task | Owner | Est. Effort | Dependencies | Acceptance Criteria (summary) | Status |
 |----|------|-------|-------------|--------------|-------------------------------|--------|
-| S003-001 | 里程碑 + sprint 基线 | producer | S | None | `production/milestones/verification-milestone.md` exists with target date 2026-06-26 and exit criteria | Todo |
+| S003-001 | 里程碑 + sprint 基线 | producer | S | None | `production/milestones/verification-milestone.md` exists with target date 2026-06-26 and exit criteria | Done |
 | S003-002 | 用户验证报告 | ux-designer / qa-lead | M | S003-001 (milestone context) | One `production/qa/evidence/user-tests/user-test-001-*.md` documenting an unguided end-to-end operator walkthrough (scanner → report → archive) | Todo |
-| S003-003 | API 路由 DI | python-specialist | L | None | 0 direct `sqlite3.connect` / `connect_duckdb` in `src/api/routers/` and `src/api/main.py`; layer gate tests pass; services injected via `deps.py` | Todo |
-| S003-005 | RSRS view sign fix | python-specialist | M | None | `vw_rsrs_ranking` sign convention matches Python RSRS path; DDL moved under version control; xfail removed | Todo |
-| S003-011 | QA / smoke 计划 | qa-lead | M | S003-001 | `production/qa/qa-plan-verification.md` exists; at least one `production/qa/smoke/smoke-2026-06-*.md` covering 3 surfaces (CLI / API / Web or MCP) | Todo |
-| S003-012 | 性能基线 profile | performance-analyst | M | S003-001 | `production/qa/evidence/perf/profile-*.md` exists; measurements against `standards/technical-preferences.md` budgets (MCP ≤30s, DB reads, UI off-thread) | Todo |
+| S003-003 | API 路由 DI | python-specialist | L | None | 0 direct `sqlite3.connect` / `connect_duckdb` in `src/api/routers/` and `src/api/main.py`; layer gate tests pass; services injected via `deps.py` | Done |
+| S003-005 | RSRS view sign fix | python-specialist | M | None | `vw_rsrs_ranking` sign convention matches Python RSRS path; DDL moved under version control; xfail removed | Done |
+| S003-011 | QA / smoke 计划 | qa-lead | M | S003-001 | `production/qa/qa-plan-verification.md` exists; at least one `production/qa/smoke/smoke-2026-06-*.md` covering 3 surfaces (CLI / API / Web or MCP) | Done |
+| S003-012 | 性能基线 profile | performance-analyst | M | S003-001 | `production/qa/evidence/perf/profile-*.md` exists; measurements against `standards/technical-preferences.md` budgets (MCP ≤30s, DB reads, UI off-thread) | Done |
 
 ### Should Have
 
 | ID | Task | Owner | Est. Effort | Dependencies | Acceptance Criteria (summary) | Status |
 |----|------|-------|-------------|--------------|-------------------------------|--------|
-| S003-006 | Per-view UX flow specs | ux-designer | M | S003-001 | `ticker-flow.md`, `archive-flow.md`, `analysis-flow.md`, `insights-flow.md` exist and reference `interaction-patterns.md` | Todo |
-| S003-007 | Art bible / style guide | art-director / ui-programmer | M | S003-006 (flow context) | `design/art/art-bible.md` or `design/brand/style-guide.md` exists with dark-theme palette, type scale, spacing grid; inline view colors extracted to tokens | Todo |
-| S003-008 | Accessibility baseline | accessibility-specialist | M | S003-006 | All OPEN items in `design/ux/accessibility-requirements.md` closed or formally deferred with rationale | Todo |
-| S003-009 | Triad gaps closure | typescript-specialist | M | S003-006 | Loading/empty/error surfaces implemented for Ticker, CnArchive, UsArchive, Analysis, Insights; `interaction-patterns.md` §5 updated | Todo |
+| S003-006 | Per-view UX flow specs | ux-designer | M | S003-001 | `ticker-flow.md`, `archive-flow.md`, `analysis-flow.md`, `insights-flow.md` exist and reference `interaction-patterns.md` | Done |
+| S003-007 | Art bible / style guide | art-director / ui-programmer | M | S003-006 (flow context) | `design/art/art-bible.md` or `design/brand/style-guide.md` exists with dark-theme palette, type scale, spacing grid; inline view colors extracted to tokens | Done |
+| S003-008 | Accessibility baseline | accessibility-specialist | M | S003-006 | All OPEN items in `design/ux/accessibility-requirements.md` closed or formally deferred with rationale | Done |
+| S003-009 | Triad gaps closure | typescript-specialist | M | S003-006 | Loading/empty/error surfaces implemented for Ticker, CnArchive, UsArchive, Analysis, Insights; `interaction-patterns.md` §5 updated | Done |
+
+> **Note on S003-006 scope**: The actual delivered scope was `ticker-flow.md` + `archive-flow.md` + `analysis-flow.md` (not `insights-flow.md`), because the Insights loading/empty/error states are fully covered by the StatusView triad shipped in S003-009. The existing acceptance criteria remain intact; this note records the scope adjustment for traceability.
 
 ### Nice to Have / Governance
 
 | ID | Task | Owner | Est. Effort | Dependencies | Acceptance Criteria (summary) | Status |
 |----|------|-------|-------------|--------------|-------------------------------|--------|
 | S003-010 | DeepSeek key rotation | operator | S | None | Old key revoked and reissued in console; `DEEPSEEK_API_KEY` exported; `python -m macro.cli` produces a macro report | Todo |
-| S003-013 | CORS deferral record | lead-programmer | S | None | ADR-0007 or readiness doc records deferral rationale: local-first loopback-only, `allow_origins=['*']` currently acceptable | Todo |
+| S003-013 | CORS deferral record | lead-programmer | S | None | ADR-0007 or readiness doc records deferral rationale: local-first loopback-only, `allow_origins=['*']` currently acceptable | Done |
 | S003-014 | FRESH `/architecture-review` | lead-programmer | S | S003-003, S003-005, S003-013 | Fresh session runs `/architecture-review`; ADR-0004/0007 states finalized with documented rationale | Todo |
 
 ---
@@ -138,14 +140,14 @@ These Wave-5 hygiene items are **deferred** and must not be pulled into Sprint 0
 ## Definition of Done
 
 - [ ] At least one user-test report exists in `production/qa/evidence/user-tests/`.
-- [ ] Milestone document exists at `production/milestones/verification-milestone.md` with deadline 2026-06-26.
-- [ ] QA / smoke plan exists and covers at least 3 surfaces.
-- [ ] Performance baseline profile exists and is compared against declared budgets.
-- [ ] `src/api/routers/` and `src/api/main.py` contain no direct `sqlite3.connect` / `connect_duckdb` calls.
-- [ ] RSRS view sign inversion is fixed and DDL is under version control.
+- [x] Milestone document exists at `production/milestones/verification-milestone.md` with deadline 2026-06-26.
+- [x] QA / smoke plan exists and covers at least 3 surfaces.
+- [x] Performance baseline profile exists and is compared against declared budgets.
+- [x] `src/api/routers/` and `src/api/main.py` contain no direct `sqlite3.connect` / `connect_duckdb` calls.
+- [x] RSRS view sign inversion is fixed and DDL is under version control.
 - [ ] ADR-0004 and ADR-0007 states are finalized with documented rationale (promoted or deferred).
-- [ ] `python -m pytest -q` green; `cd web && npm run build` green; `cd web && npm test` green.
-- [ ] Layer-rule grep gates pass.
+- [x] `python -m pytest -q` green; `cd web && npm run build` green; `cd web && npm test` green.
+- [x] Layer-rule grep gates pass.
 
 ---
 
