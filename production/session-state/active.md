@@ -10,11 +10,13 @@
 Stage advanced Implementation → Verification under CONCERNS verdict
 (`production/gate-checks/gate-implementation-verification-2026-06-12.md`).
 
-- Sprint 003 status synchronized: **12/13 done**, 1 remaining.
+- Sprint 003 status synchronized: **13/13 done**, 0 remaining.
 - S003-014 `/architecture-review` completed in fresh session → **CONCERNS** verdict.
 - S003-010 DeepSeek key environment verification **PASS**: operator ran `python -m macro.cli` in fresh terminal; DeepSeek API returned HTTP 200 OK; no key leakage in logs after commit `5b6a57a`.
-- Remaining work is operator-only:
-  - S003-002: unguided user walkthrough → `production/qa/evidence/user-tests/user-test-001-2026-06-13.md`.
+- S003-002 unguided walkthrough re-executed 2026-06-13 → **PASS** after opentdx import-guard fix:
+  - Report: `production/qa/evidence/user-tests/user-test-001-2026-06-13.md`
+  - Raw result: `production/qa/evidence/user-tests/s003-002-walkthrough-result.json`
+  - Scanner now completes without `No module named 'opentdx'`; Insights renders existing reports; Archive→Ticker works.
 
 ## Latest Verification Run (2026-06-13)
 
@@ -31,15 +33,17 @@ SSE transport test (`tests/test_transport.py::TestSseTransport::test_sse_endpoin
 
 - ✅ SSE transport test stable.
 - ✅ S003-010 DeepSeek key environment verification PASS.
-- ⏳ S003-002 remains operator-only work.
+- ✅ S003-002 unguided walkthrough PASS after opentdx import-guard fix.
 
 ## Next Step
 
-**S003-010 已 sign off，Sprint 003 进度 12/13。**
+**Sprint 003 已正式关闭为 13/13 done。**
 
-仅剩 **S003-002** — 无引导用户走查 scanner → report → archive，填写 `production/qa/evidence/user-tests/user-test-001-2026-06-13.md`，并在 `production/qa/operator-checklist-s003.md` §S003-002 sign off。
+- Final close commit: `57a217a chore(sprint): S003 all 13/13 done`
+- Scanner fix + evidence commit: `5fd26ee fix(scanner): guard opentdx import ...`
+- Verification suite: 519 pytest passed / 2 skipped; web build/test green.
 
-S003-002 完成后，本会话执行最终关闭 commit：`chore(sprint): S003 all 13/13 done`。
+后台进程和临时 CDP 脚本已清理。
 
 未提交工作树：
 - `production/session-logs/session-log.md`（历史审计日志，不提交）
@@ -171,7 +175,7 @@ Deferred items (documented; see readiness doc §4 for full disposition):
 <!-- STATUS -->
 Epic: Verification / Release-Ready v1
 Feature: Sprint 003 — Verification closure
-Task: S003-010 done; awaiting S003-002 user walkthrough
+Task: S003-002 PASS; Sprint 003 13/13 done; final close commit 57a217a present
 <!-- /STATUS -->
 
 ## Session Extract — /architecture-review 2026-06-13
