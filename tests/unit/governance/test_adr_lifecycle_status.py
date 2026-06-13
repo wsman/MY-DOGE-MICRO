@@ -9,9 +9,9 @@ Governance gate: enforces the ADR lifecycle defined in ``docs/CLAUDE.md``::
 This test reads the Markdown of every ``docs/architecture/adr-*.md`` file and
 asserts:
 
-1. Each promoted ADR (ADR-0001/0002/0003/0005/0009/0010) carries
+1. Each promoted ADR (ADR-0001/0002/0003/0004/0005/0009/0010) carries
    ``Status: Accepted``.
-2. Each gated ADR (ADR-0004/0007) carries ``Status: Proposed`` AND a
+2. Each gated ADR (ADR-0007) carries ``Status: Proposed`` AND a
    ``Promotion gate`` callout in the Status section that names what is MET and
    what REMAINS.
 3. No ADR has skipped ``Accepted`` — the only legal Status tokens are
@@ -49,21 +49,13 @@ _EXPECTED_ACCEPTED = {
     "adr-0005": "ADR-0005 (llm-client-strategy) — gate met: OpenAI(api_key, base_url), stream=False temp=0.6, None-on-error, DEEPSEEK_API_KEY/DEEPSEEK_MODEL overrides; S002-013 closed the committed-key OPEN item.",
     "adr-0009": "ADR-0009 (cache-metadata-port-split) — Wave-4 accepted: ITickerNameCache + ITickerMetadataSource split realized; real yfinance metadata adapter is follow-on implementation work.",
     "adr-0010": "ADR-0010 (view-service-port-injection) — Wave-4 accepted: IMarketViewRepository + DuckDBMarketViewRepository + composition root are implemented and tested.",
+    "adr-0004": "ADR-0004 (data-source-adapter-contract) — S004-004 promoted: TDXDataSource implements IMarketDataSource without NotImplementedError; tdx_downloader.py thin-wrapped as CLI shim; sys.path.insert removed (S002-005). _retry.py extraction deferred to a follow-on (not a promotion gate).",
 }
 
 # ADRs that STAY Proposed and must carry a Promotion gate callout.
 # Each value maps the ADR stem -> a dict of (substr) -> required-mention substrings
 # that must appear inside the Status section's Promotion-gate callout.
 _EXPECTED_PROPOSED_GATES = {
-    "adr-0004": {
-        "met_keywords": ["YFinanceDataSource", "IMarketDataSource"],
-        "remains_keywords": [
-            "NotImplementedError",            # TDX stub still raises it
-            "tdx_downloader.py",              # full migration deferred
-            "_retry.py",                      # shared retry-helper extraction
-        ],
-        "story_keywords": ["S002-005"],
-    },
     "adr-0007": {
         "met_keywords": ["S002-009", "error envelope"],
         "remains_keywords": [

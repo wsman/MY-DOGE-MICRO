@@ -2,24 +2,20 @@
 
 ## Status
 
-Proposed
+Accepted (S004-004, 2026-06-14)
 
-> **Promotion gate (S002-011 governance review, 2026-06-12).** This ADR stays
-> Proposed because its gating work is incomplete. **MET**:
-> `IMarketDataSource` port exists; `YFinanceDataSource` adapter is implemented
-> and green (`tests/test_yfinance_adapter.py`, 13/13, network-free). **REMAINS**
-> before promotion to Accepted:
-> - **S002-005 / TDX adapter** — `src/doge/infrastructure/data_source/tdx.py`
->   still raises `NotImplementedError` at `:32` (`download_kline`) and `:35`
->   (`get_latest_market_date`); the migration of `src/micro/tdx_downloader.py`
->   onto the port is deferred beyond Sprint 002.
-> - **Shared retry-helper extraction** — `src/doge/infrastructure/data_source/
->   _retry.py` is a follow-on (Migration Plan step 2); the yfinance adapter and
->   `macro/data_loader.py` still carry independent retry loops.
-> - **`tdx_downloader.py` full migration** — remove `sys.path.insert` +
->   `_PROJECT_ROOT` block (`:23-26`); route consumers through the port; then
->   delete legacy paths after a live smoke.
-> Promotion to Accepted is the gating ADR-lifecycle event for those stories.
+> **Promoted by S004-004 (TDX adapter implementation).** The S002-011 promotion
+> gate is met: `TDXDataSource` implements `IMarketDataSource` without raising
+> `NotImplementedError` (`src/doge/infrastructure/data_source/tdx.py`;
+> `tests/test_tdx_adapter.py`, 26 tests, network-free); `tdx_downloader.py` is
+> thin-wrapped as a CLI shim that constructs the adapter (Migration Plan step 4);
+> the `sys.path.insert` / `_PROJECT_ROOT` block was removed in S002-005. The
+> shared retry-helper extraction (`_retry.py`, Migration Plan step 2) is
+> re-scoped to a follow-on — it is not a promotion gate (the S003-014 §ADR-0004
+> gate item is the TDX implementation), so this ADR is Accepted with that
+> consolidation deferred. A fresh `/architecture-review` (Sprint 004 Release
+> gate) verifies the promotion and rules on the `connect(self, market)` adapter
+> signature.
 
 ## Date
 
@@ -227,12 +223,12 @@ class IMarketDataSource(ABC):
 
 ## Validation Criteria
 
-- [ ] `IMarketDataSource` is implemented by both `TDXDataSource` and `YFinanceDataSource` (yfinance done; TDX pending migration).
-- [ ] `tests/test_yfinance_adapter.py` passes with no network access (done — 13/13).
-- [ ] A network failure in any adapter returns `None`, never raises, and never corrupts `stock_prices` (done for yfinance; pending for TDX adapter).
-- [ ] No adapter opens SQLite/DuckDB directly (yfinance: done; TDX: enforced on migration).
-- [ ] `tdx_downloader.py` no longer contains `sys.path.insert` / `_PROJECT_ROOT` (pending — remediation acceptance criterion in CDD section 8).
-- [ ] Retry/backoff defaults are identical across yfinance adapter and `macro/data_loader.py` (consolidation pending).
+- [x] `IMarketDataSource` is implemented by both `TDXDataSource` and `YFinanceDataSource` (TDX implemented S004-004; yfinance done).
+- [x] `tests/test_yfinance_adapter.py` passes with no network access (done — 13/13).
+- [x] A network failure in any adapter returns `None`, never raises, and never corrupts `stock_prices` (done for yfinance + TDX; S004-004).
+- [x] No adapter opens SQLite/DuckDB directly (yfinance: done; TDX: no `save_stock_data_custom`, S004-004).
+- [x] `tdx_downloader.py` no longer contains `sys.path.insert` / `_PROJECT_ROOT` (removed S002-005; CLI block thin-wrapped to the adapter S004-004).
+- [ ] Retry/backoff defaults are identical across yfinance adapter and `macro/data_loader.py` (consolidation deferred to a follow-on — `_retry.py` extraction re-scoped out of this promotion).
 
 ## CDD Requirements Addressed
 

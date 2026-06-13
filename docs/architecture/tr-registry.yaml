@@ -171,9 +171,9 @@ requirements:
     section: "8 (Migration)"
     requirement: "src/micro/tdx_downloader.py:23-26 sys.path.insert / _PROJECT_ROOT removed; TDXDataSource no longer raises NotImplementedError (migrated from tdx_downloader.py)."
     adr: docs/architecture/adr-0004-data-source-adapter-contract.md
-    test: tests/unit/infrastructure/test_tdx_data_source.py
+    test: tests/test_tdx_adapter.py
     created: 2026-06-12
-    revised: ""
+    revised: "2026-06-14"
     status: active
 
   - id: TR-012
@@ -579,5 +579,27 @@ requirements:
     adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
     test: tests/test_market_reporting.py
     created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-045
+    system: research-insight-knowledge-base
+    cdd: design/cdd/research-insight-knowledge-base.md
+    section: "CDD OQ-4 (port split)"
+    requirement: "INoteRepository port (split from IReportRepository, closes OQ-4) + SQLiteNoteRepository adapter; the notes domain is decoupled from direct sqlite3, with soft-delete-aware reads/writes mirroring the legacy stock_notes contract."
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    test: tests/unit/doge/test_note_repository.py
+    created: 2026-06-14
+    revised: ""
+    status: active
+
+  - id: TR-046
+    system: research-insight-knowledge-base
+    cdd: design/cdd/research-insight-knowledge-base.md
+    section: "interface layer §6 gate"
+    requirement: "src/api/routers/notes.py and src/doge/interfaces/mcp/tools/query_stock.py route through INoteRepository (Depends / get_ticker_with_context); no direct sqlite3 in src/api or src/doge/interfaces — the §6 layer-rule grep gate is green."
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    test: tests/test_notes_crud.py
+    created: 2026-06-14
     revised: ""
     status: active
