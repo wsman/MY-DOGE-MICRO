@@ -249,8 +249,11 @@ async def start_scan(market: str, body: ScanRequest):
                     queue.put({"progress": 100, "message": "done"}), loop
                 )
             except Exception as e:
+                # Operator-safe fixed message (ADR-0007 envelope convention);
+                # never leak str(e) over SSE.
+                logger.exception("scan failed")
                 asyncio.run_coroutine_threadsafe(
-                    queue.put({"progress": -1, "message": f"error: {e}"}), loop
+                    queue.put({"progress": -1, "message": "scan failed"}), loop
                 )
             finally:
                 _scan_locks[market].release()

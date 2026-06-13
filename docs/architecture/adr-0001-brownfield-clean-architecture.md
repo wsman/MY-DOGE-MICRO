@@ -54,7 +54,7 @@ The imported source state shows:
 - Untracked new architecture under `src/doge/config`, `src/doge/core`, `src/doge/infrastructure`, and `src/doge/interfaces/mcp`.
 - Untracked FastAPI routers under `src/api`.
 - Untracked pytest coverage for database, MCP tools, and transport.
-- Continued `sys.path.insert`, `_PROJECT_ROOT`, direct SQLite imports, and direct `connect_duckdb()` usage in legacy and interface modules.
+- Historically: `sys.path.insert`, `_PROJECT_ROOT`, direct SQLite imports, and direct `connect_duckdb()` usage in legacy and interface modules (since migrated — §6 grep gate green; residual cross-layer coupling tracked as Wave-5 brownfield offenders).
 
 ### Constraints
 

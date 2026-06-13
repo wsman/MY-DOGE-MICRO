@@ -108,7 +108,8 @@ def main():
     except Exception as e:
         safe_msg = _redact_secrets(str(e), locals().get("config"))
         print(f"❌ 运行失败: {safe_msg}")
-        print("💡 请检查 DEEPSEEK_API_KEY 环境变量配置")
+        print("💡 若与 API Key 有关，请检查 DEEPSEEK_API_KEY 环境变量配置")
+        print("   If this is API-key related, check the DEEPSEEK_API_KEY env var.")
         sys.exit(1)
 
 

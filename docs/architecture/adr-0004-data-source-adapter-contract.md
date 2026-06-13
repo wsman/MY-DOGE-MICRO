@@ -14,8 +14,11 @@ Accepted (S004-004, 2026-06-14)
 > re-scoped to a follow-on — it is not a promotion gate (the S003-014 §ADR-0004
 > gate item is the TDX implementation), so this ADR is Accepted with that
 > consolidation deferred. A fresh `/architecture-review` (Sprint 004 Release
-> gate) verifies the promotion and rules on the `connect(self, market)` adapter
-> signature.
+> gate) ruled the `connect(self, market="cn")` signature **acceptable** (review
+> `architecture-review-s004-2026-06-14.md`): adapter signatures may add source-
+> specific optional parameters provided they remain callable via the port
+> contract — `market` defaults to `"cn"`, so `connect()` still satisfies
+> `IMarketDataSource.connect(self) -> None`.
 
 ## Date
 

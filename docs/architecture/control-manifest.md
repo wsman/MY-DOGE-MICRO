@@ -1,9 +1,9 @@
 # Architecture Control Manifest
 
-> **Manifest Version**: 2026-06-12
+> **Manifest Version**: 2026-06-14
 > **Owner**: lead-programmer (architecture); enforced by `/architecture-review`, `/gate-check`, `/story-readiness`, `/story-done`, and CI.
 > **Scope**: MY-DOGE-MICRO — local-first quantitative investment decision-support platform. This manifest is the project's control-plane reference: the quality gates, the BLOCKING vs ADVISORY evidence rules, the ADR lifecycle, the registry-write policy, the forbidden patterns, and the exact verification commands.
-> **How to use**: stories embed this manifest version in their header (`Control Manifest: 2026-06-12`); `/story-done` checks for staleness against this file's header. When a rule changes, bump the version date and re-review open stories.
+> **How to use**: stories embed this manifest version in their header (`Control Manifest: 2026-06-14`); `/story-done` checks for staleness against this file's header. When a rule changes, bump the version date and re-review open stories.
 
 ---
 
@@ -49,7 +49,7 @@ From ADR-0001 + `clean-architecture-migration.md §4.4` + `standards/technical-p
 | cross-layer imports that bypass ports/services | — | everywhere (ADR-0001) |
 | network-dependent tests without isolation/fixtures | — | `tests/**` |
 
-**Legacy tolerance**: legacy modules under `src/micro`, `src/macro`, `src/api`, `src/ai_analysis`, and `src/interface` may still contain documented brownfield offenders. Root `mcp_server.py` has been retired and `doge_mcp.py` is not a compatibility shim. Legacy offenders receive **no new** architectural coupling, and each retired offender is struck through in the CDD's offender list.
+**Legacy tolerance**: legacy modules under `src/micro`, `src/macro`, `src/ai_analysis`, and `src/interface` may still contain documented brownfield offenders (`src/api` was migrated to clean-tree patterns — §6 grep gate green since Sprint 004). Root `mcp_server.py` has been retired and `doge_mcp.py` is not a compatibility shim. Legacy offenders receive **no new** architectural coupling, and each retired offender is struck through in the CDD's offender list.
 
 ---
 
@@ -104,17 +104,17 @@ Proposed  ──►  Accepted  ──►  Superseded
 4. **Each ADR must record**: Title, Status, Date, Last Verified, Decision Makers, Context (Problem/Current State/Constraints/Requirements), Decision, Alternatives Considered, Consequences, ADR Dependencies, Engine/Stack Compatibility, CDD Requirements Addressed.
 5. **Run `/architecture-review` after completing a set of ADRs** — it cross-checks consistency, populates the TR registry, and produces the traceability narrative.
 
-### Current status inventory (2026-06-12)
+### Current status inventory (2026-06-14)
 
 | ADR | Status | Note |
 |---|---|---|
 | 0001 Brownfield Clean Architecture Migration | **Accepted** | Foundational. |
 | 0002 Centralized Runtime Configuration | **Accepted** | Settings singleton, env defaults, and tests are implemented. |
 | 0003 Storage Repository Contract | **Accepted** | StorageWriteError and retention gates are met. |
-| 0004 Data Source Adapter Contract | Proposed | yfinance half done; TDX half gated on TR-011. |
+| 0004 Data Source Adapter Contract | **Accepted** | TDX adapter implemented (S004-004); tdx_downloader.py thin-wrapped; _retry.py extraction deferred to a follow-on. |
 | 0005 LLM Client Strategy | **Accepted** | Strategy frozen; key handling moved to env. |
 | 0006 MCP Transport Strategy | **Accepted** | 77 transport tests green. |
-| 0007 API Surface and CORS | Proposed | Gating work (CORS hardening + error envelope) genuinely open. |
+| 0007 API Surface and CORS | **Accepted** | Strengthened-loopback-guarantee (S004-005/008b); error envelope shipped; allow_origins=['*'] safe under the loopback bind. |
 | 0008 Vue Web Console Architecture | **Accepted** | Build-green, reverse-documented. |
 | 0009 Cache/Metadata Port Split | **Accepted** | Port split realized; real yfinance metadata adapter is follow-on implementation work. |
 | 0010 View-Service Port Injection | **Accepted** | IMarketViewRepository and composition-root wiring are implemented and tested. |
@@ -239,4 +239,4 @@ The migration is incremental (ADR-0001). Legacy entrypoints stay live until repl
 
 ---
 
-*Manifest Version 2026-06-12. Re-review and bump this date whenever a rule, gate, ADR status, or verification command changes.*
+*Manifest Version 2026-06-14. Re-review and bump this date whenever a rule, gate, ADR status, or verification command changes.*

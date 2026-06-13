@@ -5,6 +5,7 @@
 import json
 import os
 import asyncio
+import logging
 import threading
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -13,6 +14,7 @@ from typing import Optional
 from doge.core.ports.repository import IReportRepository
 from doge.interfaces.api import deps
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -101,8 +103,11 @@ async def run_macro(body: MacroRunRequest):
                     queue.put({"progress": 100, "message": "done"}), loop
                 )
             except Exception as e:
+                # Operator-safe fixed message (ADR-0007 envelope convention);
+                # the macro path can carry the API key — never leak str(e).
+                logger.exception("macro run failed")
                 asyncio.run_coroutine_threadsafe(
-                    queue.put({"progress": -1, "message": f"error: {e}"}), loop
+                    queue.put({"progress": -1, "message": "macro run failed"}), loop
                 )
 
         thread = threading.Thread(target=run, daemon=True)
