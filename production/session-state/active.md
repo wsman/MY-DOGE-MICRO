@@ -5,18 +5,26 @@
 
 ## Current Task
 
-**Sprint 003 — Verification closure artifacts (Step 1–3 done)**
-(`production/sprints/sprint-003-verification.md`, milestone `production/milestones/verification-milestone.md`).
-Stage advanced Implementation → Verification under CONCERNS verdict
-(`production/gate-checks/gate-implementation-verification-2026-06-12.md`).
+**Verification → Release gate prep** (Phase 1 housekeeping done).
+Sprint 003 closed 13/13 (final close commit `57a217a`; HEAD `4d0f709`).
+Approved plan: `C:\Users\WSMAN\.claude\plans\14-stateless-kahn.md`.
 
-- Sprint 003 status synchronized: **13/13 done**, 0 remaining.
-- S003-014 `/architecture-review` completed in fresh session → **CONCERNS** verdict.
-- S003-010 DeepSeek key environment verification **PASS**: operator ran `python -m macro.cli` in fresh terminal; DeepSeek API returned HTTP 200 OK; no key leakage in logs after commit `5b6a57a`.
-- S003-002 unguided walkthrough re-executed 2026-06-13 → **PASS** after opentdx import-guard fix:
-  - Report: `production/qa/evidence/user-tests/user-test-001-2026-06-13.md`
-  - Raw result: `production/qa/evidence/user-tests/s003-002-walkthrough-result.json`
-  - Scanner now completes without `No module named 'opentdx'`; Insights renders existing reports; Archive→Ticker works.
+- **Phase 1 (housekeeping) DONE**: flipped 10 genuinely-met checkboxes in
+  `verification-milestone.md` to reflect Sprint 003 evidence; fixed the §3
+  perf path text (`profile-*` → `perf-baseline-*`). 3 left unchecked
+  deliberately — §4 API router DI, §4 RSRS view sign, §6 layer-rule gate —
+  these are the Release-gate-relevant gaps tied to ADR-0004/0007 (Phase 3/5
+  verifies). `sprint-status.yaml` S003 `status:` → `done`.
+- **Phase 2 PENDING (operator)**: 2 more user-test sessions — **first-run**
+  and **failure/recovery** (core workflow already covered by user-test-001).
+- **Phase 3 PENDING**: `/team-polish` (will assess ADR-0004/0007; refuses to
+  fix ADR-0007 scope until promoted — correct behavior).
+- **Phase 4 DECISION (operator + me, after Phase 3)**: promote ADR-0004/0007
+  for clean PASS, or accept CONCERNS Release with risk note.
+- **Phase 5 PENDING (fresh session)**: `/gate-check` Verification → Release.
+
+Prior Sprint 003 closure record preserved below (S003-002 PASS, S003-010 PASS,
+S003-014 CONCERNS); final close commit `57a217a`.
 
 ## Latest Verification Run (2026-06-13)
 
@@ -174,8 +182,8 @@ Deferred items (documented; see readiness doc §4 for full disposition):
   real key in git history.
 <!-- STATUS -->
 Epic: Verification / Release-Ready v1
-Feature: Sprint 003 — Verification closure
-Task: S003-002 PASS; Sprint 003 13/13 done; final close commit 57a217a present
+Feature: Verification → Release gate prep
+Task: Phase 1 housekeeping done; Phase 2 (2 user-test sessions) next
 <!-- /STATUS -->
 
 ## Session Extract — /architecture-review 2026-06-13

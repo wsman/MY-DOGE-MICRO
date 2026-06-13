@@ -17,16 +17,16 @@ Deliver the evidence and cleanup required to exit the Verification stage and pas
 The milestone is complete when all of the following are true:
 
 1. **User Validation Evidence**
-   - [ ] At least one documented operator workflow validation report exists in `production/qa/evidence/user-tests/`.
-   - [ ] Report covers an unguided end-to-end core workflow (e.g., scanner → report → archive).
+   - [x] At least one documented operator workflow validation report exists in `production/qa/evidence/user-tests/`.
+   - [x] Report covers an unguided end-to-end core workflow (e.g., scanner → report → archive).
 
 2. **QA / Smoke Evidence**
-   - [ ] `production/qa/qa-plan-verification.md` exists.
-   - [ ] At least one smoke report `production/qa/smoke/smoke-2026-06-*.md` covers 3 surfaces (CLI / API / Web or MCP).
+   - [x] `production/qa/qa-plan-verification.md` exists.
+   - [x] At least one smoke report `production/qa/smoke/smoke-2026-06-*.md` covers 3 surfaces (CLI / API / Web or MCP).
 
 3. **Performance Baseline**
-   - [ ] `production/qa/evidence/perf/profile-*.md` exists.
-   - [ ] Measurements compared against budgets in `standards/technical-preferences.md`:
+   - [x] `production/qa/evidence/perf/perf-baseline-*.md` exists.
+   - [x] Measurements compared against budgets in `standards/technical-preferences.md`:
      - MCP tool latency ≤ 30s
      - DB reads prefer DuckDB analytical views
      - UI long-running tasks off the main thread
@@ -35,7 +35,7 @@ The milestone is complete when all of the following are true:
 4. **Architecture Cleanup**
    - [ ] `src/api/routers/` and `src/api/main.py` contain no direct `sqlite3.connect` / `connect_duckdb` calls.
    - [ ] RSRS DuckDB view sign convention matches Python RSRS path.
-   - [ ] DDL for analytical views is under version control.
+   - [x] DDL for analytical views is under version control.
 
 5. **Governance Decisions**
    - [x] ADR-0004 state finalized (Proposed with TDX deferral rationale, or Accepted).
@@ -43,9 +43,9 @@ The milestone is complete when all of the following are true:
    - [x] Fresh `/architecture-review` session completed and documented.
 
 6. **Quality Gates**
-   - [ ] `python -m pytest -q` green (0 failures).
-   - [ ] `cd web && npm run build` green.
-   - [ ] `cd web && npm test` green.
+   - [x] `python -m pytest -q` green (0 failures).
+   - [x] `cd web && npm run build` green.
+   - [x] `cd web && npm test` green.
    - [ ] Layer-rule grep gates pass.
 
 ## Deferred to Post-Verification

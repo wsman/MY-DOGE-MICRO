@@ -260,7 +260,7 @@ sprints:
     epics_index: production/epics/index.md
     start: "2026-06-12"
     end: "2026-06-26"
-    status: in_progress
+    status: done
     control_manifest: "2026-06-12"
     duration_assumption: "2 weeks"
     goal: >-
