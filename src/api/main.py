@@ -110,6 +110,30 @@ async def stats(
     return browser.database_stats()
 
 
+# ── ADR-0007 strengthened-loopback-guarantee (S004-005) ──
+# ``allow_origins=["*"]`` (line 37) is safe ONLY because the API binds to
+# loopback. ``_resolve_bind_host`` makes that guarantee explicit and fail-closed
+# rather than implicit on the hardcoded default: a non-loopback bind (via
+# ``DOGE_BIND_HOST``) is rejected — CORS allow-list hardening + auth are required
+# first (see ADR-0007 Promotion gate).
+_LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
+
+
+def _resolve_bind_host() -> str:
+    """Resolve the API bind host, enforcing the ADR-0007 loopback guarantee.
+
+    Returns the loopback host (``DOGE_BIND_HOST`` env, default ``127.0.0.1``).
+    Raises ``AssertionError`` for any non-loopback host so the permissive CORS
+    posture is never exposed off-loopback without hardening + auth.
+    """
+    host = os.environ.get("DOGE_BIND_HOST", "127.0.0.1")
+    assert host in _LOOPBACK_HOSTS, (
+        "ADR-0007 loopback guarantee: non-loopback bind requires CORS allow-list "
+        "hardening + auth first (see ADR-0007 Promotion gate)."
+    )
+    return host
+
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8901)
+    uvicorn.run(app, host=_resolve_bind_host(), port=8901)
