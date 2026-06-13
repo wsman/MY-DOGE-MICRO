@@ -123,7 +123,38 @@ class TestSseTransport:
             assert "mcp_requests_total" in text or "# no metrics yet" in text
 
     def test_sse_endpoint_exists(self, sse_url):
-        import urllib.request
-        req = urllib.request.Request(f"{sse_url}/sse")
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            assert resp.status == 200
+        """The SSE endpoint accepts connections and emits the initial event.
+
+        SSE is an infinite stream, so a bare ``urllib.request.urlopen`` would
+        block forever waiting for the response body to finish. We open a raw
+        socket, assert the response headers, read until the first ``endpoint``
+        event arrives (or a short read timeout elapses), and then close.
+        """
+        import socket
+        import urllib.parse
+
+        parsed = urllib.parse.urlparse(sse_url)
+        sock = socket.create_connection((parsed.hostname, parsed.port), timeout=5)
+        try:
+            request = f"GET /sse HTTP/1.1\r\nHost: {parsed.hostname}:{parsed.port}\r\n\r\n"
+            sock.sendall(request.encode("ascii"))
+            # The endpoint event should arrive immediately; give it a short
+            # window and stop as soon as we see it.
+            sock.settimeout(1.0)
+            data = b""
+            try:
+                while True:
+                    chunk = sock.recv(1024)
+                    if not chunk:
+                        break
+                    data += chunk
+                    if b"event: endpoint" in data:
+                        break
+            except socket.timeout:
+                pass
+
+            assert b"HTTP/1.1 200 OK" in data, f"expected 200, got: {data[:200]!r}"
+            assert b"text/event-stream" in data, f"expected SSE content type, got: {data[:200]!r}"
+            assert b"event: endpoint" in data, "initial endpoint event not received"
+        finally:
+            sock.close()

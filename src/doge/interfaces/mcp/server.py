@@ -87,15 +87,20 @@ TOOL_TIMEOUT = 30
 PID_FILE = Path(get_settings().data_dir) / ".mcp_server.pid"
 _IS_WINDOWS = _platform.system() == "Windows"
 
+# Bound the PID history so startup/heartbeat work stays predictable even when
+# previous server processes did not shut down cleanly.
+_PID_HISTORY_LIMIT = 20
+
 
 def _register_pid():
-    """Append current PID to PID file. Each line: PID."""
+    """Append current PID to PID file, keeping only recent history."""
     PID_FILE.parent.mkdir(parents=True, exist_ok=True)
-    existing = ""
+    pids = []
     if PID_FILE.exists():
-        existing = PID_FILE.read_text(encoding="utf-8")
-    pids = [line.strip() for line in existing.splitlines() if line.strip()]
+        pids = [line.strip() for line in PID_FILE.read_text(encoding="utf-8").splitlines() if line.strip()]
     pids.append(str(os.getpid()))
+    # Keep the file bounded so async startup never scans an unbounded list.
+    pids = pids[-_PID_HISTORY_LIMIT:]
     PID_FILE.write_text("\n".join(pids) + "\n", encoding="utf-8")
 
 
@@ -108,7 +113,7 @@ def _unregister_pid():
         pids = PID_FILE.read_text(encoding="utf-8").splitlines()
         pids = [p for p in pids if p.strip() != my_pid]
         if pids:
-            PID_FILE.write_text("\n".join(pids) + "\n", encoding="utf-8")
+            PID_FILE.write_text("\n".join(pids[-_PID_HISTORY_LIMIT:]) + "\n", encoding="utf-8")
         else:
             PID_FILE.unlink(missing_ok=True)
     except (OSError, ValueError) as exc:
@@ -118,14 +123,27 @@ def _unregister_pid():
         logger.debug("PID unregister failed: %s", exc, exc_info=True)
 
 
-def _detect_orphan_processes():
-    """Log warning if orphaned MCP server processes are detected."""
+async def _detect_orphan_processes():
+    """Log warning if orphaned MCP server processes are detected.
+
+    The underlying ``wmic`` / ``/proc`` lookups are synchronous and can block
+    the event loop when the PID file is large. Running them in a worker thread
+    prevents an accumulated stale PID file from stalling the SSE handshake.
+    """
     if not PID_FILE.exists():
         return
+    await anyio.to_thread.run_sync(_sync_detect_orphan_processes)
+
+
+def _sync_detect_orphan_processes():
+    """Synchronous orphan detection (executed in a worker thread)."""
     # Match the canonical repo-root entrypoint for this server.
     _markers = ("doge_mcp.py",)
     try:
         pids = [p.strip() for p in PID_FILE.read_text(encoding="utf-8").splitlines() if p.strip()]
+        # Cap scanning to the most recent entries; _register_pid bounds the file,
+        # but this is a second line of defense against external corruption.
+        pids = pids[-_PID_HISTORY_LIMIT:]
         alive = []
         for pid_str in pids:
             try:
@@ -249,7 +267,7 @@ def create_mcp_server():
     async def _lifespan(app: FastMCP):
         logger.info("=== SERVER START ===")
         _register_pid()
-        _detect_orphan_processes()
+        await _detect_orphan_processes()
         try:
             from doge.infrastructure.database.duckdb import DuckDBConnection
             with DuckDBConnection(read_only=True).connect() as con:
