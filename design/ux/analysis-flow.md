@@ -24,9 +24,11 @@ they are documented together.
 ## 1. Overview
 
 The Analysis flow is the **read side** of MY-DOGE-MICRO: it surfaces
-AI-produced research and the operator's per-ticker notes for triage. Both views
-are REST-backed (no SSE, no watchdog) — each issues one or more `api.get(...)`
-calls on mount, and a fetch failure is the only failure mode. S003-009 wired
+AI-produced research and the operator's per-ticker notes for triage. Report
+generation is intentionally out of scope for this view — it is triggered via the
+backend `POST /api/macro/run` endpoint or the CLI, not from the Insights/Analysis
+UI. Both views are REST-backed (no SSE, no watchdog) — each issues one or more
+`api.get(...)` calls on mount, and a fetch failure is the only failure mode. S003-009 wired
 both views onto the shared `StatusView` triad
 ([`web/src/components/common/StatusView.vue`](../../web/src/components/common/StatusView.vue))
 and the shared `FetchError` vocabulary

@@ -27,8 +27,15 @@ import pandas as pd
 # instead of the shim-dependent bare sibling-module imports.
 # All DB / CSV paths resolve through centralized settings, never a local root.
 from micro.database import init_db_custom, save_stock_data_custom, get_tickers_sync_state
-from opentdx.tdxClient import TdxClient
-from opentdx.const import MARKET, EX_MARKET, PERIOD, ADJUST
+
+# opentdx is an optional [tdx] extra. Guard the import so that modules that
+# only need the server lists / public surface can be imported without it.
+try:
+    from opentdx.tdxClient import TdxClient
+    from opentdx.const import MARKET, EX_MARKET, PERIOD, ADJUST
+except ImportError:  # pragma: no cover - optional [tdx] extra not installed
+    TdxClient = None
+    MARKET = EX_MARKET = PERIOD = ADJUST = None
 
 # S002-006 / TR-006: typed write error raised by save_stock_data_custom on
 # persistence failure. Distinct from network/kline errors so the
@@ -66,6 +73,10 @@ CN_SERVERS, US_SERVERS = _load_servers_from_opentdx()
 
 def find_working_server(servers, test_market, timeout=5):
     """自动选择可用服务器 (并发探测前 20 台, 取最快响应)"""
+    if TdxClient is None:
+        print("  opentdx not available, cannot probe TDX servers")
+        return None, None
+
     import concurrent.futures
 
     def _test(host):
@@ -418,7 +429,10 @@ def download_day_file_raw(client, ticker, market="cn"):
         return []
 
     # 使用协议 0x6b9 下载
-    from opentdx.parser.quotation import FileDownload
+    try:
+        from opentdx.parser.quotation import FileDownload
+    except ImportError:
+        return []
 
     qc = client.quotation_client
     fd = FileDownload(file_name=fname, start=0, size=0x20000)

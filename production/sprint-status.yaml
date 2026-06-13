@@ -46,9 +46,11 @@ last_updated: "2026-06-13"
 # completed at production/architecture-reviews/architecture-review-s003-014-2026-06-13.md.
 # Verdict CONCERNS; ADR-0004/0007 stay Proposed with documented deferral
 # rationale and do not block Sprint 003 closure. Rollup 11/13.
-# 2026-06-13 (S003-010 done): operator verified DEEPSEEK_API_KEY in fresh terminal
-# and `python -m macro.cli` produced a macro report (DeepSeek API 200 OK). Key
-# no longer leaks in logs after commit 5b6a57a. Rollup 12/13.
+# 2026-06-13 (S003-002 done): unguided walkthrough re-executed after fixing
+# opentdx import guard. Scanner now completes without the optional [tdx] extra;
+# Insights read-side report rendering and Archive→Ticker navigation verified.
+# Evidence: production/qa/evidence/user-tests/user-test-001-2026-06-13.md.
+# Rollup 13/13.
 
 sprints:
   - id: S001
@@ -295,9 +297,9 @@ sprints:
         priority: HIGH
         effort: M
         owner: ux-designer
-        status: todo
+        status: done
         blocking_gate: false
-        note: "Critical path — start Day 1 due to real-world scheduling uncertainty."
+        note: "2026-06-13: unguided walkthrough PASS after opentdx import-guard fix. Scanner completes without optional [tdx] extra; Insights renders existing macro reports; Archive search + row-click loads Ticker. Evidence: production/qa/evidence/user-tests/user-test-001-2026-06-13.md."
 
       - id: S003-003
         title: "API 路由依赖注入（deps.py + 路由脱离 sqlite3.connect）"
@@ -482,11 +484,11 @@ rollup:
   sprint: S003
   total_stories: 13
   by_status:
-    todo: 1
+    todo: 0
     in_progress: 0
     blocked: 0
     review: 0
-    done: 12
+    done: 13
     deferred: 0
   by_priority:
     HIGH: 6
@@ -498,4 +500,4 @@ rollup:
     ep-ux-polish: 4
     ep-governance: 2
   blocking_gated_stories: []
-  top_priority_stories: [S003-002]
+  top_priority_stories: []

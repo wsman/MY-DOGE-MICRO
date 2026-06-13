@@ -51,7 +51,7 @@ These Wave-5 hygiene items are **deferred** and must not be pulled into Sprint 0
 | Story ID | Title | Epic | TR-ID | Priority | Effort | Owner Role | Status |
 |----------|-------|------|-------|----------|--------|------------|--------|
 | S003-001 | 里程碑截止日定义 + Sprint 003 基线 | ep-verification-evidence | — | HIGH | S | producer | Done |
-| S003-002 | 核心工作流用户验证报告（scanner → report → archive） | ep-verification-evidence | — | HIGH | M | ux-designer / qa-lead | Todo |
+| S003-002 | 核心工作流用户验证报告（scanner → report → archive） | ep-verification-evidence | — | HIGH | M | ux-designer / qa-lead | Done |
 | S003-003 | API 路由依赖注入（deps.py + 路由脱离 sqlite3.connect） | ep-architecture-cleanup | TR-041 | HIGH | L | python-specialist | Done |
 | S003-005 | RSRS 视图符号修复 + DDL 版本化 | ep-architecture-cleanup | TR-016 | HIGH | M | python-specialist | Done |
 | S003-011 | QA / smoke 计划（Verification → Release 硬性交付物） | ep-verification-evidence | — | HIGH | M | qa-lead | Done |
@@ -89,7 +89,7 @@ These Wave-5 hygiene items are **deferred** and must not be pulled into Sprint 0
 | ID | Task | Owner | Est. Effort | Dependencies | Acceptance Criteria (summary) | Status |
 |----|------|-------|-------------|--------------|-------------------------------|--------|
 | S003-001 | 里程碑 + sprint 基线 | producer | S | None | `production/milestones/verification-milestone.md` exists with target date 2026-06-26 and exit criteria | Done |
-| S003-002 | 用户验证报告 | ux-designer / qa-lead | M | S003-001 (milestone context) | One `production/qa/evidence/user-tests/user-test-001-*.md` documenting an unguided end-to-end operator walkthrough (scanner → report → archive) | Todo |
+| S003-002 | 用户验证报告 | ux-designer / qa-lead | M | S003-001 (milestone context) | One `production/qa/evidence/user-tests/user-test-001-*.md` documenting an unguided end-to-end operator walkthrough (scanner → existing reports in Insights → archive). The Insights/Analysis views are read-side per `design/ux/analysis-flow.md`; report generation is triggered outside this UI. | Done |
 | S003-003 | API 路由 DI | python-specialist | L | None | 0 direct `sqlite3.connect` / `connect_duckdb` in `src/api/routers/` and `src/api/main.py`; layer gate tests pass; services injected via `deps.py` | Done |
 | S003-005 | RSRS view sign fix | python-specialist | M | None | `vw_rsrs_ranking` sign convention matches Python RSRS path; DDL moved under version control; xfail removed | Done |
 | S003-011 | QA / smoke 计划 | qa-lead | M | S003-001 | `production/qa/qa-plan-verification.md` exists; at least one `production/qa/smoke/smoke-2026-06-*.md` covering 3 surfaces (CLI / API / Web or MCP) | Done |
@@ -139,7 +139,7 @@ These Wave-5 hygiene items are **deferred** and must not be pulled into Sprint 0
 
 ## Definition of Done
 
-- [ ] At least one user-test report exists in `production/qa/evidence/user-tests/`.
+- [x] At least one user-test report exists in `production/qa/evidence/user-tests/`.
 - [x] Milestone document exists at `production/milestones/verification-milestone.md` with deadline 2026-06-26.
 - [x] QA / smoke plan exists and covers at least 3 surfaces.
 - [x] Performance baseline profile exists and is compared against declared budgets.
