@@ -244,13 +244,11 @@ python -m macro.cli --verbose
 | 场景 | 退出码 | 源码 |
 |------|--------|------|
 | 成功（有数据） | `0`（隐式，函数返回 `None`） | `src/cli.py:146-152` |
-| 无数据（打印 `no data` / `no anomalies found`） | **`0`**（同样隐式返回） | `src/cli.py:48-50`、`:63-65`、`:83-85`、`:104-106` |
+| 无数据（打印 `no data` / `no anomalies found`） | `1`（`EXIT_NO_DATA`） | `src/cli.py:41`（常量）、`:89`/`:102`/`:120`/`:133`（`sys.exit(EXIT_NO_DATA)`） |
 | 无效参数（如非法 `--market`） | `2`（argparse 标准错误退出） | `argparse` 内置 |
 | 未带子命令 | `0`（打印 help 后返回） | `src/cli.py:142-144` |
 
-> ⚠️ **技术债（退出码缺口）**：`src/cli.py` **未定义任何显式非零退出码**。「成功」与「无数据」都返回 `0`，因此脚本化调用 `doge stock` **无法区分**「正常返回」与「该股票无数据」。此缺口已登记为 ADR-0001 清理迁移期间的整改项（与 `src/cli.py:15` 的 `sys.path.insert` 同属存量违规清理）。
->
-> 在缺口修复前，依赖退出码区分状态的脚本应改为：① 解析 stdout 中的 `no data` / `no anomalies found` 关键字；② 或改用 MCP / API。
+> 「无数据」与「成功」由 `EXIT_NO_DATA = 1`（`src/cli.py:41`）区分 —— 脚本化调用 `doge stock` 可直接凭退出码判断「该股票无数据」。此前的隐式 `0` 缺口已在 ADR-0001 清理迁移期间修复（`src/cli.py:81` docstring 记录了 `instead of the prior implicit 0`）。
 
 ### 宏观 CLI（`src/macro/cli.py`）
 

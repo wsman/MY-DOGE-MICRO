@@ -258,6 +258,13 @@ The fastest end-to-end path with **no LLM key required** (pure analytics):
    points). If they are missing, populate them via the TDX downloader
    (`pip install -e ".[tdx]"` then `python src/micro/tdx_downloader.py`) or
    `yfinance`.
+
+   > **First-run yfinance rate-limiting.** Yahoo throttles unauthenticated
+   > `yfinance` calls (HTTP 429 Too Many Requests). On a cold start the
+   > `YFinanceDataSource` adapter degrades safely to `None` after a bounded
+   > retry — no crash, no DB corruption. Wait a few minutes and retry, or use
+   > the TDX downloader for CN bulk ingest (it is not rate-limited). This is
+   > environmental, not a code defect.
 2. Start the FastAPI backend (`python src/api/main.py`).
 3. Open the web console (`cd web && npm run dev`) and use the **Scanner** tab,
    **or** drive the query CLI directly:
