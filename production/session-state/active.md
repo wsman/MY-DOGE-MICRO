@@ -5,29 +5,29 @@
 
 ## Current Task
 
-**Verification → Release gate prep** (Phase 1 housekeeping done).
-Sprint 003 closed 13/13 (final close commit `57a217a`; HEAD `4d0f709`).
-Approved plan: `C:\Users\WSMAN\.claude\plans\14-stateless-kahn.md`.
+**Sprint 004 (Release clean-PASS prep) — implementation COMPLETE; awaiting fresh-session gates.**
+Operator chose Phase-4 path (A) clean PASS. Sprint 004 code work is committed
+(7 stories, `b44d6a7`→`c78498b`); 568 pytest passed / 2 skipped / 0 failed;
+§6 layer gate GREEN; verification-milestone all exit criteria [x].
 
-- **Phase 1 (housekeeping) DONE**: flipped 10 genuinely-met checkboxes in
-  `verification-milestone.md` to reflect Sprint 003 evidence; fixed the §3
-  perf path text (`profile-*` → `perf-baseline-*`). 3 left unchecked
-  deliberately — §4 API router DI, §4 RSRS view sign, §6 layer-rule gate —
-  these are the Release-gate-relevant gaps tied to ADR-0004/0007 (Phase 3/5
-  verifies). `sprint-status.yaml` S003 `status:` → `done`.
-- **Phase 2 DONE**: 3 user-test sessions now exist for Release-gate coverage:
-  **core workflow** (`user-test-001`), **first-run/cold-start**
-  (`user-test-002`), and **failure/recovery** (`user-test-003`).
-  First-run verdict is PARTIAL because live yfinance ingest was rate-limited;
-  startup/empty-scan path passed. Failure/recovery verdict is PASS.
-- **Phase 3 PENDING**: `/team-polish` (will assess ADR-0004/0007; refuses to
-  fix ADR-0007 scope until promoted — correct behavior).
-- **Phase 4 DECISION (operator + me, after Phase 3)**: promote ADR-0004/0007
-  for clean PASS, or accept CONCERNS Release with risk note.
-- **Phase 5 PENDING (fresh session)**: `/gate-check` Verification → Release.
+Sprint 004 stories (all committed):
+- S004-001/002 INoteRepository port + adapter; notes.py off ai_analysis (`d6dcb5d`)
+- S004-003 query_stock → get_ticker_with_context, §6 GREEN (`8bc4c5e`)
+- S004-004 TDX adapter real impl; ADR-0004 gate met (`b989ef9`)
+- S004-005 ADR-0007 strengthened-loopback-guarantee (`9696ec3`)
+- S004-006 verification-milestone all exit criteria [x] (`fe45585`)
+- S004-007 doc fixes — yfinance rate-limit + CLI exit-code table (`d8b1886`)
+- S004-008a ADR-0004 → Accepted + TR-045/046 + TR-011 (`c78498b`)
 
-Prior Sprint 003 closure record preserved below (S003-002 PASS, S003-010 PASS,
-S003-014 CONCERNS); final close commit `57a217a`.
+**NEXT (fresh-session operator actions — this session implemented the work, cannot self-certify):**
+1. Fresh `/architecture-review` — brief: `production/architecture-reviews/architecture-review-brief-s004.md`.
+   Authorizes ADR-0007 loopback promotion (its authority per ADR-0007:46-49),
+   verifies ADR-0004, rules on the TDX `connect(self, market)` signature.
+2. S004-008b: flip ADR-0007 → Accepted + governance test (after the arch-review
+   signs off).
+3. Fresh `/gate-check` (Verification → Release) — aim clean PASS.
+
+State: ADR-0001/2/3/4/5/8/9/10 Accepted; ADR-0007 Proposed (arch-review-gated).
 
 ## Latest Verification Run (2026-06-13)
 
@@ -185,8 +185,8 @@ Deferred items (documented; see readiness doc §4 for full disposition):
   real key in git history.
 <!-- STATUS -->
 Epic: Verification / Release-Ready v1
-Feature: Verification → Release gate prep
-Task: Phase 2 validation evidence done; Phase 3 /team-polish next
+Feature: Sprint 004 — Release clean-PASS prep
+Task: impl complete (7 stories); fresh /architecture-review + /gate-check next
 <!-- /STATUS -->
 
 ## Session Extract — /architecture-review 2026-06-13
