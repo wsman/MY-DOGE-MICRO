@@ -479,25 +479,148 @@ sprints:
           deferral rationale; neither blocks Sprint 003 closure while their
           conditions remain true.
 
-# Rollup counts for the active sprint (S003).
+  - id: S004
+    name: "Release clean-PASS prep"
+    plan: production/sprints/sprint-004-release-clean-pass.md
+    milestone: production/milestones/verification-milestone.md
+    epics_index: production/epics/index.md
+    start: "2026-06-13"
+    end: "2026-06-26"
+    status: in_progress
+    control_manifest: "2026-06-12"
+    duration_assumption: "< 1 week"
+    goal: >-
+      Pursue a clean PASS at the Verification → Release gate by promoting ADR-0004
+      and ADR-0007 to Accepted and clearing the §6 layer-gate REDs (operator chose
+      Phase-4 path A over accept-CONCERNS-Release).
+    exit_criteria:
+      - "§6 layer-rule grep gate green (src/api + src/doge/interfaces + src/interface → 0 hits)."
+      - "ADR-0004 Accepted (TDX adapter implemented without NotImplementedError)."
+      - "ADR-0007 Accepted (strengthened-loopback-guarantee, fresh /architecture-review sign-off)."
+      - "python -m pytest -q green; verification-milestone all exit criteria [x]."
+      - "Fresh /architecture-review + fresh /gate-check (Verification → Release) → clean PASS."
+    stories:
+      - id: S004-001/002
+        title: "INoteRepository port + adapter; notes.py 脱离 ai_analysis 直连"
+        epic: ep-architecture-debt
+        tr: TR-045
+        source: "polish concerns #1/#3 + S003-014 layer gate; CDD OQ-4"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Commit d6dcb5d. INoteRepository(ABC) split from IReportRepository (closes OQ-4) + SQLiteNoteRepository adapter; src/api/routers/notes.py 6 handlers via Depends(get_note_repository). Porting-drift fixed (DB isolation + error-envelope tests)."
+
+      - id: S004-003
+        title: "query_stock.stock_overview 改用 get_ticker_with_context (§6 gate green)"
+        epic: ep-architecture-debt
+        tr: TR-046
+        source: "polish concern #2 + S003-014 §6 layer gate"
+        priority: HIGH
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Commit 8bc4c5e. Removed import sqlite3 + sqlite3.connect from src/doge/interfaces/mcp/tools/query_stock.py; enrichment via build_note_repository().get_ticker_with_context. §6 grep gate ZERO hits."
+
+      - id: S004-004
+        title: "TDXDataSource 真实现 (IMarketDataSource; ADR-0004 gate 满足)"
+        epic: ep-architecture-debt
+        tr: TR-011
+        source: "ADR-0004 promotion gate (S003-014 item 1); polish ADR disposition"
+        priority: HIGH
+        effort: L
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Commit b989ef9. tdx.py 36→325 lines, no NotImplementedError; 26 network-free tests; tdx_downloader.py CLI shim. connect(self, market) signature flagged for fresh /architecture-review. _retry.py deferred to follow-on."
+
+      - id: S004-005
+        title: "ADR-0007 strengthened-loopback-guarantee (promotion path 1b)"
+        epic: ep-governance-security
+        tr: TR-032
+        source: "ADR-0007 promotion gate; polish ADR-0007 disposition; operator path 1b"
+        priority: MED
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Commit 9696ec3. _resolve_bind_host() fail-closed assertion in src/api/main.py; DOGE_BIND_HOST knob; 6 tests. ADR-0007 Status flip deferred to S004-008b (needs fresh /architecture-review sign-off per ADR-0007:46-49)."
+
+      - id: S004-006
+        title: "verification-milestone exit criteria 全 [x] (§4 + §6 green)"
+        epic: ep-governance-security
+        tr: null
+        source: "polish concern #1 (sprint-003 DoD contradiction) + milestone reconciliation"
+        priority: MED
+        effort: S
+        owner: lead-programmer
+        status: done
+        blocking_gate: false
+        note: "Commit fe45585. Flipped §4 #1 (src/api grep clean), §4 #2 (RSRS S003-005), §6 (after S004-003). All 6 exit-criteria sections [x]. Resolves polish governance contradiction."
+
+      - id: S004-007
+        title: "操作文档: yfinance rate-limit 指引 + CLI exit-code 表订正"
+        epic: ep-governance-security
+        tr: null
+        source: "polish concerns #4 + #7"
+        priority: LOW
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Commit d8b1886. runbook Troubleshooting row + GETTING_STARTED note for yfinance rate-limit; CLI.md exit-code table fixed (EXIT_NO_DATA=1). tests/cli/ 52 passed."
+
+      - id: S004-008a
+        title: "ADR-0004 → Accepted + TR-045/046 + TR-011"
+        epic: ep-governance-security
+        tr: TR-011
+        source: "ADR-0004 promotion (S003-014 gate item 1 met)"
+        priority: MED
+        effort: S
+        owner: lead-programmer
+        status: done
+        blocking_gate: false
+        note: "Commit c78498b. ADR-0004 Status Proposed→Accepted; governance test moved adr-0004 to _EXPECTED_ACCEPTED; TR-011 test citation fixed; TR-045/046 appended. _retry.py re-scoped to follow-on."
+
+      - id: S004-008b
+        title: "ADR-0007 → Accepted + governance test (BLOCKED: 等 fresh /architecture-review)"
+        epic: ep-governance-security
+        tr: TR-032
+        source: "ADR-0007 promotion gate (needs arch-review authority per ADR-0007:46-49)"
+        priority: HIGH
+        effort: S
+        owner: lead-programmer
+        status: blocked
+        depends_on: [S004-005]
+        blocking_gate: true
+        note: >-
+          BLOCKED on fresh /architecture-review sign-off (the loopback-guarantee
+          decision's promotion authority, ADR-0007:46-49). Once authorized: flip
+          ADR-0007 Status Proposed→Accepted + move in the governance test (use
+          'loopback-guaranteed', NOT 'production-hardened' per S003-014 cond 3).
+          Brief: production/architecture-reviews/architecture-review-brief-s004.md.
+
+# Rollup counts for the active sprint (S004).
 rollup:
-  sprint: S003
-  total_stories: 13
+  sprint: S004
+  total_stories: 8
   by_status:
     todo: 0
     in_progress: 0
-    blocked: 0
+    blocked: 1
     review: 0
-    done: 13
+    done: 7
     deferred: 0
   by_priority:
-    HIGH: 6
-    MED: 7
-    LOW: 0
+    HIGH: 4
+    MED: 3
+    LOW: 1
   by_epic:
-    ep-verification-evidence: 5
-    ep-architecture-cleanup: 2
-    ep-ux-polish: 4
-    ep-governance: 2
-  blocking_gated_stories: []
-  top_priority_stories: []
+    ep-architecture-debt: 3
+    ep-governance-security: 5
+  blocking_gated_stories:
+    - S004-008b
+  top_priority_stories:
+    - S004-008b
