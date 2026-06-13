@@ -124,6 +124,28 @@ class TDXConfig:
 
 
 @dataclass(frozen=True)
+class YFinanceConfig:
+    """yfinance adapter retry / window settings (S005-006 / ADR-0004).
+
+    Canonical source of the yfinance retry policy and lookback window —
+    supersedes the ``DEFAULT_MAX_RETRIES`` / ``DEFAULT_RETRY_DELAY`` /
+    ``DEFAULT_PERIOD_DAYS`` module constants in
+    ``doge.infrastructure.data_source.yfinance``. Those constants are kept
+    as fallback defaults on the adapter constructor signature so existing
+    callers that construct ``YFinanceDataSource()`` without settings continue
+    to work, but the live adapter now reads from
+    ``get_settings().yfinance``.
+
+    Defaults mirror ADR-0004 item 3 (3 retries, 5s delay) and the TDX window
+    parity (``period_days == 120`` matches ``TDXReader.MAX_DAYS`` so a
+    yfinance refresh yields the same row count as a TDX refresh).
+    """
+    max_retries: int = 3
+    retry_delay: float = 5.0
+    period_days: int = 120
+
+
+@dataclass(frozen=True)
 class MarketConfig:
     """Market-related constants — the SINGLE SOURCE OF TRUTH for scanner filters.
 
@@ -180,6 +202,7 @@ class Settings:
     project_root: Path = _PROJECT_ROOT
     db: DBConfig = field(default_factory=DBConfig)
     tdx: TDXConfig = field(default_factory=TDXConfig)
+    yfinance: YFinanceConfig = field(default_factory=YFinanceConfig)
     market: MarketConfig = field(default_factory=MarketConfig)
     mcp: MCPConfig = field(default_factory=MCPConfig)
 

@@ -4,10 +4,17 @@ import numpy as np
 import logging
 import os
 import requests
-import time
 from typing import Optional
 from scipy import stats
 from .config import MacroConfig
+
+# S005-006 / ADR-0004 Migration Plan step 2: the legacy macro-layer retry loop
+# now delegates to the shared MarketDataSource helper. This import crosses
+# from ``src/macro`` (legacy) into ``src/doge.infrastructure`` (clean tree) —
+# the intended migration direction per ADR-0004. A1 wiring (routing the call
+# through ``YFinanceDataSource``) is a separate story (S005-007) and is NOT
+# in scope here.
+from doge.infrastructure.data_source._retry import fetch_with_retry, is_rate_limited
 
 logger = logging.getLogger(__name__)
 
@@ -70,42 +77,36 @@ class GlobalMacroLoader:
         try:
             # 获取足够长的数据以确保 lookback window 有效（超额获取）
             fetch_days = int(self.config.lookback_days * 1.65) + 20
-            
-            # 重试机制：解决 Yahoo Finance API 速率限制问题
-            last_error = None
-            for attempt in range(max_retries):
-                try:
-                    if attempt > 0:
-                        logger.info(f"第 {attempt + 1} 次重试（共 {max_retries} 次）...")
-                        time.sleep(retry_delay)
-                    
-                    data = yf.download(
-                        tickers=tickers,
-                        period=f"{fetch_days}d",
-                        interval="1d",
-                        auto_adjust=True,
-                        progress=False
-                    )
-                    
-                    # 检查是否返回空数据
-                    if data is None or data.empty:
-                        logger.warning(f"下载返回空数据，可能是速率限制")
-                        continue
-                    
-                    # 成功获取数据，跳出重试循环
-                    break
-                    
-                except Exception as e:
-                    last_error = e
-                    error_msg = str(e)
-                    if "Rate" in error_msg or "429" in error_msg or "Too Many Requests" in error_msg:
-                        logger.warning(f"触发 Yahoo Finance 速率限制，等待 {retry_delay} 秒后重试...")
-                    else:
-                        logger.error(f"下载出错: {e}")
-            else:
-                # 所有重试都失败
-                logger.error(f"数据下载失败，已重试 {max_retries} 次")
-                return None
+
+            # 重试机制：解决 Yahoo Finance API 速率限制问题。
+            # S005-006 / ADR-0004: 现委托给共享 ``_retry.fetch_with_retry``
+            # 助手，与 ``YFinanceDataSource`` / ``TDXDataSource`` 使用同一
+            # 原语。行为保持一致：固定延迟、None-on-exhaustion、相同的
+            # 速率限制子串启发式判定。
+            def _on_retry(attempt: int, max_retries: int, exc: BaseException) -> None:
+                if is_rate_limited(exc):
+                    logger.warning(f"触发 Yahoo Finance 速率限制，等待 {retry_delay} 秒后重试...")
+                else:
+                    logger.info(f"第 {attempt} 次重试（共 {max_retries} 次）...")
+
+            data = fetch_with_retry(
+                lambda: yf.download(
+                    tickers=tickers,
+                    period=f"{fetch_days}d",
+                    interval="1d",
+                    auto_adjust=True,
+                    progress=False,
+                ),
+                max_retries=max_retries,
+                retry_delay=retry_delay,
+                # The original macro loop catches EVERY exception and retries
+                # it (just with different log levels) — preserve that exact
+                # behavior. ``is_rate_limited`` is consulted only for log
+                # surfacing inside ``_on_retry``.
+                is_retryable=lambda _exc: True,
+                on_retry=_on_retry,
+                label="macro.fetch_combined_data",
+            )
 
             if data is None or data.empty:
                 logger.error("下载的数据为空")

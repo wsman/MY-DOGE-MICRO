@@ -31,12 +31,13 @@ Design notes
 from __future__ import annotations
 
 import logging
-import time
 from typing import Callable, Optional
 
 import pandas as pd
 
+from doge.config import get_settings
 from doge.core.ports.data_source import IMarketDataSource
+from doge.infrastructure.data_source._retry import fetch_with_retry, is_rate_limited
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +57,12 @@ _COLUMN_MAP = {
 # Default request budget — see CDD section 9 (Integration Requirements).
 # 120d matches TDXReader.MAX_DAYS and the downloader --max-bars default so a
 # yfinance refresh yields the same window width as a TDX refresh.
+#
+# S005-006 / ADR-0004: these constants are retained as constructor-signature
+# fallbacks for callers that build ``YFinanceDataSource()`` without going
+# through Settings. The live adapter sources its effective values from
+# ``get_settings().yfinance`` (``YFinanceConfig``) — Settings is the single
+# source of truth (ADR-0002). See ``_resolve_defaults``.
 DEFAULT_PERIOD_DAYS = 120
 DEFAULT_MAX_RETRIES = 3
 DEFAULT_RETRY_DELAY = 5.0  # seconds; matches macro/data_loader.py default
@@ -64,12 +71,13 @@ DEFAULT_RETRY_DELAY = 5.0  # seconds; matches macro/data_loader.py default
 def _is_rate_limited(error: BaseException) -> bool:
     """Return True when *error* looks like a Yahoo Finance rate-limit response.
 
-    Reuses the same heuristic string match as
-    ``src/macro/data_loader.py`` (lines 94-97): "Rate", "429", or
-    "Too Many Requests" in the error message.
+    Thin re-export of the canonical predicate now living in
+    ``doge.infrastructure.data_source._retry.is_rate_limited`` (S005-006 /
+    ADR-0004 Migration Plan step 2). Preserved at this location so existing
+    imports (``tests/test_yfinance_adapter.py:_is_rate_limited``) keep
+    working without a churn import.
     """
-    message = str(error)
-    return any(token in message for token in ("Rate", "429", "Too Many Requests"))
+    return is_rate_limited(error)
 
 
 class YFinanceDataSource(IMarketDataSource):
@@ -90,14 +98,43 @@ class YFinanceDataSource(IMarketDataSource):
 
     def __init__(
         self,
-        max_retries: int = DEFAULT_MAX_RETRIES,
-        retry_delay: float = DEFAULT_RETRY_DELAY,
-        period_days: int = DEFAULT_PERIOD_DAYS,
+        max_retries: Optional[int] = None,
+        retry_delay: Optional[float] = None,
+        period_days: Optional[int] = None,
     ) -> None:
-        self.max_retries = max_retries
-        self.retry_delay = retry_delay
-        self.period_days = period_days
+        # S005-006 / ADR-0004: Settings is the single source of truth. Each
+        # parameter defaults to ``None``, in which case the live value is
+        # resolved from ``YFinanceConfig`` at first use. Callers may still
+        # override explicitly for tests (``YFinanceDataSource(max_retries=1,
+        # retry_delay=0)`` is the existing test seam).
+        self._explicit_max_retries = max_retries
+        self._explicit_retry_delay = retry_delay
+        self._explicit_period_days = period_days
         self._connected = False
+
+    # ------------------------------------------------------------------
+    # Settings-backed property accessors (S005-006 / ADR-0002)
+    # ------------------------------------------------------------------
+    @property
+    def max_retries(self) -> int:
+        """Effective max retry count — explicit ctor override or ``YFinanceConfig``."""
+        if self._explicit_max_retries is not None:
+            return self._explicit_max_retries
+        return get_settings().yfinance.max_retries
+
+    @property
+    def retry_delay(self) -> float:
+        """Effective retry delay — explicit ctor override or ``YFinanceConfig``."""
+        if self._explicit_retry_delay is not None:
+            return self._explicit_retry_delay
+        return get_settings().yfinance.retry_delay
+
+    @property
+    def period_days(self) -> int:
+        """Effective lookback window — explicit ctor override or ``YFinanceConfig``."""
+        if self._explicit_period_days is not None:
+            return self._explicit_period_days
+        return get_settings().yfinance.period_days
 
     # ------------------------------------------------------------------
     # Connection lifecycle (yfinance is stateless HTTP; these are no-ops)
@@ -224,34 +261,36 @@ class YFinanceDataSource(IMarketDataSource):
 
         ``fetcher`` lets callers override the exact yfinance call (used by
         :meth:`get_latest_market_date`); the default downloads a single
-        ticker's daily history. The retry loop is the shared "retry on 429"
-        policy also used by ``macro/data_loader.py``.
+        ticker's daily history. The retry policy is the shared
+        ``_retry.fetch_with_retry`` (S005-006 / ADR-0004 Migration Plan
+        step 2); behavior is identical to the previous in-method loop
+        (3×/5s fixed delay, ``None`` on exhaustion, rate-limit substring
+        heuristic).
         """
         days = self.period_days if period_days is None else period_days
         if fetcher is None:
             def fetcher(c, t, p):  # noqa: ANN001 - yfinance signature
                 return c.download(t, period=f"{p}d", interval="1d", progress=False)
 
-        last_error: Optional[BaseException] = None
-        for attempt in range(self.max_retries):
-            try:
-                if attempt > 0:
-                    logger.info("yfinance retry %d/%d for %s", attempt + 1, self.max_retries, yf_ticker)
-                    time.sleep(self.retry_delay)
-                data = fetcher(yf_module, yf_ticker, days)
-                if data is None or data.empty:
-                    # Empty often means rate-limit; keep retrying.
-                    last_error = RuntimeError("empty response (possible rate limit)")
-                    continue
-                return data
-            except Exception as err:  # noqa: BLE001 - yfinance raises varied errors
-                last_error = err
-                if _is_rate_limited(err):
-                    logger.warning("yfinance rate-limited on %s; retrying in %ss", yf_ticker, self.retry_delay)
-                else:
-                    logger.error("yfinance fetch error for %s: %s", yf_ticker, err)
-        logger.error("yfinance exhausted %d retries for %s: %s", self.max_retries, yf_ticker, last_error)
-        return None
+        def _on_retry(attempt: int, max_retries: int, exc: BaseException) -> None:
+            if is_rate_limited(exc):
+                logger.warning(
+                    "yfinance rate-limited on %s; retrying in %ss",
+                    yf_ticker, self.retry_delay,
+                )
+            else:
+                logger.info(
+                    "yfinance retry %d/%d for %s", attempt, max_retries, yf_ticker,
+                )
+
+        return fetch_with_retry(
+            lambda: fetcher(yf_module, yf_ticker, days),
+            max_retries=self.max_retries,
+            retry_delay=self.retry_delay,
+            is_retryable=lambda _: True,  # retry on any exception → None on exhaust (parity with TDX + the original yfinance loop)
+            on_retry=_on_retry,
+            label=f"yfinance[{yf_ticker}]",
+        )
 
     @staticmethod
     def _normalize(raw_df: pd.DataFrame, ticker: str) -> Optional[pd.DataFrame]:

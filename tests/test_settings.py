@@ -223,3 +223,11 @@ class TestKnownConstants:
         assert tdx.us_port == 7727
         assert tdx.timeout == 5
         assert len(tdx.cn_servers) >= 1 and len(tdx.us_servers) >= 1
+
+    def test_yfinance_config_defaults(self):
+        """YFinanceConfig (S005-006) carries the retry/period defaults that
+        previously were module-level constants in yfinance.py."""
+        yf = get_settings().yfinance
+        assert yf.max_retries == 3
+        assert yf.retry_delay == 5.0
+        assert yf.period_days == 120
