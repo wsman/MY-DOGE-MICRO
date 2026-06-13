@@ -116,7 +116,7 @@ The key must live only in your local system environment.
 
 #### Step 1 — Set local environment variable
 
-- [ ] **S003-010-a** — Set `DEEPSEEK_API_KEY` in your system environment or shell profile:
+- [x] **S003-010-a** — Set `DEEPSEEK_API_KEY` in your system environment or shell profile:
 
   **Windows (system env, persistent)**:
   ```powershell
@@ -137,7 +137,7 @@ The key must live only in your local system environment.
   > Replace `your-new-key-here` with your actual DeepSeek API key. Do not save
   > this command with the real key into any file in the repo.
 
-- [ ] **S003-010-b** — Verify the variable is set in a **fresh** terminal:
+- [x] **S003-010-b** — Verify the variable is set in a **fresh** terminal:
   ```bash
   # Windows PowerShell
   $env:DEEPSEEK_API_KEY
@@ -148,7 +148,7 @@ The key must live only in your local system environment.
 
 #### Step 2 — Verify macro report generation
 
-- [ ] **S003-010-c** — Run the macro CLI to confirm the key works:
+- [x] **S003-010-c** — Run the macro CLI to confirm the key works:
   ```bash
   python -m macro.cli
   ```
@@ -171,9 +171,9 @@ The key must live only in your local system environment.
 
 | Item | Result | Operator notes |
 |------|--------|--------------|
-| S003-010 overall | ☐ PASS / ☐ FAIL / ☐ BLOCKED | |
-| Date executed | | |
-| Operator | | |
+| S003-010 overall | ☑ PASS / ☐ FAIL / ☐ BLOCKED | DEEPSEEK_API_KEY exported in fresh MINGW64 terminal. `python -m macro.cli` successfully fetched yfinance data for QQQ/GLD/BTC-USD/000300.SS, called DeepSeek API (`POST https://api.deepseek.com/chat/completions` → HTTP 1.1 200 OK), and produced a macro report. No real API key visible in console or log output after commit 5b6a57a. |
+| Date executed | 2026-06-13 | |
+| Operator | WSMAN | |
 
 ---
 
@@ -181,9 +181,9 @@ The key must live only in your local system environment.
 
 - [ ] S003-002 user-test report exists with all required fields.
 - [ ] S003-002 core promise satisfied (or documented blockers recorded).
-- [ ] S003-010 `DEEPSEEK_API_KEY` exported in local environment.
-- [ ] S003-010 `python -m macro.cli` produces a macro report (or blocked with reason).
-- [ ] S003-010 forensic note recorded: no real key was committed to git history.
+- [x] S003-010 `DEEPSEEK_API_KEY` exported in local environment.
+- [x] S003-010 `python -m macro.cli` produces a macro report (or blocked with reason).
+- [x] S003-010 forensic note recorded: no real key was committed to git history.
 
 ---
 

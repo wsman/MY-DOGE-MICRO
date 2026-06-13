@@ -10,19 +10,17 @@
 Stage advanced Implementation → Verification under CONCERNS verdict
 (`production/gate-checks/gate-implementation-verification-2026-06-12.md`).
 
-- Sprint 003 status synchronized: **11/13 done**, 2 remaining.
+- Sprint 003 status synchronized: **12/13 done**, 1 remaining.
 - S003-014 `/architecture-review` completed in fresh session → **CONCERNS** verdict.
-  - ADR-0004 remains Proposed (TDX adapter stub deferred).
-  - ADR-0007 remains Proposed (CORS permissive, loopback-only).
-  - Sprint 003 closure approved under these conditions.
-  - Report: `production/architecture-reviews/architecture-review-s003-014-2026-06-13.md`.
+- S003-010 DeepSeek key environment verification **PASS**: operator ran `python -m macro.cli` in fresh terminal; DeepSeek API returned HTTP 200 OK; no key leakage in logs after commit `5b6a57a`.
 - Remaining work is operator-only:
   - S003-002: unguided user walkthrough → `production/qa/evidence/user-tests/user-test-001-2026-06-13.md`.
-  - S003-010: verify `DEEPSEEK_API_KEY` env availability + run `python -m macro.cli`.
 
 ## Latest Verification Run (2026-06-13)
 
-- `python -m pytest -q` → **508 passed, 2 skipped, 0 failed** (PyQt6 DLL-load fatal exception remains ADVISORY-only; test skips cleanly).
+- `python -m pytest -q` → **514 passed, 2 skipped, 0 failed** (+6 new key-redaction regression tests; PyQt6 DLL-load fatal exception remains ADVISORY-only).
+- `pytest tests/unit/macro/test_strategist_no_key_in_logs.py -v` → **4 passed** (repr + data_loader redaction).
+- `pytest tests/cli/test_macro_cli_error_redaction.py -v` → **3 passed** (CLI error-path redaction).
 - `pytest tests/cli/test_runbook_retention_examples.py -q` → **13 passed, 1 skipped, 0 failed**.
 - `cd web && npm test` → **70 passed**.
 - `cd web && npm run build` → **green**.
@@ -32,28 +30,21 @@ SSE transport test (`tests/test_transport.py::TestSseTransport::test_sse_endpoin
 ## Blockers Cleared
 
 - ✅ SSE transport test stable.
-- ✅ S003-014 fresh `/architecture-review` completed (CONCERNS, non-blocking).
-- ⏳ S003-002 / S003-010 remain operator-only work.
+- ✅ S003-010 DeepSeek key environment verification PASS.
+- ⏳ S003-002 remains operator-only work.
 
 ## Next Step
 
-**S003-014 已完成。** Fresh-session `/architecture-review` 返回 **CONCERNS**，Sprint 003 可在 ADR-0004 / ADR-0007 保持 Proposed 的前提下关闭，条件已记录于 `production/architecture-reviews/architecture-review-s003-014-2026-06-13.md`。
+**S003-010 已 sign off，Sprint 003 进度 12/13。**
 
-当前状态：**等待操作员完成最后两项。**
+仅剩 **S003-002** — 无引导用户走查 scanner → report → archive，填写 `production/qa/evidence/user-tests/user-test-001-2026-06-13.md`，并在 `production/qa/operator-checklist-s003.md` §S003-002 sign off。
 
-1. **S003-010** — 在新终端导出 `DEEPSEEK_API_KEY`，运行 `python -m macro.cli`（若 yfinance 网络阻塞，可用 DeepSeek-only oneliner 隔离 key 是否可用）。只向我报告 pass/fail + 错误文本（不要发 key）。然后在 `production/qa/operator-checklist-s003.md` 的 S003-010 章节 sign off。
-2. **S003-002** — 在无引导情况下走 scanner → report → archive，填写 `production/qa/evidence/user-tests/user-test-001-2026-06-13.md`，并在 checklist S003-002 章节 sign off。
-
-两项全部完成后，本会话执行最终关闭 commit：`chore(sprint): S003 all 13/13 done`。
+S003-002 完成后，本会话执行最终关闭 commit：`chore(sprint): S003 all 13/13 done`。
 
 未提交工作树：
-- `production/architecture-reviews/architecture-review-s003-014-2026-06-13.md`（新文件）
-- `production/milestones/verification-milestone.md`
-- `production/sprint-status.yaml`
-- `production/sprints/sprint-003-verification.md`
-- `production/session-state/active.md`
 - `production/session-logs/session-log.md`（历史审计日志，不提交）
 - `production/session-logs/compaction-log.txt`（未跟踪）
+- `production/session-state/active.md`（会话状态，本次编辑）
 
 ## Orchestrator Decisions (adopted from recon recommendations)
 
@@ -180,7 +171,7 @@ Deferred items (documented; see readiness doc §4 for full disposition):
 <!-- STATUS -->
 Epic: Verification / Release-Ready v1
 Feature: Sprint 003 — Verification closure
-Task: S003-014 done (CONCERNS); awaiting S003-010 + S003-002 operator actions
+Task: S003-010 done; awaiting S003-002 user walkthrough
 <!-- /STATUS -->
 
 ## Session Extract — /architecture-review 2026-06-13

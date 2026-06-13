@@ -70,7 +70,7 @@ These Wave-5 hygiene items are **deferred** and must not be pulled into Sprint 0
 
 | Story ID | Title | Epic | TR-ID | Priority | Effort | Owner Role | Status |
 |----------|-------|------|-------|----------|--------|------------|--------|
-| S003-010 | DeepSeek 密钥轮换操作 | ep-verification-evidence | TR-015 | MED | S | operator | Todo |
+| S003-010 | DeepSeek 密钥环境可用性验证 | ep-verification-evidence | TR-015 | MED | S | operator | Done |
 | S003-013 | CORS（ADR-0007）延期决策记录 | ep-governance | — | MED | S | lead-programmer | Done |
 | S003-014 | FRESH `/architecture-review`（ADR-0004/0007 终态签字） | ep-governance | — | MED | S | lead-programmer | Done |
 
@@ -110,7 +110,7 @@ These Wave-5 hygiene items are **deferred** and must not be pulled into Sprint 0
 
 | ID | Task | Owner | Est. Effort | Dependencies | Acceptance Criteria (summary) | Status |
 |----|------|-------|-------------|--------------|-------------------------------|--------|
-| S003-010 | DeepSeek key environment verification | operator | S | None | Forensic audit confirms no real key in git history; `DEEPSEEK_API_KEY` exported; `python -m macro.cli` produces a macro report | Todo |
+| S003-010 | DeepSeek key environment verification | operator | S | None | Forensic audit confirms no real key in git history; `DEEPSEEK_API_KEY` exported; `python -m macro.cli` produces a macro report | Done |
 | S003-013 | CORS deferral record | lead-programmer | S | None | ADR-0007 or readiness doc records deferral rationale: local-first loopback-only, `allow_origins=['*']` currently acceptable | Done |
 | S003-014 | FRESH `/architecture-review` | lead-programmer | S | S003-003, S003-005, S003-013 | Fresh session runs `/architecture-review`; ADR-0004/0007 states finalized with documented rationale | Done |
 
