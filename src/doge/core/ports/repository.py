@@ -114,6 +114,27 @@ class IStockRepository(ABC):
         """
         ...
 
+    @abstractmethod
+    def list_distinct_tickers(self, market: str) -> List[str]:
+        """Return the sorted distinct tickers stored for ``market``.
+
+        S005-009: replaces the direct ``SQLiteConnection(db_path).execute(
+        "SELECT DISTINCT ticker FROM stock_prices")`` call that lived in the
+        scan router (an interface-layer raw-SQL read). The port lets the scan
+        thread source the ticker list via dependency injection rather than
+        opening its own connection.
+
+        Args:
+            market: Market identifier (``"cn"`` or ``"us"``); selects the
+                backing ``stock_prices`` table.
+
+        Returns:
+            A list of distinct ticker symbols, ascending. An empty list is
+            returned when the market has no rows (fresh DB / empty table) —
+            callers MUST treat ``[]`` as "no tickers to scan", not an error.
+        """
+        ...
+
 
 class IReportRepository(ABC):
     """Interface for research report / note data access."""

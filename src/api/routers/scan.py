@@ -10,7 +10,7 @@ import asyncio
 import threading
 import time
 import logging
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 from sse_starlette.sse import EventSourceResponse
@@ -20,13 +20,16 @@ from sse_starlette.sse import EventSourceResponse
 # recompute a project-root path inline (ADR-0001 forbidden patterns).
 # All DB needs are routed through the clean layer:
 #   - schema bootstrap + writes: SQLiteStorageRepository (single logical writer)
-#   - SQLite reads (US ticker list): SQLiteConnection adapter
+#   - market reads (US ticker list, kline, overview): IStockRepository via
+#     ``deps.get_stock_repository`` (S005-009 — replaces the direct
+#     SQLiteConnection adapter call that previously lived in this router)
 #   - DuckDB view materialization: ViewService.refresh_views
 #   - all paths: get_settings().db.* (never a local root derivation)
 from doge.config import get_settings
+from doge.core.ports.repository import IStockRepository
 from doge.core.services.composition import refresh_views
-from doge.infrastructure.database.sqlite import SQLiteConnection
 from doge.infrastructure.database.sqlite_storage import SQLiteStorageRepository
+from doge.interfaces.api import deps
 
 logger = logging.getLogger(__name__)
 
@@ -150,7 +153,11 @@ async def scan_status():
 
 
 @router.post("/{market}")
-async def start_scan(market: str, body: ScanRequest):
+async def start_scan(
+    market: str,
+    body: ScanRequest,
+    stock_repo: IStockRepository = Depends(deps.get_stock_repository),
+):
     if market not in ("cn", "us"):
         raise HTTPException(400, "market must be 'cn' or 'us'")
 
@@ -158,6 +165,14 @@ async def start_scan(market: str, body: ScanRequest):
         raise HTTPException(409, f"{market} scan already running")
 
     _scan_status[market] = "running"
+
+    # Capture the repo at handler entry. ``run_scan`` below runs in a
+    # BACKGROUND THREAD — calling ``Depends()`` there is not supported by
+    # FastAPI (dependency resolution is bound to the request lifecycle, which
+    # ends when the handler returns the EventSourceResponse). Passing the
+    # already-resolved adapter into the closure keeps the DI seam intact while
+    # preserving the existing streaming/threading shape (S005-009).
+    repo = stock_repo
 
     async def event_generator():
         queue = asyncio.Queue()
@@ -200,12 +215,18 @@ async def start_scan(market: str, body: ScanRequest):
                         servers = CN_SERVERS
                         download_fn = download_cn_kline
                     else:
-                        # 美股: 从数据库读取已有 tickers via the SQLiteConnection
-                        # adapter (clean layer) — no interface-layer sqlite3.
-                        rows = SQLiteConnection(db_path).execute(
-                            "SELECT DISTINCT ticker FROM stock_prices"
-                        )
-                        tickers = [r[0] for r in rows]
+                        # 美股: read distinct US tickers via the injected
+                        # IStockRepository port (S005-009). Previously this
+                        # branch called ``SQLiteConnection(db_path).execute(
+                        # "SELECT DISTINCT ticker FROM stock_prices")``
+                        # directly from the router — a raw-SQL read in the
+                        # interface layer. The port-backed call preserves the
+                        # exact same read (DuckDB attaches the US SQLite file
+                        # read-only and queries ``us.stock_prices``) while
+                        # keeping the literal ``sqlite3`` symbol out of this
+                        # module. ``[]`` is a benign "no tickers tracked" and
+                        # flows through to the no-server-scan branch below.
+                        tickers = repo.list_distinct_tickers(market)
                         servers = US_SERVERS
                         download_fn = download_us_kline
 

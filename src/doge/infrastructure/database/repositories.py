@@ -144,6 +144,41 @@ class DuckDBStockRepository(IStockRepository):
             "prices": prices,
         }
 
+    def list_distinct_tickers(self, market: str) -> List[str]:
+        """Return sorted distinct tickers from the market's ``stock_prices``.
+
+        S005-009: replaces the direct ``SQLiteConnection(...).execute(
+        "SELECT DISTINCT ticker FROM stock_prices")`` call that lived in the
+        scan router. DuckDB attaches the cn/us SQLite files in read-only mode
+        (see :class:`~doge.infrastructure.database.duckdb.DuckDBConnection`),
+        so the query is ``SELECT DISTINCT ticker FROM <market>.stock_prices``
+        against the same physical table the previous raw-SQL path read.
+
+        Args:
+            market: ``"cn"`` or ``"us"``. Any other value raises
+                :class:`ValueError` rather than silently producing an empty
+                list — the scan router validates ``market`` upstream, so an
+                unexpected value here indicates a wiring bug.
+
+        Returns:
+            Sorted list of distinct ticker strings. ``[]`` when the attached
+            database / table has no rows (fresh DB). DuckDB's
+            ``ORDER BY ... NULLS LAST`` keeps results deterministic on
+            databases with NULL ticker rows (defensive — the schema declares
+            ``ticker`` as ``NOT NULL`` via the writer, but legacy DB files
+            predate that constraint).
+        """
+        if market not in ("cn", "us"):
+            raise ValueError(f"unknown market: {market!r} (expected 'cn' or 'us')")
+        df = self._conn.execute(
+            f"SELECT DISTINCT ticker FROM {market}.stock_prices "
+            "WHERE ticker IS NOT NULL ORDER BY ticker"
+        )
+        # df may be empty; convert the single column to a plain list[str].
+        if df.empty:
+            return []
+        return df["ticker"].astype(str).tolist()
+
     def get_sync_state(self, tickers: List[str]) -> dict[str, dict]:
         """Batch query {ticker: {"latest_date": str, "row_count": int}}."""
         if not tickers:
