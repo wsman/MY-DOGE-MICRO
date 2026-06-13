@@ -10,18 +10,20 @@
 Stage advanced Implementation → Verification under CONCERNS verdict
 (`production/gate-checks/gate-implementation-verification-2026-06-12.md`).
 
-- Sprint 003 status synchronized: **10/13 done**, 3 remaining.
-- S003-001 marked done; sprint-status.yaml + sprint plan aligned.
-- S003-014 fresh `/architecture-review` brief created.
-- S003-002 + S003-010 operator checklist created.
-- Remaining work is operator-only / fresh-session governance:
-  - S003-002: unguided user walkthrough → `production/qa/evidence/user-tests/user-test-001-YYYY-MM-DD.md`.
+- Sprint 003 status synchronized: **11/13 done**, 2 remaining.
+- S003-014 `/architecture-review` completed in fresh session → **CONCERNS** verdict.
+  - ADR-0004 remains Proposed (TDX adapter stub deferred).
+  - ADR-0007 remains Proposed (CORS permissive, loopback-only).
+  - Sprint 003 closure approved under these conditions.
+  - Report: `production/architecture-reviews/architecture-review-s003-014-2026-06-13.md`.
+- Remaining work is operator-only:
+  - S003-002: unguided user walkthrough → `production/qa/evidence/user-tests/user-test-001-2026-06-13.md`.
   - S003-010: verify `DEEPSEEK_API_KEY` env availability + run `python -m macro.cli`.
-  - S003-014: run `/architecture-review` in a fresh session using the brief.
 
 ## Latest Verification Run (2026-06-13)
 
 - `python -m pytest -q` → **508 passed, 2 skipped, 0 failed** (PyQt6 DLL-load fatal exception remains ADVISORY-only; test skips cleanly).
+- `pytest tests/cli/test_runbook_retention_examples.py -q` → **13 passed, 1 skipped, 0 failed**.
 - `cd web && npm test` → **70 passed**.
 - `cd web && npm run build` → **green**.
 
@@ -30,30 +32,28 @@ SSE transport test (`tests/test_transport.py::TestSseTransport::test_sse_endpoin
 ## Blockers Cleared
 
 - ✅ SSE transport test stable.
-- ⏳ S003-002 / S003-010 / S003-014 remain operator-only / fresh-session work.
+- ✅ S003-014 fresh `/architecture-review` completed (CONCERNS, non-blocking).
+- ⏳ S003-002 / S003-010 remain operator-only work.
 
 ## Next Step
 
-进入 Sprint 003 最后三项外部/治理收尾。执行顺序已确认：
+**S003-014 已完成。** Fresh-session `/architecture-review` 返回 **CONCERNS**，Sprint 003 可在 ADR-0004 / ADR-0007 保持 Proposed 的前提下关闭，条件已记录于 `production/architecture-reviews/architecture-review-s003-014-2026-06-13.md`。
 
-1. **S003-010** — DeepSeek key environment verification（operator-only）
-2. **S003-002** — 无引导用户走查，产物 `production/qa/evidence/user-tests/user-test-001-2026-06-13.md`
-3. **S003-014** — 新开会话运行 `/architecture-review`，brief 路径已准备
+当前状态：**等待操作员完成最后两项。**
 
-**已同步更新**：基于操作员取证结论（无真实 DeepSeek key 进入 git 历史），已修正
-`production/qa/operator-checklist-s003.md`、`production/session-state/active.md`、
-`production/sprints/sprint-003-verification.md`、`production/sprint-status.yaml`、
-`production/wave-4-review-readiness.md`、`docs/MCP_SERVER.md`、
-`docs/GETTING_STARTED.md`、`docs/operations-runbook.md`、
-`docs/architecture/adr-0005-llm-client-strategy.md`、
-`design/cdd/macro-strategy-engine.md`、`production/epics/index.md`、
-`production/epics/ep-governance-security/EPIC.md`、
-`production/qa/qa-plan-verification.md`、
-`production/sprints/sprint-002-cdd-followup.md` 中的错误前提。
+1. **S003-010** — 在新终端导出 `DEEPSEEK_API_KEY`，运行 `python -m macro.cli`（若 yfinance 网络阻塞，可用 DeepSeek-only oneliner 隔离 key 是否可用）。只向我报告 pass/fail + 错误文本（不要发 key）。然后在 `production/qa/operator-checklist-s003.md` 的 S003-010 章节 sign off。
+2. **S003-002** — 在无引导情况下走 scanner → report → archive，填写 `production/qa/evidence/user-tests/user-test-001-2026-06-13.md`，并在 checklist S003-002 章节 sign off。
 
-三项全部完成后，本会话再执行最终关闭 commit：`chore(sprint): S003 all 13/13 done`。
+两项全部完成后，本会话执行最终关闭 commit：`chore(sprint): S003 all 13/13 done`。
 
-当前状态：**等待操作员完成 S003-010。**
+未提交工作树：
+- `production/architecture-reviews/architecture-review-s003-014-2026-06-13.md`（新文件）
+- `production/milestones/verification-milestone.md`
+- `production/sprint-status.yaml`
+- `production/sprints/sprint-003-verification.md`
+- `production/session-state/active.md`
+- `production/session-logs/session-log.md`（历史审计日志，不提交）
+- `production/session-logs/compaction-log.txt`（未跟踪）
 
 ## Orchestrator Decisions (adopted from recon recommendations)
 
@@ -180,5 +180,15 @@ Deferred items (documented; see readiness doc §4 for full disposition):
 <!-- STATUS -->
 Epic: Verification / Release-Ready v1
 Feature: Sprint 003 — Verification closure
-Task: Awaiting operator-only/governance actions: S003-010 → S003-002 → S003-014
+Task: S003-014 done (CONCERNS); awaiting S003-010 + S003-002 operator actions
 <!-- /STATUS -->
+
+## Session Extract — /architecture-review 2026-06-13
+
+- Verdict: CONCERNS
+- Scope: focused S003-014 review of ADR-0004 / ADR-0007 promotion or deferral eligibility
+- Requirements: no full CDD-wide TR rebuild performed; focused sprint-governance review only
+- New TR-IDs registered: None
+- CDD revision flags: None
+- Top ADR gaps: ADR-0004 TDX adapter still raises NotImplementedError; ADR-0007 CORS hardening remains deferred
+- Report: production/architecture-reviews/architecture-review-s003-014-2026-06-13.md

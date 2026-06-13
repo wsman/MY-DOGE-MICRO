@@ -38,9 +38,9 @@ The milestone is complete when all of the following are true:
    - [ ] DDL for analytical views is under version control.
 
 5. **Governance Decisions**
-   - [ ] ADR-0004 state finalized (Proposed with TDX deferral rationale, or Accepted).
-   - [ ] ADR-0007 state finalized (Proposed with CORS deferral rationale, or Accepted).
-   - [ ] Fresh `/architecture-review` session completed and documented.
+   - [x] ADR-0004 state finalized (Proposed with TDX deferral rationale, or Accepted).
+   - [x] ADR-0007 state finalized (Proposed with CORS deferral rationale, or Accepted).
+   - [x] Fresh `/architecture-review` session completed and documented.
 
 6. **Quality Gates**
    - [ ] `python -m pytest -q` green (0 failures).
@@ -71,3 +71,4 @@ The milestone is complete when all of the following are true:
 - Gate check report: `production/gate-checks/gate-implementation-verification-2026-06-12.md`
 - Wave 4 readiness doc: `production/wave-4-review-readiness.md`
 - Control manifest: `docs/architecture/control-manifest.md`
+- S003-014 architecture review: `production/architecture-reviews/architecture-review-s003-014-2026-06-13.md`

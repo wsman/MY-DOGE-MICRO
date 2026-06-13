@@ -72,7 +72,7 @@ These Wave-5 hygiene items are **deferred** and must not be pulled into Sprint 0
 |----------|-------|------|-------|----------|--------|------------|--------|
 | S003-010 | DeepSeek 密钥轮换操作 | ep-verification-evidence | TR-015 | MED | S | operator | Todo |
 | S003-013 | CORS（ADR-0007）延期决策记录 | ep-governance | — | MED | S | lead-programmer | Done |
-| S003-014 | FRESH `/architecture-review`（ADR-0004/0007 终态签字） | ep-governance | — | MED | S | lead-programmer | Todo |
+| S003-014 | FRESH `/architecture-review`（ADR-0004/0007 终态签字） | ep-governance | — | MED | S | lead-programmer | Done |
 
 ### Deferred Items (not in Sprint 003)
 
@@ -112,7 +112,7 @@ These Wave-5 hygiene items are **deferred** and must not be pulled into Sprint 0
 |----|------|-------|-------------|--------------|-------------------------------|--------|
 | S003-010 | DeepSeek key environment verification | operator | S | None | Forensic audit confirms no real key in git history; `DEEPSEEK_API_KEY` exported; `python -m macro.cli` produces a macro report | Todo |
 | S003-013 | CORS deferral record | lead-programmer | S | None | ADR-0007 or readiness doc records deferral rationale: local-first loopback-only, `allow_origins=['*']` currently acceptable | Done |
-| S003-014 | FRESH `/architecture-review` | lead-programmer | S | S003-003, S003-005, S003-013 | Fresh session runs `/architecture-review`; ADR-0004/0007 states finalized with documented rationale | Todo |
+| S003-014 | FRESH `/architecture-review` | lead-programmer | S | S003-003, S003-005, S003-013 | Fresh session runs `/architecture-review`; ADR-0004/0007 states finalized with documented rationale | Done |
 
 ---
 
@@ -145,7 +145,7 @@ These Wave-5 hygiene items are **deferred** and must not be pulled into Sprint 0
 - [x] Performance baseline profile exists and is compared against declared budgets.
 - [x] `src/api/routers/` and `src/api/main.py` contain no direct `sqlite3.connect` / `connect_duckdb` calls.
 - [x] RSRS view sign inversion is fixed and DDL is under version control.
-- [ ] ADR-0004 and ADR-0007 states are finalized with documented rationale (promoted or deferred).
+- [x] ADR-0004 and ADR-0007 states are finalized with documented rationale (promoted or deferred).
 - [x] `python -m pytest -q` green; `cd web && npm run build` green; `cd web && npm test` green.
 - [x] Layer-rule grep gates pass.
 
@@ -158,3 +158,4 @@ These Wave-5 hygiene items are **deferred** and must not be pulled into Sprint 0
 - Milestone: `production/milestones/verification-milestone.md`
 - Sprint status (machine-readable): `production/sprint-status.yaml` (to be updated when this sprint is ratified)
 - Epics: `production/epics/index.md`
+- S003-014 architecture review: `production/architecture-reviews/architecture-review-s003-014-2026-06-13.md`
