@@ -5,18 +5,26 @@
 
 ## Current Task
 
-**Sprint 004 (Release clean-PASS prep) — COMPLETE. Stage advanced Verification → Release.**
-Operator chose Phase-4 path (A) clean PASS. Sprint 004 8/8 stories done
-(`b44d6a7`→`bdb3860`); fresh `/architecture-review` PASS verdict
-(`architecture-review-s004-2026-06-14.md`); fresh `/gate-check` **clean PASS**
-(`gate-verification-release-2026-06-14.md`); `production/stage.txt` now **Release**.
+**Sprint 005 (post-Release polish) — DONE. Release-Ready v1 tagged (`v0.1.0`).**
+Sprint 004 closed the Release gate (clean PASS); Sprint 005 did the post-Release
+polish backlog. Waves 1–4 committed (`66823a4`→`ec9bf47`); Wave 5 (C-a/b/c
+Wave-5 hygiene) **deferred** — a background agent's C-a run broke the suite
+(over-stripped test preambles) and was reverted; these are low-priority
+hygiene/portability items, redo as a careful follow-on.
 
-Final verification: 566 pytest passed / 4 skipped / 0 failed; web build + 70
-vitest green; §6 layer gate ZERO hits; ADR-0001/2/3/4/5/7/8/9/10 Accepted.
+Release-Ready v1 baseline tagged `v0.1.0` (commit `2ba21a1`, 2026-06-14):
+retry consolidation (`_retry.py` + `YFinanceConfig`), yfinance adapter wiring
+(macro routes through the `IMarketDataSource` port), `scan.py` DI
+(`list_distinct_tickers`), SSE `str(e)` leak fixed, CLI bilingual,
+traceability/manifest reconciliation, A6 + its SQLiteStorageRepository followup.
 
-**NEXT:** Tag / release Release-Ready v1 baseline; track deferred items
-(`_retry.py` extraction, optional `scan.py` DI polish, auth only if non-loopback
-deployment introduced, wmic→CIM migration).
+Verification: 579 pytest passed / 4 skipped / 0 failed; web build + 70 vitest
+green; §6 layer gate ZERO hits; 10 ADRs Accepted.
+
+**NEXT (deferred, non-blocking):** Wave-5 hygiene (test sys.path consolidation,
+MCP error-text sanitization, `wmic`→CIM); full yfinance-metadata adapter
+(ADR-0009 follow-on); bundled sample-data first-run demo; auth + non-loopback
+CORS (ADR-0007 path 1a) only if deployment model changes.
 
 ## Latest Verification Run (2026-06-13)
 
