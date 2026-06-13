@@ -14,7 +14,14 @@ logger = logging.getLogger(__name__)
 class GlobalMacroLoader:
     def __init__(self, config: MacroConfig):
         self.config = config
-        logger.info(f"初始化数据加载器，配置: {config}")
+        logger.info(
+            "初始化数据加载器，资产: %s/%s/%s/%s, 回看: %s天",
+            config.tech_proxy,
+            config.safe_haven_proxy,
+            config.crypto_proxy,
+            config.target_asset,
+            config.lookback_days,
+        )
 
     def fetch_combined_data(self, max_retries: int = 3, retry_delay: float = 5.0) -> Optional[pd.DataFrame]:
         """

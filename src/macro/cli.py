@@ -7,6 +7,8 @@ import argparse
 import sys
 import os
 import logging  # 添加导入
+import re
+from typing import Optional
 
 # S002-009 / TR-011: the macro package is importable via the editable install,
 # so ``from . import ...`` resolves without a sys.path shim (ADR-0001 forbidden
@@ -14,6 +16,26 @@ import logging  # 添加导入
 # directly still fails on the relative import (it must be launched as
 # ``python -m macro.cli``); that limitation is pre-existing and unchanged.
 from . import MacroConfig, GlobalMacroLoader, DeepSeekStrategist, setup_logging
+
+
+def _redact_secrets(text: str, config: Optional[MacroConfig] = None) -> str:
+    """Remove the real api_key and the placeholder sentinel from text.
+
+    As defense-in-depth, any sk-... token that looks like an OpenAI-style
+    API key is also masked, so exceptions raised before ``config`` is bound
+    cannot leak a key either.
+    """
+    secrets = ["REPLACE_WITH_DEEPSEEK_API_KEY"]
+    if config is not None and config.api_key:
+        secrets.append(config.api_key)
+    safe = text
+    for secret in secrets:
+        if secret:
+            safe = safe.replace(secret, "<redacted>")
+    # Belt-and-braces: mask any sk-... API-key-like token that may have
+    # escaped into the message before config was loaded.
+    safe = re.sub(r"sk-[A-Za-z0-9_-]{20,}", "<redacted>", safe)
+    return safe
 
 
 def main():
@@ -43,18 +65,18 @@ def main():
 
     args = parser.parse_args()
 
-    # --- 修改部分开始 ---
-    # 强制默认开启详细模式 (DEBUG)
-    # 如果未来需要静默模式，可以添加 --quiet 参数
-    log_level = logging.DEBUG
-    
-    # 初始化日志系统
-    setup_logging(log_level=log_level)
-    # --- 修改部分结束 ---
-
     print("🚀 启动 MY-DOGE 宏观战略分析 (Verbose Mode)...")
 
     try:
+        # --- 修改部分开始 ---
+        # 强制默认开启详细模式 (DEBUG)
+        # 如果未来需要静默模式，可以添加 --quiet 参数
+        log_level = logging.DEBUG
+
+        # 初始化日志系统
+        setup_logging(log_level=log_level)
+        # --- 修改部分结束 ---
+
         # 创建配置
         config = MacroConfig()
         print(f"✅ 配置加载成功")
@@ -84,8 +106,9 @@ def main():
             sys.exit(1)
 
     except Exception as e:
-        print(f"❌ 运行失败: {e}")
-        print("💡 请检查 .env 文件中的 API Key 配置")
+        safe_msg = _redact_secrets(str(e), locals().get("config"))
+        print(f"❌ 运行失败: {safe_msg}")
+        print("💡 请检查 DEEPSEEK_API_KEY 环境变量配置")
         sys.exit(1)
 
 

@@ -248,6 +248,12 @@ API error envelope (`{"error": {"code", "message"}}`, S002-009) is built to
 never leak `str(e)` (`src/api/routers/data.py:108-112`). If you debug a key
 problem, redact the key before sharing logs.
 
+**Built-in protections.** `MacroConfig.__repr__` masks `api_key` as `'***'`
+(`src/macro/config.py`), `GlobalMacroLoader` logs only asset tickers and the
+lookback window (`src/macro/data_loader.py`), and the macro CLI scrubs both the
+real key and the `REPLACE_WITH_DEEPSEEK_API_KEY` placeholder from exception
+messages before printing (`src/macro/cli.py`).
+
 ---
 
 ## DuckDB view refresh

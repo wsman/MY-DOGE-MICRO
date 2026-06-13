@@ -21,6 +21,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "src"))
 
 from macro.config import MacroConfig  # noqa: E402
+from macro.data_loader import GlobalMacroLoader  # noqa: E402
 from macro.strategist import DeepSeekStrategist  # noqa: E402
 
 # A FAKE key — never a real DeepSeek credential. Distinctive so any leak is
@@ -107,3 +108,38 @@ class TestStrategistNeverLogsApiKey:
             )
         # Belt-and-braces across the full captured text
         assert FAKE_KEY not in caplog.text
+
+
+class TestMacroConfigReprNeverLeaksApiKey:
+    def test_repr_masks_api_key_when_present(self):
+        cfg = _build_config_with_fake_key()
+        repr_str = repr(cfg)
+        assert FAKE_KEY not in repr_str, (
+            f"API key leaked into MacroConfig.__repr__: {repr_str!r}"
+        )
+        assert "api_key='***'" in repr_str, (
+            f"Expected redacted api_key marker in repr, got: {repr_str!r}"
+        )
+
+    def test_repr_shows_none_when_key_absent(self):
+        cfg = _build_config_with_fake_key()
+        cfg.api_key = None
+        repr_str = repr(cfg)
+        assert "api_key=None" in repr_str, (
+            f"Expected api_key=None in repr when key absent, got: {repr_str!r}"
+        )
+
+
+class TestGlobalMacroLoaderInitNeverLogsApiKey:
+    def test_loader_init_log_does_not_contain_api_key(self, caplog):
+        cfg = _build_config_with_fake_key()
+        with caplog.at_level(logging.DEBUG, logger="macro.data_loader"):
+            GlobalMacroLoader(cfg)
+        assert FAKE_KEY not in caplog.text, (
+            f"API key leaked into data_loader logs: {caplog.text!r}"
+        )
+        for record in caplog.records:
+            assert FAKE_KEY not in record.getMessage(), (
+                f"API key leaked into data_loader log record: "
+                f"{record.getMessage()!r}"
+            )

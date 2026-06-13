@@ -325,3 +325,6 @@ The schema is implicit (a formatted string), not a JSON/tool-call schema. Prompt
 ### 9.6 Secrets handling
 
 - The API key is sourced from `DEEPSEEK_API_KEY` (primary, as of S002-013) and passed only to `OpenAI(api_key=...)`. It is never logged by the strategist. `models_config.json` now ships only the `REPLACE_WITH_DEEPSEEK_API_KEY` placeholder; if the env var is unset and the on-disk value is the placeholder/empty/`None`, `MacroConfig` raises `RuntimeError` rather than letting a placeholder reach the SDK. A forensic audit confirmed no real key was ever committed to git history, so no revocation or history rewrite is required; operators only need to export `DEEPSEEK_API_KEY` and verify `python -m macro.cli` (see `docs/MCP_SERVER.md`). The local FastAPI `GET /api/config` also drops `api_key` from its HTTP response.
+- **Repr safety**: `MacroConfig.__repr__` masks `api_key` as `'***'` so that logging or string interpolation of the config object does not leak the key.
+- **Loader logging**: `GlobalMacroLoader.__init__` logs only asset tickers and the lookback window, not the full config object.
+- **CLI error redaction**: `macro.cli` scrubs both the real key and the `REPLACE_WITH_DEEPSEEK_API_KEY` placeholder from exception messages before printing to stdout.

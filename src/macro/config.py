@@ -1,7 +1,7 @@
 import os
 import json
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from typing import Optional
 
 @dataclass
@@ -39,7 +39,20 @@ class MacroConfig:
         """初始化时加载 JSON 配置"""
         self._load_from_json()
         self._apply_runtime_overrides()
-        
+
+    def __repr__(self) -> str:
+        """Safe repr: api_key is masked to prevent accidental log leaks."""
+        parts = []
+        for field in fields(self):
+            name = field.name
+            value = getattr(self, name)
+            if name == "api_key":
+                display = "'***'" if value else "None"
+            else:
+                display = repr(value)
+            parts.append(f"{name}={display}")
+        return f"MacroConfig({', '.join(parts)})"
+
     def _validate_config(self, config_data):
         """
         验证配置文件结构完整性
