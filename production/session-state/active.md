@@ -5,27 +5,18 @@
 
 ## Current Task
 
-**Sprint 004 (Release clean-PASS prep) — implementation + S004-008b DONE; awaiting fresh `/gate-check` for Verification → Release clean PASS.**
-Operator chose Phase-4 path (A) clean PASS. Sprint 004 code work is committed
-(8 stories, `b44d6a7`→`20ce713`); 566 pytest passed / 4 skipped / 0 failed;
-§6 layer gate GREEN; verification-milestone all exit criteria [x];
-fresh `/architecture-review` PASS verdict recorded
-(`production/architecture-reviews/architecture-review-s004-2026-06-14.md`).
+**Sprint 004 (Release clean-PASS prep) — COMPLETE. Stage advanced Verification → Release.**
+Operator chose Phase-4 path (A) clean PASS. Sprint 004 8/8 stories done
+(`b44d6a7`→`bdb3860`); fresh `/architecture-review` PASS verdict
+(`architecture-review-s004-2026-06-14.md`); fresh `/gate-check` **clean PASS**
+(`gate-verification-release-2026-06-14.md`); `production/stage.txt` now **Release**.
 
-Sprint 004 stories (all committed / done):
-- S004-001/002 INoteRepository port + adapter; notes.py off ai_analysis (`d6dcb5d`)
-- S004-003 query_stock → get_ticker_with_context, §6 GREEN (`8bc4c5e`)
-- S004-004 TDX adapter real impl; ADR-0004 gate met (`b989ef9`)
-- S004-005 ADR-0007 strengthened-loopback-guarantee (`9696ec3`)
-- S004-006 verification-milestone all exit criteria [x] (`fe45585`)
-- S004-007 doc fixes — yfinance rate-limit + CLI exit-code table (`d8b1886`)
-- S004-008a ADR-0004 → Accepted + TR-045/046 + TR-011 (`c78498b`)
-- S004-008b ADR-0007 → Accepted + fresh arch-review sign-off (`20ce713`)
+Final verification: 566 pytest passed / 4 skipped / 0 failed; web build + 70
+vitest green; §6 layer gate ZERO hits; ADR-0001/2/3/4/5/7/8/9/10 Accepted.
 
-**NEXT (fresh-session operator action — this session implemented+reviewed the work, cannot self-certify the gate):**
-1. Fresh `/gate-check` (Verification → Release) — aim clean PASS.
-
-State: ADR-0001/2/3/4/5/7/8/9/10 Accepted.
+**NEXT:** Tag / release Release-Ready v1 baseline; track deferred items
+(`_retry.py` extraction, optional `scan.py` DI polish, auth only if non-loopback
+deployment introduced, wmic→CIM migration).
 
 ## Latest Verification Run (2026-06-13)
 

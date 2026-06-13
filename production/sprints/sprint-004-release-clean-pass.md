@@ -3,7 +3,7 @@
 > **Stage**: Verification · **Predecessor**: Sprint 003 (Verification, 13/13 done)
 > **Milestone**: `production/milestones/verification-milestone.md` (Verification / Release-Ready v1)
 > **Duration**: 2026-06-13 → 2026-06-26 · **Control Manifest**: 2026-06-12 (rules unchanged; Sprint 004 enforces, does not alter)
-> **Status**: in_progress (implementation complete; S004-008b done; awaiting fresh `/gate-check`)
+> **Status**: **done** (8/8 stories; Verification → Release gate-check clean PASS; stage advanced to Release)
 
 ## Goal
 
@@ -64,7 +64,7 @@ guarantee** (not 1a explicit allow-list); notes port via **(split) new
 - [x] ADR-0004 Accepted.
 - [x] ADR-0007 Accepted (S004-008b, post-arch-review).
 - [x] Fresh `/architecture-review` → PASS verdict + ADR-0007 authorization.
-- [ ] Fresh `/gate-check` (Verification → Release) → clean PASS.
+- [x] Fresh `/gate-check` (Verification → Release) → **clean PASS**; stage advanced to Release.
 
 ## Related artifacts
 

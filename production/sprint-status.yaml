@@ -55,6 +55,9 @@ last_updated: "2026-06-14"
 # 0 CONCERNS); ADR-0007 promoted to Accepted (loopback-guaranteed posture);
 # governance test updated. S004 rollup 8/8 done. Ready for Verification →
 # Release /gate-check.
+# 2026-06-14 (Sprint 004 closed): Verification → Release gate-check clean PASS.
+# Stage advanced Verification → Release. Sprint 004 8/8 done. All milestone exit
+# criteria [x]; ADR-0001/2/3/4/5/7/8/9/10 Accepted.
 
 sprints:
   - id: S001
@@ -489,8 +492,8 @@ sprints:
     milestone: production/milestones/verification-milestone.md
     epics_index: production/epics/index.md
     start: "2026-06-13"
-    end: "2026-06-26"
-    status: in_progress
+    end: "2026-06-14"
+    status: done
     control_manifest: "2026-06-12"
     duration_assumption: "< 1 week"
     goal: >-
