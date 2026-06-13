@@ -5,12 +5,14 @@
 
 ## Current Task
 
-**Sprint 004 (Release clean-PASS prep) — implementation COMPLETE; awaiting fresh-session gates.**
+**Sprint 004 (Release clean-PASS prep) — implementation + S004-008b DONE; awaiting fresh `/gate-check` for Verification → Release clean PASS.**
 Operator chose Phase-4 path (A) clean PASS. Sprint 004 code work is committed
-(7 stories, `b44d6a7`→`c78498b`); 568 pytest passed / 2 skipped / 0 failed;
-§6 layer gate GREEN; verification-milestone all exit criteria [x].
+(8 stories, `b44d6a7`→`20ce713`); 566 pytest passed / 4 skipped / 0 failed;
+§6 layer gate GREEN; verification-milestone all exit criteria [x];
+fresh `/architecture-review` PASS verdict recorded
+(`production/architecture-reviews/architecture-review-s004-2026-06-14.md`).
 
-Sprint 004 stories (all committed):
+Sprint 004 stories (all committed / done):
 - S004-001/002 INoteRepository port + adapter; notes.py off ai_analysis (`d6dcb5d`)
 - S004-003 query_stock → get_ticker_with_context, §6 GREEN (`8bc4c5e`)
 - S004-004 TDX adapter real impl; ADR-0004 gate met (`b989ef9`)
@@ -18,16 +20,12 @@ Sprint 004 stories (all committed):
 - S004-006 verification-milestone all exit criteria [x] (`fe45585`)
 - S004-007 doc fixes — yfinance rate-limit + CLI exit-code table (`d8b1886`)
 - S004-008a ADR-0004 → Accepted + TR-045/046 + TR-011 (`c78498b`)
+- S004-008b ADR-0007 → Accepted + fresh arch-review sign-off (`20ce713`)
 
-**NEXT (fresh-session operator actions — this session implemented the work, cannot self-certify):**
-1. Fresh `/architecture-review` — brief: `production/architecture-reviews/architecture-review-brief-s004.md`.
-   Authorizes ADR-0007 loopback promotion (its authority per ADR-0007:46-49),
-   verifies ADR-0004, rules on the TDX `connect(self, market)` signature.
-2. S004-008b: flip ADR-0007 → Accepted + governance test (after the arch-review
-   signs off).
-3. Fresh `/gate-check` (Verification → Release) — aim clean PASS.
+**NEXT (fresh-session operator action — this session implemented+reviewed the work, cannot self-certify the gate):**
+1. Fresh `/gate-check` (Verification → Release) — aim clean PASS.
 
-State: ADR-0001/2/3/4/5/8/9/10 Accepted; ADR-0007 Proposed (arch-review-gated).
+State: ADR-0001/2/3/4/5/7/8/9/10 Accepted.
 
 ## Latest Verification Run (2026-06-13)
 

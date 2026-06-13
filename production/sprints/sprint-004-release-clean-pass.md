@@ -3,7 +3,7 @@
 > **Stage**: Verification · **Predecessor**: Sprint 003 (Verification, 13/13 done)
 > **Milestone**: `production/milestones/verification-milestone.md` (Verification / Release-Ready v1)
 > **Duration**: 2026-06-13 → 2026-06-26 · **Control Manifest**: 2026-06-12 (rules unchanged; Sprint 004 enforces, does not alter)
-> **Status**: in_progress (implementation complete; S004-008b blocked on fresh `/architecture-review`)
+> **Status**: in_progress (implementation complete; S004-008b done; awaiting fresh `/gate-check`)
 
 ## Goal
 
@@ -47,27 +47,23 @@ guarantee** (not 1a explicit allow-list); notes port via **(split) new
 | S004-006 | verification-milestone exit criteria all [x] | ep-governance-security | — | MED | S | lead-programmer | done |
 | S004-007 | operator docs: yfinance rate-limit + CLI exit-code table | ep-governance-security | — | LOW | S | python-specialist | done |
 | S004-008a | ADR-0004 → Accepted + TR-045/046 + TR-011 | ep-governance-security | TR-011 | MED | S | lead-programmer | done |
-| S004-008b | ADR-0007 → Accepted + governance test | ep-governance-security | TR-029/032 | HIGH | S | lead-programmer | **blocked** |
+| S004-008b | ADR-0007 → Accepted + governance test | ep-governance-security | TR-029/032 | HIGH | S | lead-programmer | done |
 
 ## Open / blocked
 
-- **S004-008b BLOCKED** on a fresh `/architecture-review` sign-off — the loopback-
-  guarantee decision's promotion authority (ADR-0007:46-49). Brief:
-  `production/architecture-reviews/architecture-review-brief-s004.md`. Once
-  authorized: flip ADR-0007 Status + move in the governance test (use
-  "loopback-guaranteed", NOT "production-hardened" per S003-014 cond 3).
+- **S004-008b DONE** — fresh `/architecture-review` passed (PASS verdict) and ADR-0007 Status flipped to Accepted in commit `20ce713`.
 - **Flagged for the arch-review**: `TDXDataSource.connect(self, market="cn")`
   widens the port signature `connect(self)` (Liskov-compatible; flagged in
-  commit `b989ef9`). The review rules whether this is an acceptable adapter
-  extension or warrants lazy per-market connect.
+  commit `b989ef9`). The review ruled this an acceptable adapter extension
+  (documented in `architecture-review-s004-2026-06-14.md`).
 
 ## Definition of Done
 
 - [x] §6 layer-rule grep gate green (`src/api` + `src/doge/interfaces` + `src/interface` → 0 hits).
-- [x] `python -m pytest -q` green (568 passed, 2 skipped, 0 failed).
+- [x] `python -m pytest -q` green (566 passed, 4 skipped, 0 failed).
 - [x] ADR-0004 Accepted.
-- [ ] ADR-0007 Accepted (S004-008b, post-arch-review).
-- [ ] Fresh `/architecture-review` → PASS/CONCERNS verdict + ADR-0007 authorization.
+- [x] ADR-0007 Accepted (S004-008b, post-arch-review).
+- [x] Fresh `/architecture-review` → PASS verdict + ADR-0007 authorization.
 - [ ] Fresh `/gate-check` (Verification → Release) → clean PASS.
 
 ## Related artifacts
@@ -76,4 +72,5 @@ guarantee** (not 1a explicit allow-list); notes port via **(split) new
 - Polish pass: `production/qa/evidence/polish-pass-2026-06-14.md`.
 - Prior review: `production/architecture-reviews/architecture-review-s003-014-2026-06-13.md`.
 - Arch-review brief: `production/architecture-reviews/architecture-review-brief-s004.md`.
-- Commits: `b44d6a7`→`d029750` (10 commits).
+- Arch-review report: `production/architecture-reviews/architecture-review-s004-2026-06-14.md`.
+- Commits: `b44d6a7`→`20ce713` (11 commits).
