@@ -37,8 +37,8 @@ The milestone is complete when all of the following are true:
      - Memory bounded by local dataset size
 
 4. **Architecture Cleanup**
-   - [ ] `src/api/routers/` and `src/api/main.py` contain no direct `sqlite3.connect` / `connect_duckdb` calls.
-   - [ ] RSRS DuckDB view sign convention matches Python RSRS path.
+   - [x] `src/api/routers/` and `src/api/main.py` contain no direct `sqlite3.connect` / `connect_duckdb` calls.
+   - [x] RSRS DuckDB view sign convention matches Python RSRS path.
    - [x] DDL for analytical views is under version control.
 
 5. **Governance Decisions**
@@ -50,7 +50,7 @@ The milestone is complete when all of the following are true:
    - [x] `python -m pytest -q` green (0 failures).
    - [x] `cd web && npm run build` green.
    - [x] `cd web && npm test` green.
-   - [ ] Layer-rule grep gates pass.
+   - [x] Layer-rule grep gates pass.
 
 ## Deferred to Post-Verification
 
