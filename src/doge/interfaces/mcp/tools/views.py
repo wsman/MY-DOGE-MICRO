@@ -1,6 +1,6 @@
 """MCP tool: list_views."""
 
-from doge.core.services.composition import build_view_service
+from doge.application.composition import build_view_service
 
 
 async def list_views() -> str:

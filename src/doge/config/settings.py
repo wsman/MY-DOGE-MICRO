@@ -197,6 +197,37 @@ class MCPConfig:
 
 
 @dataclass(frozen=True)
+class NetworkConfig:
+    """Network proxy settings.
+
+    Replaces the hardcoded ``http://127.0.0.1:7890`` proxy default in the
+    legacy ``micro/industry_analyzer.py`` (S007-006). ``None`` means no proxy.
+    """
+    proxy: Optional[str] = field(
+        default_factory=lambda: os.environ.get("DOGE_NETWORK_PROXY") or None
+    )
+
+
+@dataclass(frozen=True)
+class DeepSeekConfig:
+    """DeepSeek LLM settings.
+
+    Mirrors the legacy ``macro/config.py`` defaults and the ``DEEPSEEK_API_KEY``
+    environment migration from S002-013. All values can be overridden via env
+    vars so operators do not need to edit source files.
+    """
+    api_key: Optional[str] = field(
+        default_factory=lambda: os.environ.get("DEEPSEEK_API_KEY") or None
+    )
+    base_url: str = field(
+        default_factory=lambda: os.environ.get("DEEPSEEK_BASE_URL") or "https://api.deepseek.com/v1"
+    )
+    model: str = field(
+        default_factory=lambda: os.environ.get("DEEPSEEK_MODEL") or "deepseek-chat"
+    )
+
+
+@dataclass(frozen=True)
 class Settings:
     """Application settings container."""
     project_root: Path = _PROJECT_ROOT
@@ -205,6 +236,8 @@ class Settings:
     yfinance: YFinanceConfig = field(default_factory=YFinanceConfig)
     market: MarketConfig = field(default_factory=MarketConfig)
     mcp: MCPConfig = field(default_factory=MCPConfig)
+    network: NetworkConfig = field(default_factory=NetworkConfig)
+    deepseek: DeepSeekConfig = field(default_factory=DeepSeekConfig)
 
     # Derived paths
     @property

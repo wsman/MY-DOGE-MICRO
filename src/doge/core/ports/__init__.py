@@ -3,6 +3,7 @@ from .data_source import IMarketDataSource
 from .cache import ITickerNameCache
 from .metadata import ITickerMetadataSource
 from .market_view import IMarketViewRepository
+from .llm import ILLMClient
 
 __all__ = [
     "IStockRepository", "IReportRepository", "ISchemaBrowser", "INoteRepository",
@@ -11,4 +12,5 @@ __all__ = [
     "ITickerNameCache",
     "ITickerMetadataSource",
     "IMarketViewRepository",
+    "ILLMClient",
 ]

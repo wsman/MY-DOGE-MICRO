@@ -1,6 +1,6 @@
 """MCP tools: rsrs_ranking, market_breadth."""
 
-from doge.core.services.composition import build_breadth_service, build_ranking_service
+from doge.application.composition import build_breadth_service, build_ranking_service
 
 
 def _fmt(columns, rows):

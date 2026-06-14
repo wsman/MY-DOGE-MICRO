@@ -194,13 +194,13 @@ class _RaisingAfterResponses(FakeMarketViewRepository):
 # Composition root owns the infrastructure import
 # ---------------------------------------------------------------------------
 def test_composition_root_is_the_single_infra_import_site():
-    """The composition module imports infrastructure; the 4 services do not."""
-    import doge.core.services.composition as comp
+    """The application composition module imports infrastructure; services do not."""
+    import doge.application.composition as comp
 
     comp_source = Path(inspect.getfile(comp)).read_text(encoding="utf-8")
     assert "from doge.infrastructure" in comp_source, (
-        "composition.py should own the single infrastructure import for the "
-        "view-backed services"
+        "doge.application.composition should own the single infrastructure import "
+        "for the view-backed services"
     )
     # The 4 service modules still import none.
     for module_name in SERVICE_MODULES.values():
@@ -211,7 +211,7 @@ def test_composition_root_is_the_single_infra_import_site():
 
 def test_composition_factories_return_services_bound_to_port():
     """The build_* factories return services whose repository is a port."""
-    from doge.core.services.composition import (
+    from doge.application.composition import (
         build_anomaly_service,
         build_breadth_service,
         build_ranking_service,

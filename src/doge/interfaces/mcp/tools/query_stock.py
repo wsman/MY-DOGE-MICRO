@@ -1,6 +1,6 @@
 """MCP tool: query_stock — delegates to StockService via the composition root."""
 
-from doge.core.services.composition import build_note_repository, build_stock_service
+from doge.application.composition import build_note_repository, build_stock_service
 
 
 def normalize_ticker(ticker: str, market: str = "cn") -> str:

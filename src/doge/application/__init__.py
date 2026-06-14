@@ -1,27 +1,7 @@
-"""Deprecated composition root — re-exported from ``doge.application.composition``.
+"""Application package root."""
 
-This module previously contained the canonical service factories. In Sprint 007
-the composition root moved to ``doge.application.composition`` so that
-``doge.core.services`` depends only on ``doge.core.ports`` and contains no
-infrastructure imports.
-
-This file is kept as a temporary re-export shim for legacy callers
-(``src/cli.py``, ``src/api/routers/scan.py``, ``src/micro/industry_analyzer.py``,
-etc.) and will be removed in Sprint 008 after those callers are migrated.
-"""
-
-import warnings
-
-# Re-export everything from the new canonical composition root.
-# The deprecation warning is issued on first import of this module.
-warnings.warn(
-    "doge.core.services.composition is deprecated; "
-    "use doge.application.composition instead",
-    DeprecationWarning,
-    stacklevel=2,
-)
-
-from doge.application.composition import (  # noqa: F401
+from doge.application import contracts, use_cases
+from doge.application.composition import (
     build_anomaly_service,
     build_breadth_service,
     build_catalog_use_case,
@@ -47,6 +27,9 @@ from doge.application.composition import (  # noqa: F401
 )
 
 __all__ = [
+    "contracts",
+    "use_cases",
+    # factories
     "build_view_repository",
     "build_view_service",
     "build_stock_repository",
@@ -59,6 +42,7 @@ __all__ = [
     "build_breadth_service",
     "build_anomaly_service",
     "refresh_views",
+    # use-case factories
     "build_scan_market_use_case",
     "build_generate_macro_report_use_case",
     "build_manage_notes_use_case",

@@ -1,6 +1,6 @@
 """MCP tool: volume_anomalies."""
 
-from doge.core.services.composition import build_anomaly_service
+from doge.application.composition import build_anomaly_service
 
 
 def _fmt(columns, rows):

@@ -59,7 +59,139 @@ last_updated: "2026-06-14"
 # Stage advanced Verification → Release. Sprint 004 8/8 done. All milestone exit
 # criteria [x]; ADR-0001/2/3/4/5/7/8/9/10 Accepted.
 
+# 2026-06-14 (Sprint 007 ratified): v0.2.1 release complete; stage remains Release.
+# Sprint 007 "Clean Architecture Modularization" planned with 8 stories.
+# Implementation is story-by-story with user approval; legacy deletion deferred to S008.
+
 sprints:
+  - id: S007
+    name: "Clean Architecture Modularization"
+    plan: production/sprints/sprint-007-modularization.md
+    qa_plan: production/qa/qa-plan-sprint-007.md
+    start: "2026-06-14"
+    status: in_progress
+    control_manifest: "2026-06-12"
+    duration_assumption: "1–2 weeks"
+    goal: >-
+      Introduce the src/doge/application/ use-case layer, relocate the
+      composition root out of core/services, migrate the remaining live legacy
+      surface (src/api/, src/cli.py, src/macro/cli.py, src/ai_analysis/,
+      src/micro/, src/macro/, src/interface/) onto port-backed use cases, and
+      establish layer gates. Legacy modules become shims in S007; deletion is
+      deferred to S008.
+    exit_criteria:
+      - "S007-001 done: application package + composition root in doge.application.composition."
+      - "S007-003 done: CLI migrated to doge.interfaces.cli with doge console script."
+      - "S007-002 done: API migrated to doge.interfaces.api."
+      - "S007-004 done: ai_analysis helpers moved to infrastructure; ai_analysis files are shims."
+      - "S007-005 done: ScanMarketUseCase created and tested; micro.market_scanner is shim."
+      - "S007-006 done: GenerateMacroReportUseCase + ILLMClient + DeepSeekClient created and tested."
+      - "S007-007 done: docs/MODULARIZATION_PLAN.md updated."
+      - "S007-008 done: layer gates pass and python -m pytest -q returns 617+ passed / 5 skipped / 0 failed / 0 error."
+    stories:
+      - id: S007-001
+        title: "Application contracts + composition boundary"
+        epic: ep-architecture-debt
+        tr: null
+        source: "ADR-0001 clean-architecture migration; design/cdd/sprint-007-modularization-plan.md"
+        priority: HIGH
+        effort: L
+        owner: lead-programmer
+        status: done
+        blocking_gate: true
+        note: "Foundation story. Creates src/doge/application/ package, contracts DTOs, use-case stubs, and moves composition root from doge.core.services.composition to doge.application.composition."
+
+      - id: S007-003
+        title: "CLI demo/query migration"
+        epic: ep-ux
+        tr: null
+        source: "design/cdd/sprint-007-modularization-plan.md §CLI"
+        priority: HIGH
+        effort: L
+        owner: python-specialist
+        status: todo
+        depends_on: [S007-001]
+        blocking_gate: true
+        note: "New doge.interfaces.cli package with main.py + commands/. Adds [project.scripts] doge entry. Preserves bilingual output, exit codes, secret redaction. src/cli.py and src/macro/cli.py become shims."
+
+      - id: S007-002
+        title: "API scan workflow migration"
+        epic: ep-architecture-debt
+        tr: null
+        source: "design/cdd/sprint-007-modularization-plan.md §API"
+        priority: HIGH
+        effort: L
+        owner: python-specialist
+        status: todo
+        depends_on: [S007-001, S007-003]
+        blocking_gate: true
+        note: "Migrate src/api/routers/*.py and src/api/main.py to src/doge/interfaces/api/. Legacy src/api/ becomes shim. Routers delegate to application use cases via deps.py providers."
+
+      - id: S007-004
+        title: "ai_analysis DuckDB/SQLite helpers → repository"
+        epic: ep-architecture-debt
+        tr: null
+        source: "design/cdd/sprint-007-modularization-plan.md §ai_analysis"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: todo
+        depends_on: [S007-001, S007-002]
+        blocking_gate: true
+        note: "Move connect_duckdb/query_view/query_sql helpers to infrastructure. Notes CRUD → ManageNotesUseCase. market_overview/anomaly/catalog/fetch_names → respective use cases. src/ai_analysis files become shims."
+
+      - id: S007-005
+        title: "micro.market_scanner → ScanMarketUseCase"
+        epic: ep-architecture-debt
+        tr: null
+        source: "design/cdd/sprint-007-modularization-plan.md §micro"
+        priority: HIGH
+        effort: L
+        owner: python-specialist
+        status: todo
+        depends_on: [S007-001, S007-004]
+        blocking_gate: true
+        note: "Create ScanMarketUseCase that orchestrates IMarketDataSource + IStockRepository + view refresh. src/micro/market_scanner.py becomes shim."
+
+      - id: S007-006
+        title: "macro report → GenerateMacroReportUseCase + ILLMClient port"
+        epic: ep-architecture-debt
+        tr: null
+        source: "design/cdd/sprint-007-modularization-plan.md §macro"
+        priority: HIGH
+        effort: L
+        owner: python-specialist
+        status: todo
+        depends_on: [S007-001, S007-004]
+        blocking_gate: true
+        note: "Create ILLMClient port and DeepSeekClient adapter. Create GenerateMacroReportUseCase. Break micro→macro cross-import. src/macro files become shims."
+
+      - id: S007-007
+        title: "Update docs/MODULARIZATION_PLAN.md"
+        epic: ep-governance
+        tr: null
+        source: "design/cdd/sprint-007-modularization-plan.md §docs"
+        priority: MED
+        effort: S
+        owner: lead-programmer
+        status: todo
+        depends_on: [S007-001]
+        blocking_gate: false
+        note: "Advisory documentation story. Update batches 1-6, mark completed items, document deferred legacy deletion plan."
+
+      - id: S007-008
+        title: "Layer gates + final regression"
+        epic: ep-governance
+        tr: null
+        source: "design/cdd/sprint-007-modularization-plan.md §gates"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: todo
+        depends_on: [S007-001, S007-002, S007-003, S007-004, S007-005, S007-006]
+        blocking_gate: true
+        note: "Final verification gate. New layer-gate tests, full pytest regression (617+ passed / 5 skipped / 0 failed / 0 error), web build/test green, manual smoke."
+
   - id: S001
     name: "Brownfield Metadata Import"
     plan: production/sprints/sprint-001-brownfield-import.md
@@ -846,24 +978,24 @@ sprints:
         blocking_gate: false
         note: "docs/GETTING_STARTED.md 5-Minute Demo section; docs/CLI.md demo subcommand; tests/cli/test_cli_arg_parsing.py parser mirror updated."
 
-# Rollup counts for the active sprint (S006).
+# Rollup counts for the active sprint (S007).
 rollup:
-  sprint: S006
+  sprint: S007
   total_stories: 8
   by_status:
-    todo: 0
+    todo: 7
     in_progress: 0
     blocked: 0
     review: 0
-    done: 8
+    done: 1
     deferred: 0
   by_priority:
-    HIGH: 0
-    MED: 4
-    LOW: 4
+    HIGH: 6
+    MED: 2
+    LOW: 0
   by_epic:
-    ep-architecture-debt: 5
-    ep-governance-security: 2
-    ep-ux: 2
-  blocking_gated_stories: []
-  top_priority_stories: []
+    ep-architecture-debt: 6
+    ep-ux: 1
+    ep-governance: 1
+  blocking_gated_stories: [S007-002, S007-003, S007-004, S007-005, S007-006, S007-008]
+  top_priority_stories: [S007-003]
