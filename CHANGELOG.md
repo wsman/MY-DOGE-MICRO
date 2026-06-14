@@ -2,6 +2,42 @@
 
 All notable changes to **MY-DOGE-MICRO** are recorded here.
 
+## v0.2.0 — First-Run Experience + Architecture Completion (2026-06-14)
+
+Post-Release polish sprint on top of `v0.1.0`. Closes the deferred Wave-5
+hygiene items, finishes the ADR-0009 metadata-port follow-on, and ships a
+zero-config first-run demo so new operators can see value in under five minutes
+without a `DEEPSEEK_API_KEY`.
+
+### Highlights
+- **`python src/cli.py demo`** — zero-config first-run demo using bundled
+  `data/*.db`; prints RSRS top-N, market breadth, volume anomalies, and a sample
+  stock query. No LLM API key required.
+- **`YFinanceMetadataSource` adapter** — full implementation of
+  `ITickerMetadataSource` with lazy `yfinance` import, `.SH`→`.SS` suffix remap,
+  retry reuse, settings-backed defaults, and degraded `None` return.
+- **`industry_analyzer.py` port migration** — off direct `yf.Ticker(...).info`
+  and onto `build_metadata_source().get_metadata(...)` via the composition root;
+  in-memory cache and `meta_cache.json` persistence preserved.
+- **Wave-5 hygiene closed**
+  - `sys.path` test-shim regression gate + cleanup of ~29 redundant shims
+  - MCP error-text sanitization (absolute paths + credential patterns redacted)
+  - `wmic` → PowerShell CIM migration for orphan-process detection
+
+### Verification
+- `python -m pytest -q` → **613 passed, 5 skipped, 0 failed**
+- `cd web && npm test` → **70 passed**
+- `cd web && npm run build` → **green**
+- `python src/cli.py demo --market cn --top 3` → exits 0 without `DEEPSEEK_API_KEY`
+- §6 layer-rule grep gate → **ZERO hits**
+
+### Deferred
+- `S006-006` `fetch_names.py` optional metadata-port migration (Should Have).
+- `ADR-0007 path 1a` auth + non-loopback CORS — conditionally deferred until
+  deployment model changes from loopback.
+
+---
+
 ## v0.1.0 — Release-Ready v1 (2026-06-14)
 
 MY-DOGE-MICRO — local-first quantitative investment decision-support platform.

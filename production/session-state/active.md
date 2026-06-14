@@ -5,9 +5,13 @@
 
 ## Current Task
 
-**Sprint 006 — First-Run Experience + Architecture Completion — COMMITTED.**
-Post-Release polish sprint completed and committed on top of the `v0.1.0`
+**Sprint 006 — First-Run Experience + Architecture Completion — TAGGED `v0.2.0`.**
+Post-Release polish sprint completed, committed, and tagged on top of the `v0.1.0`
 baseline. Stage remains `Release`.
+
+- Tag: `v0.2.0` → commit `6684ef5`
+- Remote: `git push origin cdd-adoption-2026-06-11` + `git push origin --tags`
+  succeeded; `v0.1.0` and `v0.2.0` now on origin.
 
 Final verification (2026-06-14):
 - `python -m pytest -q` → **613 passed, 5 skipped, 0 failed**
@@ -30,6 +34,7 @@ Deferred / out of scope:
 - **ADR-0007 path 1a** auth + non-loopback CORS — remains conditionally deferred
 
 **NEXT:** No active sprint. Operator may open Sprint 007 or move to a new epic.
+`S006-006` is a good `v0.2.1` quick win or Sprint 007 first story.
 
 <!-- STATUS -->
 Epic: Release / Release-Ready v1
