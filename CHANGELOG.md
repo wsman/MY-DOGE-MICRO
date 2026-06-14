@@ -2,6 +2,32 @@
 
 All notable changes to **MY-DOGE-MICRO** are recorded here.
 
+## v0.2.1 — Metadata Port Alignment (2026-06-14)
+
+Patch release that folds the post-`v0.2.0` architecture-hygiene tail into the
+Release baseline and aligns package metadata with the git tag.
+
+### Highlights
+- **`fetch_names.py` metadata-port migration** — `src/ai_analysis/fetch_names.py`
+  `fetch_batch_yfinance` now delegates to `ITickerMetadataSource` via
+  `build_metadata_source()` instead of calling `yfinance.Ticker(...).info`
+  directly (S006-006). A regression test guards the port contract.
+- **Package version alignment** — `pyproject.toml` version bumped to `0.2.1`
+  so the installed package version matches the git release tag.
+
+### Verification
+- `python -m pytest -q` → **617 passed, 5 skipped, 0 failed**
+- `cd web && npm test` → **70 passed**
+- `cd web && npm run build` → **green**
+- `python src/cli.py demo --market cn --top 3` → exits 0 without `DEEPSEEK_API_KEY`
+- §6 layer gate → **ZERO hits**
+
+### Deferred
+- `ADR-0007 path 1a` auth + non-loopback CORS allow-list — remains conditionally
+  deferred until the deployment model changes from loopback.
+
+---
+
 ## v0.2.0 — First-Run Experience + Architecture Completion (2026-06-14)
 
 Post-Release polish sprint on top of `v0.1.0`. Closes the deferred Wave-5
