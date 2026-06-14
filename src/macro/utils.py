@@ -5,9 +5,43 @@
 """
 
 import os
+import sys
 import logging
 from logging.handlers import RotatingFileHandler
 from typing import Optional
+
+
+def _safe_print(text: str) -> None:
+    """Print *text* to stdout, falling back on encoding errors."""
+    try:
+        sys.stdout.buffer.write(text.encode("utf-8", "replace") + b"\n")
+        return
+    except Exception:
+        pass
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        try:
+            encoded = text.encode(sys.stdout.encoding or "utf-8", "replace")
+            sys.stdout.buffer.write(encoded + b"\n")
+        except Exception:  # pragma: no cover - last-resort fallback
+            print(text.encode("ascii", "ignore").decode("ascii"))
+
+
+class _SafeStreamHandler(logging.StreamHandler):
+    """StreamHandler that writes bytes to avoid Windows GBK encoding errors."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            msg = self.format(record)
+            stream = self.stream
+            if hasattr(stream, "buffer"):
+                stream.buffer.write((msg + self.terminator).encode("utf-8", "replace"))
+            else:
+                stream.write(msg + self.terminator)
+            self.flush()
+        except Exception:
+            self.handleError(record)
 
 
 def setup_logging(
@@ -18,7 +52,7 @@ def setup_logging(
 ) -> None:
     """
     配置日志系统
-    
+
     Args:
         log_level: 日志级别
         log_file: 日志文件路径
@@ -29,7 +63,7 @@ def setup_logging(
     log_dir = os.path.dirname(log_file)
     if log_dir and not os.path.exists(log_dir):
         os.makedirs(log_dir)
-        print(f"📁 创建日志目录: {log_dir}")
+        _safe_print(f"📁 创建日志目录: {log_dir}")
 
     # 创建根日志记录器
     logger = logging.getLogger()
@@ -45,8 +79,8 @@ def setup_logging(
         datefmt='%Y-%m-%d %H:%M:%S'
     )
 
-    # 控制台处理器
-    console_handler = logging.StreamHandler()
+    # 控制台处理器（字节写入，兼容 GBK 控制台）
+    console_handler = _SafeStreamHandler()
     console_handler.setLevel(log_level)
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
@@ -62,7 +96,7 @@ def setup_logging(
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
-    logger.info(f"✅ 日志系统初始化完成 - 控制台级别: {logging.getLevelName(log_level)}, 文件级别: DEBUG")
+    logger.info("✅ 日志系统初始化完成 - 控制台级别: %s, 文件级别: DEBUG", logging.getLevelName(log_level))
 
 
 def get_logger(name: str) -> logging.Logger:

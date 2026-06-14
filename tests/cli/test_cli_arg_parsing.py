@@ -43,50 +43,14 @@ DOC_PATH = PROJECT_ROOT / "docs" / "CLI.md"
 # Helpers
 # --------------------------------------------------------------------------- #
 def _build_parser():
-    """Re-execute ``cli.main``'s argparse wiring to get a testable Parser.
-
-    ``cli.main`` constructs the parser inline (``src/cli.py:113-144``) and calls
-    ``parse_args()`` with no argv override. Rather than rely on ``sys.argv``
-    monkeypatching (which couples us to import order), we re-run the parser
-    construction. This is intentionally a structural mirror of
-    ``src/cli.py:114-139``; if the wiring changes, this test fails loudly.
-    """
-    import argparse
-
-    parser = argparse.ArgumentParser(prog="doge")
-    sub = parser.add_subparsers(dest="cmd")
-
-    p_stock = sub.add_parser("stock")
-    p_stock.add_argument("ticker")
-    p_stock.add_argument("--market", default="cn", choices=["cn", "us"])
-    p_stock.add_argument("--days", type=int, default=20)
-
-    p_rsrs = sub.add_parser("rsrs")
-    p_rsrs.add_argument("--market", default="cn", choices=["cn", "us"])
-    p_rsrs.add_argument("--top", type=int, default=20)
-
-    p_breadth = sub.add_parser("breadth")
-    p_breadth.add_argument("--market", default="cn", choices=["cn", "us"])
-    p_breadth.add_argument("--days", type=int, default=10)
-
-    p_anomaly = sub.add_parser("anomaly")
-    p_anomaly.add_argument("--min-ratio", type=float, default=3.0)
-    p_anomaly.add_argument("--top", type=int, default=20)
-
-    p_demo = sub.add_parser("demo")
-    p_demo.add_argument("--market", default="cn", choices=["cn", "us"])
-    p_demo.add_argument("--top", type=int, default=5)
-
-    return parser, sub
+    """Re-use the canonical argparse builder from ``doge.interfaces.cli.main``."""
+    from doge.interfaces.cli.main import build_parser
+    return build_parser()
 
 
 def _parse_or_exit(argv):
-    """Parse argv; return (parsed_args, exit_code).
-
-    argparse calls ``sys.exit(2)`` on invalid input. We capture the SystemExit
-    so tests can assert exit codes without spawning subprocesses.
-    """
-    parser, _ = _build_parser()
+    """Parse argv; return (parsed_args, exit_code)."""
+    parser = _build_parser()
     try:
         return parser.parse_args(argv), 0
     except SystemExit as exc:
@@ -94,23 +58,17 @@ def _parse_or_exit(argv):
 
 
 def _live_defaults():
-    """Read the live argparse defaults directly from the mirrored parser wiring.
-
-    Returns a dict keyed by subcommand -> {flag: default}. Reads each subparser's
-    option-string defaults from its Actions (argparse stores per-action defaults,
-    NOT in ``subparser._defaults``). Any drift between this mirror and
-    ``src/cli.py`` is caught by ``test_docs_defaults_match_live_argparse``.
-    """
-    _, sub = _build_parser()
+    """Read the live argparse defaults directly from the canonical parser."""
+    parser = _build_parser()
+    sub = parser._subparsers._group_actions[0]
     out = {}
     for name in ("stock", "rsrs", "breadth", "anomaly", "demo"):
         subparser = sub.choices[name]
         defaults = {}
         for action in subparser._actions:
-            # Only option flags (skip the positional ticker, help, dest cmd).
             if not action.option_strings:
                 continue
-            flag = action.option_strings[0]  # e.g. "--market"
+            flag = action.option_strings[0]
             defaults[flag] = action.default
         out[name] = defaults
     return out
@@ -185,7 +143,8 @@ def test_anomaly_defaults_and_range_parse():
 
 def test_market_choices_are_exactly_cn_and_us():
     # The doc states --market accepts cn|us for stock/rsrs/breadth.
-    _, sub = _build_parser()
+    parser = _build_parser()
+    sub = parser._subparsers._group_actions[0]
     for name in ("stock", "rsrs", "breadth"):
         action = next(
             a for a in sub.choices[name]._actions if "--market" in a.option_strings
@@ -236,27 +195,30 @@ def test_doc_defaults_match_live_argparse():
 
 
 def test_doc_cites_cli_source_anchors():
-    """docs/CLI.md must cite the real ``src/cli.py`` source anchors it documents."""
+    """docs/CLI.md must cite the real canonical CLI source anchors it documents."""
     text = DOC_PATH.read_text(encoding="utf-8")
-    # The doc references these line anchors for the five subcommand parsers.
+    # The doc references these line anchors for the canonical CLI parser.
+    # These ranges must stay in sync with ``src/doge/interfaces/cli/main.py``.
     required_refs = [
-        "src/cli.py:215-218",   # stock parser
-        "src/cli.py:221-223",   # rsrs parser
-        "src/cli.py:226-228",   # breadth parser
-        "src/cli.py:231-233",   # anomaly parser
-        "src/cli.py:236-238",   # demo parser
-        "src/cli.py:246-251",   # dispatch
+        "src/doge/interfaces/cli/main.py:53-56",   # stock parser
+        "src/doge/interfaces/cli/main.py:59-61",   # rsrs parser
+        "src/doge/interfaces/cli/main.py:64-66",   # breadth parser
+        "src/doge/interfaces/cli/main.py:69-71",   # anomaly parser
+        "src/doge/interfaces/cli/main.py:74-76",   # demo parser
+        "src/doge/interfaces/cli/main.py:86-102",  # dispatch
     ]
     for ref in required_refs:
         assert ref in text, f"docs/CLI.md missing required source anchor {ref}"
 
 
-def test_doc_states_no_console_scripts_entry():
-    """docs/CLI.md must state there is no [project.scripts] console_scripts entry."""
+def test_doc_states_console_scripts_entry():
+    """docs/CLI.md must document the [project.scripts] console_scripts entry."""
     text = DOC_PATH.read_text(encoding="utf-8")
-    # The doc must warn operators that `doge` is NOT an installed command.
-    assert "console_scripts" in text or "[project.scripts]" in text, (
-        "docs/CLI.md must document the absence of a console_scripts entry"
+    assert "[project.scripts]" in text, (
+        "docs/CLI.md must document the [project.scripts] entry"
+    )
+    assert "doge = \"doge.interfaces.cli.main:main\"" in text, (
+        "docs/CLI.md must document the doge console script entry point"
     )
 
 

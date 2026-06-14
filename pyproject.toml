@@ -30,6 +30,9 @@ gui = ["PyQt6"]
 tdx = ["opentdx"]
 cn = ["akshare"]
 
+[project.scripts]
+doge = "doge.interfaces.cli.main:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 

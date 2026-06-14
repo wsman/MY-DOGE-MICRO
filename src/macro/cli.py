@@ -10,6 +10,17 @@ import logging  # 添加导入
 import re
 from typing import Optional
 
+# Force UTF-8 stdout on Windows (and any platform with a narrow console encoding)
+# so emoji/Chinese output never raises UnicodeEncodeError. This process-wide guard
+# catches any remaining print() calls in legacy macro modules that do not use
+# _safe_print.
+for _stream_name in ("stdout", "stderr"):
+    _stream = getattr(sys, _stream_name)
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 # S002-009 / TR-011: the macro package is importable via the editable install,
 # so ``from . import ...`` resolves without a sys.path shim (ADR-0001 forbidden
 # pattern ``sys_path_insert``). NOTE: running ``python src/macro/cli.py``
@@ -36,6 +47,23 @@ def _redact_secrets(text: str, config: Optional[MacroConfig] = None) -> str:
     # escaped into the message before config was loaded.
     safe = re.sub(r"sk-[A-Za-z0-9_-]{20,}", "<redacted>", safe)
     return safe
+
+
+def _safe_print(text: str) -> None:
+    """Print *text* to stdout, falling back to ascii/emoji-stripped on encoding errors."""
+    try:
+        sys.stdout.buffer.write(text.encode("utf-8", "replace") + b"\n")
+        return
+    except Exception:
+        pass
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        try:
+            encoded = text.encode(sys.stdout.encoding or "utf-8", "replace")
+            sys.stdout.buffer.write(encoded + b"\n")
+        except Exception:  # pragma: no cover - last-resort fallback
+            print(text.encode("ascii", "ignore").decode("ascii"))
 
 
 def main():
@@ -65,7 +93,7 @@ def main():
 
     args = parser.parse_args()
 
-    print("🚀 启动 MY-DOGE 宏观战略分析 (Verbose Mode)...")
+    _safe_print("🚀 启动 MY-DOGE 宏观战略分析 (Verbose Mode)...")
 
     try:
         # --- 修改部分开始 ---
@@ -79,7 +107,7 @@ def main():
 
         # 创建配置
         config = MacroConfig()
-        print(f"✅ 配置加载成功")
+        _safe_print(f"✅ 配置加载成功")
 
         # 获取市场数据
         loader = GlobalMacroLoader(config)
@@ -88,7 +116,7 @@ def main():
         if market_data is not None:
             # 显示市场摘要
             summary = loader.get_market_summary(market_data)
-            print(f"📊 市场数据摘要: {summary}")
+            _safe_print(f"📊 市场数据摘要: {summary}")
 
             # 计算技术指标
             metrics = loader.calculate_metrics(market_data)
@@ -99,17 +127,17 @@ def main():
 
             # 格式化报告
             formatted_report = strategist.format_report_for_display(raw_report, metrics)
-            print(formatted_report)
+            _safe_print(formatted_report)
 
         else:
-            print("❌ 无法获取市场数据，请检查网络连接")
+            _safe_print("❌ 无法获取市场数据，请检查网络连接")
             sys.exit(1)
 
     except Exception as e:
         safe_msg = _redact_secrets(str(e), locals().get("config"))
-        print(f"❌ 运行失败: {safe_msg}")
-        print("💡 若与 API Key 有关，请检查 DEEPSEEK_API_KEY 环境变量配置")
-        print("   If this is API-key related, check the DEEPSEEK_API_KEY env var.")
+        _safe_print(f"❌ 运行失败: {safe_msg}")
+        _safe_print("💡 若与 API Key 有关，请检查 DEEPSEEK_API_KEY 环境变量配置")
+        _safe_print("   If this is API-key related, check the DEEPSEEK_API_KEY env var.")
         sys.exit(1)
 
 

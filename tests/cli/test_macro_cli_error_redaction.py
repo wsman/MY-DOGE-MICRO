@@ -1,8 +1,13 @@
-"""CLI error-path redaction test for S002-013.
+"""CLI error-path redaction test for S007-003.
 
-When the macro CLI catches an exception, it must not print the DeepSeek API key
-or the placeholder sentinel to stdout/stderr. Covers the ``except`` block in
-``src/macro/cli.py`` that prints the failure message.
+When the legacy macro CLI catches an exception, it must not print the DeepSeek
+API key or the placeholder sentinel to stdout/stderr. Covers the ``except``
+block in ``src/macro/cli.py`` that prints the failure message.
+
+Note: ``doge macro`` currently delegates to ``macro.cli.main()`` and therefore
+inherits the same redaction behavior. When S007-06 migrates macro to the
+application use case, this test should be retargeted at
+``doge.interfaces.cli.commands.macro``.
 """
 import sys
 from io import StringIO
@@ -10,8 +15,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
-# Make src/ importable (documented test-shim exception).
 
 import macro.cli as macro_cli  # noqa: E402
 

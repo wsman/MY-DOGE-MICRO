@@ -2,6 +2,7 @@ import logging
 from openai import OpenAI
 import pandas as pd
 from .config import MacroConfig
+from .utils import _safe_print
 import os
 from datetime import datetime
 
@@ -137,9 +138,9 @@ class DeepSeekStrategist:
                 
                 with open(filename, "w", encoding="utf-8") as f:
                     f.write(full_report)
-                print(f"✅ 宏观报告已归档至: {filename}")
+                _safe_print(f"✅ 宏观报告已归档至: {filename}")
             except Exception as e:
-                print(f"❌ 报告归档失败: {str(e)}")
+                _safe_print(f"❌ 报告归档失败: {str(e)}")
             
             return content
 

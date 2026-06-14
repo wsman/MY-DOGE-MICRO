@@ -4,6 +4,8 @@ import sys
 from dataclasses import dataclass, fields
 from typing import Optional
 
+from .utils import _safe_print
+
 @dataclass
 class MacroConfig:
     """
@@ -175,7 +177,7 @@ class MacroConfig:
         json_path = os.path.join(project_root, 'models_config.json')
         
         if not os.path.exists(json_path):
-            print(f"⚠️ [MacroConfig] 配置文件未找到: {json_path}，将使用默认值")
+            _safe_print(f"⚠️ [MacroConfig] 配置文件未找到: {json_path}，将使用默认值")
             return
 
         try:
@@ -220,15 +222,15 @@ class MacroConfig:
             self.proxy_enabled = proxy_settings.get('enabled', False)
             self.proxy_url = proxy_settings.get('url')
 
-            print(f"✅ [MacroConfig] 配置文件加载成功: {json_path}")
+            _safe_print(f"✅ [MacroConfig] 配置文件加载成功: {json_path}")
 
         except json.JSONDecodeError as e:
-            print(f"❌ [MacroConfig] JSON 格式错误: {e}")
-            print(f"   请检查 {json_path} 文件的 JSON 语法")
+            _safe_print(f"❌ [MacroConfig] JSON 格式错误: {e}")
+            _safe_print(f"   请检查 {json_path} 文件的 JSON 语法")
         except ValueError as e:
-            print(f"❌ [MacroConfig] 配置验证失败: {e}")
+            _safe_print(f"❌ [MacroConfig] 配置验证失败: {e}")
         except Exception as e:
-            print(f"❌ [MacroConfig] 读取配置文件出错: {e}")
+            _safe_print(f"❌ [MacroConfig] 读取配置文件出错: {e}")
 
     def _apply_runtime_overrides(self):
         """Apply runtime environment-variable overrides.

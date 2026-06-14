@@ -21,7 +21,7 @@
 # READ BY: /sprint-status, /story-readiness, /story-done, CI sprint-gate jobs.
 
 version: 1
-last_updated: "2026-06-14"
+last_updated: "2026-06-15"
 # 2026-06-12 (Wave 4 cleanup): Sprint 002 implementation complete. All 13
 # stories shipped: S002-001..013 done. ADR governance — ADR-0002/0003/0005
 # Accepted in S002; ADR-0009/0010 Accepted by Wave 4 review. ADR-0004/0007
@@ -109,10 +109,10 @@ sprints:
         priority: HIGH
         effort: L
         owner: python-specialist
-        status: todo
+        status: done
         depends_on: [S007-001]
         blocking_gate: true
-        note: "New doge.interfaces.cli package with main.py + commands/. Adds [project.scripts] doge entry. Preserves bilingual output, exit codes, secret redaction. src/cli.py and src/macro/cli.py become shims."
+        note: "New doge.interfaces.cli package with main.py + commands/. Adds [project.scripts] doge entry. Preserves bilingual output, exit codes, secret redaction. src/cli.py and src/macro/cli.py become shims. docs/CLI.md updated."
 
       - id: S007-002
         title: "API scan workflow migration"
@@ -122,7 +122,7 @@ sprints:
         priority: HIGH
         effort: L
         owner: python-specialist
-        status: todo
+        status: in_progress
         depends_on: [S007-001, S007-003]
         blocking_gate: true
         note: "Migrate src/api/routers/*.py and src/api/main.py to src/doge/interfaces/api/. Legacy src/api/ becomes shim. Routers delegate to application use cases via deps.py providers."
@@ -983,11 +983,11 @@ rollup:
   sprint: S007
   total_stories: 8
   by_status:
-    todo: 7
+    todo: 6
     in_progress: 0
     blocked: 0
     review: 0
-    done: 1
+    done: 2
     deferred: 0
   by_priority:
     HIGH: 6
@@ -997,5 +997,5 @@ rollup:
     ep-architecture-debt: 6
     ep-ux: 1
     ep-governance: 1
-  blocking_gated_stories: [S007-002, S007-003, S007-004, S007-005, S007-006, S007-008]
-  top_priority_stories: [S007-003]
+  blocking_gated_stories: [S007-002, S007-004, S007-005, S007-006, S007-008]
+  top_priority_stories: [S007-002]
