@@ -5,38 +5,60 @@
 
 ## Current Task
 
-**Sprint 006 — First-Run Experience + Architecture Completion — FULLY CLOSED.**
-All stories (S006-001 through S006-008) are done and committed on top of the
-`v0.1.0` baseline, which is tagged `v0.2.0` at commit `6684ef5`. Stage remains
-`Release`.
+**v0.2.1 RELEASE COMPLETE.**
 
-Final verification (2026-06-14):
-- `python -m pytest -q` → **617 passed, 5 skipped, 0 failed**
-- `cd web && npm test` → **70 passed**
-- `cd web && npm run build` → **green**
-- `python src/cli.py demo --market cn --top 3` → runs without `DEEPSEEK_API_KEY`, exits 0
-- §6 layer gates → **ZERO hits**
+Sprint 006 is fully closed and the `v0.2.1` patch release has been coordinated,
+signed off, and published.
 
-Closed stories:
-- **S006-001** sys.path test-shim regression gate + cleanup of ~29 redundant shims
-- **S006-002** MCP error-text sanitization (paths + credentials redacted)
-- **S006-003** `wmic` → PowerShell CIM migration for orphan-process detection
-- **S006-004** full `YFinanceMetadataSource` adapter against `ITickerMetadataSource`
-- **S006-005** `industry_analyzer.py` migrated onto the metadata port
-- **S006-006** `fetch_names.py` migrated onto the metadata port
-- **S006-007** `python src/cli.py demo` subcommand (zero-config first-run demo)
-- **S006-008** docs updates (`GETTING_STARTED.md`, `CLI.md`) + parser mirror tests
+### Release Summary
 
-Deferred / out of scope:
-- **ADR-0007 path 1a** auth + non-loopback CORS — remains conditionally deferred
+| Field | Value |
+|---|---|
+| Version | **v0.2.1** |
+| Tag | annotated `eb343bda` points to commit `ca0fa85ad8694da3561ce5ccf9221411adda7eaf` |
+| Post-tag evidence | `c1f688a` (launch checklist + release report) — tag NOT moved |
+| Branch | `cdd-adoption-2026-06-11` pushed to origin |
+| Previous release | `v0.2.0` (`6684ef5`) |
+| Stage | `Release` |
+| Launch posture | **CONDITIONAL / no blockers** |
+| Deployment model | Local-first, single-operator, loopback-only |
 
-**NEXT:** No active sprint. Operator may open Sprint 007 or move to a new epic.
-`S006-006` closed; no remaining Sprint 006 deferred stories.
+### Sign-Offs (all obtained)
+
+- ✅ **Producer / Product Owner** — GO
+- ✅ **QA Lead** — Approved (617/5/0 pytest, 70 vitest, demo exits 0)
+- ✅ **Release Manager** — Tag/version/artifacts aligned
+- ✅ **Security Engineer** — Secrets clean, ADR-0007 loopback guarantee enforced
+- ✅ **Technical Director** — Inferred (all ADRs Accepted, §6 gates green)
+- ✅ **Operator / Release Owner (WSMAN)** — Accepts CONDITIONAL local-first posture
+
+### Artifacts
+
+- `production/releases/release-checklist-v0.2.1-2026-06-14.md`
+- `production/releases/launch-checklist-v0.2.1-2026-06-14.md`
+- `production/releases/release-report-v0.2.1-2026-06-14.md`
+- `CHANGELOG.md` v0.2.1 section
+
+### Deferred / Out of Scope
+
+- **ADR-0007 path 1a** auth + non-loopback CORS — remains conditionally deferred.
+- CI/CD pipeline, formal a11y/Core Web Vitals audit, soak test.
+- Monitoring, alerting, crash reporting, on-call — not applicable to single-operator local product.
+- Rollback / hotfix pipeline documentation — future ops improvement.
+
+### 48-Hour Operator Observation Plan
+
+1. Pull tag, `pip install -e .`, re-run full verification suite.
+2. Smoke CLI / API / MCP surfaces.
+3. Run one end-to-end web workflow (scanner → insights → archive → ticker).
+4. Capture any regression in `production/session-logs/`; use `/hotfix` or open Sprint 007 if S1/S2.
+
+**NEXT:** No active sprint. Operator may open Sprint 007 or move to a new epic after the 48h observation window.
 
 <!-- STATUS -->
 Epic: Release / Release-Ready v1
-Feature: Sprint 006 — First-Run Experience + Architecture Completion
-Task: committed; baseline green
+Feature: v0.2.1 Patch Release
+Task: released; 48h operator observation in progress
 <!-- /STATUS -->
 
 ## Latest Verification Run (2026-06-13)
