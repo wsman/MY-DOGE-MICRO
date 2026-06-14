@@ -1,0 +1,869 @@
+# Machine-readable sprint status for MY-DOGE-MICRO.
+#
+# PURPOSE: Single source of truth for sprint/story state that tooling
+# (sprint-status skill, dashboards, CI gates) can parse without reading the
+# markdown sprint plan. The markdown plan
+# (production/sprints/sprint-002-cdd-followup.md) remains the human-readable
+# authority; this file mirrors it for machines.
+#
+# RULES:
+#   - Story IDs are stable: SNNN-NNN (sprint prefix + zero-padded sequence).
+#     Never renumber. Add new stories at the end of the active sprint's list.
+#   - status values: todo | in_progress | blocked | review | done | deferred
+#   - priority values: HIGH | MED | LOW
+#   - effort values: S | M | L
+#   - tr values must exist and be `active` in docs/architecture/tr-registry.yaml.
+#     Use null for governance stories that have no single TR (record the
+#   finding/source in `source` instead).
+#   - Update this file whenever a story status changes; keep it in lockstep
+#     with the markdown sprint plan's story table.
+#
+# READ BY: /sprint-status, /story-readiness, /story-done, CI sprint-gate jobs.
+
+version: 1
+last_updated: "2026-06-14"
+# 2026-06-12 (Wave 4 cleanup): Sprint 002 implementation complete. All 13
+# stories shipped: S002-001..013 done. ADR governance — ADR-0002/0003/0005
+# Accepted in S002; ADR-0009/0010 Accepted by Wave 4 review. ADR-0004/0007
+# remain Proposed with Promotion gate callouts.
+# 2026-06-12 (Sprint 003 ratified): Stage advanced Implementation → Verification
+# under CONCERNS verdict. Sprint 003 planning ratified; 6 Must-Haves, 4
+# Should-Haves, 3 Nice-to-Haves; TDX adapter formally deferred.
+# 2026-06-12 (S003-012 + S003-013 done): perf baseline delivered (8/8 surfaces
+# within budget; harness tools/perf/profile_baseline.py + evidence) and CORS
+# deferral recorded (ADR-0007 stays Proposed, gated on S003-014). Rollup 5/13.
+# 2026-06-13 (UX cluster S003-006/007/008/009 done): design tokens + art bible
+# (S003-007), StatusView loading/empty/error triad + store error exposure across
+# 5 views + ScannerView aria-live (S003-009), 3 per-view flow specs (S003-006),
+# accessibility baseline closure incl. browserslist (S003-008). Suite 508 passed/
+# 2 skip/0 xfail (5 doc-coverage xfails flipped); web build + 70 vitest green.
+# Rollup 9/13. Remaining: S003-002 user-test (operator), S003-010 key env
+# verification (operator), S003-014 FRESH /architecture-review.
+# 2026-06-13 (S003-001 milestone done): verification-milestone.md exists with
+# 2026-06-26 target and 6 exit-criteria categories; S003-001 AC met by existing
+# file. Rollup 10/13.
+# 2026-06-13 (S003-014 architecture review done): fresh focused review
+# completed at production/architecture-reviews/architecture-review-s003-014-2026-06-13.md.
+# Verdict CONCERNS; ADR-0004/0007 stay Proposed with documented deferral
+# rationale and do not block Sprint 003 closure. Rollup 11/13.
+# 2026-06-13 (S003-002 done): unguided walkthrough re-executed after fixing
+# opentdx import guard. Scanner now completes without the optional [tdx] extra;
+# Insights read-side report rendering and Archive→Ticker navigation verified.
+# Evidence: production/qa/evidence/user-tests/user-test-001-2026-06-13.md.
+# Rollup 13/13.
+# 2026-06-14 (S004-008b done): fresh /architecture-review passed (PASS verdict,
+# 0 CONCERNS); ADR-0007 promoted to Accepted (loopback-guaranteed posture);
+# governance test updated. S004 rollup 8/8 done. Ready for Verification →
+# Release /gate-check.
+# 2026-06-14 (Sprint 004 closed): Verification → Release gate-check clean PASS.
+# Stage advanced Verification → Release. Sprint 004 8/8 done. All milestone exit
+# criteria [x]; ADR-0001/2/3/4/5/7/8/9/10 Accepted.
+
+sprints:
+  - id: S001
+    name: "Brownfield Metadata Import"
+    plan: production/sprints/sprint-001-brownfield-import.md
+    start: "2026-06-11"
+    status: done
+    goal: "Capture MY-DOGE-MICRO's current Git state, product intent, architecture migration direction, and development progress in CDD-compatible artifacts."
+    notes: "All Must/Should tasks Complete except S001-012 (web build evidence) which was Blocked and is subsumed by S002-012."
+
+  - id: S002
+    name: "CDD Follow-up & Technical Debt"
+    plan: production/sprints/sprint-002-cdd-followup.md
+    epics_index: production/epics/index.md
+    start: "2026-06-12"
+    status: done
+    control_manifest: "2026-06-12"
+    duration_assumption: "2 weeks"
+    goal: >-
+      Retire the technical debt surfaced by the architecture review and CDD
+      open questions: unify RSRS implementations, close port-naming decisions,
+      eliminate named forbidden-pattern offenders, fix silent
+      retention-truncation and config-drift bugs, harden API error envelope
+      and SSE reconnect, promote the two overstretched Proposed ADRs whose
+      decisions already ship, make the @pretext alias portable, and rotate
+      the DeepSeek API key to an env var.
+    exit_criteria:
+      - "All BLOCKING-gated stories (S002-006, S002-007, S002-009, S002-010) have passing tests."
+      - "python -m pytest -q green on Windows 10 LTSC."
+      - "npm run build and npm test green in web/ on a clean checkout."
+      - "Layer-rule grep gates pass for the remediated sites."
+      - "ADR-0002/0003/0005/0009/0010 Accepted; ADR-0004/0007 carry Promotion gate callouts and stay Proposed."
+      - "No real API key in models_config.json; DEEPSEEK_API_KEY env-primary verified (forensic audit found no key in git history — no rotation required)."
+      - "All 13 stories' acceptance criteria met or explicitly deferred."
+    stories:
+      - id: S002-001
+        title: "RSRS sign-convention unification (Python scalar / vectorized / DuckDB-SQL)"
+        epic: ep-architecture-debt
+        tr: TR-016
+        source: "CDD OQ-11"
+        priority: MED
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+
+      - id: S002-002
+        title: "Macro local RSRS copy: add flat-variance + NaN guards"
+        epic: ep-architecture-debt
+        tr: TR-016
+        source: "FINDING-3"
+        priority: MED
+        effort: S
+        owner: python-specialist
+        status: done
+        depends_on: [S002-001]
+        blocking_gate: false
+
+      - id: S002-003
+        title: "Decide cache-port vs metadata-port split (TickerMetadataSource vs Cache/ITickerNameCache)"
+        epic: ep-architecture-debt
+        tr: TR-042
+        source: "CDD OQ-2"
+        priority: MED
+        effort: M
+        owner: lead-programmer
+        status: done
+        kind: design-adr
+        blocking_gate: false
+
+      - id: S002-004
+        title: "Decide view-service port injection (IMarketViewRepository OR amend ADR-0001)"
+        epic: ep-architecture-debt
+        tr: TR-041
+        source: "CDD OQ-5"
+        priority: MED
+        effort: M
+        owner: lead-programmer
+        status: done
+        kind: design-adr
+        blocking_gate: false
+
+      - id: S002-005
+        title: "Forbidden-pattern remediations (scan.py init_db_custom import, MomentumRanker.get_connection sqlite3.connect, tdx_downloader.py sys.path.insert)"
+        epic: ep-architecture-debt
+        tr: TR-011
+        secondary_trs: [TR-040]
+        source: "control-manifest §2 forbidden patterns"
+        priority: MED
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+
+      - id: S002-006
+        title: "Replace swallowed write exception with logged StorageWriteError"
+        epic: ep-architecture-debt
+        tr: TR-006
+        source: "market-data-storage AC"
+        priority: MED
+        effort: S
+        owner: python-specialist
+        status: done
+        gates_adr_0003_promotion: true
+        blocking_gate: true
+
+      - id: S002-007
+        title: "Resolve retention_days vs analytical-view window mismatch (silent-truncation fix)"
+        epic: ep-storage-consistency
+        tr: TR-006
+        source: "architecture-traceability §7 #2"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        gates_adr_0003_promotion: true
+        blocking_gate: true
+        story_type: "Migration / Data Pipeline"
+
+      - id: S002-008
+        title: "Reconcile models_config.json scanner_filters vs Settings().market.* (single source of truth)"
+        epic: ep-storage-consistency
+        tr: TR-019
+        source: "config-drift finding"
+        priority: MED
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+
+      - id: S002-009
+        title: "Stable non-leaking API error envelope via global exception handler"
+        epic: ep-api-resilience
+        tr: TR-030
+        source: "ADR-0007 Decision 3 follow-up"
+        priority: MED
+        effort: M
+        owner: python-specialist
+        status: done
+        gates_adr_0007_promotion: true
+        blocking_gate: true
+        story_type: "API Contract"
+
+      - id: S002-010
+        title: "SSE reconnect / watchdog: dropped stream surfaces terminal error, not stuck running"
+        epic: ep-api-resilience
+        tr: TR-036
+        source: "vue-web-console open question"
+        priority: MED
+        effort: M
+        owner: typescript-specialist
+        status: done
+        depends_on: [S002-009]
+        blocking_gate: true
+        story_type: "Web / App Workflow"
+
+      - id: S002-011
+        title: "Promote ADR-0002 + ADR-0003 + ADR-0005 to Accepted; define promotion gates for ADR-0004/0007"
+        epic: ep-governance-security
+        tr: null
+        source: "FINDING-1 (ADR lifecycle)"
+        priority: MED
+        effort: S
+        owner: lead-programmer
+        status: done
+        depends_on: [S002-006, S002-007, S002-009]
+        kind: governance
+        blocking_gate: false
+        note: >-
+          ADR-0002/0003/0005 Accepted (gates met against shipped code:
+          S002-006 StorageWriteError, S002-007 DOGE_RETENTION_DAYS, S002-013
+          DeepSeek-key env rotation, ADR-0001 dependency Accepted). Wave 4
+          accepted ADR-0009/0010 after architecture review confirmed the
+          realized port split and view-service port injection. ADR-0004/
+          0007 carry Promotion gate callouts and stay Proposed:
+          0004 (TDX adapter still NotImplementedError), 0007 (CORS hardening
+          out of Sprint 002 scope). Contract enforced by
+          tests/unit/governance/test_adr_lifecycle_status.py.
+
+      - id: S002-012
+        title: "Make @pretext sibling-project alias portable (vendor / npm-publish / workspace-alias)"
+        epic: ep-governance-security
+        tr: TR-037
+        source: "ADR-0008 follow-up"
+        priority: MED
+        effort: M
+        owner: typescript-specialist
+        status: done
+        subsumes: [S001-012]
+        blocking_gate: false
+
+      - id: S002-013
+        title: "Rotate DeepSeek API key to DEEPSEEK_API_KEY env var; placeholder in models_config.json"
+        epic: ep-governance-security
+        tr: TR-015
+        source: "security hygiene (key on disk, gitignored, not leaked)"
+        priority: HIGH
+        effort: S
+        owner: security-engineer
+        status: done
+        blocking_gate: false
+
+  - id: S003
+    name: "Verification"
+    plan: production/sprints/sprint-003-verification.md
+    milestone: production/milestones/verification-milestone.md
+    epics_index: production/epics/index.md
+    start: "2026-06-12"
+    end: "2026-06-26"
+    status: done
+    control_manifest: "2026-06-12"
+    duration_assumption: "2 weeks"
+    goal: >-
+      Complete Verification stage exit evidence and close high-impact CONCERNS
+      from the Implementation → Verification gate check: user-test validation,
+      QA/smoke plan, performance baseline, API router DI, RSRS view fix, and
+      governance decisions for ADR-0004/0007.
+    exit_criteria:
+      - "At least one user-test report exists in production/qa/evidence/user-tests/."
+      - "QA plan and smoke report cover at least 3 surfaces."
+      - "Performance baseline profile exists and is compared against declared budgets."
+      - "src/api/routers/ and src/api/main.py contain no direct sqlite3.connect / connect_duckdb calls."
+      - "RSRS DuckDB view sign convention matches Python path; DDL is version controlled."
+      - "ADR-0004 and ADR-0007 states are finalized with documented rationale."
+      - "python -m pytest -q green; web build and web tests green; layer gates pass."
+    stories:
+      - id: S003-001
+        title: "里程碑截止日定义 + Sprint 003 基线"
+        epic: ep-verification-evidence
+        tr: null
+        source: "gate-check producer concern: no milestone deadline"
+        priority: HIGH
+        effort: S
+        owner: producer
+        status: done
+        blocking_gate: false
+        note: "milestone doc exists (2026-06-26 target, 6 exit criteria categories); S003-001 AC met by existing file."
+
+      - id: S003-002
+        title: "核心工作流用户验证报告（scanner → report → archive）"
+        epic: ep-verification-evidence
+        tr: null
+        source: "gate-check creative concern: no user-validation evidence"
+        priority: HIGH
+        effort: M
+        owner: ux-designer
+        status: done
+        blocking_gate: false
+        note: "2026-06-13: unguided walkthrough PASS after opentdx import-guard fix. Scanner completes without optional [tdx] extra; Insights renders existing macro reports; Archive search + row-click loads Ticker. Evidence: production/qa/evidence/user-tests/user-test-001-2026-06-13.md."
+
+      - id: S003-003
+        title: "API 路由依赖注入（deps.py + 路由脱离 sqlite3.connect）"
+        epic: ep-architecture-cleanup
+        tr: TR-041
+        source: "gate-check technical concern: direct DB connections in src/api/routers/"
+        priority: HIGH
+        effort: L
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "2026-06-12: ISchemaBrowser + IReportRepository extensions; SQLiteSchemaBrowser + DuckDBStockRepository.get_kline; deps.py DI container; routers migrated; tests use dependency_overrides; src/api grep gate clean."
+
+      - id: S003-005
+        title: "RSRS 视图符号修复 + DDL 版本化"
+        epic: ep-architecture-cleanup
+        tr: TR-016
+        source: "gate-check technical concern: DuckDB vw_rsrs_ranking sign inversion xfail-pinned"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        # 2026-06-12 (S003-005): fixed via separate rn_asc ascending time index (kept DESC rn
+        # for the 5 CTEs depending on rn=1=newest); DDL version-controlled at
+        # src/doge/infrastructure/database/views.sql (DBConfig.views_sql_tracked + resolved_views_sql);
+        # latent refresh comment-stripping bug fixed; strict xfail removed; view==Python to 1e-5.
+
+      - id: S003-011
+        title: "QA / smoke 计划（Verification → Release 硬性交付物）"
+        epic: ep-verification-evidence
+        tr: null
+        source: "gate-check quality gap: no QA plan or smoke-check artifact"
+        priority: HIGH
+        effort: M
+        owner: qa-lead
+        status: done
+        blocking_gate: false
+        note: "2026-06-12: production/qa/qa-plan-verification.md + production/qa/smoke/smoke-2026-06-12.md created; 5 surfaces covered; stale evidence files marked superseded."
+
+      - id: S003-012
+        title: "性能基线 profile"
+        epic: ep-verification-evidence
+        tr: null
+        source: "gate-check quality gap: no profiling data"
+        priority: HIGH
+        effort: M
+        owner: performance-analyst
+        status: done
+        blocking_gate: false
+        note: >-
+          2026-06-12: reproducible harness tools/perf/profile_baseline.py (warmup + median of
+          5, local-only invariant, not pytest-collected) + evidence
+          production/qa/evidence/perf/perf-baseline-2026-06-12.md. All 8 surfaces PASS budget:
+          6 MCP tools + /api/health (1.27ms < 50ms) + CLI rsrs (865ms); slowest = list_views
+          ~2.9s (~9.6% of 30s TOOL_TIMEOUT). Import-only test tests/tools/test_perf_harness.py.
+          Adversarial review: PASS, 0 must-fix. Suite 503 passed/2 skip/5 xfail.
+
+      - id: S003-006
+        title: "缺失的 per-view UX flow specs（ticker/archive/analysis/insights）"
+        epic: ep-ux-polish
+        tr: null
+        source: "gate-check creative/art concern: only scanner-flow.md exists"
+        priority: MED
+        effort: M
+        owner: ux-designer
+        status: done
+        blocking_gate: false
+        note: >-
+          2026-06-13: 3 per-view flow specs authored (design/ux/ticker-flow.md,
+          archive-flow.md, analysis-flow.md) mirroring scanner-flow.md's 10-section
+          template; each documents the S003-009 StatusView triad actually shipped.
+          README flipped to Published. Creating the 3 exact filenames flipped the 5
+          doc-coverage xfail cases to pass (503/5xfail -> 508/0xfail). Adversarial
+          review: 0 must-fix.
+
+      - id: S003-007
+        title: "Art bible / product style guide + design tokens"
+        epic: ep-ux-polish
+        tr: null
+        source: "gate-check art concern: no art bible or product style guide"
+        priority: MED
+        effort: M
+        owner: art-director
+        status: done
+        blocking_gate: false
+        note: >-
+          2026-06-13: design tokens (web/src/styles/tokens.css :root --dgm-* + CJK
+          font stacks + global prefers-reduced-motion guard) + Naive theme bridge
+          (theme.ts); wired into main.ts/App.vue/useKlineChart/ScannerView. Art bible
+          at design/art/art-bible.md with a WCAG-correct contrast baseline (adversarially
+          recomputed: text 15.5:1 ... accent 5.46:1 AA; status-unknown 2.7:1 decoration-
+          only). Adversarial review: 0 must-fix.
+
+      - id: S003-008
+        title: "可访问性基线闭合"
+        epic: ep-ux-polish
+        tr: null
+        source: "gate-check art concern: accessibility doc has OPEN items"
+        priority: MED
+        effort: M
+        owner: accessibility-specialist
+        status: done
+        blocking_gate: false
+        note: >-
+          2026-06-13: accessibility-requirements.md items closed — browserslist
+          (web/package.json field), contrast/tokens (WCAG-correct table from art-bible),
+          triad gaps (StatusView), CJK font (--dgm-font-sans), reduced-motion (tokens.css
+          global + StatusView scoped), aria-live (StatusView + ScannerView wrappers); SR
+          testing ADVISORY; VirtualTable keyboard nav DOCUMENTED-DEFERRED. art-bible §6
+          contrast table re-published WCAG-accurate. Adversarial review: 0 must-fix.
+
+      - id: S003-009
+        title: "5/6 视图的 loading/empty/error 三态补齐"
+        epic: ep-ux-polish
+        tr: TR-036
+        source: "gate-check art concern: triad gaps on 5 of 6 views"
+        priority: MED
+        effort: M
+        owner: typescript-specialist
+        status: done
+        blocking_gate: false
+        note: >-
+          2026-06-13: shared StatusView triad component (web/src/components/common/
+          StatusView.vue; loading n-skeleton/n-spin, empty n-empty, error n-result + Retry;
+          a11y role=alert/aria-live baked in) + fetchError.ts (one REST/SSE error dialect;
+          network_error parity) + marketData store error exposure (loadAllRows/loadMoreRows/
+          loadPage). 5 views wired (Analysis/Insights/Ticker/CnArchive/UsArchive); ScannerView
+          gained aria-live wrappers only. 70 vitest (+21); build green. Adversarial review:
+          0 must-fix. Deferred should-fix (loadTables, archive onRowClick kline catch) noted.
+
+      - id: S003-010
+        title: "DeepSeek 密钥环境可用性验证"
+        epic: ep-verification-evidence
+        tr: TR-015
+        source: "S002-013 operator-only follow-up"
+        priority: MED
+        effort: S
+        owner: operator
+        status: done
+        blocking_gate: false
+        note: "2026-06-13: operator verified DEEPSEEK_API_KEY in fresh MINGW64 terminal. python -m macro.cli fetched yfinance data for all four assets and received HTTP 200 OK from DeepSeek API. Key-redaction fix (commit 5b6a57a) confirmed: no api_key visible in console or log output."
+
+      - id: S003-013
+        title: "CORS（ADR-0007）延期决策记录"
+        epic: ep-governance
+        tr: null
+        source: "gate-check technical concern: ADR-0007 remains Proposed"
+        priority: MED
+        effort: S
+        owner: lead-programmer
+        status: done
+        blocking_gate: false
+        note: >-
+          2026-06-12: ADR-0007 §Deferral Decision (S003-013) records the Verification-stage
+          deferral (loopback bind 127.0.0.1:8901 => no remote reachability =>
+          allow_origins=['*'] acceptable for current scope; non-loopback bind REQUIRES CORS
+          allow-list tightening + auth first; promotion gated on S003-014 FRESH
+          /architecture-review). ADR-0007 STAYS Proposed (deferral, NOT promotion); gate-check
+          report cross-ref added. Adversarial review: 0 must-fix.
+
+      - id: S003-014
+        title: "FRESH /architecture-review（ADR-0004/0007 终态签字）"
+        epic: ep-governance
+        tr: null
+        source: "gate-check governance follow-up"
+        priority: MED
+        effort: S
+        owner: lead-programmer
+        status: done
+        depends_on: [S003-003, S003-005, S003-013]
+        blocking_gate: false
+        note: >-
+          2026-06-13: fresh focused architecture review completed at
+          production/architecture-reviews/architecture-review-s003-014-2026-06-13.md.
+          Verdict CONCERNS: ADR-0004 and ADR-0007 remain Proposed with documented
+          deferral rationale; neither blocks Sprint 003 closure while their
+          conditions remain true.
+
+  - id: S004
+    name: "Release clean-PASS prep"
+    plan: production/sprints/sprint-004-release-clean-pass.md
+    milestone: production/milestones/verification-milestone.md
+    epics_index: production/epics/index.md
+    start: "2026-06-13"
+    end: "2026-06-14"
+    status: done
+    control_manifest: "2026-06-12"
+    duration_assumption: "< 1 week"
+    goal: >-
+      Pursue a clean PASS at the Verification → Release gate by promoting ADR-0004
+      and ADR-0007 to Accepted and clearing the §6 layer-gate REDs (operator chose
+      Phase-4 path A over accept-CONCERNS-Release).
+    exit_criteria:
+      - "§6 layer-rule grep gate green (src/api + src/doge/interfaces + src/interface → 0 hits)."
+      - "ADR-0004 Accepted (TDX adapter implemented without NotImplementedError)."
+      - "ADR-0007 Accepted (strengthened-loopback-guarantee, fresh /architecture-review sign-off)."
+      - "python -m pytest -q green; verification-milestone all exit criteria [x]."
+      - "Fresh /architecture-review + fresh /gate-check (Verification → Release) → clean PASS."
+    stories:
+      - id: S004-001/002
+        title: "INoteRepository port + adapter; notes.py 脱离 ai_analysis 直连"
+        epic: ep-architecture-debt
+        tr: TR-045
+        source: "polish concerns #1/#3 + S003-014 layer gate; CDD OQ-4"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Commit d6dcb5d. INoteRepository(ABC) split from IReportRepository (closes OQ-4) + SQLiteNoteRepository adapter; src/api/routers/notes.py 6 handlers via Depends(get_note_repository). Porting-drift fixed (DB isolation + error-envelope tests)."
+
+      - id: S004-003
+        title: "query_stock.stock_overview 改用 get_ticker_with_context (§6 gate green)"
+        epic: ep-architecture-debt
+        tr: TR-046
+        source: "polish concern #2 + S003-014 §6 layer gate"
+        priority: HIGH
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Commit 8bc4c5e. Removed import sqlite3 + sqlite3.connect from src/doge/interfaces/mcp/tools/query_stock.py; enrichment via build_note_repository().get_ticker_with_context. §6 grep gate ZERO hits."
+
+      - id: S004-004
+        title: "TDXDataSource 真实现 (IMarketDataSource; ADR-0004 gate 满足)"
+        epic: ep-architecture-debt
+        tr: TR-011
+        source: "ADR-0004 promotion gate (S003-014 item 1); polish ADR disposition"
+        priority: HIGH
+        effort: L
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Commit b989ef9. tdx.py 36→325 lines, no NotImplementedError; 26 network-free tests; tdx_downloader.py CLI shim. connect(self, market) signature flagged for fresh /architecture-review. _retry.py deferred to follow-on."
+
+      - id: S004-005
+        title: "ADR-0007 strengthened-loopback-guarantee (promotion path 1b)"
+        epic: ep-governance-security
+        tr: TR-032
+        source: "ADR-0007 promotion gate; polish ADR-0007 disposition; operator path 1b"
+        priority: MED
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Commit 9696ec3. _resolve_bind_host() fail-closed assertion in src/api/main.py; DOGE_BIND_HOST knob; 6 tests. ADR-0007 Status flip deferred to S004-008b (needs fresh /architecture-review sign-off per ADR-0007:46-49)."
+
+      - id: S004-006
+        title: "verification-milestone exit criteria 全 [x] (§4 + §6 green)"
+        epic: ep-governance-security
+        tr: null
+        source: "polish concern #1 (sprint-003 DoD contradiction) + milestone reconciliation"
+        priority: MED
+        effort: S
+        owner: lead-programmer
+        status: done
+        blocking_gate: false
+        note: "Commit fe45585. Flipped §4 #1 (src/api grep clean), §4 #2 (RSRS S003-005), §6 (after S004-003). All 6 exit-criteria sections [x]. Resolves polish governance contradiction."
+
+      - id: S004-007
+        title: "操作文档: yfinance rate-limit 指引 + CLI exit-code 表订正"
+        epic: ep-governance-security
+        tr: null
+        source: "polish concerns #4 + #7"
+        priority: LOW
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Commit d8b1886. runbook Troubleshooting row + GETTING_STARTED note for yfinance rate-limit; CLI.md exit-code table fixed (EXIT_NO_DATA=1). tests/cli/ 52 passed."
+
+      - id: S004-008a
+        title: "ADR-0004 → Accepted + TR-045/046 + TR-011"
+        epic: ep-governance-security
+        tr: TR-011
+        source: "ADR-0004 promotion (S003-014 gate item 1 met)"
+        priority: MED
+        effort: S
+        owner: lead-programmer
+        status: done
+        blocking_gate: false
+        note: "Commit c78498b. ADR-0004 Status Proposed→Accepted; governance test moved adr-0004 to _EXPECTED_ACCEPTED; TR-011 test citation fixed; TR-045/046 appended. _retry.py re-scoped to follow-on."
+
+      - id: S004-008b
+        title: "ADR-0007 → Accepted + governance test"
+        epic: ep-governance-security
+        tr: TR-032
+        source: "ADR-0007 promotion gate (arch-review authority per ADR-0007:46-49)"
+        priority: HIGH
+        effort: S
+        owner: lead-programmer
+        status: done
+        blocking_gate: false
+        note: "Commit 20ce713. Fresh /architecture-review PASS verdict (architecture-review-s004-2026-06-14.md) authorized ADR-0007 promotion. ADR-0007 Status Proposed→Accepted; governance test moved adr-0007 to _EXPECTED_ACCEPTED; posture is loopback-guaranteed (not production-hardened)."
+
+  - id: S005
+    name: "Release-Ready v1 Tagging"
+    plan: production/sprints/sprint-005-release-ready-v1.md
+    start: "2026-06-14"
+    end: "2026-06-14"
+    status: done
+    control_manifest: "2026-06-12"
+    duration_assumption: "1 day"
+    goal: >-
+      Polish the Release baseline and tag Release-Ready v1 (v0.1.0). Land Waves
+      1–4 (quick wins, retry consolidation, yfinance adapter wiring, scan.py DI)
+      and defer Wave-5 hygiene items.
+    exit_criteria:
+      - "Waves 1–4 complete and tested."
+      - "python -m pytest -q green (579 passed / 4 skipped / 0 failed)."
+      - "Web build green and 70 vitest passed."
+      - "v0.1.0 git tag created and CHANGELOG.md updated."
+      - "Stage remains Release."
+    stories:
+      - id: S005-001
+        title: "Traceability/manifest reconciliation"
+        epic: ep-governance
+        tr: null
+        source: "release readiness"
+        priority: MED
+        effort: S
+        owner: lead-programmer
+        status: done
+        blocking_gate: false
+        note: "Wave 1. Manifest/traceability gaps closed."
+
+      - id: S005-002
+        title: "SSE str(e) leak fixed to deterministic string"
+        epic: ep-governance-security
+        tr: null
+        source: "release readiness"
+        priority: MED
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Wave 1. src/doge/interfaces/mcp/server.py returns stable error strings."
+
+      - id: S005-003
+        title: "CLI bilingual remediation"
+        epic: ep-ux
+        tr: null
+        source: "release readiness"
+        priority: LOW
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Wave 1. src/cli.py + docs/CLI.md bilingual consistency."
+
+      - id: S005-004
+        title: "User-test format reconciliation"
+        epic: ep-verification-evidence
+        tr: null
+        source: "release readiness"
+        priority: LOW
+        effort: S
+        owner: lead-programmer
+        status: done
+        blocking_gate: false
+        note: "Wave 1. User-test evidence files aligned with checklist format."
+
+      - id: S005-005
+        title: "Retry consolidation (_retry.py + YFinanceConfig)"
+        epic: ep-architecture-debt
+        tr: null
+        source: "ADR-0004 follow-on"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Wave 2. Commit e346523. Three duplicate retry loops unified into src/doge/core/services/_retry.py with YFinanceConfig-backed defaults."
+
+      - id: S005-006
+        title: "Macro engine routes through YFinanceDataSource adapter"
+        epic: ep-architecture-debt
+        tr: TR-011
+        source: "ADR-0004 step 4"
+        priority: HIGH
+        effort: L
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Wave 3. Commit 7dd90ed. Macro data loader fetches through YFinanceDataSource; max(count, period_days) fixes window starvation; long→wide pivot preserves strategist boundaries."
+
+      - id: S005-007
+        title: "Macro adapter contract tests"
+        epic: ep-architecture-debt
+        tr: TR-011
+        source: "ADR-0004 step 4"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Wave 3. Contract tests for macro→adapter integration."
+
+      - id: S005-008
+        title: "scan.py list_distinct_tickers via IStockRepository DI"
+        epic: ep-architecture-debt
+        tr: TR-045
+        source: "polish concern"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Wave 4. Commit c5e1361. scan.py US-ticker list via IStockRepository dependency injection."
+
+      - id: S005-009
+        title: "SQLiteStorageRepository implements list_distinct_tickers"
+        epic: ep-architecture-debt
+        tr: TR-045
+        source: "S005-008 follow-up"
+        priority: HIGH
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Wave 4. Commit 88f8e24. SQLiteStorageRepository implements the new abstract method; 3 save_prices contract tests restored."
+
+  - id: S006
+    name: "First-Run Experience + Architecture Completion"
+    plan: production/sprints/sprint-006-first-run-experience.md
+    start: "2026-06-14"
+    end: "2026-06-14"
+    status: done
+    control_manifest: "2026-06-12"
+    duration_assumption: "1 day"
+    goal: >-
+      Complete the deferred Wave-5 hygiene items, finish the ADR-0009
+      YFinanceMetadataSource adapter follow-on, and deliver a zero-config
+      python src/cli.py demo command.
+    exit_criteria:
+      - "All Must-Have stories (S006-001 through S006-005, S006-007, S006-008) done."
+      - "python -m pytest -q green (613 passed / 5 skipped / 0 failed)."
+      - "Web build green and 70 vitest passed."
+      - "python src/cli.py demo runs without DEEPSEEK_API_KEY."
+      - "§6 layer gate ZERO hits."
+      - "ADR-0009 migration plan step 2 done; YFinanceMetadataSource no NotImplementedError."
+    stories:
+      - id: S006-001
+        title: "sys.path test-shim regression gate"
+        epic: ep-architecture-debt
+        tr: null
+        source: "Wave-5a deferred"
+        priority: LOW
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "tests/unit/layer_gates/test_test_sys_path_shim_gate.py; ~29 redundant test shims removed; whitelist of 5 files enforced."
+
+      - id: S006-002
+        title: "MCP error-text sanitization"
+        epic: ep-governance-security
+        tr: null
+        source: "Wave-5b deferred"
+        priority: LOW
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "src/doge/interfaces/mcp/server.py _sanitize_error(); redacts absolute paths and credential patterns; tests/contract/test_mcp_error_redaction.py."
+
+      - id: S006-003
+        title: "wmic → PowerShell CIM migration"
+        epic: ep-governance-security
+        tr: null
+        source: "Wave-5c deferred"
+        priority: LOW
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "src/doge/interfaces/mcp/server.py orphan-process detection uses Get-CimInstance Win32_Process; POSIX /proc path unchanged; tests/contract/test_mcp_orphan_detection_cim.py."
+
+      - id: S006-004
+        title: "YFinanceMetadataSource full adapter"
+        epic: ep-architecture-debt
+        tr: null
+        source: "ADR-0009 follow-on"
+        priority: MED
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "src/doge/infrastructure/data_source/yfinance_metadata.py implements ITickerMetadataSource; exported from data_source/__init__.py; composition.py factory + deps.py FastAPI dependency; tests/unit/core/ports/test_yfinance_metadata_source.py."
+
+      - id: S006-005
+        title: "industry_analyzer.py port migration"
+        epic: ep-architecture-debt
+        tr: null
+        source: "ADR-0009 follow-on"
+        priority: MED
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "src/micro/industry_analyzer.py off direct yf.Ticker(...).info; uses build_metadata_source().get_metadata(...); in-memory cache and meta_cache.json persistence preserved."
+
+      - id: S006-006
+        title: "fetch_names.py metadata-port migration"
+        epic: ep-architecture-debt
+        tr: null
+        source: "ADR-0009 follow-on"
+        priority: LOW
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "src/ai_analysis/fetch_names.py fetch_batch_yfinance now uses build_metadata_source().get_metadata(...); no direct yfinance import; tests/unit/ai_analysis/test_fetch_names_metadata_port.py."
+
+      - id: S006-007
+        title: "demo CLI subcommand"
+        epic: ep-ux
+        tr: null
+        source: "operator convenience"
+        priority: MED
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "src/cli.py demo [--market cn|us] [--top N]; uses bundled data/*.db; no DEEPSEEK_API_KEY required; tests/cli/test_cli_demo.py."
+
+      - id: S006-008
+        title: "Demo docs and consistency"
+        epic: ep-ux
+        tr: null
+        source: "S006-007 follow-up"
+        priority: MED
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "docs/GETTING_STARTED.md 5-Minute Demo section; docs/CLI.md demo subcommand; tests/cli/test_cli_arg_parsing.py parser mirror updated."
+
+# Rollup counts for the active sprint (S006).
+rollup:
+  sprint: S006
+  total_stories: 8
+  by_status:
+    todo: 0
+    in_progress: 0
+    blocked: 0
+    review: 0
+    done: 8
+    deferred: 0
+  by_priority:
+    HIGH: 0
+    MED: 4
+    LOW: 4
+  by_epic:
+    ep-architecture-debt: 5
+    ep-governance-security: 2
+    ep-ux: 2
+  blocking_gated_stories: []
+  top_priority_stories: []

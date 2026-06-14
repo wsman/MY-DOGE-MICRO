@@ -1,0 +1,42 @@
+{
+  "name": "web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@vicons/ionicons5": "^0.13.0",
+    "axios": "^1.16.0",
+    "highlight.js": "^11.11.1",
+    "lightweight-charts": "^5.2.0",
+    "markdown-it": "^14.1.1",
+    "naive-ui": "^2.44.1",
+    "pinia": "^3.0.4",
+    "vue": "^3.5.32",
+    "vue-router": "^4.6.4"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^24.12.2",
+    "@vitejs/plugin-vue": "^6.0.6",
+    "@vue/test-utils": "^2.4.6",
+    "@vue/tsconfig": "^0.9.1",
+    "jsdom": "^25.0.1",
+    "typescript": "~6.0.2",
+    "vite": "^8.0.10",
+    "vitest": "^2.1.9",
+    "vue-tsc": "^3.2.7"
+  },
+  "browserslist": [
+    "Chrome >= 110",
+    "Edge >= 110",
+    "Firefox >= 115",
+    "Safari >= 16.4"
+  ]
+}

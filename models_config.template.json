@@ -4,13 +4,13 @@
             "name": "🚀 DeepSeek Chat (Standard)",
             "base_url": "https://api.deepseek.com",
             "model": "deepseek-chat",
-            "api_key": "YOUR_API_KEY_HERE"
+            "api_key": "REPLACE_WITH_DEEPSEEK_API_KEY"
         },
         {
             "name": "🧠 DeepSeek Reasoner (R1 - Pro)",
             "base_url": "https://api.deepseek.com",
             "model": "deepseek-reasoner",
-            "api_key": "YOUR_API_KEY_HERE"
+            "api_key": "REPLACE_WITH_DEEPSEEK_API_KEY"
         },
         {
             "name": "🏠 LM Studio (Local)",

@@ -1,0 +1,801 @@
+# MY-DOGE-MICRO — Canonical Entities Catalog
+#
+# PURPOSE: Single source of truth for formulas, constants, and named entities
+# (DuckDB views, MCP tools, API routes, services, ports, tables) across the 12
+# product modules. Aggregated from the "Registry Proposals" / Contracts /
+# Configuration-Knobs sections of all 12 CDDs (design/cdd/*.md) and reconciled
+# against the 8 ADRs (docs/architecture/adr-0001..0008).
+#
+# RULES:
+#   - Each canonical value appears EXACTLY ONCE. Duplicate proposals across CDDs
+#     (e.g. RSRS window, TDX ports, retention) are collapsed to a single entry
+#     that cites the owning module's file:line plus the cross-references.
+#   - `owner` is the module slug that owns the value (per module-index.md).
+#   - `source` is the canonical file:line. `also_at` lists parallel copies that
+#     must stay aligned (lockstep invariants).
+#   - NEVER delete entries; set status: superseded instead.
+#   - This file holds concrete VALUES. Cross-ADR architectural stances live in
+#     docs/registry/architecture.yaml (the two files are complementary).
+#
+# WRITTEN BY: Phase-5 set-approval (BLOCKING — user must approve before write)
+# READ BY:    /dev-story, /story-done, /architecture-review, code review
+#
+# STATUS VALUES: active | superseded
+
+version: 1
+last_updated: "2026-06-12"
+
+# ============================================================================
+# FORMULAS — quantitative / algorithmic formulas with variables and ranges
+# ============================================================================
+formulas:
+
+  - name: rsrs
+    status: active
+    formula: "RSRS(series, window) = R_squared * sign(slope)"
+    expansion: "(r_value^2) * sign(slope_of_y_on_time)  via scipy.stats.linregress(x, y)"
+    range: "[-1.0, 1.0]"
+    variables:
+      series: "pandas.Series of prices (daily close), time-ordered ascending"
+      window: "int, default 18 — regression lookback; only the last `window` bars used"
+      y: "series.iloc[-window:].values"
+      x: "np.arange(len(y))"
+      slope: "OLS slope from scipy.stats.linregress"
+      r_value: "Pearson r from linregress (nan when y has zero variance)"
+      R_squared: "float(r_value) ** 2, range [0,1]"
+      sign: "1.0 if float(slope) > 0 else -1.0"
+    guards:
+      - "len(series) < window -> return 0.0"
+      - "np.var(y) <= 1e-10 (flat/zero variance) -> return 0.0  [BUG-E fix]"
+      - "any Exception -> return 0.0"
+      - "residual nan (x != x test) -> return 0.0"
+    equivalence_invariant: "calculate_rsrs (scalar) and _calculate_rsrs_vectorized agree to < 1e-6 on identical input"
+    owner: micro-momentum-scanner
+    source: "src/micro/momentum_scanner.py:47-71"
+    also_at:
+      - "DuckDB view: data/views.sql:114-122 (vw_rsrs_ranking_cn/us; sign convention differs — see conflicts)"
+      - "macro local copy: src/macro/data_loader.py:167-193 (DRIFTS — missing flat-variance + NaN guards; reconciliation TR-016)"
+      - "default window mirrored at: src/doge/config/settings.py:60 (MarketConfig.rsrs_window)"
+    notes: "Canonical RSRS. Module #4's local macro copy must be reconciled to delegate or replicate both guards before this stance is load-bearing across modules."
+
+  - name: vol_skew
+    status: active
+    formula: "VolSkew(prices) = std(short_window_returns) / std(long_window_returns)"
+    range: "[0, +inf); returns 1.0 when long-window std is 0 or NaN"
+    variables:
+      short_window: "int, default 5"
+      long_window: "int, default 20"
+    owner: macro-strategy-engine
+    source: "src/macro/data_loader.py:195-206"
+    notes: "Macro dashboard indicator. Interpretation bands (prompt-hardcoded): <0.8 low, 0.8..1.5 normal, >1.5 elevated."
+
+  - name: annualized_log_return_volatility
+    status: active
+    formula: "ann_vol = std(log_returns) * sqrt(252)"
+    owner: macro-strategy-engine
+    source: "src/macro/data_loader.py:208-265"
+    notes: "Used for tech_volatility and vol_scale_factor = 1/ann_vol."
+
+  - name: change_percent_60d
+    status: active
+    formula: "change_pct = (close_now - close_60d_ago) / close_60d_ago * 100"
+    guard: "skip when close_60d_ago == 0 (avoid divide-by-zero)"
+    owner: micro-momentum-scanner
+    source: "src/micro/momentum_scanner.py:225-232"
+
+  - name: volume_ratio
+    status: active
+    formula: "vol_ratio = day_volume / avg_vol_20d"
+    owner: market-data-storage
+    source: "data/views.sql:142-173 (vw_volume_anomalies_cn)"
+    notes: "Surface rows where vol_ratio >= 2.0 in the view; MCP/API default threshold 3.0."
+
+  - name: gold_btc_ratio_zscore
+    status: active
+    formula: "ratio = GLD_close / BTC_close; ratio_z = (ratio - mean(ratio)) / std(ratio) over rolling window"
+    owner: macro-strategy-engine
+    source: "src/macro/data_loader.py:208-265"
+
+# ============================================================================
+# CONSTANTS — configuration values, thresholds, ports, defaults
+# ============================================================================
+constants:
+
+  # --- Project root & paths (Module #1) ---
+  - name: PROJECT_ROOT
+    value: "Path(__file__).resolve().parents[3]"
+    unit: path
+    owner: runtime-configuration
+    source: "src/doge/config/settings.py:15"
+    notes: "SINGLE sanctioned project-root calculation. No other src/doge/** module may recompute it."
+
+  - name: config.runtime.env.DOGE_DB_DIR
+    value: "<PROJECT_ROOT>/data"
+    unit: dir path
+    range: "any writable dir; absolute recommended"
+    env: DOGE_DB_DIR
+    owner: runtime-configuration
+    source: "src/doge/config/settings.py:26"
+    op_risk: HIGH
+    notes: "Wrong value points all DBs at the wrong tree. Override per-DB vars WITH this one or paths desync."
+
+  - name: config.runtime.env.DOGE_CN_DB
+    value: "<DB_DIR>/market_data_cn.db"
+    env: DOGE_CN_DB
+    owner: runtime-configuration
+    source: "src/doge/config/settings.py:34"
+    op_risk: HIGH
+
+  - name: config.runtime.env.DOGE_US_DB
+    value: "<DB_DIR>/market_data_us.db"
+    env: DOGE_US_DB
+    owner: runtime-configuration
+    source: "src/doge/config/settings.py:35"
+    op_risk: HIGH
+
+  - name: config.runtime.env.DOGE_RESEARCH_DB
+    value: "<DB_DIR>/research_insights.db"
+    env: DOGE_RESEARCH_DB
+    owner: runtime-configuration
+    source: "src/doge/config/settings.py:36"
+    op_risk: MEDIUM
+
+  - name: config.runtime.env.DOGE_DUCKDB_PATH
+    value: "<DB_DIR>/market.duckdb"
+    env: DOGE_DUCKDB_PATH
+    owner: runtime-configuration
+    source: "src/doge/config/settings.py:37"
+    op_risk: MEDIUM
+    notes: "DuckDB ATTACHes cn/us sqlite; must keep CN/US overrides consistent or views attach stale sqlite."
+
+  - name: config.runtime.report_dir
+    value: "<PROJECT_ROOT>/ai_report"
+    owner: market-reporting
+    source: "src/ai_analysis/__init__.py:36"
+    notes: "Markdown report output dir (market_overview, anomaly_detection). Not env-overridable today (open question)."
+
+  - name: config.runtime.macro_report_dir
+    value: "macro_report"
+    owner: macro-strategy-engine
+    source: "src/macro/strategist.py:132"
+    notes: "Relative to CWD. Formatted macro report archive dir."
+
+  # --- TDX (Module #1 / #3) ---
+  - name: tdx.cn_port
+    value: 7709
+    unit: TCP port
+    range: 1-65535
+    owner: runtime-configuration
+    source: "src/doge/config/settings.py:51"
+    also_at: "src/api/routers/scan.py:50 (duplicate)"
+    notes: "TDX protocol-fixed."
+
+  - name: tdx.us_port
+    value: 7727
+    unit: TCP port
+    owner: runtime-configuration
+    source: "src/doge/config/settings.py:52"
+    also_at: "src/api/routers/scan.py:50"
+
+  - name: tdx.timeout
+    value: 5
+    unit: seconds
+    owner: runtime-configuration
+    source: "src/doge/config/settings.py:53"
+    notes: "Per-server connection attempt (find_working_server)."
+
+  - name: tdx.day_record_size
+    value: 32
+    unit: bytes
+    owner: data-sources
+    source: "src/micro/tdx_loader.py:64, src/micro/tdx_downloader.py:300"
+
+  - name: tdx.day_format_cn
+    value: "<IIIII fII"
+    owner: data-sources
+    source: "src/micro/tdx_loader.py:104-119"
+    notes: "CN binary layout; prices / 100 (int)."
+
+  - name: tdx.day_format_us
+    value: "<IfffffII"
+    owner: data-sources
+    source: "src/micro/tdx_loader.py:87-102"
+    notes: "US binary layout; prices as float (no division)."
+
+  - name: tdx.day_date_valid_range
+    value: "[19900101, 20991231]"
+    owner: data-sources
+    source: "src/micro/tdx_downloader.py:317-318"
+    notes: "Garbage-record rejection range (downloader only)."
+
+  - name: tdx.reconnect_threshold
+    value: 5
+    unit: consecutive failures
+    owner: data-sources
+    source: "src/micro/tdx_downloader.py:211, 268"
+
+  - name: tdx.find_server_probe_pool
+    value: 20
+    unit: servers
+    owner: data-sources
+    source: "src/micro/tdx_downloader.py:52-84"
+    notes: "First 20 servers probed; ThreadPoolExecutor max_workers=10."
+
+  # --- Market / scanner thresholds (Module #1 / #5) ---
+  - name: market.whitelist
+    value: ["cn", "us"]
+    owner: runtime-configuration
+    source: "src/doge/config/settings.py:58"
+    also_at: "src/doge/interfaces/mcp/server.py:192 (_MARKET_WHITELIST)"
+
+  - name: market.cn_min_volume
+    value: 200000000
+    unit: RMB
+    owner: runtime-configuration
+    source: "src/doge/config/settings.py:59"
+    also_at: "models_config.json scanner_filters.min_volume_cn; src/micro/momentum_scanner.py:24 (main() hardcodes 2e8)"
+    notes: "CN liquidity screening floor. DRIFT: live scanner reads models_config.json first, not Settings() (TR-019)."
+
+  - name: market.us_min_volume
+    value: 20000000
+    unit: USD
+    owner: runtime-configuration
+    source: "src/doge/config/settings.py:60"
+    also_at: "models_config.json scanner_filters.min_volume_us"
+
+  - name: market.max_change_pct
+    value: 400
+    unit: percent
+    owner: runtime-configuration
+    source: "src/doge/config/settings.py:61"
+    notes: "60-day surge circuit breaker. APPLIED TO US ONLY (CN price limits make +400% impossible)."
+
+  - name: market.rsrs_window
+    value: 18
+    unit: bars
+    range: "positive int, typical 10-30"
+    owner: runtime-configuration
+    source: "src/doge/config/settings.py:62"
+    also_at:
+      - "src/micro/momentum_scanner.py:47 (calculate_rsrs default)"
+      - "data/views.sql:114-122 (vw_rsrs_ranking REGR_* over 18 bars)"
+      - "src/macro/data_loader.py:168 (local macro copy)"
+      - "models_config.json scanner_filters.rsrs_window"
+    notes: "LOCKSTEP invariant — all four locations MUST change together or rankings diverge across CSV/MCP/API."
+
+  - name: micro.rsrs.flat_variance_guard
+    value: 1e-10
+    owner: micro-momentum-scanner
+    source: "src/micro/momentum_scanner.py:59, 106"
+    notes: "Zero-variance threshold; must be identical across scalar and vectorized paths."
+
+  - name: micro.rsrs.hot_threshold
+    value: 0.8
+    unit: RSRS score
+    owner: micro-momentum-scanner
+    source: "src/micro/industry_analyzer.py:73, 298"
+    notes: "[HOT] institutional-trend marker consumed by Module #6 prompt. HARDCODED in prompt text."
+
+  - name: micro.rsrs.speculative_threshold
+    value: 0.3
+    unit: RSRS score
+    owner: micro-momentum-scanner
+    source: "src/micro/industry_analyzer.py:299"
+    notes: "Speculative-structure threshold consumed by Module #6 prompt. HARDCODED."
+
+  - name: micro.universe_lookback_days
+    value: 180
+    unit: calendar days
+    owner: micro-momentum-scanner
+    source: "src/micro/momentum_scanner.py:177"
+    notes: "SQL WHERE date >= date(max_date, -180 days). Must be >= 60 trading days."
+
+  - name: micro.min_bars_for_change
+    value: 61
+    owner: micro-momentum-scanner
+    source: "src/micro/momentum_scanner.py:203"
+    notes: "60-day change needs the 61st-ago bar."
+
+  - name: micro.top_n
+    value: 200
+    owner: micro-momentum-scanner
+    source: "src/micro/momentum_scanner.py:280"
+    notes: "Top-N CSV output size. Module #6 caps at 50."
+
+  - name: micro.us_blacklist
+    value: "50 leveraged/inverse ETF tickers (SQQQ, TQQQ, SOXL, ..., BITX)"
+    owner: micro-momentum-scanner
+    source: "src/micro/momentum_scanner.py:24"
+    also_at: "models_config.json:50"
+
+  # --- Storage knobs (Module #2 / #3) ---
+  - name: storage.retention_days
+    value: 730
+    unit: days
+    owner: market-data-storage
+    source: "Settings().market.retention_days via DOGE_RETENTION_DAYS (default 730); consumed by save_stock_data_custom"
+    op_risk: HIGH
+    notes: "DESTRUCTIVE per-ticker prune on every write. Must be >= 730 to satisfy the widest view window (vw_market_breadth_cn, data/views.sql:23 INTERVAL 730 DAYS). Regression guard: tests/migration/test_retention_view_window_safety.py."
+
+  - name: storage.tdx.MAX_DAYS
+    value: 120
+    unit: bars
+    owner: data-sources
+    source: "src/micro/tdx_loader.py:64 (TDXReader.MAX_DAYS)"
+    also_at:
+      - "src/micro/tdx_downloader.py:537 (--max-bars default)"
+      - "src/micro/tdx_downloader.py:148 (_bars_to_df max_rows=120)"
+      - "src/doge/infrastructure/data_source/yfinance.py (DEFAULT_PERIOD_DAYS)"
+    notes: "LOCKSTEP invariant — the 120d fetch default. Any change must touch all four locations."
+
+  - name: storage.sqlite.BATCH
+    value: 900
+    owner: market-data-storage
+    source: "src/micro/database.py:171, src/doge/infrastructure/database/repositories.py:91"
+    notes: "Below SQLite 999-host-parameter limit. Must not exceed 998."
+
+  - name: storage.duckdb.threads
+    value: 4
+    owner: market-data-storage
+    source: "src/doge/infrastructure/database/duckdb.py:39"
+
+  - name: storage.duckdb.volume_anomaly_threshold
+    value: 2.0
+    owner: market-data-storage
+    source: "data/views.sql:142-173"
+    notes: "View keeps rows where vol_ratio >= 2.0. MCP/API default query threshold is 3.0."
+
+  # --- MCP (Module #8) ---
+  - name: mcp.tool_timeout
+    value: 30
+    unit: seconds
+    owner: runtime-configuration
+    source: "src/doge/config/settings.py:68 (MCPConfig.tool_timeout)"
+    also_at: "src/doge/interfaces/mcp/server.py:80 (TOOL_TIMEOUT)"
+    notes: "Matches standards/technical-preferences.md MCP latency budget. asyncio.wait_for enforces."
+
+  - name: mcp.stdio_transport
+    value: "stdio"
+    owner: runtime-configuration
+    source: "src/doge/config/settings.py:69"
+
+  - name: mcp.sse_host
+    value: "127.0.0.1"
+    owner: runtime-configuration
+    source: "src/doge/config/settings.py:70"
+    op_risk: HIGH
+    notes: "Loopback by default. Binding to 0.0.0.0 exposes unauthenticated MCP tools to LAN."
+
+  - name: mcp.sse_port
+    value: 8902
+    unit: TCP port
+    owner: runtime-configuration
+    source: "src/doge/config/settings.py:71"
+
+  - name: mcp.ticker_charset
+    value: "^[A-Za-z0-9.\\-]+$"
+    owner: mcp-server
+    source: "src/ai_analysis/__init__.py:39-62 (normalize_ticker)"
+    notes: "Injection-safe by construction."
+
+  - name: mcp.int_range.days
+    value: "[1, 500]"
+    owner: mcp-server
+    source: "src/doge/interfaces/mcp/server.py:209-213 (_validate_int)"
+
+  - name: mcp.int_range.top
+    value: "[1, 100]"
+    owner: mcp-server
+    source: "src/doge/interfaces/mcp/server.py:209-213"
+
+  - name: mcp.float_range.min_ratio
+    value: "[1.0, 1000.0]"
+    owner: mcp-server
+    source: "src/doge/interfaces/mcp/server.py:215-219 (_validate_float)"
+
+  # --- FastAPI (Module #9) ---
+  - name: api.fastapi.title
+    value: "MY-DOGE API"
+    owner: fastapi-service
+    source: "src/api/main.py"
+
+  - name: api.fastapi.version
+    value: "0.1.0"
+    owner: fastapi-service
+    source: "src/api/main.py"
+
+  - name: api.fastapi.bind_host
+    value: "127.0.0.1"
+    owner: fastapi-service
+    source: "src/api/main.py:67"
+    notes: "Loopback bind. local-first."
+
+  - name: api.fastapi.bind_port
+    value: 8901
+    unit: TCP port
+    owner: fastapi-service
+    source: "src/api/main.py:67"
+
+  - name: api.cors.allow_origins
+    value: "[\"*\"]"
+    owner: fastapi-service
+    source: "src/api/main.py:22-27"
+    op_risk: MEDIUM
+    notes: "Safe ONLY because bind_host=127.0.0.1. Hardening target: explicit localhost origins (ADR-0007)."
+
+  - name: api.data.page.default
+    value: 1
+    owner: fastapi-service
+    source: "src/api/routers/data.py:41"
+
+  - name: api.data.page_size.default
+    value: 50
+    owner: fastapi-service
+    source: "src/api/routers/data.py:42"
+    notes: "max 500 (Query(le=500))."
+
+  - name: api.data.days.default
+    value: 120
+    owner: fastapi-service
+    source: "src/api/routers/data.py:104"
+    notes: "kline days; max 365 (Query(le=365))."
+
+  - name: api.notes.search.min_length
+    value: 1
+    owner: fastapi-service
+    source: "src/api/routers/notes.py:53"
+
+  # --- DeepSeek / LLM (Module #4) ---
+  - name: deepseek.default_base_url
+    value: "https://api.deepseek.com"
+    owner: macro-strategy-engine
+    source: "src/macro/config.py:31"
+
+  - name: deepseek.default_model
+    value: "deepseek-chat"
+    owner: macro-strategy-engine
+    source: "src/macro/config.py:32"
+    also_at: "models_config.json profiles[*].model (may be deepseek-reasoner)"
+
+  - name: macro.llm.temperature
+    value: 0.6
+    range: "0.0-2.0"
+    owner: macro-strategy-engine
+    source: "src/macro/strategist.py:111"
+    notes: "HARDCODED in impl (violates no-hardcoded-config rule). Target: LLMConfig knob."
+
+  - name: macro.llm.stream
+    value: false
+    owner: macro-strategy-engine
+    source: "src/macro/strategist.py:110"
+
+  - name: macro.lookback_days
+    value: 120
+    owner: macro-strategy-engine
+    source: "src/macro/config.py:26"
+    notes: "ALIGNED with data_source.default_window_days (120)."
+
+  - name: macro.volatility_window
+    value: 20
+    owner: macro-strategy-engine
+    source: "src/macro/config.py:27"
+
+  - name: macro.vol_skew.short_window
+    value: 5
+    owner: macro-strategy-engine
+    source: "src/macro/data_loader.py:195"
+
+  - name: macro.vol_skew.long_window
+    value: 20
+    owner: macro-strategy-engine
+    source: "src/macro/data_loader.py:195"
+
+  - name: macro.fetch_overfetch_factor
+    value: 1.65
+    owner: macro-strategy-engine
+    source: "src/macro/data_loader.py:65"
+    notes: "Over-fetches int(lookback_days * 1.65) + 20 days."
+
+  - name: macro.fetch_overfetch_padding_days
+    value: 20
+    owner: macro-strategy-engine
+    source: "src/macro/data_loader.py:65"
+
+  # --- Shared retry / rate-limit (Module #3 / #4) ---
+  - name: shared.fetch_max_retries
+    value: 3
+    owner: data-sources
+    source: "src/doge/infrastructure/data_source/yfinance.py; src/macro/data_loader.py:19"
+    notes: "Shared across yfinance adapter and macro loader."
+
+  - name: shared.fetch_retry_delay_seconds
+    value: 5.0
+    unit: seconds
+    owner: data-sources
+    source: "src/doge/infrastructure/data_source/yfinance.py; src/macro/data_loader.py:19"
+
+  - name: shared.rate_limit_tokens
+    value: "[\"Rate\", \"429\", \"Too Many Requests\"]"
+    owner: data-sources
+    source: "src/doge/infrastructure/data_source/yfinance.py; src/macro/data_loader.py:94-97"
+    notes: "Error messages containing any token are treated as rate-limit responses and retried."
+
+  - name: yfinance.cn_proxy_index
+    value: "000300.SS"
+    owner: data-sources
+    source: "src/doge/infrastructure/data_source/yfinance.py (get_latest_market_date)"
+
+  - name: yfinance.us_proxy_index
+    value: "SPY"
+    owner: data-sources
+    source: "src/doge/infrastructure/data_source/yfinance.py"
+
+  - name: data_source.incremental_buffer_bars
+    value: 10
+    owner: data-sources
+    source: "src/micro/tdx_downloader.py:106-130 (_compute_fetch_params buffer=10)"
+
+  - name: data_source.full_fetch_count
+    value: 800
+    owner: data-sources
+    source: "src/micro/tdx_downloader.py:106-130"
+    notes: "First-ever TDX fetch count. Incremental = min(800, 20+buffer)."
+
+  - name: data_source.canonical_ohlcv_columns
+    value: "[date, open, high, low, close, volume, amount, ticker]"
+    owner: data-sources
+    source: "src/doge/core/ports/data_source.py:28-39"
+    notes: "IMarketDataSource.download_kline port contract. TDX local reader returns 7 cols (no ticker)."
+
+  # --- Notes defaults (Module #7) ---
+  - name: notes.default.market
+    value: "cn"
+    owner: research-insight-knowledge-base
+    source: "src/ai_analysis/stock_notes.py:52; src/api/routers/notes.py:15"
+    notes: "NOT VALIDATED — any string accepted; non-cn falls through to US price DB."
+
+  - name: notes.default.note_type
+    value: "comment"
+    owner: research-insight-knowledge-base
+    source: "src/ai_analysis/stock_notes.py:52"
+
+  - name: notes.default.source
+    value: "user"
+    owner: research-insight-knowledge-base
+    source: "stock_notes DB column default"
+
+  - name: notes.search.default_limit
+    value: 50
+    owner: research-insight-knowledge-base
+    source: "src/ai_analysis/stock_notes.py:200; src/api/routers/notes.py:53"
+
+  - name: notes.recent.default_days
+    value: 7
+    owner: research-insight-knowledge-base
+    source: "src/ai_analysis/stock_notes.py:234"
+
+  - name: notes.recent.default_limit
+    value: 100
+    owner: research-insight-knowledge-base
+    source: "src/ai_analysis/stock_notes.py:234"
+
+  - name: notes.context.default_notes_limit
+    value: 20
+    owner: research-insight-knowledge-base
+    source: "src/ai_analysis/stock_notes.py:94"
+
+  # --- Reporting thresholds (Module #6) ---
+  - name: reporting.anomaly.min_ratio_default
+    value: 3.0
+    owner: market-reporting
+    source: "src/ai_analysis/anomaly_detection.py:23-37"
+
+  - name: reporting.anomaly.gap_threshold_default
+    value: 5.0
+    unit: percent
+    owner: market-reporting
+    source: "src/ai_analysis/anomaly_detection.py:40-60"
+
+  - name: reporting.anomaly.recent_days_default
+    value: 3
+    owner: market-reporting
+    source: "src/ai_analysis/anomaly_detection.py:102"
+
+  - name: reporting.fetch_names.batch_size
+    value: 20
+    owner: market-reporting
+    source: "src/ai_analysis/fetch_names.py:58"
+
+  - name: reporting.fetch_names.delay
+    value: 2.0
+    unit: seconds
+    owner: market-reporting
+    source: "src/ai_analysis/fetch_names.py:58"
+
+  # --- Web console (Module #11) ---
+  - name: web.api.baseURL
+    value: "/api"
+    owner: vue-web-console
+    source: "web/src/api/client.ts:4"
+
+  - name: web.api.timeout
+    value: 30000
+    unit: ms
+    owner: vue-web-console
+    source: "web/src/api/client.ts:5"
+
+# ============================================================================
+# ENTITIES — named DuckDB views, MCP tools, API routes, services, ports, tables
+# ============================================================================
+entities:
+
+  # --- DuckDB views (7 product + 1 temp) owned by Module #2 ---
+  duckdb_views:
+    - name: vw_daily_enriched_cn
+      rows: 600690
+      columns: "ticker, date, open, high, low, close, volume, amount, return_pct, ma_5, ma_10, ma_20, ma_60, atr_14, ma60_deviation, volatility_20d"
+      owner: market-data-storage
+      source: "data/views.sql:202-253"
+      notes: "365-day window. Consumed by query_stock (CN), data kline."
+    - name: vw_rsrs_ranking_cn
+      rows: 200
+      columns: "ticker, last_close, close_60d_ago, pct_change_60d, avg_vol_20d, avg_amt_60d_wan, rsrs, rsrs_points, rank"
+      owner: market-data-storage
+      source: "data/views.sql:62-137"
+      notes: "180-day window; CN whitelist; top 200 by pct_change_60d; rsrs via REGR_R2*sign over 18 bars."
+    - name: vw_rsrs_ranking_us
+      rows: 200
+      owner: market-data-storage
+      source: "data/views.sql (US variant)"
+      notes: "180-day window."
+    - name: vw_market_breadth_cn
+      rows: 118
+      columns: "date, advancers, decliners, unchanged, active, avg_return_pct, std_return_pct, advance_ratio"
+      owner: market-data-storage
+      source: "data/views.sql:23"
+      notes: "730-day window — LONGEST view horizon (latent retention bug)."
+    - name: vw_market_breadth_us
+      rows: 122
+      owner: market-data-storage
+      source: "data/views.sql:266"
+      notes: "365-day window; no advance_ratio column."
+    - name: vw_volume_anomalies_cn
+      rows: 40555
+      columns: "ticker, date, volume, avg_vol_20d, vol_ratio, intraday_return"
+      owner: market-data-storage
+      source: "data/views.sql:142-173"
+      notes: "vol_ratio >= 2.0; from 2025-01-01."
+    - name: vw_cross_sectional_return_cn
+      rows: 600690
+      columns: "ticker, date, return_pct, volume, close"
+      owner: market-data-storage
+      source: "data/views.sql"
+      notes: "365-day window."
+    - name: temp_vol_check
+      rows: 279652
+      columns: "ticker, date, volume, avg_vol, vol_ratio"
+      owner: market-data-storage
+      source: "(ad-hoc; not in data/views.sql — open question Module #2 §9 #9)"
+
+  # --- MCP tools (6) owned by Module #8 ---
+  mcp_tools:
+    - name: query_stock
+      signature: "(ticker: str, market: str = 'cn', days: int = 20) -> str"
+      owner: mcp-server
+      source: "src/doge/interfaces/mcp/tools/query_stock.py:59-66"
+    - name: stock_overview
+      signature: "(ticker: str, market: str = 'cn') -> str"
+      owner: mcp-server
+      source: "src/doge/interfaces/mcp/tools/query_stock.py:69-108"
+      notes: "Filters deleted_at IS NULL (Phase-2 soft-delete fix)."
+    - name: rsrs_ranking
+      signature: "(market: str = 'cn', top: int = 20) -> str"
+      owner: mcp-server
+      source: "src/doge/interfaces/mcp/tools/ranking.py:24-29"
+    - name: market_breadth
+      signature: "(market: str = 'cn', days: int = 10) -> str"
+      owner: mcp-server
+      source: "src/doge/interfaces/mcp/tools/ranking.py:32-37"
+    - name: volume_anomalies
+      signature: "(min_ratio: float = 3.0, top: int = 20) -> str"
+      owner: mcp-server
+      source: "src/doge/interfaces/mcp/tools/anomaly.py:24-28"
+      notes: "CN-only."
+    - name: list_views
+      signature: "() -> str"
+      owner: mcp-server
+      source: "src/doge/interfaces/mcp/tools/views.py:6-10"
+      notes: "run_sql explicitly ABSENT (pinned by test_run_sql_removed)."
+
+  # --- FastAPI routes (26 canonical product routes) owned by Module #9 ---
+  api_routes:
+    # main router
+    - {num: 1, method: GET, path: "/api/health", router: main, source: "src/api/main.py:38-40"}
+    - {num: 2, method: GET, path: "/api/stats", router: main, source: "src/api/main.py:43-62"}
+    # scan router
+    - {num: 3, method: GET, path: "/api/scan/servers", router: scan, source: "src/api/routers/scan.py:44-51"}
+    - {num: 4, method: POST, path: "/api/scan/servers/test", router: scan, source: "src/api/routers/scan.py:58-108"}
+    - {num: 5, method: GET, path: "/api/scan/status", router: scan, source: "src/api/routers/scan.py:121-123"}
+    - {num: 6, method: POST, path: "/api/scan/{market}", router: scan, source: "src/api/routers/scan.py:126-237", notes: "SSE stream; one in-flight per market (409 on concurrent)"}
+    # data router
+    - {num: 7, method: GET, path: "/api/data/{market}/tables", router: data, source: "src/api/routers/data.py:22-34"}
+    - {num: 8, method: GET, path: "/api/data/{market}/table/{table_name}", router: data, source: "src/api/routers/data.py:37-100"}
+    - {num: 9, method: GET, path: "/api/data/{market}/ticker/{ticker}/kline", router: data, source: "src/api/routers/data.py:103-142"}
+    - {num: 10, method: GET, path: "/api/data/{market}/ticker-names", router: data, source: "src/api/routers/data.py:190-197"}
+    # notes router
+    - {num: 11, method: GET, path: "/api/notes/ticker/{ticker}", router: notes, source: "src/api/routers/notes.py:21-32"}
+    - {num: 12, method: POST, path: "/api/notes", router: notes, source: "src/api/routers/notes.py:35-49"}
+    - {num: 13, method: GET, path: "/api/notes/search", router: notes, source: "src/api/routers/notes.py:52-59"}
+    - {num: 14, method: GET, path: "/api/notes/recent", router: notes, source: "src/api/routers/notes.py:62-68"}
+    - {num: 15, method: GET, path: "/api/notes/tracked", router: notes, source: "src/api/routers/notes.py:71-77"}
+    - {num: 16, method: DELETE, path: "/api/notes/{note_id}", router: notes, source: "src/api/routers/notes.py:80-92", notes: "200 {ok:true} / 404 not found (soft delete)"}
+    # macro router
+    - {num: 17, method: GET, path: "/api/macro/reports", router: macro, source: "src/api/routers/macro.py:22-35"}
+    - {num: 18, method: GET, path: "/api/macro/reports/latest", router: macro, source: "src/api/routers/macro.py:38-53"}
+    - {num: 19, method: GET, path: "/api/macro/reports/{report_id}", router: macro, source: "src/api/routers/macro.py:56-68"}
+    - {num: 20, method: POST, path: "/api/macro/run", router: macro, source: "src/api/routers/macro.py:71-129", notes: "SSE stream"}
+    # analysis router
+    - {num: 21, method: GET, path: "/api/analysis/reports", router: analysis, source: "src/api/routers/analysis.py:13-25"}
+    - {num: 22, method: GET, path: "/api/analysis/reports/{report_id}", router: analysis, source: "src/api/routers/analysis.py:28-40"}
+    # config router
+    - {num: 23, method: GET, path: "/api/config", router: config, source: "src/api/routers/config.py:28-32"}
+    - {num: 24, method: GET, path: "/api/config/settings", router: config, source: "src/api/routers/config.py:35-39"}
+    - {num: 25, method: PUT, path: "/api/config/settings", router: config, source: "src/api/routers/config.py:46-54"}
+    - {num: 26, method: POST, path: "/api/config/validate-tdx", router: config, source: "src/api/routers/config.py:57-68"}
+  api_router_prefixes:
+    scan: "/api/scan"
+    data: "/api/data"
+    notes: "/api/notes"
+    macro: "/api/macro"
+    analysis: "/api/analysis"
+    config: "/api/config"
+
+  # --- Core services (5) — ADR-0001 target shape ---
+  services:
+    - {name: StockService, owner: market-data-storage, source: "src/doge/core/services (modular MCP target)"}
+    - {name: RankingService, owner: market-data-storage, notes: "RSRS ranking reads"}
+    - {name: BreadthService, owner: market-data-storage, notes: "market breadth reads"}
+    - {name: AnomalyService, owner: market-data-storage, notes: "volume anomaly reads"}
+    - {name: ViewService, owner: market-data-storage, notes: "DuckDB view enumeration"}
+
+  # --- Ports (clean-architecture contracts) ---
+  ports:
+    - {name: IStockRepository, owner: market-data-storage, source: "src/doge/core/ports/repository.py:10-43", methods: "get_prices, get_overview, get_sync_state (+proposed save_prices, delete_older_than)"}
+    - {name: IReportRepository, owner: market-data-storage, source: "src/doge/core/ports/repository.py:45-68", methods: "list_macro_reports, get_macro_report, save_macro_report, save_research_report, add_note, search_notes, list_stock_names"}
+    - {name: IMarketDataSource, owner: data-sources, source: "src/doge/core/ports/data_source.py:8-49", methods: "connect, disconnect, download_kline, get_latest_market_date, is_connected"}
+    - {name: ITickerNameCache, owner: market-data-storage, source: "src/doge/core/ports/cache.py:7-22", methods: "get(ticker)->Optional[str], load(market)->Dict[str,str], clear()->None", notes: "Local-JSON ticker-name lookup; adapter JSONTickerNameCache (src/doge/infrastructure/cache/ticker_cache.py). ADR-0001 alias: 'Cache' == ITickerNameCache (ADR-0009). ADR-0003's proposed ICache reconciles to this port (S002-011)."}
+    - {name: ITickerMetadataSource, owner: data-sources, source: "src/doge/core/ports/metadata.py", methods: "get_metadata(ticker, market)->Optional[dict] ({name, sector})", notes: "DISTINCT from ITickerNameCache — remote yfinance .info (network, name+sector) vs local JSON (file, name string). Adapter YFinanceMetadataSource (stub, raises NotImplementedError pending src/micro/industry_analyzer.py:190 migration). ADR-0001 alias: 'TickerMetadataSource' == ITickerMetadataSource (ADR-0009)."}
+    - {name: IMarketViewRepository, owner: market-data-storage, source: "src/doge/core/ports/market_view.py", methods: "execute(sql, params=None)->DataFrame", notes: "Single execute->DataFrame surface for the 4 read-only view-backed services (View/Ranking/Breadth/Anomaly). Adapter DuckDBMarketViewRepository (src/doge/infrastructure/database/market_view_repository.py). ADR-0010."}
+    - {name: NoteRepository, owner: research-insight-knowledge-base, source: "ADR-0001; reconciliation TR-042", notes: "IReportRepository extension proposed: delete_note, get_notes, get_recent_notes, list_tracked_tickers, get_ticker_with_context"}
+
+  # --- ADR-0001 -> source ABC alias map (AC-10/OQ-2, resolved by ADR-0009) ---
+  # ADR-0001 uses un-prefixed canonical names; source ABCs are I-prefixed. The
+  # I-prefix is KEPT (no rename); this table records the mapping so registry
+  # readers and /architecture-review can reconcile the two naming conventions.
+  adr0001_port_aliases:
+    - {adr0001_name: StockRepository, source_abc: IStockRepository}
+    - {adr0001_name: ReportRepository, source_abc: IReportRepository}
+    - {adr0001_name: MarketDataSource, source_abc: IMarketDataSource}
+    - {adr0001_name: TickerMetadataSource, source_abc: ITickerMetadataSource, notes: "remote yfinance .info name+sector (ADR-0009 split)"}
+    - {adr0001_name: Cache, source_abc: ITickerNameCache, notes: "local-JSON ticker-name lookup (ADR-0009 split; == ADR-0003 proposed ICache)"}
+
+  # --- Ports (5 TCP) ---
+  network_ports:
+    - {port: 7709, protocol: TDX, market: cn, owner: runtime-configuration}
+    - {port: 7727, protocol: TDX, market: us, owner: runtime-configuration}
+    - {port: 8901, protocol: HTTP/FastAPI, owner: fastapi-service, notes: "127.0.0.1 bind"}
+    - {port: 8902, protocol: MCP SSE / HTTP, owner: mcp-server, notes: "127.0.0.1 default"}
+    - {port: 1234, protocol: HTTP, owner: macro-strategy-engine, notes: "LM Studio local base_url http://localhost:1234/v1 (optional OpenAI-compatible profile)"}
+
+  # --- Storage tables ---
+  storage_tables:
+    price_db:
+      - {name: stock_prices, owner: market-data-storage, source: "src/micro/database.py:33-45", pk: "(ticker, date)", columns: "ticker, date, open, high, low, close, volume, amount"}
+    research_db:
+      - {name: macro_reports, owner: market-data-storage, source: "src/micro/database.py:224-235", columns: "id, date, timestamp, tags, analyst, risk_signal, volatility, content"}
+      - {name: research_reports, owner: market-data-storage, source: "src/micro/database.py:267-277", columns: "id, date, timestamp, tags, analyst, title, content"}
+      - {name: insights, owner: market-data-storage, source: "src/micro/database.py:58-67", columns: "id, created_at, category, target, summary, full_content"}
+      - {name: knowledge_entities, owner: market-data-storage, source: "src/micro/database.py:70-76", columns: "id, name (UNIQUE), entity_type"}
+      - {name: knowledge_graph, owner: market-data-storage, source: "src/micro/database.py:79-88", columns: "id, source, target, relation, insight_id (FK->insights ON DELETE CASCADE)"}
+      - {name: stock_notes, owner: research-insight-knowledge-base, source: "src/ai_analysis/stock_notes.py:29-49", columns: "id (PK AUTOINCREMENT), ticker, market, created_at, note_type, title, content, tags, price_at_note, source, deleted_at (soft-delete)"}
+      - {name: stock_names, owner: research-insight-knowledge-base, source: "src/ai_analysis/stock_notes.py PRAGMA", columns: "ticker (PK), name_cn, name_en, market, sector, industry, updated_at"}

@@ -17,6 +17,7 @@ data/
 macro_report/
 micro_report/
 research_report/
+ai_report/
 
 # Logs
 logs/
@@ -32,3 +33,19 @@ Thumbs.db
 
 # User specific settings
 user_settings.json
+
+# Web frontend
+web/node_modules/
+web/dist/
+.vite/
+
+# Claude Code user-specific
+.claude/settings.local.json
+.claude/launch.json
+.claude/projects/
+
+# Company snapshots (stale data)
+data/company_snapshots/
+
+# Editable-install build artifact
+*.egg-info/

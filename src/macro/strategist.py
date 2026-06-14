@@ -144,7 +144,21 @@ class DeepSeekStrategist:
             return content
 
         except Exception as e:
-            logger.error(f"DeepSeek API 调用失败: {e}")
+            # ADR-0005 decision item 2: the API key must NEVER be printed or
+            # logged. Provider/transport exceptions (notably auth errors from
+            # the OpenAI SDK) can embed the api_key in their message, so scrub
+            # the key value and the placeholder sentinel out of the logged text
+            # before emitting. Log the exception type + a sanitized message.
+            raw_msg = str(e)
+            secrets = [self.config.api_key, "REPLACE_WITH_DEEPSEEK_API_KEY"]
+            safe_msg = raw_msg
+            for secret in secrets:
+                if secret:
+                    safe_msg = safe_msg.replace(secret, "<redacted>")
+            logger.error(
+                "DeepSeek API 调用失败 (%s): %s",
+                type(e).__name__, safe_msg,
+            )
             return None
 
     def format_report_for_display(self, raw_report: str, metrics: dict, start_date=None, end_date=None, assets=None, trading_days=None, calendar_days=None) -> str:

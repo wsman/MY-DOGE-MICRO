@@ -1,7 +1,29 @@
 import os
 import sqlite3
+import logging
 import pandas as pd
 from datetime import datetime, timedelta
+
+# S002-006 / TR-006: typed write error replaces the legacy swallowed
+# ``except Exception: pass`` in save_stock_data_custom. Import the centralized
+# error from the doge ports layer; fall back to a RuntimeError alias only if
+# the doge package is not importable in this legacy runtime context.
+try:
+    from doge.core.ports.repository import StorageWriteError
+except ImportError:  # pragma: no cover - legacy bootstrap fallback
+    class StorageWriteError(RuntimeError):
+        """Fallback alias when the doge package is unavailable.
+
+        Mirrors doge.core.ports.repository.StorageWriteError so the legacy
+        module keeps a typed write error even in environments where the
+        doge package has not been installed yet.
+        """
+
+        pass
+
+
+logger = logging.getLogger(__name__)
+
 
 def get_db_connection(db_path=None):
     """获取数据库连接对象
@@ -46,7 +68,7 @@ def init_db():
     
     conn.commit()
     conn.close()
-    print("✅ 数据库初始化完成")
+    print("[OK] database initialized")
 
 # 初始化AI研报数据库
 def init_research_db():
@@ -89,7 +111,7 @@ def init_research_db():
     
     conn.commit()
     conn.close()
-    print("✅ AI研报数据库初始化完成")
+    print("[OK] AI research database initialized")
 
 def init_db_custom(db_path):
     """使用指定路径初始化数据库，创建 stock_prices 表（仅当表不存在时）"""
@@ -113,25 +135,121 @@ def init_db_custom(db_path):
     
     conn.commit()
     conn.close()
-    print(f"✅ 数据库初始化完成: {db_path}")
+    print(f"[OK] database initialized: {db_path}")
 
-def save_stock_data_custom(data, db_path):
-    """将股票数据保存到指定数据库
-    
+def save_stock_data_custom(data, db_path, retention_days=None):
+    """增量写入 + 自动清理超过 retention_days 的旧数据
+
     Args:
         data (pd.DataFrame): 包含股票数据的 DataFrame
         db_path (str): 目标数据库路径
+        retention_days (int | None): 保留近 N 个自然日的记录。当为 None
+            时（默认），从集中配置 ``Settings().market.retention_days``
+            读取，该值由环境变量 ``DOGE_RETENTION_DAYS`` 控制，默认 730
+            （必须 >= 730 以满足最宽分析视图 vw_market_breadth_cn 的 730 天
+            窗口；低于该值会静默截断市场宽度扫描）。调用方可显式传入
+            retention_days 以覆盖配置默认值。**该参数是破坏性的** —— 每次
+            写入都会按 ticker 删除超过 N 天的旧行，且不可恢复。若 doge 配置
+            包因运行环境问题无法导入，则回退为 730 并记录 WARNING，绝不
+            回退到旧的 180 天默认值（那会重新引入静默截断 bug）。
+    """
+    from datetime import datetime, timedelta
+    if retention_days is None:
+        try:
+            from doge.config import get_settings
+            retention_days = get_settings().market.retention_days
+        except Exception as e:
+            retention_days = 730
+            print(f"[WARN] could not load doge settings for retention_days, "
+                  f"falling back to 730 (NOT 180): {e}")
+    conn = None
+    cutoff = (datetime.now() - timedelta(days=retention_days)).strftime('%Y-%m-%d')
+
+    try:
+        conn = get_db_connection(db_path)
+        cur = conn.cursor()
+        ticker = data['ticker'].iloc[0] if not data.empty else 'UNKNOWN'
+        cur.execute(
+            "SELECT MAX(date) FROM stock_prices WHERE ticker = ?", (ticker,)
+        )
+        max_existing = cur.fetchone()[0]
+
+        if max_existing:
+            new_data = data[data['date'] > max_existing]
+            if new_data.empty:
+                return
+            new_data.to_sql('stock_prices', conn, if_exists='append', index=False)
+        else:
+            data.to_sql('stock_prices', conn, if_exists='append', index=False)
+
+        # 删除该 ticker 的过期数据
+        conn.execute(
+            "DELETE FROM stock_prices WHERE ticker = ? AND date < ?",
+            (ticker, cutoff)
+        )
+        conn.commit()
+    except Exception as e:
+        # S002-006 / TR-006: surface write failures as a typed
+        # StorageWriteError (logged at ERROR with full traceback) instead of
+        # swallowing them with a bare ``pass``. The original cause is chained
+        # via ``__cause__`` so diagnostics are preserved. Callers that need
+        # per-ticker fault tolerance MUST catch StorageWriteError explicitly.
+        # NOTE: connection-open failures also land here (the get_db_connection
+        # call now lives inside this try) so unwritable paths surface too.
+        ticker_ctx = (
+            data['ticker'].iloc[0] if not data.empty and 'ticker' in data.columns
+            else 'UNKNOWN'
+        )
+        logger.error(
+            "save_stock_data_custom failed ticker=%s db=%s: %s",
+            ticker_ctx, db_path, e, exc_info=True,
+        )
+        raise StorageWriteError(
+            f"write failed for ticker={ticker_ctx} db={db_path}"
+        ) from e
+    finally:
+        if conn is not None:
+            conn.close()
+
+def get_tickers_sync_state(db_path, tickers):
+    """批量查询多只票在 DB 中的最新日期和条数，用于增量下载。
+
+    Args:
+        db_path (str): SQLite 数据库路径
+        tickers (list[str]): 股票代码列表
+
+    Returns:
+        dict: {ticker: {"latest_date": str|None, "row_count": int}}
     """
     conn = get_db_connection(db_path)
-    
     try:
-        # 使用 to_sql 方法批量插入数据，if_exists='append' 表示追加模式
-        data.to_sql('stock_prices', conn, if_exists='append', index=False)
-        print(f"💾 数据已保存到数据库: {db_path}")
+        cur = conn.cursor()
+        # SQLite 有参数个数限制 (999)，分批查询
+        BATCH = 900
+        result = {}
+        for i in range(0, len(tickers), BATCH):
+            batch = tickers[i:i + BATCH]
+            placeholders = ','.join('?' * len(batch))
+            sql = f"""
+                SELECT ticker, MAX(date) AS latest_date, COUNT(*) AS row_count
+                FROM stock_prices
+                WHERE ticker IN ({placeholders})
+                GROUP BY ticker
+            """
+            cur.execute(sql, batch)
+            for row in cur.fetchall():
+                result[row[0]] = {"latest_date": row[1], "row_count": row[2]}
+        # 补全未查询到的 ticker
+        for t in tickers:
+            if t not in result:
+                result[t] = {"latest_date": None, "row_count": 0}
+        return result
     except Exception as e:
-        print(f"❌ 保存数据时出错: {e}")
+        print(f"[ERR] get_tickers_sync_state failed: {e}")
+        return {t: {"latest_date": None, "row_count": 0} for t in tickers}
     finally:
         conn.close()
+
 
 def _ensure_columns(cursor, table_name, new_columns):
     """
@@ -143,11 +261,11 @@ def _ensure_columns(cursor, table_name, new_columns):
     
     for col_name, col_type in new_columns:
         if col_name not in existing_cols:
-            print(f"🔄 正在迁移表 {table_name}: 添加列 {col_name}...")
+            print(f"[MIGRATE] altering table {table_name}: adding column {col_name}...")
             try:
                 cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_type}")
             except Exception as e:
-                print(f"⚠️ 迁移警告: {e}")
+                print(f"[WARN] migration warning: {e}")
 
 def save_macro_report(content, risk_signal, volatility, tags="Macro, DeepSeek", analyst="deepseek-reasoner"):
     """
@@ -186,9 +304,9 @@ def save_macro_report(content, risk_signal, volatility, tags="Macro, DeepSeek", 
             (date_str, time_str, tags, analyst, risk_signal, volatility, content)
         )
         conn.commit()
-        print(f"✅ 宏观报告已归档 (Analyst: {analyst})")
+        print(f"[OK] macro report archived (Analyst: {analyst})")
     except Exception as e:
-        print(f"❌ 宏观报告归档失败: {e}")
+        print(f"[ERR] macro report archive failed: {e}")
     finally:
         conn.close()
 
@@ -228,9 +346,9 @@ def save_research_report(title, content, tags="Industry, DeepSeek", analyst="dee
             (date_str, time_str, tags, analyst, title, content)
         )
         conn.commit()
-        print(f"✅ 行业研报已归档 (Analyst: {analyst})")
+        print(f"[OK] industry report archived (Analyst: {analyst})")
     except Exception as e:
-        print(f"❌ 研报归档失败: {e}")
+        print(f"[ERR] report archive failed: {e}")
     finally:
         conn.close()
 
@@ -254,9 +372,9 @@ def save_insight(category, target, summary, full_content):
         ''', (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), category, target, summary, full_content))
         
         conn.commit()
-        print(f"💾 AI研报已保存到数据库")
+        print("[OK] AI insight saved to database")
     except Exception as e:
-        print(f"❌ 保存AI研报时出错: {e}")
+        print(f"[ERR] error saving AI insight: {e}")
     finally:
         conn.close()
 
@@ -304,7 +422,7 @@ def get_history_insights(limit=None, category=None, target=None):
         
         return insights
     except Exception as e:
-        print(f"❌ 查询AI研报时出错: {e}")
+        print(f"[ERR] error querying AI insights: {e}")
         return []
     finally:
         conn.close()
@@ -328,11 +446,11 @@ def add_entity(name, entity_type):
         
         conn.commit()
         if cursor.rowcount > 0:
-            print(f"💾 实体 '{name}' 已添加到知识库")
+            print(f"[OK] entity '{name}' added to knowledge base")
         else:
-            print(f"⚠️ 实体 '{name}' 已存在，跳过添加")
+            print(f"[WARN] entity '{name}' already exists, skipped")
     except Exception as e:
-        print(f"❌ 添加实体时出错: {e}")
+        print(f"[ERR] error adding entity: {e}")
     finally:
         conn.close()
 
@@ -356,9 +474,9 @@ def add_relationship(source, target, relation, insight_id):
         ''', (source, target, relation, insight_id))
         
         conn.commit()
-        print(f"🔗 关系 '{source} -> {relation} -> {target}' 已添加到知识图谱")
+        print(f"[OK] relation '{source} -> {relation} -> {target}' added to knowledge graph")
     except Exception as e:
-        print(f"❌ 添加关系时出错: {e}")
+        print(f"[ERR] error adding relation: {e}")
     finally:
         conn.close()
 
@@ -377,12 +495,12 @@ def initialize_system_dbs():
         
         try:
             os.makedirs(data_dir, exist_ok=True)
-            print(f"🛠️ 系统自检: 正在检查数据库完整性 ({data_dir})...")
+            print(f"[INIT] checking database integrity ({data_dir})...")
         except PermissionError as e:
-            print(f"❌ 权限错误: 无法创建目录 {data_dir}: {e}")
+            print(f"[ERR] permission denied creating dir {data_dir}: {e}")
             return False
         except Exception as e:
-            print(f"❌ 创建数据目录失败: {e}")
+            print(f"[ERR] failed to create data dir: {e}")
             return False
 
         # 2. 创建报告目录
@@ -391,9 +509,9 @@ def initialize_system_dbs():
             dir_path = os.path.join(project_root, dir_name)
             try:
                 os.makedirs(dir_path, exist_ok=True)
-                print(f"   📁 确保目录存在: {dir_name}")
+                print(f"   [DIR] ensured: {dir_name}")
             except Exception as e:
-                print(f"   ⚠️ 创建目录 {dir_name} 失败: {e}")
+                print(f"   [WARN] failed to create dir {dir_name}: {e}")
                 # 继续执行，不中断
 
         # 3. 初始化 A股/美股 数据库 (如果不存在)
@@ -401,7 +519,7 @@ def initialize_system_dbs():
         for db_name in ['market_data_cn.db', 'market_data_us.db']:
             db_path = os.path.join(data_dir, db_name)
             if not os.path.exists(db_path):
-                print(f"   ⚠️ 未找到 {db_name}，正在初始化...")
+                print(f"   [WARN] {db_name} not found, initializing...")
                 try:
                     conn = sqlite3.connect(db_path)
                     cursor = conn.cursor()
@@ -417,9 +535,9 @@ def initialize_system_dbs():
                     ''')
                     conn.commit()
                     conn.close()
-                    print(f"   ✅ {db_name} 创建完成")
+                    print(f"   [OK] {db_name} created")
                 except Exception as e:
-                    print(f"   ❌ 初始化数据库 {db_name} 失败: {e}")
+                    print(f"   [ERR] failed to init {db_name}: {e}")
                     # 继续初始化其他数据库
 
         # 4. 初始化 研报智库 (包含自动迁移逻辑)
@@ -448,14 +566,14 @@ def initialize_system_dbs():
             ''')
             conn.commit()
             conn.close()
-            print("   ✅ 研报数据库 (Research DB) 检查完毕")
+            print("   [OK] research database check complete")
         except Exception as e:
-            print(f"   ❌ 研报数据库初始化失败: {e}")
+            print(f"   [ERR] research database init failed: {e}")
             # 继续执行
 
-        print("🚀 系统数据库就绪")
+        print("[INIT] system databases ready")
         return True
         
     except Exception as e:
-        print(f"❌ 系统初始化过程中发生未知错误: {e}")
+        print(f"[ERR] unknown error during system init: {e}")
         return False

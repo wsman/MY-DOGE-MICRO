@@ -1,0 +1,95 @@
+{
+  "date": "2026-06-12",
+  "python": "3.12.12",
+  "platform": "Windows-10-10.0.19044-SP0",
+  "inputs": {
+    "ticker": "000001.SZ",
+    "market": "cn",
+    "days": 20,
+    "top": 20,
+    "breadth_days": 10,
+    "min_ratio": 3.0,
+    "cli_top": 10
+  },
+  "budgets": {
+    "mcp_s": 30.0,
+    "health_ms": 50.0,
+    "cli_s": 30.0
+  },
+  "runs": 5,
+  "surfaces": [
+    {
+      "surface": "mcp.tool:query_stock",
+      "median_ms": 223.43179999734275,
+      "budget_ms": 30000.0,
+      "verdict": "PASS",
+      "runs": 5,
+      "shape": "str len=2372 lines=21",
+      "ok": true
+    },
+    {
+      "surface": "mcp.tool:stock_overview",
+      "median_ms": 146.90049999626353,
+      "budget_ms": 30000.0,
+      "verdict": "PASS",
+      "runs": 5,
+      "shape": "str len=651 lines=15",
+      "ok": true
+    },
+    {
+      "surface": "mcp.tool:rsrs_ranking",
+      "median_ms": 384.38819999282714,
+      "budget_ms": 30000.0,
+      "verdict": "PASS",
+      "runs": 5,
+      "shape": "str len=2267 lines=21",
+      "ok": true
+    },
+    {
+      "surface": "mcp.tool:market_breadth",
+      "median_ms": 257.9241999919759,
+      "budget_ms": 30000.0,
+      "verdict": "PASS",
+      "runs": 5,
+      "shape": "str len=1088 lines=11",
+      "ok": true
+    },
+    {
+      "surface": "mcp.tool:volume_anomalies",
+      "median_ms": 262.62839999981225,
+      "budget_ms": 30000.0,
+      "verdict": "PASS",
+      "runs": 5,
+      "shape": "str len=1385 lines=21",
+      "ok": true
+    },
+    {
+      "surface": "mcp.tool:list_views",
+      "median_ms": 2872.7948000014294,
+      "budget_ms": 30000.0,
+      "verdict": "PASS",
+      "runs": 5,
+      "shape": "str len=1301 lines=42",
+      "ok": true
+    },
+    {
+      "surface": "fastapi:/api/health",
+      "median_ms": 1.2695999903371558,
+      "budget_ms": 50.0,
+      "verdict": "PASS",
+      "runs": 5,
+      "shape": "HTTP 200 body={'status': 'ok'}",
+      "ok": true
+    },
+    {
+      "surface": "cli:rsrs --top 10",
+      "median_ms": 865.319599994109,
+      "budget_ms": 30000.0,
+      "verdict": "PASS",
+      "runs": 5,
+      "shape": "exit=0 stdout_lines=12",
+      "ok": true
+    }
+  ],
+  "overall": "PASS"
+}

@@ -1,17 +1,78 @@
 import os
-import sys
-import sqlite3
 import glob
 import re
+import logging
 import pandas as pd
 
-# 路径自适应
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.append(current_dir)
+# S002-009 / TR-011: sibling imports are package-qualified (the editable install
+# resolves ``micro.*`` / ``ai_analysis.*`` without sys.path shims). ADR-0001
+# forbidden pattern ``sys_path_insert`` no longer applies here.
+from micro.tdx_loader import TDXReader
+from micro.database import init_db_custom, save_stock_data_custom
+from micro.tdx_downloader import (
+    download_cn_kline as _tdx_download_cn,
+    download_us_kline as _tdx_download_us,
+    find_working_server,
+    CN_SERVERS,
+    US_SERVERS,
+)
 
-from tdx_loader import TDXReader
-from database import init_db_custom, save_stock_data_custom
+# S002-006 / TR-006: typed write error raised by save_stock_data_custom on
+# persistence failure. Falls back to a RuntimeError alias if the doge package
+# is unavailable in this legacy runtime context.
+try:
+    from doge.core.ports.repository import StorageWriteError
+except ImportError:  # pragma: no cover - legacy bootstrap fallback
+    class StorageWriteError(RuntimeError):
+        """Fallback alias mirroring doge.core.ports.repository.StorageWriteError."""
+
+        pass
+
+
+logger = logging.getLogger(__name__)
+
+
+def _refresh_duckdb_views():
+    """数据导入后刷新 DuckDB 分析视图"""
+    try:
+        from ai_analysis import connect_duckdb, run_views_sql
+        con = connect_duckdb()
+        run_views_sql(con)
+        con.close()
+        print("[OK] DuckDB analysis views refreshed")
+    except Exception as e:
+        print("[WARN] DuckDB views refresh failed (non-fatal): {}".format(e))
+
+
+def _tdx_server_sync(db_path, market="cn", tickers=None, progress_callback=None):
+    """从 TDX 服务器下载最新数据, 自动回退到本地文件扫描"""
+    try:
+        from opentdx.tdxClient import TdxClient
+        servers = CN_SERVERS if market == "cn" else US_SERVERS
+        client, host = find_working_server(servers, market)
+
+        if client and host:
+            print("  using TDX server: {}".format(host))
+            if market == "cn":
+                _tdx_download_cn(client, tickers, db_path,
+                                 progress_cb=progress_callback)
+            else:
+                _tdx_download_us(client, tickers, db_path,
+                                 progress_cb=progress_callback)
+
+            client.quotation_client.disconnect()
+            if market == "us":
+                try:
+                    client.ex_quotation_client.disconnect()
+                except Exception:
+                    pass
+            return True
+    except ImportError:
+        print("  opentdx not available, falling back to local files")
+    except Exception as e:
+        print("  TDX server sync failed: {}, falling back to local files".format(e))
+    return False
+
 
 class MarketScanner:
     def __init__(self, tdx_root):
@@ -20,23 +81,29 @@ class MarketScanner:
             potential_vipdoc = os.path.join(tdx_root, 'vipdoc')
             if os.path.exists(potential_vipdoc):
                 tdx_root = potential_vipdoc
-                print(f"✅ 自动修正通达信路径为: {tdx_root}")
-        
+                print(f"[OK] auto-corrected TDX path: {tdx_root}")
+
         self.tdx_root = tdx_root
         self.reader = TDXReader(tdx_root)
 
-    def scan_cn_market(self, db_path, progress_callback=None):
-        """扫描 A 股 (sh/sz)"""
-        print(f"🚀 启动 A股扫描 -> {db_path}")
+    def scan_cn_market(self, db_path, progress_callback=None, use_server=True):
+        """扫描 A 股 (sh/sz)
+
+        Args:
+            db_path: SQLite 数据库路径
+            progress_callback: 进度回调 (percent, message)
+            use_server: 是否优先从 TDX 服务器下载 (True=服务器优先, False=仅本地)
+        """
+        print(f"[SCAN] A-share scan -> {db_path}")
         init_db_custom(db_path) # 1. 初始化库
-        
+
         tasks = []
         # 遍历 sh 和 sz 目录
         for market in ['sh', 'sz']:
             lday_dir = os.path.join(self.tdx_root, market, 'lday')
             if not os.path.exists(lday_dir):
                 continue
-            
+
             files = glob.glob(os.path.join(lday_dir, f'{market}*.day'))
             for f in files:
                 fname = os.path.basename(f)
@@ -46,36 +113,60 @@ class MarketScanner:
                     # 构造 ticker 格式：000001.SZ 或 600000.SH
                     ticker = f"{code}.{market.upper()}"
                     tasks.append(ticker)
-        
+
         total = len(tasks)
-        print(f"📊 经严格过滤，锁定 {total} 只 A 股正股标的")
-        
-        # 批量处理
+        print(f"[INFO] filtered to {total} A-share stocks")
+
+        # 0. 优先从 TDX 服务器同步最新数据
+        if use_server:
+            print("  attempting TDX server sync...")
+            server_ok = _tdx_server_sync(db_path, "cn", tasks, progress_callback)
+            if server_ok:
+                if progress_callback:
+                    progress_callback(100, "CN server sync complete")
+                _refresh_duckdb_views()
+                return
+
+        # 批量处理 (本地文件回退)
         for i, ticker in enumerate(tasks):
             try:
                 # 2. 读取数据
                 df = self.reader.get_data(ticker, market_type='cn')
-                
+            except Exception as e:
+                # 容错处理: 仅捕获读/df 构建失败 —— 单只票的读取异常不得中断整盘扫描。
+                logger.warning("CN scan: failed reading ticker=%s: %s", ticker, e)
+                continue
+
+            try:
                 # 3. 写入数据库 (关键逻辑)
                 if not df.empty:
                     # 增加 ticker 列
                     df['ticker'] = ticker
                     save_stock_data_custom(df, db_path)
-            except Exception as e:
-                # 容错处理
-                print(f"Error reading {ticker}: {e}")
-                pass
-            
+            except StorageWriteError as e:
+                # S002-006 / TR-006: 单只票写入失败不再被静默吞掉 —— 记 WARNING
+                # 后继续下一只票，保证 4000+ 票的扫描不会因为一条坏数据中止。
+                logger.warning("CN scan: ticker=%s write failed: %s", ticker, e)
+
             # 4. 更新进度条 (每100个或是1%更新一次，避免UI卡顿)
             if progress_callback and i % 50 == 0:
                 progress_callback(int((i + 1) / total * 100), f"正在入库: {ticker}")
         
         if progress_callback:
-            progress_callback(100, "✅ A股入库完成")
+            progress_callback(100, "CN local import complete")
 
-    def scan_us_market(self, db_path, progress_callback=None):
-        """扫描美股 (ds)"""
-        print(f"🚀 启动 美股扫描 -> {db_path}")
+        # 刷新 DuckDB 分析视图
+        _refresh_duckdb_views()
+
+    def scan_us_market(self, db_path, progress_callback=None, use_server=True):
+        """扫描美股 (ds)
+
+        Args:
+            db_path: SQLite 数据库路径
+            progress_callback: 进度回调
+            use_server: 是否优先从 TDX 服务器下载
+        """
+        print(f"[SCAN] US market scan -> {db_path}")
         init_db_custom(db_path) # 1. 初始化库
         
         ds_dir = os.path.join(self.tdx_root, 'ds', 'lday')
@@ -95,25 +186,44 @@ class MarketScanner:
                     tasks.append(raw_code)
         
         total = len(tasks)
-        print(f"📊 发现 {total} 只 美股标的，开始入库...")
-        
+        print(f"[INFO] found {total} US stocks, importing...")
+
+        # 0. 优先从 TDX 扩展行情服务器同步
+        if use_server:
+            print("  attempting TDX server sync...")
+            server_ok = _tdx_server_sync(db_path, "us", tasks, progress_callback)
+            if server_ok:
+                if progress_callback:
+                    progress_callback(100, "US server sync complete")
+                _refresh_duckdb_views()
+                return
+
         for i, ticker in enumerate(tasks):
             try:
                 # 2. 读取数据
                 df = self.reader.get_data(ticker, market_type='us')
-                
+            except Exception as e:
+                # 容错处理: 仅捕获读/df 构建失败 —— 单只票的读取异常不得中断整盘扫描。
+                logger.warning("US scan: failed reading ticker=%s: %s", ticker, e)
+                continue
+
+            try:
                 # 3. 写入数据库 (关键逻辑)
                 if not df.empty:
                     # 增加 ticker 列
                     df['ticker'] = ticker
                     save_stock_data_custom(df, db_path)
-            except Exception as e:
-                print(f"Error reading {ticker}: {e}")
-                pass
-            
+            except StorageWriteError as e:
+                # S002-006 / TR-006: 单只票写入失败不再被静默吞掉 —— 记 WARNING
+                # 后继续下一只票，保证整盘扫描不会因为一条坏数据中止。
+                logger.warning("US scan: ticker=%s write failed: %s", ticker, e)
+
             # 4. 更新进度条 (每100个或是1%更新一次，避免UI卡顿)
             if progress_callback and i % 50 == 0:
                 progress_callback(int((i + 1) / total * 100), f"正在入库: {ticker}")
         
         if progress_callback:
-            progress_callback(100, "✅ 美股入库完成")
+            progress_callback(100, "US local import complete")
+
+        # 刷新 DuckDB 分析视图
+        _refresh_duckdb_views()

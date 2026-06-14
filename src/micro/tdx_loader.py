@@ -61,14 +61,17 @@ class TDXReader:
             
         return self._parse_file(file_path, market_type)
 
-    def _parse_file(self, file_path, market_type='cn'):
+    MAX_DAYS = 120  # 每个标的保留近半年交易日
+
+    def _parse_file(self, file_path, market_type='cn', trim_to_recent=True):
         """
         解析 .day 文件
-        
+
         Args:
             file_path (str): .day 文件的完整路径
             market_type (str): 市场类型 ('cn' 或 'us')
-            
+            trim_to_recent (bool): 是否仅保留最近 MAX_DAYS 条记录
+
         Returns:
             pd.DataFrame: 解析后的数据
         """
@@ -128,4 +131,9 @@ class TDXReader:
         # 创建 DataFrame 并按日期排序
         df = pd.DataFrame(records)
         df.sort_values('date', inplace=True)
+
+        # 保留最近 MAX_DAYS 条记录 (约半年交易日)
+        if trim_to_recent and len(df) > self.MAX_DAYS:
+            df = df.tail(self.MAX_DAYS).reset_index(drop=True)
+
         return df

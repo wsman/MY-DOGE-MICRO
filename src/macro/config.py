@@ -1,7 +1,7 @@
 import os
 import json
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from typing import Optional
 
 @dataclass
@@ -40,6 +40,76 @@ class MacroConfig:
         self._load_from_json()
         self._apply_runtime_overrides()
         
+    def _validate_config(self, config_data):
+        """
+        验证配置文件结构完整性
+        
+        Args:
+            config_data (dict): 加载的 JSON 配置数据
+            
+        Raises:
+            ValueError: 如果配置缺少必要字段或格式错误
+        """
+        # 检查顶级必需字段
+        required_top_fields = ['profiles', 'default_profile', 'assets']
+        for field in required_top_fields:
+            if field not in config_data:
+                raise ValueError(f"配置缺少必要顶级字段: {field}")
+        
+        # 检查 profiles 数组
+        profiles = config_data.get('profiles', [])
+        if not isinstance(profiles, list):
+            raise ValueError("profiles 必须是一个数组")
+        
+        if len(profiles) == 0:
+            raise ValueError("profiles 数组不能为空")
+        
+        # 检查每个 profile 的必要字段
+        required_profile_fields = ['name', 'base_url', 'model', 'api_key']
+        for i, profile in enumerate(profiles):
+            for field in required_profile_fields:
+                if field not in profile:
+                    raise ValueError(f"profile {i} ({profile.get('name', '未命名')}) 缺少字段: {field}")
+        
+        # 检查 default_profile 是否在 profiles 中
+        default_profile_name = config_data.get('default_profile')
+        if default_profile_name not in [p.get('name') for p in profiles]:
+            raise ValueError(f"default_profile '{default_profile_name}' 不在 profiles 列表中")
+        
+        # 检查 assets 结构
+        assets = config_data.get('assets', {})
+        required_assets = ['tech', 'safe', 'crypto', 'target']
+        for asset_key in required_assets:
+            if asset_key not in assets:
+                raise ValueError(f"assets 中缺少资产: {asset_key}")
+            
+            asset = assets[asset_key]
+            if 'symbol' not in asset or 'name' not in asset:
+                raise ValueError(f"资产 {asset_key} 缺少 symbol 或 name 字段")
+        
+        # 检查 macro_settings
+        macro_settings = config_data.get('macro_settings', {})
+        if 'lookback_days' not in macro_settings or 'volatility_window' not in macro_settings:
+            raise ValueError("macro_settings 中缺少 lookback_days 或 volatility_window")
+        
+        # 检查 proxy_settings
+        proxy_settings = config_data.get('proxy_settings', {})
+        if 'enabled' not in proxy_settings:
+            raise ValueError("proxy_settings 中缺少 enabled 字段")
+
+    def __repr__(self) -> str:
+        """Safe repr: api_key is masked to prevent accidental log leaks."""
+        parts = []
+        for field in fields(self):
+            name = field.name
+            value = getattr(self, name)
+            if name == "api_key":
+                display = "'***'" if value else "None"
+            else:
+                display = repr(value)
+            parts.append(f"{name}={display}")
+        return f"MacroConfig({', '.join(parts)})"
+
     def _validate_config(self, config_data):
         """
         验证配置文件结构完整性
@@ -161,16 +231,40 @@ class MacroConfig:
             print(f"❌ [MacroConfig] 读取配置文件出错: {e}")
 
     def _apply_runtime_overrides(self):
+        """Apply runtime environment-variable overrides.
+
+        As of S002-013 the ``DEEPSEEK_API_KEY`` environment variable is the
+        PRIMARY source of the DeepSeek API key. ``models_config.json`` ships
+        only a placeholder sentinel (``REPLACE_WITH_DEEPSEEK_API_KEY``); the
+        on-disk value MUST NOT reach the OpenAI client.
+
+        Resolution order:
+          1. ``DEEPSEEK_API_KEY`` env var — if set and non-empty, it wins.
+          2. Otherwise, if the JSON-loaded ``self.api_key`` is the placeholder
+             sentinel, ``None``, or empty → raise ``RuntimeError`` with a clear
+             remediation message. We never print-and-continue (the old behavior
+             let the placeholder flow silently to ``OpenAI(...)``).
+
+        ``DEEPSEEK_MODEL`` remains a secondary override used by the GUI to
+        switch models at runtime; its behavior is unchanged.
         """
-        应用运行时环境变量覆盖 (兼容 GUI 切换模型)
-        注意：这里的 env 是 GUI 临时设置的内存变量，不是 .env 文件
-        """
-        env_api_key = os.getenv("DEEPSEEK_API_KEY")
-        if env_api_key: self.api_key = env_api_key
-        
+        # Sentinel shipped in models_config.json so grep-based scanners have a
+        # single, obvious placeholder pattern. Keep in sync with the template.
+        placeholder_sentinel = "REPLACE_WITH_DEEPSEEK_API_KEY"
+
+        env_api_key = os.environ.get("DEEPSEEK_API_KEY")
+        if env_api_key:
+            self.api_key = env_api_key
+
         env_model = os.getenv("DEEPSEEK_MODEL")
-        if env_model: self.model = env_model
-        
-        if not self.api_key:
-            # 仅作为警告，不阻断初始化 (可能在 GUI 中稍后设置)
-            print("⚠️ [MacroConfig] Warning: API Key is not set.")
+        if env_model:
+            self.model = env_model
+
+        if not self.api_key or self.api_key == placeholder_sentinel:
+            # The placeholder must NOT silently flow to OpenAI(); block early
+            # with a typed, actionable error instead of the old print-and-continue.
+            raise RuntimeError(
+                "DEEPSEEK_API_KEY environment variable is not set and "
+                "models_config.json still carries the placeholder. "
+                "Set DEEPSEEK_API_KEY=<your-key>."
+            )

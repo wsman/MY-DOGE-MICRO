@@ -1,6 +1,29 @@
-yfinance
-pandas
-tqdm
+# ── Core data ─────────────────────────────────────────
+duckdb==1.4.4
+pandas==2.2.3
+scipy==1.16.3
+tabulate==0.10.0
+tqdm==4.67.1
+
+# ── Market data sources ───────────────────────────────
+yfinance==0.2.66
+opentdx
+akshare
+
+# ── AI / LLM ──────────────────────────────────────────
+openai==1.62.0
+
+# ── MCP Server ────────────────────────────────────────
+mcp==1.25.0
+fastapi==0.123.8
+uvicorn==0.38.0
+sse-starlette==3.0.3
+pydantic==2.12.4
+
+# ── GUI (desktop app) ─────────────────────────────────
 PyQt6
-openai
-scipy
+
+# ── Testing ───────────────────────────────────────────
+pytest==9.0.1
+pytest-asyncio==1.3.0
+httpx==0.28.1

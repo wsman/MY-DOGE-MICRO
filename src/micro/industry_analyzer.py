@@ -2,49 +2,46 @@ import os
 import pandas as pd
 import glob
 from datetime import datetime
-import sys
-import yfinance as yf
 import concurrent.futures # 用于并发加速获取信息
 import json
 import threading
 
-# --- 路径修复 ---
-current_dir = os.path.dirname(os.path.abspath(__file__)) # src/micro
-src_dir = os.path.dirname(current_dir)                   # src
-project_root = os.path.dirname(src_dir)                  # MY-DOGE-MICRO
-
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+# S002-009 / TR-011: package-qualified sibling imports resolve via the editable
+# install (no sys.path shim). Paths come from get_settings().project_root.
+from doge.config import get_settings
+from doge.core.services.composition import build_metadata_source
 
 # --- 导入 ---
 try:
-    from src.macro.config import MacroConfig
-    from src.macro.strategist import DeepSeekStrategist
+    from macro.config import MacroConfig
+    from macro.strategist import DeepSeekStrategist
 except ImportError as e:
-    print(f"❌ 模块导入失败: {e}")
+    print(f"[ERR] 模块导入失败: {e}")
 
 # 导入数据库保存函数
 try:
-    from src.micro.database import save_research_report
+    from micro.database import save_research_report
 except ImportError:
-    try:
-        from database import save_research_report
-    except ImportError:
-        print("⚠️ Warning: Could not import database module")
-        save_research_report = lambda *args, **kwargs: None
+    print("[WARN] Warning: Could not import database module")
+    save_research_report = lambda *args, **kwargs: None
 
 class IndustryAnalyzer:
-    def __init__(self, logger_callback=None, proxy='http://127.0.0.1:7890'):
+    def __init__(self, logger_callback=None, proxy='http://127.0.0.1:7890', metadata_source=None):
         self.config = MacroConfig()
         self.strategist = DeepSeekStrategist(self.config)
-        self.project_root = project_root
+        # S002-009: project root sourced from centralized Settings, not a local
+        # dirname walk (ADR-0001 forbidden pattern ``_PROJECT_ROOT``).
+        self.project_root = str(get_settings().project_root)
         self.logger_callback = logger_callback
         self.cache_file = os.path.join(self.project_root, 'data', 'meta_cache.json')
         self.cache_lock = threading.RLock()
         self.metadata_cache = self._load_cache()
         # 用于记录本次分析中新获取的股票代码
         self.newly_fetched_tickers = set()
-        
+        # Injected metadata source (test seam). Defaults to the yfinance adapter
+        # via the composition root so this module imports no infrastructure.
+        self._metadata_source = metadata_source
+
         # 设置yfinance代理（通过环境变量）
         self.proxy = proxy
         os.environ['HTTP_PROXY'] = proxy
@@ -69,8 +66,8 @@ class IndustryAnalyzer:
         # 如果 csv 中没有 rsrs_z 列，默认为 0.0
         rsrs_val = row.get('rsrs_z', 0.0)
         
-        # 增加一个视觉标记：RSRS > 0.8 为强趋势 (🔥)
-        trend_mark = "🔥" if rsrs_val > 0.8 else ""
+        # 增加一个视觉标记：RSRS > 0.8 为强趋势 ([HOT])
+        trend_mark = "[HOT]" if rsrs_val > 0.8 else ""
         
         return (
             f"- {row['ticker']} [{name}] ({sector}) "
@@ -84,7 +81,7 @@ class IndustryAnalyzer:
         # 取前 50 名，避免 Token 溢出，且头部效应最明显
         top_50 = df.head(50) 
         
-        self.log(f"🔍 正在联网校准 {market_type} 前 50 名股票的业务信息...")
+        self.log(f"[SEARCH] 正在联网校准 {market_type} 前 50 名股票的业务信息...")
         stock_list_str = []
         
         # 并发获取，避免卡顿
@@ -149,7 +146,7 @@ class IndustryAnalyzer:
     def _save_snapshot(self):
         """保存本次分析中新获取的公司数据快照"""
         if not self.newly_fetched_tickers:
-            self.log("ℹ️ 本次分析没有获取到新的公司数据")
+            self.log("[INFO] 本次分析没有获取到新的公司数据")
             return
         
         # 提取本次获取的数据
@@ -170,51 +167,47 @@ class IndustryAnalyzer:
         with open(snapshot_file, 'w', encoding='utf-8') as f:
             json.dump(snapshot_data, f, ensure_ascii=False, indent=2)
         
-        self.log(f"💾 本次分析的公司数据快照已保存: {snapshot_file}")
+        self.log(f"[SAVE] 本次分析的公司数据快照已保存: {snapshot_file}")
         return snapshot_file
 
     def get_stock_metadata(self, ticker, record_new=True):
-        """获取股票名称和行业信息 (消除幻觉的关键)"""
+        """获取股票名称和行业信息 (消除幻觉的关键) — 通过 ITickerMetadataSource 端口.
+
+        The network call is delegated to ``YFinanceMetadataSource`` via the
+        composition root so this module no longer depends directly on yfinance.
+        The in-memory cache and atomic JSON persistence stay in this consumer.
+        """
         # 1. 先查缓存
         with self.cache_lock:
             if ticker in self.metadata_cache:
                 return self.metadata_cache[ticker]['name'], self.metadata_cache[ticker]['sector']
 
-        # 2. 格式转换 (.SH -> .SS 用于 yfinance)
-        yf_ticker = ticker.replace(".SH", ".SS") if ".SH" in ticker else ticker
-        
-        # 重试机制
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                info = yf.Ticker(yf_ticker).info
-                # 优先取中文名或简称，Yahoo A股通常是英文名，AI能翻译
-                name = info.get('shortName', info.get('longName', 'Unknown'))
-                sector = info.get('sector', info.get('industry', 'Unknown'))
-                
-                # 如果获取到的信息为空，可能是请求失败，重试
-                if not info:
-                    self.log(f"⚠️  获取 {ticker} 信息为空，重试 {attempt+1}/{max_retries}")
-                    continue
-                
-                # 3. 写入缓存（只有当数据有效时）
-                if name != 'Unknown':
-                    with self.cache_lock:
-                        self.metadata_cache[ticker] = {'name': name, 'sector': sector}
-                        self._save_cache()
-                        # 记录新获取的股票代码
-                        if record_new:
-                            self.newly_fetched_tickers.add(ticker)
-                    
-                return name, sector
-            except Exception as e:
-                self.log(f"⚠️  获取 {ticker} 元数据失败 (尝试 {attempt+1}/{max_retries}): {e}")
-                if attempt < max_retries - 1:
-                    import time
-                    time.sleep(2)  # 等待2秒后重试
-                else:
-                    return "Unknown", "Unknown"
-        return "Unknown", "Unknown"
+        # 2. 推断市场并委托给 metadata 端口
+        market = "cn" if any(ticker.endswith(s) for s in (".SH", ".SZ", ".BJ")) else "us"
+        if self._metadata_source is None:
+            self._metadata_source = build_metadata_source()
+
+        metadata = self._metadata_source.get_metadata(ticker, market)
+
+        if not metadata:
+            self.log(f"[WARN]  获取 {ticker} 元数据失败: 端口返回空")
+            return "Unknown", "Unknown"
+
+        name = metadata.get('name', 'Unknown')
+        sector = metadata.get('sector', 'Unknown')
+
+        if name == 'Unknown':
+            return "Unknown", "Unknown"
+
+        # 3. 写入缓存（只有当数据有效时）
+        with self.cache_lock:
+            self.metadata_cache[ticker] = {'name': name, 'sector': sector}
+            self._save_cache()
+            # 记录新获取的股票代码
+            if record_new:
+                self.newly_fetched_tickers.add(ticker)
+
+        return name, sector
 
     def load_momentum_data(self, market_type):
         """读取 CSV 并注入元数据"""
@@ -224,14 +217,14 @@ class IndustryAnalyzer:
         latest_csv = self.load_latest_file(os.path.join(csv_dir, pattern))
         
         if not latest_csv:
-            print(f"⚠️ No CSV found for {market_type} in {csv_dir}")
+            print(f"[WARN] No CSV found for {market_type} in {csv_dir}")
             return "No data"
             
         df = pd.read_csv(latest_csv)
         # 取前 50 名，避免 Token 溢出，且头部效应最明显
         top_50 = df.head(50) 
         
-        print(f"🔍 正在联网校准 {market_type} 前 50 名股票的业务信息...")
+        print(f"[SEARCH] 正在联网校准 {market_type} 前 50 名股票的业务信息...")
         stock_list_str = []
         
         # 并发获取，避免卡顿
@@ -249,7 +242,7 @@ class IndustryAnalyzer:
         return "\n".join(stock_list_str)
 
     def run_analysis(self, macro_path=None, cn_path=None, us_path=None):
-        self.log("🚀 启动行业趋势分析引擎...")
+        self.log("[GO] 启动行业趋势分析引擎...")
         
         # 清空本次分析的新获取股票记录
         self.newly_fetched_tickers.clear()
@@ -276,7 +269,7 @@ class IndustryAnalyzer:
             us_stocks = self.load_momentum_data('US')
         
         if cn_stocks == "No data" and us_stocks == "No data":
-            self.log("❌ 缺少动量数据，无法分析")
+            self.log("[ERR] 缺少动量数据，无法分析")
             return None, None
 
         # 2. 构建 Prompt (新增最后一段 Metadata 指令)
@@ -294,7 +287,7 @@ class IndustryAnalyzer:
 **指标说明**:
 - **涨幅**: 过去 60 日的价格变化。
 - **RSRS (Trend Strength)**: 趋势结构强度指标 (范围 -1.0 ~ 1.0)。
-    - **> 0.8 (🔥)**: 强劲的多头趋势结构（阻力被突破，支撑强劲），代表资金持续流入，**行业逻辑真实性高**。
+    - **> 0.8 ([HOT])**: 强劲的多头趋势结构（阻力被突破，支撑强劲），代表资金持续流入，**行业逻辑真实性高**。
     - **< 0.3**: 趋势结构松散或处于震荡，单纯的涨幅可能来自短期消息炒作。
 
 **[A-Share Top Momentum]**
@@ -319,12 +312,12 @@ class IndustryAnalyzer:
 3.  **产业链映射图谱** (共振逻辑)
 4.  **风险提示**
 
-# 🛑 IMPORTANT: Metadata Output
+# [STOP] IMPORTANT: Metadata Output
 TITLE: [你的标题]
 """
         
         # 3. 调用 API
-        self.log("🧠 正在调用 DeepSeek 进行产业链聚类分析...")
+        self.log("[AI] 正在调用 DeepSeek 进行产业链聚类分析...")
         try:
             response = self.strategist.client.chat.completions.create(
                 model=self.config.model,
@@ -371,13 +364,13 @@ TITLE: [你的标题]
             with open(save_path, 'w', encoding='utf-8') as f:
                 f.write(report_content)
                 
-            self.log(f"✅ 行业分析报告已生成: {filename}")
+            self.log(f"[OK] 行业分析报告已生成: {filename}")
             
             # --- 保存公司数据快照 ---
             self._save_snapshot()
             
             # --- 存入数据库 (使用语义化标题) ---
-            self.log(f"💾 正在自动归档: 《{semantic_title}》")
+            self.log(f"[SAVE] 正在自动归档: 《{semantic_title}》")
             
             current_analyst = self.config.model if self.config.model else "deepseek-chat"
             
@@ -391,7 +384,7 @@ TITLE: [你的标题]
             return report_content, filename
             
         except Exception as e:
-            self.log(f"❌ 分析过程出错: {e}")
+            self.log(f"[ERR] 分析过程出错: {e}")
             # 打印详细堆栈以便调试
             import traceback
             traceback.print_exc()

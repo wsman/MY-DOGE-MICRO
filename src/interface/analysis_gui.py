@@ -1,18 +1,18 @@
-import sys
 import os
 import json
 import threading
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                             QLineEdit, QPushButton, QTextEdit, QFileDialog, 
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+                             QLineEdit, QPushButton, QTextEdit, QFileDialog,
                              QComboBox, QGroupBox, QSplitter, QFrame, QSizePolicy)
 from PyQt6.QtCore import Qt, pyqtSignal, QThread
 
-# 路径适配
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(os.path.dirname(current_dir))
-sys.path.append(os.path.join(project_root, 'src', 'micro'))
+# S002-009 / TR-011: package-qualified sibling import (editable install), no
+# sys.path shim (ADR-0001 forbidden pattern ``sys_path_insert``). The project
+# root is sourced from get_settings() instead of a dirname walk.
+from doge.config import get_settings
+from micro.industry_analyzer import IndustryAnalyzer
 
-from industry_analyzer import IndustryAnalyzer
+project_root = str(get_settings().project_root)
 
 class AnalysisWorker(QThread):
     log_signal = pyqtSignal(str)
@@ -26,10 +26,21 @@ class AnalysisWorker(QThread):
         self.profile = profile_config
 
     def run(self):
-        # 核心逻辑：利用环境变量注入配置，兼容 MacroConfig
-        # 这样就不需要修改底层的 config.py，实现了 .env 和 JSON 并存
-        os.environ["DEEPSEEK_API_KEY"] = self.profile.get("api_key", "")
+        # DEEPSEEK_MODEL is set from the selected profile so GUI model-switching
+        # keeps working. As of S002-013 the operator MUST export
+        # DEEPSEEK_API_KEY before launching the GUI — models_config.json ships
+        # only a placeholder, so we no longer inject the profile's api_key here.
         os.environ["DEEPSEEK_MODEL"] = self.profile.get("model", "deepseek-chat")
+
+        if not os.environ.get("DEEPSEEK_API_KEY"):
+            # Surface the missing key via the worker log so the operator sees a
+            # clear remediation hint instead of an opaque SDK auth failure.
+            self.log_signal.emit(
+                "⚠️ DEEPSEEK_API_KEY is not set in the environment. "
+                "Export DEEPSEEK_API_KEY=<your-key> before launching the GUI, "
+                "or macro report generation will fail."
+            )
+
         # 如果底层支持 base_url 环境变量，也可以注入，否则默认
         
         try:

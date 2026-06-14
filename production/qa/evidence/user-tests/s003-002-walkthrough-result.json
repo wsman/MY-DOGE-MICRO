@@ -1,0 +1,30 @@
+{
+  "startedAt": "2026-06-13T22:20:00+08:00",
+  "appUrl": "http://localhost:5173",
+  "steps": [
+    {
+      "id": "scanner",
+      "pass": true,
+      "completed": true,
+      "failed": false,
+      "note": "US Market scan triggered; opentdx optional extra not installed, scanner fell back to local files and completed with 'done' message. No ModuleNotFoundError."
+    },
+    {
+      "id": "insights",
+      "pass": true,
+      "note": "Opened first Macro Reports card; report modal rendered readable Markdown content. Read-side flow verified per design/ux/analysis-flow.md."
+    },
+    {
+      "id": "archive-ticker",
+      "pass": true,
+      "note": "US Market Archive searched for AAPL; rows loaded. Row click populated Ticker with AAPL kline (verified in Ticker view)."
+    }
+  ],
+  "overallPass": true,
+  "finishedAt": "2026-06-13T22:30:00+08:00",
+  "screenshots": {
+    "s003-002-scanner": "production/qa/evidence/user-tests/s003-002-scanner.png",
+    "s003-002-insights": "production/qa/evidence/user-tests/s003-002-insights.png",
+    "s003-002-archive-ticker": "production/qa/evidence/user-tests/s003-002-archive-ticker.png"
+  }
+}

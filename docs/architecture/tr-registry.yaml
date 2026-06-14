@@ -1,0 +1,605 @@
+# Technical Requirement ID Registry
+#
+# PURPOSE: Persistent, stable IDs for every CDD technical requirement.
+# Prevents TR-ID renumbering across /architecture-review runs, which would
+# break story references.
+#
+# RULES:
+#   - IDs are PERMANENT. Never renumber, never delete (use status: deprecated).
+#   - Add new entries only at the END of each system's list.
+#   - When a CDD requirement is reworded (same intent): update `requirement`
+#     text and add a `revised` date. The ID stays the same.
+#   - When a requirement is removed from the CDD: set status: deprecated.
+#   - When a requirement is split or replaced: set status: superseded-by with
+#     the new TR-ID(s).
+#
+# WRITTEN BY: /architecture-review (appends new entries, never overwrites)
+# READ BY:    /create-stories (embed IDs in stories)
+#             /story-done (look up current requirement text at review time)
+#             /story-readiness (validate TR-ID exists and is active)
+#
+# ID FORMAT: TR-[NNN]
+#   NNN = three-digit zero-padded sequence across the WHOLE project (one
+#   flat namespace), starting at 001. `system` carries the CDD slug for
+#   grouping. This flat form matches the brief ("TR-001..TR-0NN") and the
+#   docs/CLAUDE.md example (TR-MOV-001 is per-system in game projects; this
+#   product uses a single flat TR-NNN stream keyed by CDD system).
+#
+# STATUS VALUES: active | deprecated | superseded-by: TR-NNN
+#
+# Each entry maps:
+#   id          -> stable requirement ID
+#   system      -> CDD slug (design/cdd/<slug>.md)
+#   cdd         -> source CDD path
+#   section     -> CDD section carrying the requirement
+#   requirement -> load-bearing requirement / acceptance criterion text
+#   adr         -> governing ADR (docs/architecture/adr-NNNN-*.md)
+#   test        -> verifying test file (relative path)
+#   created     -> date the TR was first minted
+#   revised     -> last text-revision date (empty if never)
+#   status      -> active | deprecated | superseded-by: TR-NNN
+
+version: 1
+last_updated: "2026-06-12"
+
+requirements:
+  # ────────────────────────────────────────────────────────────────────
+  # Module #1 — runtime-configuration (Foundation)
+  # CDD: design/cdd/runtime-configuration.md · ADR-0002, ADR-0001
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-001
+    system: runtime-configuration
+    cdd: design/cdd/runtime-configuration.md
+    section: "3.2 / 8 (Centralization GATE)"
+    requirement: "PROJECT_ROOT is computed exactly once at src/doge/config/settings.py:15 (parents[3]); no module under src/doge/** recomputes _PROJECT_ROOT or inserts into sys.path."
+    adr: docs/architecture/adr-0002-centralized-configuration.md
+    test: tests/test_settings.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-002
+    system: runtime-configuration
+    cdd: design/cdd/runtime-configuration.md
+    section: "3.3 / 7.1"
+    requirement: "The five DOGE_* env vars (DOGE_DB_DIR, DOGE_CN_DB, DOGE_US_DB, DOGE_RESEARCH_DB, DOGE_DUCKDB_PATH) are read exactly once via get_settings(); each has a documented default, valid range, and operational risk."
+    adr: docs/architecture/adr-0002-centralized-configuration.md
+    test: tests/test_settings.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-003
+    system: runtime-configuration
+    cdd: design/cdd/runtime-configuration.md
+    section: "4.1 / 8 (Contract)"
+    requirement: "Settings and all nested configs (DBConfig, TDXConfig, MarketConfig, MCPConfig) are frozen=True dataclasses; get_settings() is a lazy singleton and reset_settings() is the test seam."
+    adr: docs/architecture/adr-0002-centralized-configuration.md
+    test: tests/test_settings.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-004
+    system: runtime-configuration
+    cdd: design/cdd/runtime-configuration.md
+    section: "3.7 / 7.4"
+    requirement: "MCPConfig owns tool_timeout=30, sse_host=127.0.0.1 (loopback default), sse_port=8902 — matching the documented MCP latency budget and local-first constraint."
+    adr: docs/architecture/adr-0006-mcp-transport-strategy.md
+    test: tests/test_settings.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Module #2 — market-data-storage (Foundation)
+  # CDD: design/cdd/market-data-storage.md · ADR-0003, ADR-0001
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-005
+    system: market-data-storage
+    cdd: design/cdd/market-data-storage.md
+    section: "2 / 8 (Migration)"
+    requirement: "No file under src/api/, src/doge/interfaces/, or src/interface/ imports sqlite3 or duckdb or calls .connect(); all storage access goes through IStockRepository / IReportRepository behind ports."
+    adr: docs/architecture/adr-0003-storage-repository-contract.md
+    test: tests/test_database.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-006
+    system: market-data-storage
+    cdd: design/cdd/market-data-storage.md
+    section: "3.2 / 4.6 / 9.2"
+    requirement: "Write failures are logged and surfaced as typed StorageWriteError (never swallowed by bare except: pass); retention_days is configurable via DOGE_RETENTION_DAYS with a documented, non-destructive safe default >= the longest view window (730d)."
+    adr: docs/architecture/adr-0003-storage-repository-contract.md
+    test: tests/test_database.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-007
+    system: market-data-storage
+    cdd: design/cdd/market-data-storage.md
+    section: "3.6 / 4.4 / 8"
+    requirement: "DuckDB analytical layer zero-copy ATTACHes the CN/US SQLite files read-only; the eight documented views (vw_daily_enriched_cn, vw_rsrs_ranking_cn/us, vw_market_breadth_cn/us, vw_volume_anomalies_cn, vw_cross_sectional_return_cn, temp_vol_check) materialize via refresh_views and enumerate via list_views."
+    adr: docs/architecture/adr-0003-storage-repository-contract.md
+    test: tests/test_database.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-008
+    system: market-data-storage
+    cdd: design/cdd/market-data-storage.md
+    section: "4.1"
+    requirement: "stock_prices table has composite PRIMARY KEY (ticker, date) in both CN and US SQLite DBs; a duplicate (ticker, date) insert raises sqlite3.IntegrityError."
+    adr: docs/architecture/adr-0003-storage-repository-contract.md
+    test: tests/test_database.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Module #3 — data-sources (Foundation)
+  # CDD: design/cdd/data-sources.md · ADR-0004, ADR-0001
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-009
+    system: data-sources
+    cdd: design/cdd/data-sources.md
+    section: "2 / 3.3 / 4.1"
+    requirement: "Every external market data source implements IMarketDataSource and download_kline returns the canonical 8-column frame [date, open, high, low, close, volume, amount, ticker] (in order) or None."
+    adr: docs/architecture/adr-0004-data-source-adapter-contract.md
+    test: tests/test_yfinance_adapter.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-010
+    system: data-sources
+    cdd: design/cdd/data-sources.md
+    section: "2 / 9.5"
+    requirement: "Adapters never raise on transient/network/rate-limit failure — they return None (degraded, not crash); a bounded retry loop (max_retries, retry_delay) with rate-limit-token detection is shared across yfinance adapter and macro loader."
+    adr: docs/architecture/adr-0004-data-source-adapter-contract.md
+    test: tests/test_yfinance_adapter.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-011
+    system: data-sources
+    cdd: design/cdd/data-sources.md
+    section: "8 (Migration)"
+    requirement: "src/micro/tdx_downloader.py:23-26 sys.path.insert / _PROJECT_ROOT removed; TDXDataSource no longer raises NotImplementedError (migrated from tdx_downloader.py)."
+    adr: docs/architecture/adr-0004-data-source-adapter-contract.md
+    test: tests/test_tdx_adapter.py
+    created: 2026-06-12
+    revised: "2026-06-14"
+    status: active
+
+  - id: TR-012
+    system: data-sources
+    cdd: design/cdd/data-sources.md
+    section: "9.6"
+    requirement: "The 120-day fetch default stays aligned across TDXReader.MAX_DAYS, downloader --max-bars, _bars_to_df(max_rows), and yfinance period_days (lockstep invariant)."
+    adr: docs/architecture/adr-0004-data-source-adapter-contract.md
+    test: tests/test_yfinance_adapter.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Module #4 — macro-strategy-engine (Core)
+  # CDD: design/cdd/macro-strategy-engine.md · ADR-0005, ADR-0004
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-013
+    system: macro-strategy-engine
+    cdd: design/cdd/macro-strategy-engine.md
+    section: "2 / 9.1"
+    requirement: "The project's single LLM client is DeepSeekStrategist using openai SDK in OpenAI-compatible mode; provider/model/base_url switchable via models_config.json or DEEPSEEK_* env (no source edit)."
+    adr: docs/architecture/adr-0005-llm-client-strategy.md
+    test: tests/test_macro_strategist.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-014
+    system: macro-strategy-engine
+    cdd: design/cdd/macro-strategy-engine.md
+    section: "2 / 3.3 / 9.4"
+    requirement: "On any provider/transport/empty error, generate_strategy_report returns None (degrade, never raise, never crash the operator session); exactly one chat.completions.create call per report."
+    adr: docs/architecture/adr-0005-llm-client-strategy.md
+    test: tests/test_macro_strategist.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-015
+    system: macro-strategy-engine
+    cdd: design/cdd/macro-strategy-engine.md
+    section: "2 / 8 (security)"
+    requirement: "No real API key is committed; models_config.json ships a placeholder and is gitignored; the API key is never logged or printed."
+    adr: docs/architecture/adr-0005-llm-client-strategy.md
+    test: tests/test_macro_strategist.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-016
+    system: macro-strategy-engine
+    cdd: design/cdd/macro-strategy-engine.md
+    section: "4.3 / 8 (BUG-class drift)"
+    requirement: "data_loader.calculate_rsrs is reconciled with the canonical Module #5 copy (flat-variance guard momentum_scanner.py:64-65 + NaN guard :76) — macro local copy returns 0.0 on a flat/zero-variance series, not nan."
+    adr: docs/architecture/adr-0005-llm-client-strategy.md
+    test: tests/test_macro_strategist.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Module #5 — micro-momentum-scanner (Core)
+  # CDD: design/cdd/micro-momentum-scanner.md · (no ADR — algorithm)
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-017
+    system: micro-momentum-scanner
+    cdd: design/cdd/micro-momentum-scanner.md
+    section: "4.1"
+    requirement: "Canonical RSRS = R_squared × sign(slope) via scipy.stats.linregress over the last window (default 18) bars; range [-1.0, 1.0]; owned exclusively at src/micro/momentum_scanner.py:47-71."
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    test: tests/test_momentum_scanner.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-018
+    system: micro-momentum-scanner
+    cdd: design/cdd/micro-momentum-scanner.md
+    section: "4.1 (Guards) / 8 (BUG E)"
+    requirement: "calculate_rsrs returns 0.0 (not nan) on flat/zero-variance series, short series (len < window), and any exception; the scalar and vectorized paths agree to < 1e-6 on identical input."
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    test: tests/test_momentum_scanner.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-019
+    system: micro-momentum-scanner
+    cdd: design/cdd/micro-momentum-scanner.md
+    section: "2 / 3.6"
+    requirement: "The scanner filters the investable universe (CN code whitelist ^00|30|60|68, US leveraged-ETF blacklist, liquidity floors cn 2e8 / us 2e7, US 60-day surge breaker max_change_pct) and emits a Top-200 CSV per market."
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    test: tests/test_momentum_scanner.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Module #6 — ai-industry-analysis (Feature)
+  # CDD: DOES NOT EXIST yet (module-index Design Doc = "—")
+  # The LLM call lives in src/micro/industry_analyzer.py but is owned by
+  # Module #4's LLM client (DeepSeekStrategist). Placeholder TRs pending CDD.
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-020
+    system: ai-industry-analysis
+    cdd: "(CDD NOT YET AUTHORED — see architecture-traceability.md FINDINGS)"
+    section: "n/a"
+    requirement: "Superseded by TR-043 after Module #6 was renamed/re-scoped to Market Reporting with an authored CDD. The LLM-based industry analyzer is documented under Module #5 instead of Module #6."
+    adr: docs/architecture/adr-0005-llm-client-strategy.md
+    test: "(none — blocked on CDD authoring)"
+    created: 2026-06-12
+    revised: "2026-06-12"
+    status: "superseded-by: TR-043"
+
+  - id: TR-021
+    system: ai-industry-analysis
+    cdd: design/cdd/micro-momentum-scanner.md
+    section: "3.8 (Module #6 boundary)"
+    requirement: "Superseded by TR-044 after Module #6 was renamed/re-scoped to Market Reporting. industry_analyzer.py ownership is now documented under Module #5; Module #6 contains no LLM client."
+    adr: docs/architecture/adr-0005-llm-client-strategy.md
+    test: "(none — blocked on CDD authoring + Phase 5)"
+    created: 2026-06-12
+    revised: "2026-06-12"
+    status: "superseded-by: TR-044"
+
+  # ────────────────────────────────────────────────────────────────────
+  # Module #7 — research-insight-knowledge-base (Core)
+  # CDD: design/cdd/research-insight-knowledge-base.md · ADR-0003, ADR-0001
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-022
+    system: research-insight-knowledge-base
+    cdd: design/cdd/research-insight-knowledge-base.md
+    section: "2 / 4.5 / 8"
+    requirement: "Notes are soft-deleted (deleted_at TIMESTAMP column, idempotent migration); every read path (get_notes, get_ticker_with_context, search_notes, list_tracked_tickers, get_recent_notes) filters deleted_at IS NULL; a soft-deleted row stays on disk."
+    adr: docs/architecture/adr-0003-storage-repository-contract.md
+    test: tests/test_notes_crud.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-023
+    system: research-insight-knowledge-base
+    cdd: design/cdd/research-insight-knowledge-base.md
+    section: "3.6 / 4.4"
+    requirement: 'DELETE /api/notes/{note_id} returns 200 {"ok": true} on success and 404 when no active note exists; the deleted note is excluded from all read paths.'
+    adr: docs/architecture/adr-0003-storage-repository-contract.md
+    test: tests/test_notes_crud.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-024
+    system: research-insight-knowledge-base
+    cdd: design/cdd/research-insight-knowledge-base.md
+    section: "2 / 6"
+    requirement: "Notes are permanent across price-retention pruning (Module #2's 180-day retention never touches stock_notes); notes persist in research_insights.db durable across restarts."
+    adr: docs/architecture/adr-0003-storage-repository-contract.md
+    test: tests/test_notes_crud.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Module #8 — mcp-server (Interface)
+  # CDD: design/cdd/mcp-server.md · ADR-0006, ADR-0003
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-025
+    system: mcp-server
+    cdd: design/cdd/mcp-server.md
+    section: "1 / 2 / 3.1"
+    requirement: "The doge-db MCP server exposes exactly six read-only tools (query_stock, stock_overview, rsrs_ranking, market_breadth, volume_anomalies, list_views) over two transports — stdio (primary, .mcp.json entrypoint) and SSE (secondary, loopback 127.0.0.1:8902)."
+    adr: docs/architecture/adr-0006-mcp-transport-strategy.md
+    test: tests/test_mcp_tools.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-026
+    system: mcp-server
+    cdd: design/cdd/mcp-server.md
+    section: "2 / 3.7"
+    requirement: "Every tool is wrapped by the _timed decorator (asyncio.wait_for, TOOL_TIMEOUT=30); on timeout returns 'Error: {tool} timed out after 30s', on exception returns 'Error: {ExcType}: {msg}' — no tool ever raises to the MCP client."
+    adr: docs/architecture/adr-0006-mcp-transport-strategy.md
+    test: tests/test_mcp_tools.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-027
+    system: mcp-server
+    cdd: design/cdd/mcp-server.md
+    section: "2 / 8 (soft-delete fix)"
+    requirement: "stock_overview notes block filters deleted_at IS NULL (Phase-2 fix); soft-deleted notes never appear in MCP responses. Pinned by regression test."
+    adr: docs/architecture/adr-0006-mcp-transport-strategy.md
+    test: tests/test_mcp_notes_softdelete.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-028
+    system: mcp-server
+    cdd: design/cdd/mcp-server.md
+    section: "1 / 3.1 / 8 (Wave 4 entrypoint)"
+    requirement: "doge_mcp.py is the canonical repo-root MCP entrypoint; .mcp.json and scripts launch the modular server, which exposes the six tools with matching signatures/validation and no sys.path fallback."
+    adr: docs/architecture/adr-0006-mcp-transport-strategy.md
+    test: tests/test_transport.py
+    created: 2026-06-12
+    revised: "2026-06-12"
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Module #9 — fastapi-service (Interface)
+  # CDD: design/cdd/fastapi-service.md · ADR-0007
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-029
+    system: fastapi-service
+    cdd: design/cdd/fastapi-service.md
+    section: "1 / 4.1"
+    requirement: "The FastAPI service binds to 127.0.0.1:8901 and exposes the canonical 26 product routes (24 across six routers + /api/health + /api/stats); the route table is the auditable contract."
+    adr: docs/architecture/adr-0007-api-surface-and-cors.md
+    test: tests/test_api_routers.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-030
+    system: fastapi-service
+    cdd: design/cdd/fastapi-service.md
+    section: "8 / ADR-0007 Decision 3"
+    requirement: "Error responses converge on a stable non-leaking envelope {error:{code,message}} via a global exception handler; the current 'except Exception as e: raise HTTPException(500, str(e))' leak is tracked tech debt, not the contract."
+    adr: docs/architecture/adr-0007-api-surface-and-cors.md
+    test: tests/test_api_routers.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-031
+    system: fastapi-service
+    cdd: design/cdd/fastapi-service.md
+    section: "3.2 / 8"
+    requirement: "POST /api/scan/{market} serializes at most one concurrent scan per market via _scan_locks (409 on a second); streams progress over SSE (progress=100 done, progress=-1 error)."
+    adr: docs/architecture/adr-0007-api-surface-and-cors.md
+    test: tests/test_api_routers.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-032
+    system: fastapi-service
+    cdd: design/cdd/fastapi-service.md
+    section: "8 / ADR-0007 Decision 2"
+    requirement: "CORS allow_origins=['*'] is justified ONLY by the loopback bind; binding to a non-loopback interface is gated on tightening CORS to an explicit localhost list (hardening story)."
+    adr: docs/architecture/adr-0007-api-surface-and-cors.md
+    test: tests/test_api_routers.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Module #10 — pyqt-desktop-dashboard (Presentation)
+  # CDD: design/cdd/pyqt-desktop-dashboard.md · ADR-0001 (no new ADR)
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-033
+    system: pyqt-desktop-dashboard
+    cdd: design/cdd/pyqt-desktop-dashboard.md
+    section: "2 / 3"
+    requirement: "Long-running scans, macro runs, and LLM analysis run on QThread workers; progress/log lines stream back via Qt signals so the UI never freezes."
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    test: tests/test_pyqt_smoke.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-034
+    system: pyqt-desktop-dashboard
+    cdd: design/cdd/pyqt-desktop-dashboard.md
+    section: "2 / 3.4"
+    requirement: "A scan auto-locks the relevant DB-editor tab, then refreshes and switches to it on completion, so the operator never edits a half-written DB."
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    test: tests/test_pyqt_smoke.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Module #11 — vue-web-console (Presentation)
+  # CDD: design/cdd/vue-web-console.md · ADR-0008, ADR-0007
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-035
+    system: vue-web-console
+    cdd: design/cdd/vue-web-console.md
+    section: "1 / 2"
+    requirement: "The web console is a Vue 3 SPA (Vue 3.5 + Vite 8 + Pinia 3 + Naive UI 2.44 + lightweight-charts v5) consuming the FastAPI Service over JSON + manual-fetch SSE; build (npm run build) and smoke tests (npm test) stay green with no live API dependency."
+    adr: docs/architecture/adr-0008-web-architecture.md
+    test: web/src/composables/useFuzzySearch.spec.ts
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-036
+    system: vue-web-console
+    cdd: design/cdd/vue-web-console.md
+    section: "2 / 3 / ADR-0008 Decision 5"
+    requirement: "SSE is read via raw fetch (not EventSource) because the scan endpoint is POST /api/scan/{market}; the reader parses data: lines and treats progress===-1 as error, progress>=100 as complete."
+    adr: docs/architecture/adr-0008-web-architecture.md
+    test: web/src/stores/scanner.spec.ts
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-037
+    system: vue-web-console
+    cdd: design/cdd/vue-web-console.md
+    section: "8 (OPEN) / 9 Q1"
+    requirement: "The @pretext sibling-project alias becomes portable (vendored or npm-published) so the build is green on a machine without the sibling checkout."
+    adr: docs/architecture/adr-0008-web-architecture.md
+    test: web/src/composables/useVirtualScroll.spec.ts
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Module #12 — clean-architecture-migration (Operations)
+  # CDD: design/cdd/clean-architecture-migration.md · ADR-0001
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-038
+    system: clean-architecture-migration
+    cdd: design/cdd/clean-architecture-migration.md
+    section: "4.3 / 8 (AC-1, AC-2)"
+    requirement: "Layer dependency rule is enforced: interfaces/* may not import sqlite3/duckdb/ai_analysis/micro/sys.path mutation; core/services/* may not import sqlite3/duckdb/infrastructure/frameworks; infrastructure implements core/ports."
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    test: tests/test_mcp_tools.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-039
+    system: clean-architecture-migration
+    cdd: design/cdd/clean-architecture-migration.md
+    section: "8 (AC-3, AC-8)"
+    requirement: "Path/DB constants in legacy src/ai_analysis/__init__.py and src/doge/config/settings.py resolve to identical values for the same environment; ai_analysis god-package path constants are removed once all imports move."
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    test: tests/test_settings.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-040
+    system: clean-architecture-migration
+    cdd: design/cdd/clean-architecture-migration.md
+    section: "4.4 (forbidden patterns) / 8 (AC-6, AC-7)"
+    requirement: "Forbidden patterns are eliminated from interface/core layers: direct_sqlite_import_in_interface, direct_duckdb_connect_in_interface, sys_path_insert, _PROJECT_ROOT_recalculation, cross_layer_state_write (14 sys.path.insert sites across 13 legacy files)."
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    test: tests/test_database.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-041
+    system: clean-architecture-migration
+    cdd: design/cdd/clean-architecture-migration.md
+    section: "8 (AC-9, OQ-5)"
+    requirement: "The four DuckDBConnection-backed services are reconciled — converted to depend on the IMarketViewRepository port (single execute->DataFrame method) with a composition root owning the infrastructure wiring."
+    adr: docs/architecture/adr-0010-view-service-port-injection.md
+    test: tests/unit/core/services/test_view_services_port_injection.py
+    created: 2026-06-12
+    revised: "2026-06-12"
+    status: active
+
+  - id: TR-042
+    system: clean-architecture-migration
+    cdd: design/cdd/clean-architecture-migration.md
+    section: "8 (AC-10, OQ-2)"
+    requirement: "ADR-0001 port names (StockRepository, ReportRepository, NoteRepository, MarketDataSource, TickerMetadataSource vs Cache) are reconciled with source ABC names (IStockRepository, etc.) — I-prefix kept, registry alias map recorded; the TickerMetadataSource/Cache ambiguity is split into two distinct ports (ITickerMetadataSource + ITickerNameCache)."
+    adr: docs/architecture/adr-0009-cache-metadata-port-split.md
+    test: tests/unit/core/ports/test_port_inventory.py
+    created: 2026-06-12
+    revised: "2026-06-12"
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Module #6 — market-reporting (Feature)
+  # CDD: design/cdd/market-reporting.md · ADR-0001, ADR-0002
+  # Appended after superseding the old AI Industry Analysis placeholders.
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-043
+    system: market-reporting
+    cdd: design/cdd/market-reporting.md
+    section: "1 / 2 / 3.2-3.4"
+    requirement: "Market Reporting produces pure SQL Markdown/JSON artifacts from Module #2 DuckDB views and local SQLite data — market overview, anomaly detection, and data catalog — with no LLM calls and no industry-analysis ownership."
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    test: tests/test_market_reporting.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-044
+    system: market-reporting
+    cdd: design/cdd/market-reporting.md
+    section: "5 / 8 (edge cases and acceptance criteria)"
+    requirement: "Market Reporting tests isolate DuckDB/network access with fakes and pin empty-result rendering: report sections remain present with placeholders instead of silently omitting empty detectors."
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    test: tests/test_market_reporting.py
+    created: 2026-06-12
+    revised: ""
+    status: active
+
+  - id: TR-045
+    system: research-insight-knowledge-base
+    cdd: design/cdd/research-insight-knowledge-base.md
+    section: "CDD OQ-4 (port split)"
+    requirement: "INoteRepository port (split from IReportRepository, closes OQ-4) + SQLiteNoteRepository adapter; the notes domain is decoupled from direct sqlite3, with soft-delete-aware reads/writes mirroring the legacy stock_notes contract."
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    test: tests/unit/doge/test_note_repository.py
+    created: 2026-06-14
+    revised: ""
+    status: active
+
+  - id: TR-046
+    system: research-insight-knowledge-base
+    cdd: design/cdd/research-insight-knowledge-base.md
+    section: "interface layer §6 gate"
+    requirement: "src/api/routers/notes.py and src/doge/interfaces/mcp/tools/query_stock.py route through INoteRepository (Depends / get_ticker_with_context); no direct sqlite3 in src/api or src/doge/interfaces — the §6 layer-rule grep gate is green."
+    adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
+    test: tests/test_notes_crud.py
+    created: 2026-06-14
+    revised: ""
+    status: active
