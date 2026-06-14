@@ -1,13 +1,16 @@
-"""
-评论路由 — CRUD
+"""评论路由 — CRUD
+
+All storage access is now routed through ``ManageNotesUseCase`` via the
+``deps.get_manage_notes_use_case`` provider. The response shapes are preserved
+from the legacy direct-repository implementation.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from typing import Optional
 
+from doge.application.contracts.request import ManageNoteRequest
 from doge.interfaces.api import deps
-from doge.core.ports.repository import INoteRepository
 
 router = APIRouter()
 
@@ -24,10 +27,13 @@ class NoteCreate(BaseModel):
 @router.get("/ticker/{ticker}")
 async def get_ticker_context(
     ticker: str,
-    repo: INoteRepository = Depends(deps.get_note_repository),
+    _uc=Depends(deps.get_manage_notes_use_case),
 ):
     """股票全景: 价格 + 名称 + 评论"""
-    ctx = repo.get_ticker_with_context(ticker, market="cn")
+    resp = _uc.execute(
+        ManageNoteRequest(operation="get_context", ticker=ticker, market="cn")
+    )
+    ctx = resp.context
     # 将 DataFrame 转为可序列化格式
     if "price_data" in ctx and hasattr(ctx["price_data"], "to_dict"):
         ctx["price_data"] = ctx["price_data"].to_dict(orient="records")
@@ -37,49 +43,58 @@ async def get_ticker_context(
 @router.post("")
 async def add_note(
     note: NoteCreate,
-    repo: INoteRepository = Depends(deps.get_note_repository),
+    _uc=Depends(deps.get_manage_notes_use_case),
 ):
-    note_id = repo.add_note(
-        ticker=note.ticker,
-        note_text=note.content,
-        market=note.market,
-        note_type=note.note_type,
-        title=note.title,
-        tags=note.tags,
+    resp = _uc.execute(
+        ManageNoteRequest(
+            operation="add",
+            ticker=note.ticker,
+            note_text=note.content,
+            market=note.market,
+            note_type=note.note_type,
+            title=note.title,
+            tags=note.tags,
+        )
     )
-    return {"id": note_id}
+    return {"id": resp.note_id}
 
 
 @router.get("/search")
 async def search_notes(
     q: str = Query(..., min_length=1),
     limit: int = 50,
-    repo: INoteRepository = Depends(deps.get_note_repository),
+    _uc=Depends(deps.get_manage_notes_use_case),
 ):
-    results = repo.search_notes(q, limit=limit)
-    return {"results": results}
+    resp = _uc.execute(
+        ManageNoteRequest(operation="search", keyword=q, limit=limit)
+    )
+    return {"results": resp.notes}
 
 
 @router.get("/recent")
 async def recent_notes(
     days: int = 7,
     limit: int = 100,
-    repo: INoteRepository = Depends(deps.get_note_repository),
+    _uc=Depends(deps.get_manage_notes_use_case),
 ):
-    return {"results": repo.get_recent_notes(days=days, limit=limit)}
+    resp = _uc.execute(
+        ManageNoteRequest(operation="recent", days=days, limit=limit)
+    )
+    return {"results": resp.notes}
 
 
 @router.get("/tracked")
 async def tracked_tickers(
-    repo: INoteRepository = Depends(deps.get_note_repository),
+    _uc=Depends(deps.get_manage_notes_use_case),
 ):
-    return {"tickers": repo.list_tracked_tickers()}
+    resp = _uc.execute(ManageNoteRequest(operation="tracked"))
+    return {"tickers": resp.notes}
 
 
 @router.delete("/{note_id}")
 async def delete_note(
     note_id: int,
-    repo: INoteRepository = Depends(deps.get_note_repository),
+    _uc=Depends(deps.get_manage_notes_use_case),
 ):
     """Soft-delete a note.
 
@@ -87,7 +102,9 @@ async def delete_note(
     404 when no active note with ``note_id`` exists (missing id, already
     deleted, or never existed).
     """
-    deleted = repo.delete_note(note_id)
-    if not deleted:
+    resp = _uc.execute(
+        ManageNoteRequest(operation="delete", note_id=note_id)
+    )
+    if not resp.success:
         raise HTTPException(404, "note not found")
     return {"ok": True}

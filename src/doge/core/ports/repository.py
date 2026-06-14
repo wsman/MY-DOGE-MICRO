@@ -243,6 +243,9 @@ class INoteRepository(ABC):
         self,
         ticker: Optional[str] = None,
         include_deleted: bool = False,
+        limit: Optional[int] = None,
+        days_back: Optional[int] = None,
+        note_type: Optional[str] = None,
     ) -> List[dict]:
         """Return notes, optionally filtered by ticker.
 
@@ -250,6 +253,9 @@ class INoteRepository(ABC):
             ticker: When given, restrict to this ticker. When ``None``,
                 return notes for all tickers.
             include_deleted: When ``True``, include soft-deleted rows.
+            limit: Maximum rows to return.
+            days_back: Only include rows created within the last N days.
+            note_type: Filter by note_type value.
 
         Returns:
             List of note records ordered newest-first.

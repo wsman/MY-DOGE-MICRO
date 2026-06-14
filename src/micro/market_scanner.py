@@ -34,11 +34,9 @@ logger = logging.getLogger(__name__)
 
 def _refresh_duckdb_views():
     """数据导入后刷新 DuckDB 分析视图"""
+    from doge.infrastructure.database.duckdb import DuckDBConnection
     try:
-        from ai_analysis import connect_duckdb, run_views_sql
-        con = connect_duckdb()
-        run_views_sql(con)
-        con.close()
+        DuckDBConnection(read_only=False).refresh_views()
         print("[OK] DuckDB analysis views refreshed")
     except Exception as e:
         print("[WARN] DuckDB views refresh failed (non-fatal): {}".format(e))

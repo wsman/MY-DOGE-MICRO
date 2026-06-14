@@ -567,8 +567,11 @@ class SQLiteNoteRepository(INoteRepository):
         self,
         ticker: Optional[str] = None,
         include_deleted: bool = False,
+        limit: Optional[int] = None,
+        days_back: Optional[int] = None,
+        note_type: Optional[str] = None,
     ) -> List[dict]:
-        """Return notes, optionally filtered by ticker."""
+        """Return notes with optional filters (ticker, date window, type, limit)."""
         self._ensure_deleted_at_column()
         sql = "SELECT * FROM stock_notes WHERE 1=1"
         params: List[object] = []
@@ -577,7 +580,18 @@ class SQLiteNoteRepository(INoteRepository):
             params.append(ticker)
         if not include_deleted:
             sql += " AND deleted_at IS NULL"
+        if note_type:
+            sql += " AND note_type = ?"
+            params.append(note_type)
+        if days_back:
+            from datetime import datetime, timedelta
+            cutoff = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
+            sql += " AND created_at >= ?"
+            params.append(cutoff)
         sql += " ORDER BY created_at DESC"
+        if limit:
+            sql += " LIMIT ?"
+            params.append(limit)
         rows = self._conn.execute(sql, params)
         return [dict(r) for r in rows]
 

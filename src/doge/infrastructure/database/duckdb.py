@@ -4,13 +4,17 @@ Replaces scattered `connect_duckdb()` and `get_duckdb_connection()`
 calls across ai_analysis, cli, api, mcp_server.
 """
 
+import logging
 import os
 from contextlib import contextmanager
-from typing import Generator
+from pathlib import Path
+from typing import Generator, Optional
 
 import duckdb
 
 from doge.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 # Limit OpenBLAS threads to avoid OOM during pandas conversion
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
@@ -111,6 +115,51 @@ class DuckDBConnection:
                         con.execute(stmt)
                     except Exception:
                         pass  # Best-effort; individual views may fail
+        finally:
+            if close_on_exit:
+                con.close()
+
+    def query_view(self, view_name: str, limit: Optional[int] = None):
+        """Query a named DuckDB view and return a DataFrame.
+
+        Args:
+            view_name: DuckDB view or table identifier.
+            limit: Optional row limit.
+        """
+        sql = f"SELECT * FROM {view_name}"
+        if limit:
+            sql += f" LIMIT {limit}"
+        return self.execute(sql)
+
+    def query_sql(self, sql: str, params=None):
+        """Execute an arbitrary SQL query and return a DataFrame."""
+        return self.execute(sql, params)
+
+    def get_duckdb_view_stats(self, con: Optional[duckdb.DuckDBPyConnection] = None) -> dict:
+        """Return {view_name: {"row_count": int|None}} for all DuckDB views.
+
+        If ``con`` is provided it is used as-is (caller manages lifecycle);
+        otherwise a temporary read-only connection is opened.
+        """
+        close_on_exit = False
+        if con is None:
+            con = duckdb.connect(self._duckdb_path, read_only=True)
+            close_on_exit = True
+            con.execute(f"ATTACH IF NOT EXISTS '{self._cn_db}' AS cn (TYPE sqlite, READ_ONLY)")
+            con.execute(f"ATTACH IF NOT EXISTS '{self._us_db}' AS us (TYPE sqlite, READ_ONLY)")
+
+        try:
+            views = {}
+            result = con.execute(
+                "SELECT table_name FROM information_schema.tables WHERE table_type='VIEW'"
+            ).fetchall()
+            for (vname,) in result:
+                try:
+                    cnt = con.execute(f"SELECT COUNT(*) FROM {vname}").fetchone()[0]
+                    views[vname] = {"row_count": cnt}
+                except Exception:
+                    views[vname] = {"row_count": None}
+            return views
         finally:
             if close_on_exit:
                 con.close()

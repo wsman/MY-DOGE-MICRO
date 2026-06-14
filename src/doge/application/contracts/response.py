@@ -64,6 +64,7 @@ class ManageNoteResponse:
     success: bool = False
     note_id: Optional[int] = None
     notes: List[NoteItem] = field(default_factory=list)
+    context: dict = field(default_factory=dict)
     count: int = 0
     message: str = ""
 

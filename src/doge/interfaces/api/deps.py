@@ -41,6 +41,11 @@ def get_note_repository() -> INoteRepository:
     return app_composition.build_note_repository()
 
 
+def get_manage_notes_use_case():
+    """Provide the default ``ManageNotesUseCase``."""
+    return app_composition.build_manage_notes_use_case()
+
+
 def get_metadata_source() -> ITickerMetadataSource:
     """Provide the default yfinance-backed ticker metadata source."""
     return app_composition.build_metadata_source()

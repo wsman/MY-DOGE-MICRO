@@ -118,41 +118,23 @@ class TestKlineInternalErrorEnvelope:
 # ===========================================================================
 # notes router internal-error envelopes (5 leak sites, removed in S002-009)
 # ===========================================================================
-# S004 Wave A: the notes router now receives an :class:`INoteRepository` via
-# ``Depends(deps.get_note_repository)``. Error injection mirrors the kline test
-# above — install a FastAPI dependency override that returns an object whose
-# relevant method raises the sentinel, then clear it in ``finally`` so the
-# override never leaks into neighbouring tests.
-class _RaisingNoteRepository:
-    """Stand-in repository whose every method raises the leak sentinel.
+# S007-004: the notes router now receives a ``ManageNotesUseCase`` via
+# ``Depends(deps.get_manage_notes_use_case)``. Error injection mirrors the
+# kline test above — install a FastAPI dependency override that returns a use
+# case whose ``execute`` raises the sentinel, then clear it in ``finally`` so
+# the override never leaks into neighbouring tests.
+class _RaisingManageNotesUseCase:
+    """Stand-in use case whose ``execute`` always raises the leak sentinel."""
 
-    Only the method the handler actually calls before responding needs to
-    raise; the others are present so the override is a drop-in for any
-    notes-route code path.
-    """
-
-    def get_ticker_with_context(self, *_a, **_k):
-        raise RuntimeError(_LEAK_SENTINEL)
-
-    def add_note(self, *_a, **_k):
-        raise RuntimeError(_LEAK_SENTINEL)
-
-    def search_notes(self, *_a, **_k):
-        raise RuntimeError(_LEAK_SENTINEL)
-
-    def get_recent_notes(self, *_a, **_k):
-        raise RuntimeError(_LEAK_SENTINEL)
-
-    def list_tracked_tickers(self, *_a, **_k):
+    def execute(self, *_a, **_k):
         raise RuntimeError(_LEAK_SENTINEL)
 
 
 class TestNotesInternalErrorEnvelope:
     def test_get_ticker_context_internal_error_returns_envelope(self, client):
-        # Arrange — covers notes.py get_ticker_context leak site. The handler
-        # calls ``repo.get_ticker_with_context``; the override raises.
-        api_main.app.dependency_overrides[deps.get_note_repository] = (
-            lambda: _RaisingNoteRepository()
+        # Arrange — covers notes.py get_ticker_context leak site.
+        api_main.app.dependency_overrides[deps.get_manage_notes_use_case] = (
+            lambda: _RaisingManageNotesUseCase()
         )
         try:
             # Act
@@ -164,8 +146,8 @@ class TestNotesInternalErrorEnvelope:
 
     def test_add_note_internal_error_returns_envelope(self, client):
         # Arrange — covers notes.py add_note leak site.
-        api_main.app.dependency_overrides[deps.get_note_repository] = (
-            lambda: _RaisingNoteRepository()
+        api_main.app.dependency_overrides[deps.get_manage_notes_use_case] = (
+            lambda: _RaisingManageNotesUseCase()
         )
         try:
             # Act
@@ -179,8 +161,8 @@ class TestNotesInternalErrorEnvelope:
 
     def test_search_notes_internal_error_returns_envelope(self, client):
         # Arrange — covers notes.py search_notes leak site.
-        api_main.app.dependency_overrides[deps.get_note_repository] = (
-            lambda: _RaisingNoteRepository()
+        api_main.app.dependency_overrides[deps.get_manage_notes_use_case] = (
+            lambda: _RaisingManageNotesUseCase()
         )
         try:
             # Act
@@ -192,8 +174,8 @@ class TestNotesInternalErrorEnvelope:
 
     def test_recent_notes_internal_error_returns_envelope(self, client):
         # Arrange — covers notes.py recent_notes leak site.
-        api_main.app.dependency_overrides[deps.get_note_repository] = (
-            lambda: _RaisingNoteRepository()
+        api_main.app.dependency_overrides[deps.get_manage_notes_use_case] = (
+            lambda: _RaisingManageNotesUseCase()
         )
         try:
             # Act
@@ -205,8 +187,8 @@ class TestNotesInternalErrorEnvelope:
 
     def test_tracked_tickers_internal_error_returns_envelope(self, client):
         # Arrange — covers notes.py tracked_tickers leak site.
-        api_main.app.dependency_overrides[deps.get_note_repository] = (
-            lambda: _RaisingNoteRepository()
+        api_main.app.dependency_overrides[deps.get_manage_notes_use_case] = (
+            lambda: _RaisingManageNotesUseCase()
         )
         try:
             # Act
