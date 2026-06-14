@@ -11,7 +11,10 @@ via the ``build_*`` functions here rather than wiring adapters directly, so the
 layer invariant stays grep-able.
 """
 
+from typing import Optional
+
 from doge.core.ports.market_view import IMarketViewRepository
+from doge.core.ports.metadata import ITickerMetadataSource
 from doge.core.ports.repository import IReportRepository, ISchemaBrowser, IStockRepository, INoteRepository
 from doge.core.services.anomaly_service import AnomalyService
 from doge.core.services.breadth_service import BreadthService
@@ -29,6 +32,7 @@ from doge.infrastructure.database.repositories import (
     SQLiteSchemaBrowser,
     SQLiteNoteRepository,
 )
+from doge.infrastructure.data_source.yfinance_metadata import YFinanceMetadataSource
 
 
 def build_view_repository(read_only: bool = True) -> IMarketViewRepository:
@@ -79,6 +83,14 @@ def build_schema_browser() -> ISchemaBrowser:
 def build_note_repository() -> INoteRepository:
     """Construct the default SQLite-backed note repository."""
     return SQLiteNoteRepository()
+
+
+def build_metadata_source(
+    max_retries: Optional[int] = None,
+    retry_delay: Optional[float] = None,
+) -> ITickerMetadataSource:
+    """Construct the default yfinance-backed ticker metadata source."""
+    return YFinanceMetadataSource(max_retries=max_retries, retry_delay=retry_delay)
 
 
 def build_ranking_service(

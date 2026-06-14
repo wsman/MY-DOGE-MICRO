@@ -31,7 +31,6 @@ import pytest
 # Test-shim exception (documented in test_settings.py): make src/ importable.
 # Mirrors the ``pythonpath=["src"]`` pytest config so this file also runs when
 # invoked directly.
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 # Load src/cli.py by explicit file path under a DISTINCT module name. A bare
 # ``import cli`` would resolve to the ``tests/cli`` package (this directory's

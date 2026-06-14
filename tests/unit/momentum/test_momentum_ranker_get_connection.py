@@ -22,7 +22,6 @@ from pathlib import Path
 import pytest
 
 # Test-shim exception (documented in test_settings.py): make src/ importable.
-sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "src"))
 
 from doge.config.settings import reset_settings  # noqa: E402
 from micro.momentum_scanner import MomentumRanker  # noqa: E402

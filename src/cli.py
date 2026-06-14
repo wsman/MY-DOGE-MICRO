@@ -6,6 +6,7 @@ Usage:
     python src/cli.py rsrs [--market cn] [--top 20]
     python src/cli.py breadth [--market cn] [--days 10]
     python src/cli.py anomaly [--min-ratio 3.0] [--top 20]
+    python src/cli.py demo [--market cn] [--top 5]
 
 Clean-architecture wiring (ADR-0001 / ADR-0010): each subcommand delegates to
 its read-only service via the composition root factories in
@@ -137,6 +138,71 @@ def cmd_anomaly(args):
                    floatfmt=(".0f", ".2f", ".2f")))
 
 
+def cmd_demo(args):
+    """Zero-config demo walkthrough using bundled sample data.
+
+    Runs RSRS ranking, market breadth, volume anomalies, and a sample stock
+    query through the existing service seam. Requires no ``DEEPSEEK_API_KEY``.
+    """
+    market = args.market
+    top = args.top
+    sample_ticker = "600000.SH" if market == "cn" else "AAPL"
+
+    print("=" * 60)
+    print("MY-DOGE-MICRO 5-Minute Demo — using bundled sample data")
+    print("=" * 60)
+
+    ranking = build_ranking_service().rsrs(market, top)
+    if ranking:
+        print(f"\nTop {top} momentum stocks (RSRS) — {market.upper()}")
+        df = pd.DataFrame(ranking)
+        cols = ["rank", "ticker", "rsrs", "avg_vol_20d", "last_close"]
+        if "pct_change_60d" in df.columns:
+            cols.append("pct_change_60d")
+        print(tabulate(df[cols], headers="keys", tablefmt="simple",
+                       showindex=False, floatfmt=(".0f", ".6f", ".0f", ".2f", ".2f", ".2f")))
+    else:
+        print(f"\nNo RSRS data available for {market.upper()}")
+
+    breadth = build_breadth_service().breadth(market, days=5)
+    if breadth:
+        print(f"\nLast 5 days market breadth — {market.upper()}")
+        df = pd.DataFrame(breadth)
+        print(tabulate(df, headers="keys", tablefmt="simple", showindex=False,
+                       floatfmt=(".0f", ".0f", ".0f", ".2f", ".2f")))
+    else:
+        print(f"\nNo breadth data available for {market.upper()}")
+
+    anomalies = build_anomaly_service().anomalies(min_ratio=3.0, top=top)
+    if anomalies:
+        print(f"\nTop {top} volume anomalies — CN")
+        df = pd.DataFrame(anomalies)
+        print(tabulate(df, headers="keys", tablefmt="simple", showindex=False,
+                       floatfmt=(".0f", ".2f", ".2f")))
+    else:
+        print("\nNo volume anomalies available")
+
+    stock = build_stock_service().query(sample_ticker, market, days=10)
+    if stock:
+        print(f"\nSample stock query — {sample_ticker}")
+        df = pd.DataFrame(stock)
+        print(tabulate(df, headers="keys", tablefmt="simple", showindex=False,
+                       floatfmt=(".0f", ".2f", ".2f", ".2f", ".2f", ".0f")))
+    else:
+        print(f"\nNo data for sample ticker {sample_ticker}")
+
+    has_any = ranking or breadth or anomalies or stock
+    if not has_any:
+        print(
+            "\nNo demo data found. Make sure the bundled data files exist; see "
+            "docs/GETTING_STARTED.md for data population instructions."
+        )
+        sys.exit(EXIT_NO_DATA)
+
+    print("\nDemo complete. See docs/GETTING_STARTED.md for the full walkthrough.")
+    print("For LLM-powered reports, set DEEPSEEK_API_KEY and run: python -m macro.cli")
+
+
 def main():
     """Parse argv and dispatch to the matching command handler."""
     parser = argparse.ArgumentParser(
@@ -166,6 +232,11 @@ def main():
     p_anomaly.add_argument("--min-ratio", type=float, default=3.0)
     p_anomaly.add_argument("--top", type=int, default=20)
 
+    # demo
+    p_demo = sub.add_parser("demo", help="5-minute demo using bundled sample data")
+    p_demo.add_argument("--market", default="cn", choices=["cn", "us"])
+    p_demo.add_argument("--top", type=int, default=5)
+
     args = parser.parse_args()
     if args.cmd is None:
         parser.print_help()
@@ -176,6 +247,7 @@ def main():
         "rsrs": cmd_rsrs,
         "breadth": cmd_breadth,
         "anomaly": cmd_anomaly,
+        "demo": cmd_demo,
     }
     dispatch[args.cmd](args)
 

@@ -29,7 +29,6 @@ import pandas as pd
 import pytest
 
 # Make src/ importable without depending on package install state.
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from doge.core.ports.data_source import IMarketDataSource  # noqa: E402
 from doge.infrastructure.data_source.tdx import (  # noqa: E402

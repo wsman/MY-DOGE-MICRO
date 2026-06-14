@@ -119,17 +119,17 @@ def test_every_port_abc_has_at_least_one_infrastructure_impl():
     )
 
 
-def test_yfinance_metadata_source_stub_is_impl_that_raises_not_implemented():
-    """ADR-0009: the ITickerMetadataSource stub adapter exists, is an
-    ITickerMetadataSource, and raises NotImplementedError (mirroring the
-    TDXDataSource stub pattern at tdx.py:32,35)."""
+def test_yfinance_metadata_source_is_real_impl():
+    """ADR-0009: the ITickerMetadataSource adapter exists and is concrete."""
     from doge.infrastructure.data_source.yfinance_metadata import (
         YFinanceMetadataSource,
     )
 
     assert isinstance(YFinanceMetadataSource(), ITickerMetadataSource)
-    with __import__("pytest").raises(NotImplementedError):
-        YFinanceMetadataSource().get_metadata("AAPL", "us")
+    # It no longer raises NotImplementedError; the real implementation delegates
+    # to yfinance Ticker.info (mocked in unit tests, see
+    # tests/unit/core/ports/test_yfinance_metadata_source.py).
+    assert not inspect.isabstract(YFinanceMetadataSource)
 
 
 def test_duckdb_market_view_repository_impls_port():

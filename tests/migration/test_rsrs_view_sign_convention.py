@@ -41,7 +41,6 @@ from pathlib import Path
 
 # Test shim: put src/ on sys.path (documented exception, see test_settings.py).
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(_PROJECT_ROOT / "src"))
 
 import duckdb  # noqa: E402
 import numpy as np  # noqa: E402

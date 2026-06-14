@@ -32,7 +32,6 @@ from scipy import stats
 # Test-shim exception (documented in test_settings.py): make src/ importable
 # without depending on package install state. momentum_scanner.py lives in
 # src/micro/, so we add src/ to sys.path and import from the micro package.
-sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "src"))
 
 from micro.momentum_scanner import MomentumRanker  # noqa: E402
 

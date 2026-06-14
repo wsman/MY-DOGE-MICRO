@@ -7,9 +7,8 @@ Accepted
 > **Accepted via Wave-4 architecture review (2026-06-12).** The port-split
 > decision is realized: `ITickerNameCache` remains the local JSON name-cache
 > port, `ITickerMetadataSource` is declared for remote yfinance `.info`
-> metadata, and `YFinanceMetadataSource` exists as the stub adapter. The real
-> `industry_analyzer.py:190` metadata migration remains follow-on
-> implementation work, not an ADR acceptance gate.
+> metadata, and `YFinanceMetadataSource` is a full implementation (S006-005
+> migrated `industry_analyzer.py` onto the port).
 
 ## Date
 
@@ -17,7 +16,7 @@ Accepted
 
 ## Last Verified
 
-2026-06-12
+2026-06-14 (S006-005: `industry_analyzer.py` migrated onto `YFinanceMetadataSource`).
 
 ## Decision Makers
 
@@ -230,8 +229,11 @@ class ITickerMetadataSource(ABC):
 1. **Done (this story)**: Declare `ITickerMetadataSource` + stub
    `YFinanceMetadataSource`; export both ports from `ports/__init__.py`; leave
    `ITickerNameCache` unchanged.
-2. **Follow-on**: Migrate `industry_analyzer.py:190` onto `YFinanceMetadataSource`
-   (remove the in-memory `metadata_cache` dict and the local retry loop).
+2. **Done (S006-005, 2026-06-14)**: Migrate `industry_analyzer.py:190` onto
+   `YFinanceMetadataSource`. The in-memory `metadata_cache` dict and atomic
+   `meta_cache.json` persistence remain in `IndustryAnalyzer` (the consumer);
+   the network call and retry loop moved into the adapter via the composition
+   root.
 3. **Follow-on governance**: Reconcile ADR-0003's `ICache` to
    `ITickerNameCache` when ADR-0003 is promoted.
 
@@ -241,12 +243,15 @@ existing `ITickerNameCache` is untouched.
 
 ## Validation Criteria
 
-- [ ] `ITickerMetadataSource` and `ITickerNameCache` both exist and are abstract.
-- [ ] Each port has >=1 implementation under `src/doge/infrastructure/`
-      (`YFinanceMetadataSource` stub counts; `JSONTickerNameCache` exists).
-- [ ] `ports/__init__.py` `__all__` includes both ports.
-- [ ] Registry (`entities.yaml`) lists the two ports as DISTINCT, with the
+- [x] `ITickerMetadataSource` and `ITickerNameCache` both exist and are abstract.
+- [x] Each port has >=1 implementation under `src/doge/infrastructure/`
+      (`JSONTickerNameCache` exists; `YFinanceMetadataSource` is a full
+      implementation, no longer a `NotImplementedError` stub).
+- [x] `ports/__init__.py` `__all__` includes both ports.
+- [x] Registry (`entities.yaml`) lists the two ports as DISTINCT, with the
       ADR-0001 alias map recorded.
+- [x] `industry_analyzer.py` no longer imports `yfinance` directly for metadata;
+      it delegates to `YFinanceMetadataSource` via the composition root.
 
 ## CDD Requirements Addressed
 
@@ -265,4 +270,5 @@ existing `ITickerNameCache` is untouched.
   promotion in S002-011).
 - Resolves **TR-042** / **OQ-2**.
 - Code: `src/doge/core/ports/cache.py`, `src/doge/core/ports/metadata.py`,
-  `src/doge/infrastructure/data_source/yfinance_metadata.py`.
+  `src/doge/infrastructure/data_source/yfinance_metadata.py`,
+  `src/doge/core/services/composition.py`, `src/micro/industry_analyzer.py`.

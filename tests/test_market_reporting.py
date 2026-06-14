@@ -24,7 +24,6 @@ import pytest
 
 # Test-shim exception (documented in test_settings.py / test_momentum_scanner.py):
 # make src/ importable without depending on package install state.
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from ai_analysis import market_overview, anomaly_detection  # noqa: E402
 

@@ -12,6 +12,7 @@ Mirrors ``doge.core.services.composition`` for the FastAPI lifecycle.
 from fastapi import Request
 
 from doge.config import Settings, get_settings
+from doge.core.ports.metadata import ITickerMetadataSource
 from doge.core.ports.repository import IReportRepository, ISchemaBrowser, IStockRepository, INoteRepository
 from doge.core.services import composition
 
@@ -39,6 +40,11 @@ def get_stock_repository() -> IStockRepository:
 def get_note_repository() -> INoteRepository:
     """Provide the default SQLite-backed note repository."""
     return composition.build_note_repository()
+
+
+def get_metadata_source() -> ITickerMetadataSource:
+    """Provide the default yfinance-backed ticker metadata source."""
+    return composition.build_metadata_source()
 
 
 def get_request_state(request: Request) -> dict:

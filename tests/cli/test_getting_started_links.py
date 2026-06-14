@@ -25,7 +25,6 @@ import pytest
 # Test-shim exception (documented in test_settings.py): make src/ importable so
 # we can import settings.py directly to read the live dataclass field names.
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(_REPO_ROOT / "src"))
 
 DOC = _REPO_ROOT / "docs" / "GETTING_STARTED.md"
 SETTINGS_PY = _REPO_ROOT / "src" / "doge" / "config" / "settings.py"

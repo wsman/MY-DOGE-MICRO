@@ -603,23 +603,267 @@ sprints:
         blocking_gate: false
         note: "Commit 20ce713. Fresh /architecture-review PASS verdict (architecture-review-s004-2026-06-14.md) authorized ADR-0007 promotion. ADR-0007 Status Proposed→Accepted; governance test moved adr-0007 to _EXPECTED_ACCEPTED; posture is loopback-guaranteed (not production-hardened)."
 
-# Rollup counts for the active sprint (S004).
+  - id: S005
+    name: "Release-Ready v1 Tagging"
+    plan: production/sprints/sprint-005-release-ready-v1.md
+    start: "2026-06-14"
+    end: "2026-06-14"
+    status: done
+    control_manifest: "2026-06-12"
+    duration_assumption: "1 day"
+    goal: >-
+      Polish the Release baseline and tag Release-Ready v1 (v0.1.0). Land Waves
+      1–4 (quick wins, retry consolidation, yfinance adapter wiring, scan.py DI)
+      and defer Wave-5 hygiene items.
+    exit_criteria:
+      - "Waves 1–4 complete and tested."
+      - "python -m pytest -q green (579 passed / 4 skipped / 0 failed)."
+      - "Web build green and 70 vitest passed."
+      - "v0.1.0 git tag created and CHANGELOG.md updated."
+      - "Stage remains Release."
+    stories:
+      - id: S005-001
+        title: "Traceability/manifest reconciliation"
+        epic: ep-governance
+        tr: null
+        source: "release readiness"
+        priority: MED
+        effort: S
+        owner: lead-programmer
+        status: done
+        blocking_gate: false
+        note: "Wave 1. Manifest/traceability gaps closed."
+
+      - id: S005-002
+        title: "SSE str(e) leak fixed to deterministic string"
+        epic: ep-governance-security
+        tr: null
+        source: "release readiness"
+        priority: MED
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Wave 1. src/doge/interfaces/mcp/server.py returns stable error strings."
+
+      - id: S005-003
+        title: "CLI bilingual remediation"
+        epic: ep-ux
+        tr: null
+        source: "release readiness"
+        priority: LOW
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Wave 1. src/cli.py + docs/CLI.md bilingual consistency."
+
+      - id: S005-004
+        title: "User-test format reconciliation"
+        epic: ep-verification-evidence
+        tr: null
+        source: "release readiness"
+        priority: LOW
+        effort: S
+        owner: lead-programmer
+        status: done
+        blocking_gate: false
+        note: "Wave 1. User-test evidence files aligned with checklist format."
+
+      - id: S005-005
+        title: "Retry consolidation (_retry.py + YFinanceConfig)"
+        epic: ep-architecture-debt
+        tr: null
+        source: "ADR-0004 follow-on"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Wave 2. Commit e346523. Three duplicate retry loops unified into src/doge/core/services/_retry.py with YFinanceConfig-backed defaults."
+
+      - id: S005-006
+        title: "Macro engine routes through YFinanceDataSource adapter"
+        epic: ep-architecture-debt
+        tr: TR-011
+        source: "ADR-0004 step 4"
+        priority: HIGH
+        effort: L
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Wave 3. Commit 7dd90ed. Macro data loader fetches through YFinanceDataSource; max(count, period_days) fixes window starvation; long→wide pivot preserves strategist boundaries."
+
+      - id: S005-007
+        title: "Macro adapter contract tests"
+        epic: ep-architecture-debt
+        tr: TR-011
+        source: "ADR-0004 step 4"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Wave 3. Contract tests for macro→adapter integration."
+
+      - id: S005-008
+        title: "scan.py list_distinct_tickers via IStockRepository DI"
+        epic: ep-architecture-debt
+        tr: TR-045
+        source: "polish concern"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Wave 4. Commit c5e1361. scan.py US-ticker list via IStockRepository dependency injection."
+
+      - id: S005-009
+        title: "SQLiteStorageRepository implements list_distinct_tickers"
+        epic: ep-architecture-debt
+        tr: TR-045
+        source: "S005-008 follow-up"
+        priority: HIGH
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Wave 4. Commit 88f8e24. SQLiteStorageRepository implements the new abstract method; 3 save_prices contract tests restored."
+
+  - id: S006
+    name: "First-Run Experience + Architecture Completion"
+    plan: production/sprints/sprint-006-first-run-experience.md
+    start: "2026-06-14"
+    end: "2026-06-14"
+    status: done
+    control_manifest: "2026-06-12"
+    duration_assumption: "1 day"
+    goal: >-
+      Complete the deferred Wave-5 hygiene items, finish the ADR-0009
+      YFinanceMetadataSource adapter follow-on, and deliver a zero-config
+      python src/cli.py demo command.
+    exit_criteria:
+      - "All Must-Have stories (S006-001 through S006-005, S006-007, S006-008) done."
+      - "python -m pytest -q green (613 passed / 5 skipped / 0 failed)."
+      - "Web build green and 70 vitest passed."
+      - "python src/cli.py demo runs without DEEPSEEK_API_KEY."
+      - "§6 layer gate ZERO hits."
+      - "ADR-0009 migration plan step 2 done; YFinanceMetadataSource no NotImplementedError."
+    stories:
+      - id: S006-001
+        title: "sys.path test-shim regression gate"
+        epic: ep-architecture-debt
+        tr: null
+        source: "Wave-5a deferred"
+        priority: LOW
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "tests/unit/layer_gates/test_test_sys_path_shim_gate.py; ~29 redundant test shims removed; whitelist of 5 files enforced."
+
+      - id: S006-002
+        title: "MCP error-text sanitization"
+        epic: ep-governance-security
+        tr: null
+        source: "Wave-5b deferred"
+        priority: LOW
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "src/doge/interfaces/mcp/server.py _sanitize_error(); redacts absolute paths and credential patterns; tests/contract/test_mcp_error_redaction.py."
+
+      - id: S006-003
+        title: "wmic → PowerShell CIM migration"
+        epic: ep-governance-security
+        tr: null
+        source: "Wave-5c deferred"
+        priority: LOW
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "src/doge/interfaces/mcp/server.py orphan-process detection uses Get-CimInstance Win32_Process; POSIX /proc path unchanged; tests/contract/test_mcp_orphan_detection_cim.py."
+
+      - id: S006-004
+        title: "YFinanceMetadataSource full adapter"
+        epic: ep-architecture-debt
+        tr: null
+        source: "ADR-0009 follow-on"
+        priority: MED
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "src/doge/infrastructure/data_source/yfinance_metadata.py implements ITickerMetadataSource; exported from data_source/__init__.py; composition.py factory + deps.py FastAPI dependency; tests/unit/core/ports/test_yfinance_metadata_source.py."
+
+      - id: S006-005
+        title: "industry_analyzer.py port migration"
+        epic: ep-architecture-debt
+        tr: null
+        source: "ADR-0009 follow-on"
+        priority: MED
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "src/micro/industry_analyzer.py off direct yf.Ticker(...).info; uses build_metadata_source().get_metadata(...); in-memory cache and meta_cache.json persistence preserved."
+
+      - id: S006-006
+        title: "fetch_names.py optional metadata-port migration"
+        epic: ep-architecture-debt
+        tr: null
+        source: "ADR-0009 follow-on optional"
+        priority: LOW
+        effort: S
+        owner: python-specialist
+        status: deferred
+        blocking_gate: false
+        note: "Should-Have / optional; deferred out of scope."
+
+      - id: S006-007
+        title: "demo CLI subcommand"
+        epic: ep-ux
+        tr: null
+        source: "operator convenience"
+        priority: MED
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "src/cli.py demo [--market cn|us] [--top N]; uses bundled data/*.db; no DEEPSEEK_API_KEY required; tests/cli/test_cli_demo.py."
+
+      - id: S006-008
+        title: "Demo docs and consistency"
+        epic: ep-ux
+        tr: null
+        source: "S006-007 follow-up"
+        priority: MED
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "docs/GETTING_STARTED.md 5-Minute Demo section; docs/CLI.md demo subcommand; tests/cli/test_cli_arg_parsing.py parser mirror updated."
+
+# Rollup counts for the active sprint (S006).
 rollup:
-  sprint: S004
+  sprint: S006
   total_stories: 8
   by_status:
     todo: 0
     in_progress: 0
     blocked: 0
     review: 0
-    done: 8
-    deferred: 0
+    done: 7
+    deferred: 1
   by_priority:
-    HIGH: 4
-    MED: 3
-    LOW: 1
+    HIGH: 0
+    MED: 4
+    LOW: 4
   by_epic:
-    ep-architecture-debt: 3
-    ep-governance-security: 5
+    ep-architecture-debt: 4
+    ep-governance-security: 2
+    ep-ux: 2
   blocking_gated_stories: []
   top_priority_stories: []

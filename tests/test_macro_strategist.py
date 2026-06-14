@@ -23,7 +23,6 @@ import pytest
 
 # Make src/ importable without depending on package install state.
 # This is the documented test-shim exception (see tests/test_settings.py:18).
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from macro.config import MacroConfig  # noqa: E402
 from macro.strategist import DeepSeekStrategist  # noqa: E402

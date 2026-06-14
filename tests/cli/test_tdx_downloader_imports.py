@@ -20,7 +20,6 @@ from unittest.mock import MagicMock
 import pytest
 
 # Test-shim exception (documented in test_settings.py): make src/ importable.
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 
 # opentdx is an optional [tdx] extra (network TDX client). It is NOT installed

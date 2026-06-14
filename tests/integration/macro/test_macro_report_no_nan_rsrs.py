@@ -23,7 +23,6 @@ import pandas as pd
 import pytest
 
 # Test-shim exception (documented in test_settings.py): make src/ importable.
-sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "src"))
 
 from macro.config import MacroConfig  # noqa: E402
 from macro.data_loader import GlobalMacroLoader  # noqa: E402

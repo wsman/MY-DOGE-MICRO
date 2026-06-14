@@ -12,7 +12,6 @@ from unittest.mock import patch
 import pytest
 
 # Make src/ importable (documented test-shim exception).
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 import macro.cli as macro_cli  # noqa: E402
 

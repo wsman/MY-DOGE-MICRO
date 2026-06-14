@@ -17,7 +17,6 @@ import sys
 from pathlib import Path
 
 # Test shim: put src/ on sys.path (the documented exception, see test_settings.py:17-18).
-sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "src"))
 
 import pytest
 

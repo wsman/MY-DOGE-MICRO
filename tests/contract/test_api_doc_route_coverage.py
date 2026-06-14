@@ -43,8 +43,6 @@ sys.path[:] = [
     p for p in sys.path
     if p and "MY-DOGE-PRO" not in p and "opendoge" not in p
 ]
-sys.path.insert(0, str(_PROJECT_ROOT))
-sys.path.insert(0, str(_PROJECT_ROOT / "src"))
 
 from src.api import main as api_main  # noqa: E402
 

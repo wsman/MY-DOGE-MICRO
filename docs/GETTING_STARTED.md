@@ -265,8 +265,13 @@ The fastest end-to-end path with **no LLM key required** (pure analytics):
    > retry — no crash, no DB corruption. Wait a few minutes and retry, or use
    > the TDX downloader for CN bulk ingest (it is not rate-limited). This is
    > environmental, not a code defect.
-2. Start the FastAPI backend (`python src/api/main.py`).
-3. Open the web console (`cd web && npm run dev`) and use the **Scanner** tab,
+2. Run the 5-minute demo to see the bundled analytical data without any
+   configuration:
+   ```bash
+   python src/cli.py demo
+   ```
+3. Start the FastAPI backend (`python src/api/main.py`).
+4. Open the web console (`cd web && npm run dev`) and use the **Scanner** tab,
    **or** drive the query CLI directly:
    ```bash
    python src/cli.py rsrs --market cn --top 10       # RSRS momentum ranking

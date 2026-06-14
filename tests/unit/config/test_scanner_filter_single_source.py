@@ -21,7 +21,6 @@ import pytest
 # Test-shim (documented in test_settings.py / test_momentum_scanner.py): make
 # src/ importable without depending on package install state.
 _SRC = Path(__file__).resolve().parents[3] / "src"
-sys.path.insert(0, str(_SRC))
 
 from doge.config import get_settings  # noqa: E402
 from doge.config.settings import MarketConfig, reset_settings  # noqa: E402

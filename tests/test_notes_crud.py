@@ -16,7 +16,6 @@ from pathlib import Path
 import pytest
 
 # Make src/ importable without depending on package install state.
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from ai_analysis import stock_notes  # noqa: E402
 

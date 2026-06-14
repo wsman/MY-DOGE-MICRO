@@ -5,26 +5,37 @@
 
 ## Current Task
 
-**Sprint 005 (post-Release polish) — DONE. Release-Ready v1 tagged (`v0.1.0`).**
-Sprint 004 closed the Release gate (clean PASS); Sprint 005 did the post-Release
-polish backlog. Waves 1–4 committed (`66823a4`→`ec9bf47`); Wave 5 (C-a/b/c
-Wave-5 hygiene) **deferred** — a background agent's C-a run broke the suite
-(over-stripped test preambles) and was reverted; these are low-priority
-hygiene/portability items, redo as a careful follow-on.
+**Sprint 006 — First-Run Experience + Architecture Completion — COMMITTED.**
+Post-Release polish sprint completed and committed on top of the `v0.1.0`
+baseline. Stage remains `Release`.
 
-Release-Ready v1 baseline tagged `v0.1.0` (commit `2ba21a1`, 2026-06-14):
-retry consolidation (`_retry.py` + `YFinanceConfig`), yfinance adapter wiring
-(macro routes through the `IMarketDataSource` port), `scan.py` DI
-(`list_distinct_tickers`), SSE `str(e)` leak fixed, CLI bilingual,
-traceability/manifest reconciliation, A6 + its SQLiteStorageRepository followup.
+Final verification (2026-06-14):
+- `python -m pytest -q` → **613 passed, 5 skipped, 0 failed**
+- `cd web && npm test` → **70 passed**
+- `cd web && npm run build` → **green**
+- `python src/cli.py demo --market cn --top 3` → runs without `DEEPSEEK_API_KEY`, exits 0
+- §6 layer gates → **ZERO hits**
 
-Verification: 579 pytest passed / 4 skipped / 0 failed; web build + 70 vitest
-green; §6 layer gate ZERO hits; 10 ADRs Accepted.
+Committed stories (7 done, 1 deferred):
+- **S006-001** sys.path test-shim regression gate + cleanup of ~29 redundant shims
+- **S006-002** MCP error-text sanitization (paths + credentials redacted)
+- **S006-003** `wmic` → PowerShell CIM migration for orphan-process detection
+- **S006-004** full `YFinanceMetadataSource` adapter against `ITickerMetadataSource`
+- **S006-005** `industry_analyzer.py` migrated onto the metadata port
+- **S006-007** `python src/cli.py demo` subcommand (zero-config first-run demo)
+- **S006-008** docs updates (`GETTING_STARTED.md`, `CLI.md`) + parser mirror tests
 
-**NEXT (deferred, non-blocking):** Wave-5 hygiene (test sys.path consolidation,
-MCP error-text sanitization, `wmic`→CIM); full yfinance-metadata adapter
-(ADR-0009 follow-on); bundled sample-data first-run demo; auth + non-loopback
-CORS (ADR-0007 path 1a) only if deployment model changes.
+Deferred / out of scope:
+- **S006-006** `fetch_names.py` optional metadata-port migration (Should Have, skipped)
+- **ADR-0007 path 1a** auth + non-loopback CORS — remains conditionally deferred
+
+**NEXT:** No active sprint. Operator may open Sprint 007 or move to a new epic.
+
+<!-- STATUS -->
+Epic: Release / Release-Ready v1
+Feature: Sprint 006 — First-Run Experience + Architecture Completion
+Task: committed; baseline green
+<!-- /STATUS -->
 
 ## Latest Verification Run (2026-06-13)
 
@@ -181,9 +192,9 @@ Deferred items (documented; see readiness doc §4 for full disposition):
   before GUI/macro workflows work. No key rotation needed: forensic audit found no
   real key in git history.
 <!-- STATUS -->
-Epic: Verification / Release-Ready v1
-Feature: Sprint 004 — Release clean-PASS prep
-Task: impl complete (7 stories); fresh /architecture-review + /gate-check next
+Epic: Release / Release-Ready v1
+Feature: Sprint 006 — First-Run Experience + Architecture Completion
+Task: all Must-Have stories done; await operator review/commit
 <!-- /STATUS -->
 
 ## Session Extract — /architecture-review 2026-06-13

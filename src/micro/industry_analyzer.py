@@ -2,7 +2,6 @@ import os
 import pandas as pd
 import glob
 from datetime import datetime
-import yfinance as yf
 import concurrent.futures # 用于并发加速获取信息
 import json
 import threading
@@ -10,6 +9,7 @@ import threading
 # S002-009 / TR-011: package-qualified sibling imports resolve via the editable
 # install (no sys.path shim). Paths come from get_settings().project_root.
 from doge.config import get_settings
+from doge.core.services.composition import build_metadata_source
 
 # --- 导入 ---
 try:
@@ -26,7 +26,7 @@ except ImportError:
     save_research_report = lambda *args, **kwargs: None
 
 class IndustryAnalyzer:
-    def __init__(self, logger_callback=None, proxy='http://127.0.0.1:7890'):
+    def __init__(self, logger_callback=None, proxy='http://127.0.0.1:7890', metadata_source=None):
         self.config = MacroConfig()
         self.strategist = DeepSeekStrategist(self.config)
         # S002-009: project root sourced from centralized Settings, not a local
@@ -38,7 +38,10 @@ class IndustryAnalyzer:
         self.metadata_cache = self._load_cache()
         # 用于记录本次分析中新获取的股票代码
         self.newly_fetched_tickers = set()
-        
+        # Injected metadata source (test seam). Defaults to the yfinance adapter
+        # via the composition root so this module imports no infrastructure.
+        self._metadata_source = metadata_source
+
         # 设置yfinance代理（通过环境变量）
         self.proxy = proxy
         os.environ['HTTP_PROXY'] = proxy
@@ -168,47 +171,43 @@ class IndustryAnalyzer:
         return snapshot_file
 
     def get_stock_metadata(self, ticker, record_new=True):
-        """获取股票名称和行业信息 (消除幻觉的关键)"""
+        """获取股票名称和行业信息 (消除幻觉的关键) — 通过 ITickerMetadataSource 端口.
+
+        The network call is delegated to ``YFinanceMetadataSource`` via the
+        composition root so this module no longer depends directly on yfinance.
+        The in-memory cache and atomic JSON persistence stay in this consumer.
+        """
         # 1. 先查缓存
         with self.cache_lock:
             if ticker in self.metadata_cache:
                 return self.metadata_cache[ticker]['name'], self.metadata_cache[ticker]['sector']
 
-        # 2. 格式转换 (.SH -> .SS 用于 yfinance)
-        yf_ticker = ticker.replace(".SH", ".SS") if ".SH" in ticker else ticker
-        
-        # 重试机制
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                info = yf.Ticker(yf_ticker).info
-                # 优先取中文名或简称，Yahoo A股通常是英文名，AI能翻译
-                name = info.get('shortName', info.get('longName', 'Unknown'))
-                sector = info.get('sector', info.get('industry', 'Unknown'))
-                
-                # 如果获取到的信息为空，可能是请求失败，重试
-                if not info:
-                    self.log(f"[WARN]  获取 {ticker} 信息为空，重试 {attempt+1}/{max_retries}")
-                    continue
-                
-                # 3. 写入缓存（只有当数据有效时）
-                if name != 'Unknown':
-                    with self.cache_lock:
-                        self.metadata_cache[ticker] = {'name': name, 'sector': sector}
-                        self._save_cache()
-                        # 记录新获取的股票代码
-                        if record_new:
-                            self.newly_fetched_tickers.add(ticker)
-                    
-                return name, sector
-            except Exception as e:
-                self.log(f"[WARN]  获取 {ticker} 元数据失败 (尝试 {attempt+1}/{max_retries}): {e}")
-                if attempt < max_retries - 1:
-                    import time
-                    time.sleep(2)  # 等待2秒后重试
-                else:
-                    return "Unknown", "Unknown"
-        return "Unknown", "Unknown"
+        # 2. 推断市场并委托给 metadata 端口
+        market = "cn" if any(ticker.endswith(s) for s in (".SH", ".SZ", ".BJ")) else "us"
+        if self._metadata_source is None:
+            self._metadata_source = build_metadata_source()
+
+        metadata = self._metadata_source.get_metadata(ticker, market)
+
+        if not metadata:
+            self.log(f"[WARN]  获取 {ticker} 元数据失败: 端口返回空")
+            return "Unknown", "Unknown"
+
+        name = metadata.get('name', 'Unknown')
+        sector = metadata.get('sector', 'Unknown')
+
+        if name == 'Unknown':
+            return "Unknown", "Unknown"
+
+        # 3. 写入缓存（只有当数据有效时）
+        with self.cache_lock:
+            self.metadata_cache[ticker] = {'name': name, 'sector': sector}
+            self._save_cache()
+            # 记录新获取的股票代码
+            if record_new:
+                self.newly_fetched_tickers.add(ticker)
+
+        return name, sector
 
     def load_momentum_data(self, market_type):
         """读取 CSV 并注入元数据"""

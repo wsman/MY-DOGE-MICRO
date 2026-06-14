@@ -25,7 +25,8 @@ MY-DOGE 提供两个独立的命令行入口，覆盖「只读行情查询」与
 
 | CLI | 入口 | 数据源 | 用途 |
 |-----|------|--------|------|
-| **查询 CLI** | `python src/cli.py` | DuckDB 只读（`connect_duckdb(read_only=True)`） | A 股 / 美股行情、RSRS 动量、市场宽度、成交量异动的本地只读查询 |
+| **查询 CLI** | `python src/cli.py` | DuckDB 只读视图 | A 股 / 美股行情、RSRS 动量、市场宽度、成交量异动的本地只读查询 |
+| **Demo CLI** | `python src/cli.py demo` | DuckDB 只读视图 | 5 分钟无配置演示，无需 `DEEPSEEK_API_KEY` |
 | **宏观 CLI** | `python -m macro.cli` | DeepSeek API + yfinance 宏观数据 | 调用 DeepSeek 生成宏观对冲策略报告 |
 
 查询 CLI 的 `argparse` `prog` 名为 `doge`（`src/cli.py:114-117`），但 **当前并未注册为已安装的 console script**（详见下节）；宏观 CLI 无 `prog` 别名。
@@ -52,35 +53,38 @@ pip install -r requirements.txt
 # 查询 CLI
 python src/cli.py stock 301599.SZ --market cn --days 20
 
+# 5 分钟演示（无需 DeepSeek key）
+python src/cli.py demo
+
 # 宏观 CLI（在仓库根目录运行）
 python -m macro.cli --verbose
 ```
 
-### 已知技术债：`sys.path.insert` 引导垫片
+### 引导垫片已清理
 
-两个入口文件均以 `sys.path.insert` 引导垫片把 `src/` 注入 Python 路径：
+`src/cli.py` 不再包含 `sys.path.insert` 垫片（Wave-3 Batch-1 已清理；见
+ADR-0001）。它依赖 `pip install -e .` 激活的可编辑安装，使 `doge`、`micro`、
+`macro` 等包作为顶层包可用。
 
-- `src/cli.py:15` —— `sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))`
-- `src/macro/cli.py:12` —— `sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))`
-
-ADR-0001（Brownfield Clean Architecture Migration，状态 **Accepted**，`docs/architecture/adr-0001-brownfield-clean-architecture.md:3-5`）将「散落的 `sys.path.insert`」列为禁止模式（见 `adr-0001-brownfield-clean-architecture.md:57`、`:246`）。这两处垫片是 **存量违规**，属于 Wave-3 清理迁移的整改对象；在迁移完成前 **不可移除**，否则直接运行 `python src/cli.py` 将无法导入 `ai_analysis`。
+`src/macro/cli.py` 仍保留其历史垫片（另一入口），属于后续清理范围。
 
 ---
 
 ## 查询 CLI：`python src/cli.py`
 
-`src/cli.py` 通过 `argparse` + `add_subparsers`（`src/cli.py:118`）暴露 4 个子命令，分发在 `src/cli.py:146-152`。所有子命令均通过 `ai_analysis.connect_duckdb(read_only=True)` 打开只读 DuckDB 连接（`src/cli.py:21`、`:58`、`:79`、`:93`），**不写入数据库**。
+`src/cli.py` 通过 `argparse` + `add_subparsers`（`src/cli.py:212`）暴露 5 个子命令，分发在 `src/cli.py:246-251`。所有子命令均通过 `doge.core.services.composition` 中的工厂注入只读仓库适配器，**不写入数据库**。
 
 子命令概览：
 
 | 子命令 | 摘要 | 关键参数 | 源码 |
 |--------|------|----------|------|
-| [`stock`](#doge-stock) | 查询个股行情与指标 | `ticker`、`--market`、`--days` | `src/cli.py:120-124` |
-| [`rsrs`](#doge-rsrs) | RSRS 动量排名 | `--market`、`--top` | `src/cli.py:127-129` |
-| [`breadth`](#doge-breadth) | 市场宽度（涨跌家数） | `--market`、`--days` | `src/cli.py:132-134` |
-| [`anomaly`](#doge-anomaly) | 成交量异动检测 | `--min-ratio`、`--top` | `src/cli.py:137-139` |
+| [`stock`](#doge-stock) | 查询个股行情与指标 | `ticker`、`--market`、`--days` | `src/cli.py:215-218` |
+| [`rsrs`](#doge-rsrs) | RSRS 动量排名 | `--market`、`--top` | `src/cli.py:221-223` |
+| [`breadth`](#doge-breadth) | 市场宽度（涨跌家数） | `--market`、`--days` | `src/cli.py:226-228` |
+| [`anomaly`](#doge-anomaly) | 成交量异动检测 | `--min-ratio`、`--top` | `src/cli.py:231-233` |
+| [`demo`](#doge-demo) | 5 分钟无配置演示 | `--market`、`--top` | `src/cli.py:236-238` |
 
-不带子命令运行 `python src/cli.py` 会打印帮助并返回（`src/cli.py:142-144`）。
+不带子命令运行 `python src/cli.py` 会打印帮助并返回（`src/cli.py:241-243`）。
 
 ### doge stock
 
@@ -88,9 +92,9 @@ ADR-0001（Brownfield Clean Architecture Migration，状态 **Accepted**，`docs
 
 | 参数 | 类型 | 必填 | 默认 | 约束 | 说明 | 源码 |
 |------|------|------|------|------|------|------|
-| `ticker` | string | 是 | — | 合法股票代码 | 如 `301599.SZ`、`AAPL`；经 `normalize_ticker` 规范化 | `src/cli.py:122` |
-| `--market` | string | 否 | `cn` | `choices=["cn","us"]` | 市场类型 | `src/cli.py:123` |
-| `--days` | int | 否 | `20` | 正整数 | 返回最近 N 个交易日 | `src/cli.py:124` |
+| `ticker` | string | 是 | — | 合法股票代码 | 如 `301599.SZ`、`AAPL`；经 `normalize_ticker` 规范化 | `src/cli.py:216` |
+| `--market` | string | 否 | `cn` | `choices=["cn","us"]` | 市场类型 | `src/cli.py:217` |
+| `--days` | int | 否 | `20` | 正整数 | 返回最近 N 个交易日 | `src/cli.py:218` |
 
 **Synopsis**
 
@@ -111,7 +115,7 @@ python src/cli.py stock AAPL --market us --days 60
 **返回列（CN，`vw_daily_enriched_cn`，`src/cli.py:25-36`）**：`date, open, high, low, close, volume, ret_pct, ma_5, ma_10, ma_20, ma_60, atr14, ma60_dev, vol_20d`
 **返回列（US，`us.stock_prices`，`src/cli.py:38-44`）**：`date, open, high, low, close, volume, amount`
 
-数据为空时打印 `no data for <ticker>` 并返回（`src/cli.py:48-50`）。
+数据为空时打印 `no data for <ticker>` 并返回（`src/cli.py:88-90`）。
 
 ### doge rsrs
 
@@ -119,8 +123,8 @@ RSRS 动量排名（最强趋势股票排行）。
 
 | 参数 | 类型 | 必填 | 默认 | 约束 | 说明 | 源码 |
 |------|------|------|------|------|------|------|
-| `--market` | string | 否 | `cn` | `choices=["cn","us"]` | 选择 `vw_rsrs_ranking_cn` / `vw_rsrs_ranking_us` | `src/cli.py:128` |
-| `--top` | int | 否 | `20` | 正整数 | 返回前 N 名 | `src/cli.py:129` |
+| `--market` | string | 否 | `cn` | `choices=["cn","us"]` | 选择 `vw_rsrs_ranking_cn` / `vw_rsrs_ranking_us` | `src/cli.py:222` |
+| `--top` | int | 否 | `20` | 正整数 | 返回前 N 名 | `src/cli.py:223` |
 
 **Synopsis**
 
@@ -138,7 +142,7 @@ python src/cli.py rsrs
 python src/cli.py rsrs --market us --top 10
 ```
 
-**返回列**：`rank, ticker, rsrs, avg_vol_20d, last_close`，若视图存在 `pct_change_60d` 则附加（`src/cli.py:67-69`）。数据为空时打印 `no data`（`src/cli.py:63-65`）。
+**返回列**：`rank, ticker, rsrs, avg_vol_20d, last_close`，若视图存在 `pct_change_60d` 则附加（`src/cli.py:159-161`）。数据为空时打印 `no data`（`src/cli.py:103-105`）。
 
 ### doge breadth
 
@@ -146,8 +150,8 @@ python src/cli.py rsrs --market us --top 10
 
 | 参数 | 类型 | 必填 | 默认 | 约束 | 说明 | 源码 |
 |------|------|------|------|------|------|------|
-| `--market` | string | 否 | `cn` | `choices=["cn","us"]` | 选择 `vw_market_breadth_cn` / `vw_market_breadth_us` | `src/cli.py:133` |
-| `--days` | int | 否 | `10` | 正整数 | 返回最近 N 个交易日 | `src/cli.py:134` |
+| `--market` | string | 否 | `cn` | `choices=["cn","us"]` | 选择 `vw_market_breadth_cn` / `vw_market_breadth_us` | `src/cli.py:227` |
+| `--days` | int | 否 | `10` | 正整数 | 返回最近 N 个交易日 | `src/cli.py:228` |
 
 **Synopsis**
 
@@ -161,7 +165,7 @@ python src/cli.py breadth [--market cn|us] [--days N]
 python src/cli.py breadth --market cn --days 30
 ```
 
-数据为空时打印 `no data`（`src/cli.py:83-85`）。
+数据为空时打印 `no data`（`src/cli.py:120-122`）。
 
 ### doge anomaly
 
@@ -169,10 +173,10 @@ python src/cli.py breadth --market cn --days 30
 
 | 参数 | 类型 | 必填 | 默认 | 约束 | 说明 | 源码 |
 |------|------|------|------|------|------|------|
-| `--min-ratio` | float | 否 | `3.0` | 正浮点 | 最小量比阈值（`vol_ratio >= ?`） | `src/cli.py:138` |
-| `--top` | int | 否 | `20` | 正整数 | 返回前 N 条 | `src/cli.py:139` |
+| `--min-ratio` | float | 否 | `3.0` | 正浮点 | 最小量比阈值（`vol_ratio >= ?`） | `src/cli.py:232` |
+| `--top` | int | 否 | `20` | 正整数 | 返回前 N 条 | `src/cli.py:233` |
 
-> 注：当前仅查询 CN 视图 `vw_volume_anomalies_cn`（`src/cli.py:94-101`），**不接受 `--market` 参数**。
+> 注：当前仅查询 CN 视图 `vw_volume_anomalies_cn`，**不接受 `--market` 参数**。
 
 **Synopsis**
 
@@ -186,20 +190,48 @@ python src/cli.py anomaly [--min-ratio F] [--top N]
 python src/cli.py anomaly --min-ratio 5.0 --top 50
 ```
 
-**返回列**：`ticker, date, volume, avg_vol, vol_ratio, ret_pct`（`src/cli.py:94-100`）。无结果时打印 `no anomalies found`（`src/cli.py:104-106`）。
+**返回列**：`ticker, date, volume, avg_vol, vol_ratio, ret_pct`。无结果时打印 `no anomalies found`（`src/cli.py:132-134`）。
+
+### doge demo
+
+5 分钟无配置演示，使用 `data/` 下的 bundled 样本数据依次展示 RSRS 排名、市场宽度、成交量异动和个股查询。无需 `DEEPSEEK_API_KEY`。
+
+| 参数 | 类型 | 必填 | 默认 | 约束 | 说明 | 源码 |
+|------|------|------|------|------|------|------|
+| `--market` | string | 否 | `cn` | `choices=["cn","us"]` | 选择 CN / US 样本数据 | `src/cli.py:237` |
+| `--top` | int | 否 | `5` | 正整数 | 每个查询返回前 N 条 | `src/cli.py:238` |
+
+**Synopsis**
+
+```bash
+python src/cli.py demo [--market cn|us] [--top N]
+```
+
+**示例**
+
+```bash
+# 默认 cn / 前 5
+python src/cli.py demo
+
+# 美股样本
+python src/cli.py demo --market us --top 10
+```
+
+任一查询返回数据即视为成功（退出码 0）。所有查询都为空时打印帮助信息并以 `EXIT_NO_DATA`（1）退出（`src/cli.py:195-200`）。
 
 ---
 
 ## 输出格式
 
-所有子命令使用 `tabulate`（`tablefmt="simple"`、`showindex=False`）输出对齐的纯文本表格（`src/cli.py:52-54`、`:71-74`、`:87-89`、`:108-110`）。各命令的浮点格式化由 `floatfmt` 元组控制：
+所有子命令使用 `tabulate`（`tablefmt="simple"`、`showindex=False`）输出对齐的纯文本表格。各命令的浮点格式化由 `floatfmt` 元组控制：
 
-| 子命令 | `floatfmt` 顺序（`src/cli.py:54`/`:74`/`:89`/`:110`） |
-|--------|--------------------------------------------------------|
+| 子命令 | `floatfmt` 顺序 |
+|--------|-----------------|
 | `stock` (CN) | `.0f, .2f, .2f, .2f, .2f, .0f` |
 | `rsrs` | `.0f, .6f, .0f, .2f, .2f, .2f` |
 | `breadth` | `.0f, .0f, .0f, .2f, .2f` |
 | `anomaly` | `.0f, .2f, .2f` |
+| `demo` | 复用上述四个子命令的格式 |
 
 输出始终面向终端，**无 JSON / CSV 输出开关**；脚本化解析建议改用 MCP 工具（见 [docs/MCP_SERVER.md](MCP_SERVER.md)）或 FastAPI 端点（见 `docs/API.md`）。
 

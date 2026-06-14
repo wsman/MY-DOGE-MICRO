@@ -19,7 +19,6 @@ import pandas as pd
 import pytest
 
 # Make src/ importable without depending on package install state.
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from doge.infrastructure.data_source.yfinance import (  # noqa: E402
     DEFAULT_PERIOD_DAYS,

@@ -12,6 +12,7 @@ import logging
 import logging.handlers
 import os
 import platform as _platform
+import re
 import subprocess as _sp
 import sys
 import time
@@ -126,9 +127,9 @@ def _unregister_pid():
 async def _detect_orphan_processes():
     """Log warning if orphaned MCP server processes are detected.
 
-    The underlying ``wmic`` / ``/proc`` lookups are synchronous and can block
-    the event loop when the PID file is large. Running them in a worker thread
-    prevents an accumulated stale PID file from stalling the SSE handshake.
+    The underlying PowerShell CIM / ``/proc`` lookups are synchronous and can
+    block the event loop when the PID file is large. Running them in a worker
+    thread prevents an accumulated stale PID file from stalling the SSE handshake.
     """
     if not PID_FILE.exists():
         return
@@ -153,10 +154,19 @@ def _sync_detect_orphan_processes():
             if pid == os.getpid():
                 continue
             if _IS_WINDOWS:
+                # wmic is deprecated on Windows 11 / Server 2025. Use PowerShell
+                # CIM which is the supported replacement and avoids the WMIC binary.
                 r = _sp.run(
-                    ["wmic", "process", "where", f"ProcessId={pid}",
-                     "get", "CommandLine", "/value"],
-                    capture_output=True, text=True, timeout=5,
+                    [
+                        "powershell",
+                        "-NoProfile",
+                        "-Command",
+                        f"Get-CimInstance Win32_Process -Filter 'ProcessId={pid}' | "
+                        f"Select-Object CommandLine | Format-List",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
                 )
                 if any(m in r.stdout for m in _markers):
                     alive.append(pid)
@@ -175,6 +185,21 @@ def _sync_detect_orphan_processes():
             )
     except Exception as exc:
         logger.debug("Orphan detection failed: %s", exc)
+
+
+# ── Client-safe error formatting ─────────────────────
+# Internal paths and credential fragments can leak into exception messages.
+# Sanitize before returning anything to an MCP client (stdio or SSE).
+_PATH_RE = re.compile(r"[A-Za-z]:\\[^ ]+|/(?:home|Users|tmp|var|opt|etc|root|srv)[^ ]*", re.IGNORECASE)
+_CRED_RE = re.compile(r"(key|token|secret|password|api_key)\s*[=:]\s*['\"]?[^&\s'\"]+", re.IGNORECASE)
+
+
+def _sanitize_error(exc: BaseException) -> str:
+    """Return a client-safe error string with internal paths/credentials redacted."""
+    msg = str(exc)
+    msg = _PATH_RE.sub("<path>", msg)
+    msg = _CRED_RE.sub(r"\1=<redacted>", msg)
+    return f"Error: {type(exc).__name__}: {msg}"
 
 
 def _timed(tool_name: str):
@@ -201,7 +226,7 @@ def _timed(tool_name: str):
             except Exception as exc:
                 dur = time.time() - t0
                 logger.error("TOOL CALL: %s ERROR: %s: %s", tool_name, type(exc).__name__, exc, exc_info=True)
-                return f"Error: {type(exc).__name__}: {exc}"
+                return _sanitize_error(exc)
         return wrapper
     return decorator
 
@@ -343,7 +368,7 @@ def create_mcp_server():
             return JSONResponse({"status": "ok"})
         except Exception as exc:
             logger.error("Health check failed: %s", exc, exc_info=True)
-            return JSONResponse({"status": "error", "detail": str(exc)}, status_code=503)
+            return JSONResponse({"status": "error", "detail": _sanitize_error(exc)}, status_code=503)
 
     @mcp.custom_route("/metrics", methods=["GET"])
     async def metrics(request: Request):

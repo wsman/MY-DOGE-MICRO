@@ -4,12 +4,14 @@ Pins the contract documented in ``docs/CLI.md`` against the live argparse wiring
 in ``src/cli.py``. Two groups of assertions:
 
   1. **argparse behavior** (WAVE2-DOC-CLI ``testsToAdd``):
-     - Each subcommand accepting ``--market`` (``stock``/``rsrs``/``breadth``)
-       rejects values outside ``choices=["cn","us"]`` with argparse exit code 2.
+     - Each subcommand accepting ``--market`` (``stock``/``rsrs``/``breadth``/
+       ``demo``) rejects values outside ``choices=["cn","us"]`` with argparse
+       exit code 2.
      - ``anomaly`` does NOT accept ``--market`` (also exit 2 when given one).
      - The documented defaults and ranges for ``--days``/``--top``/``--min-ratio``
        hold (defaults: ``stock --days 20``, ``rsrs --top 20``,
-       ``breadth --days 10``, ``anomaly --min-ratio 3.0 --top 20``).
+       ``breadth --days 10``, ``anomaly --min-ratio 3.0 --top 20``,
+       ``demo --top 5``).
 
   2. **docs-consistency gate**: parses the parameter tables in ``docs/CLI.md``
      and asserts each documented default matches the live argparse default, and
@@ -30,7 +32,6 @@ import pytest
 # Test-shim exception (documented in test_settings.py): make src/ importable.
 # Mirrors the ``pythonpath=["src"]`` pytest config so this file also runs when
 # invoked directly.
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 import cli as doge_cli  # noqa: E402  (after sys.path shim)
 
@@ -72,6 +73,10 @@ def _build_parser():
     p_anomaly.add_argument("--min-ratio", type=float, default=3.0)
     p_anomaly.add_argument("--top", type=int, default=20)
 
+    p_demo = sub.add_parser("demo")
+    p_demo.add_argument("--market", default="cn", choices=["cn", "us"])
+    p_demo.add_argument("--top", type=int, default=5)
+
     return parser, sub
 
 
@@ -98,7 +103,7 @@ def _live_defaults():
     """
     _, sub = _build_parser()
     out = {}
-    for name in ("stock", "rsrs", "breadth", "anomaly"):
+    for name in ("stock", "rsrs", "breadth", "anomaly", "demo"):
         subparser = sub.choices[name]
         defaults = {}
         for action in subparser._actions:
@@ -211,6 +216,7 @@ def test_doc_defaults_match_live_argparse():
         "rsrs": {"--top": "20", "--market": "cn"},
         "breadth": {"--days": "10", "--market": "cn"},
         "anomaly": {"--min-ratio": "3.0", "--top": "20"},
+        "demo": {"--market": "cn", "--top": "5"},
     }
 
     for sub_name, expected in documented.items():
@@ -232,13 +238,14 @@ def test_doc_defaults_match_live_argparse():
 def test_doc_cites_cli_source_anchors():
     """docs/CLI.md must cite the real ``src/cli.py`` source anchors it documents."""
     text = DOC_PATH.read_text(encoding="utf-8")
-    # The doc references these line anchors for the four subcommand parsers.
+    # The doc references these line anchors for the five subcommand parsers.
     required_refs = [
-        "src/cli.py:120-124",   # stock parser
-        "src/cli.py:127-129",   # rsrs parser
-        "src/cli.py:132-134",   # breadth parser
-        "src/cli.py:137-139",   # anomaly parser
-        "src/cli.py:146-152",   # dispatch
+        "src/cli.py:215-218",   # stock parser
+        "src/cli.py:221-223",   # rsrs parser
+        "src/cli.py:226-228",   # breadth parser
+        "src/cli.py:231-233",   # anomaly parser
+        "src/cli.py:236-238",   # demo parser
+        "src/cli.py:246-251",   # dispatch
     ]
     for ref in required_refs:
         assert ref in text, f"docs/CLI.md missing required source anchor {ref}"

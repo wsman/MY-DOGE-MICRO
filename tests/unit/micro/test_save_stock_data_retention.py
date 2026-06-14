@@ -11,12 +11,8 @@ Scenarios (from the S002-007 spec ``testsToAdd``):
 - per-ticker prune: each ticker pruned independently
 """
 import sqlite3
-import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-
-# Test shim: put src/ on sys.path (documented exception, see test_settings.py:17-18).
-sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "src"))
 
 import pandas as pd
 import pytest
