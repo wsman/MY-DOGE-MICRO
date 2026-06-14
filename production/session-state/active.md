@@ -5,36 +5,33 @@
 
 ## Current Task
 
-**Sprint 006 — First-Run Experience + Architecture Completion — TAGGED `v0.2.0`.**
-Post-Release polish sprint completed, committed, and tagged on top of the `v0.1.0`
-baseline. Stage remains `Release`.
-
-- Tag: `v0.2.0` → commit `6684ef5`
-- Remote: `git push origin cdd-adoption-2026-06-11` + `git push origin --tags`
-  succeeded; `v0.1.0` and `v0.2.0` now on origin.
+**Sprint 006 — First-Run Experience + Architecture Completion — FULLY CLOSED.**
+All stories (S006-001 through S006-008) are done and committed on top of the
+`v0.1.0` baseline, which is tagged `v0.2.0` at commit `6684ef5`. Stage remains
+`Release`.
 
 Final verification (2026-06-14):
-- `python -m pytest -q` → **613 passed, 5 skipped, 0 failed**
+- `python -m pytest -q` → **617 passed, 5 skipped, 0 failed**
 - `cd web && npm test` → **70 passed**
 - `cd web && npm run build` → **green**
 - `python src/cli.py demo --market cn --top 3` → runs without `DEEPSEEK_API_KEY`, exits 0
 - §6 layer gates → **ZERO hits**
 
-Committed stories (7 done, 1 deferred):
+Closed stories:
 - **S006-001** sys.path test-shim regression gate + cleanup of ~29 redundant shims
 - **S006-002** MCP error-text sanitization (paths + credentials redacted)
 - **S006-003** `wmic` → PowerShell CIM migration for orphan-process detection
 - **S006-004** full `YFinanceMetadataSource` adapter against `ITickerMetadataSource`
 - **S006-005** `industry_analyzer.py` migrated onto the metadata port
+- **S006-006** `fetch_names.py` migrated onto the metadata port
 - **S006-007** `python src/cli.py demo` subcommand (zero-config first-run demo)
 - **S006-008** docs updates (`GETTING_STARTED.md`, `CLI.md`) + parser mirror tests
 
 Deferred / out of scope:
-- **S006-006** `fetch_names.py` optional metadata-port migration (Should Have, skipped)
 - **ADR-0007 path 1a** auth + non-loopback CORS — remains conditionally deferred
 
 **NEXT:** No active sprint. Operator may open Sprint 007 or move to a new epic.
-`S006-006` is a good `v0.2.1` quick win or Sprint 007 first story.
+`S006-006` closed; no remaining Sprint 006 deferred stories.
 
 <!-- STATUS -->
 Epic: Release / Release-Ready v1

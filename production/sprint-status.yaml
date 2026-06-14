@@ -811,16 +811,16 @@ sprints:
         note: "src/micro/industry_analyzer.py off direct yf.Ticker(...).info; uses build_metadata_source().get_metadata(...); in-memory cache and meta_cache.json persistence preserved."
 
       - id: S006-006
-        title: "fetch_names.py optional metadata-port migration"
+        title: "fetch_names.py metadata-port migration"
         epic: ep-architecture-debt
         tr: null
-        source: "ADR-0009 follow-on optional"
+        source: "ADR-0009 follow-on"
         priority: LOW
         effort: S
         owner: python-specialist
-        status: deferred
+        status: done
         blocking_gate: false
-        note: "Should-Have / optional; deferred out of scope."
+        note: "src/ai_analysis/fetch_names.py fetch_batch_yfinance now uses build_metadata_source().get_metadata(...); no direct yfinance import; tests/unit/ai_analysis/test_fetch_names_metadata_port.py."
 
       - id: S006-007
         title: "demo CLI subcommand"
@@ -855,14 +855,14 @@ rollup:
     in_progress: 0
     blocked: 0
     review: 0
-    done: 7
-    deferred: 1
+    done: 8
+    deferred: 0
   by_priority:
     HIGH: 0
     MED: 4
     LOW: 4
   by_epic:
-    ep-architecture-debt: 4
+    ep-architecture-debt: 5
     ep-governance-security: 2
     ep-ux: 2
   blocking_gated_stories: []

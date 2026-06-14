@@ -19,24 +19,25 @@ showcases bundled analytical data without requiring a `DEEPSEEK_API_KEY`.
 | S006-003 | `wmic` → CIM migration | done | `src/doge/interfaces/mcp/server.py`, `tests/contract/test_mcp_orphan_detection_cim.py` |
 | S006-004 | `YFinanceMetadataSource` full adapter | done | `src/doge/infrastructure/data_source/yfinance_metadata.py`, `src/doge/core/services/composition.py`, `src/doge/interfaces/api/deps.py`, `tests/unit/core/ports/test_yfinance_metadata_source.py` |
 | S006-005 | `industry_analyzer.py` port migration | done | `src/micro/industry_analyzer.py`, `tests/unit/micro/test_industry_analyzer_metadata_port.py` |
+| S006-006 | `fetch_names.py` optional port migration | done | `src/ai_analysis/fetch_names.py`, `tests/unit/ai_analysis/test_fetch_names_metadata_port.py` |
 | S006-007 | `demo` CLI subcommand | done | `src/cli.py`, `tests/cli/test_cli_demo.py` |
 | S006-008 | Demo docs + consistency | done | `docs/GETTING_STARTED.md`, `docs/CLI.md`, `tests/cli/test_cli_arg_parsing.py` |
 
 ## Deferred / Out of Scope
 
-- **S006-006** `fetch_names.py` optional metadata-port migration (Should Have, skipped).
 - **ADR-0007 path 1a** auth + non-loopback CORS — conditionally deferred until deployment
   model changes from loopback.
 
 ## Definition of Done
 
 - [x] All Must-Have stories completed and tested
-- [x] `python -m pytest -q` green (613 passed / 5 skipped / 0 failed)
+- [x] `python -m pytest -q` green (617 passed / 5 skipped / 0 failed)
 - [x] Web build green and 70 vitest passed
 - [x] `python src/cli.py demo` runs without `DEEPSEEK_API_KEY`
 - [x] §6 layer gate ZERO hits
 - [x] ADR-0009 migration plan step 2 marked done
 - [x] `YFinanceMetadataSource` no longer raises `NotImplementedError`
+- [x] `fetch_names.py` migrated onto `ITickerMetadataSource` port (S006-006)
 
 ## Verification
 

@@ -18,6 +18,7 @@ from datetime import datetime
 # the prior ``from ai_analysis import get_project_path`` made this module
 # unimportable; paths now come from get_settings().
 from doge.config import get_settings
+from doge.core.services.composition import build_metadata_source
 
 _NOTES_DB = get_settings().db
 NOTES_DB = str(_NOTES_DB.research_db)
@@ -59,10 +60,8 @@ def save_name(ticker, name_cn, name_en=None, market="cn", sector=None, industry=
     conn.close()
 
 
-def fetch_batch_yfinance(tickers, market="cn", batch_size=20, delay=2.0):
-    """批量从 yfinance 获取名称"""
-    import yfinance as yf
-
+def fetch_batch_yfinance(tickers, market="cn", batch_size=20, delay=2.0, metadata_source=None):
+    """批量从 yfinance 获取名称（经 metadata port）。"""
     existing = get_existing_names()
     to_fetch = [t for t in tickers if t not in existing or not existing[t]]
 
@@ -73,20 +72,24 @@ def fetch_batch_yfinance(tickers, market="cn", batch_size=20, delay=2.0):
     print("Fetching names for {} tickers ({} batches of {})...".format(
         len(to_fetch), (len(to_fetch) + batch_size - 1) // batch_size, batch_size))
 
+    # S006-006: 通过 ITickerMetadataSource port 获取元数据，避免直接调用 yfinance。
+    # 默认走 composition root，但测试可以注入 fake source。
+    source = metadata_source if metadata_source is not None else build_metadata_source()
+
     success = 0
     for i in range(0, len(to_fetch), batch_size):
         batch = to_fetch[i:i + batch_size]
         try:
             for t in batch:
                 try:
-                    ticker_obj = yf.Ticker(t)
-                    info = ticker_obj.info
-                    name = info.get("longName") or info.get("shortName") or ""
-                    sector = info.get("sector", "")
-                    industry = info.get("industry", "")
-                    if name:
-                        save_name(t, name, name, market, sector, industry)
+                    meta = source.get_metadata(t, market)
+                    if meta:
+                        name = meta.get("name", "")
+                        sector = meta.get("sector", "")
+                        save_name(t, name, name, market, sector, "")
                         success += 1
+                    else:
+                        save_name(t, t, "", market, "", "")  # fallback
                 except Exception:
                     save_name(t, t, "", market, "", "")  # fallback
                 time.sleep(0.3)
