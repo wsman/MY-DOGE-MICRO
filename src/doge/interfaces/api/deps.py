@@ -13,6 +13,7 @@ from doge.config import Settings, get_settings
 from doge.core.ports.metadata import ITickerMetadataSource
 from doge.core.ports.repository import IReportRepository, ISchemaBrowser, IStockRepository, INoteRepository
 from doge import application as app_composition
+from doge.infrastructure.database.sqlite_storage import SQLiteStorageRepository
 
 
 def get_settings_dep() -> Settings:
@@ -43,6 +44,15 @@ def get_note_repository() -> INoteRepository:
 def get_metadata_source() -> ITickerMetadataSource:
     """Provide the default yfinance-backed ticker metadata source."""
     return app_composition.build_metadata_source()
+
+
+def get_storage_repository() -> SQLiteStorageRepository:
+    """Provide the single-logical-writer SQLite storage repository.
+
+    Used by the scan router for schema bootstrap. Exposed here so the router
+    does not import an infrastructure adapter directly.
+    """
+    return SQLiteStorageRepository()
 
 
 def get_request_state(request: Request) -> dict:

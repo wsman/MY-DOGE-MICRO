@@ -84,8 +84,8 @@ sys.path[:] = [
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from src.api import main as api_main  # noqa: E402
-from src.api.routers import (  # noqa: E402
+from doge.interfaces.api import main as api_main  # noqa: E402
+from doge.interfaces.api.routers import (  # noqa: E402
     analysis as analysis_router,
     config as config_router,
     data as data_router,

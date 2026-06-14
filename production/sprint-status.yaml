@@ -122,7 +122,7 @@ sprints:
         priority: HIGH
         effort: L
         owner: python-specialist
-        status: in_progress
+        status: done
         depends_on: [S007-001, S007-003]
         blocking_gate: true
         note: "Migrate src/api/routers/*.py and src/api/main.py to src/doge/interfaces/api/. Legacy src/api/ becomes shim. Routers delegate to application use cases via deps.py providers."
@@ -135,7 +135,7 @@ sprints:
         priority: HIGH
         effort: M
         owner: python-specialist
-        status: todo
+        status: in_progress
         depends_on: [S007-001, S007-002]
         blocking_gate: true
         note: "Move connect_duckdb/query_view/query_sql helpers to infrastructure. Notes CRUD → ManageNotesUseCase. market_overview/anomaly/catalog/fetch_names → respective use cases. src/ai_analysis files become shims."
@@ -983,11 +983,11 @@ rollup:
   sprint: S007
   total_stories: 8
   by_status:
-    todo: 6
-    in_progress: 0
+    todo: 4
+    in_progress: 1
     blocked: 0
     review: 0
-    done: 2
+    done: 3
     deferred: 0
   by_priority:
     HIGH: 6
@@ -997,5 +997,5 @@ rollup:
     ep-architecture-debt: 6
     ep-ux: 1
     ep-governance: 1
-  blocking_gated_stories: [S007-002, S007-004, S007-005, S007-006, S007-008]
-  top_priority_stories: [S007-002]
+  blocking_gated_stories: [S007-004, S007-005, S007-006, S007-008]
+  top_priority_stories: [S007-004]
