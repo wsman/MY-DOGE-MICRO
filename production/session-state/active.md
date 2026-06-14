@@ -15,10 +15,10 @@ signed off, and published.
 | Field | Value |
 |---|---|
 | Version | **v0.2.1** |
-| Tag | annotated `eb343bda` points to commit `ca0fa85ad8694da3561ce5ccf9221411adda7eaf` |
-| Post-tag evidence | `c1f688a` (launch checklist + release report) — tag NOT moved |
+| Tag | annotated `e14525d` points to commit `7217821738b9d4032c8e1ba5839c7b3198638b71` |
+| Post-tag evidence | `ba883a3` (launch checklist), `3b0bc2e` (release report), `785b4e8` (active state) — tag NOT moved |
 | Branch | `cdd-adoption-2026-06-11` pushed to origin |
-| Previous release | `v0.2.0` (`6684ef5`) |
+| Previous release | `v0.2.0` (`ad45634`) |
 | Stage | `Release` |
 | Launch posture | **CONDITIONAL / no blockers** |
 | Deployment model | Local-first, single-operator, loopback-only |

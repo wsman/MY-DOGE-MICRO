@@ -8,8 +8,8 @@ Generated: 2026-06-14
 |---|---|
 | Version | **v0.2.1** |
 | Branch | `cdd-adoption-2026-06-11` |
-| Release commit | `7912ac9` + release-metadata commit (this checklist, `CHANGELOG.md`, `pyproject.toml`) |
-| Previous release | `v0.2.0` (`6684ef5`) |
+| Release commit | `705e2f3` + `7217821` release-metadata commit (this checklist, `CHANGELOG.md`, `pyproject.toml`) |
+| Previous release | `v0.2.0` (`ad45634`) |
 | Product type | Local-first quantitative investment decision-support platform |
 | Deployment model | Single-operator, loopback-only (`127.0.0.1:8901` / `:8902`) |
 

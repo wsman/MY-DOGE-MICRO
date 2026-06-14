@@ -1,6 +1,6 @@
 # Launch Checklist: MY-DOGE-MICRO v0.2.1
 
-Target Launch: **v0.2.1** (annotated tag `eb343bda` points to commit `ca0fa85ad8694da3561ce5ccf9221411adda7eaf`)
+Target Launch: **v0.2.1** (annotated tag `e14525d` points to commit `7217821738b9d4032c8e1ba5839c7b3198638b71`)
 Generated: 2026-06-14
 
 ## 1. Code Readiness
@@ -13,7 +13,7 @@ Generated: 2026-06-14
 - [x] All unit tests passing — `617 passed, 5 skipped, 0 failed`
 - [x] All integration/contract tests passing
 - [x] Performance within targets
-- [x] Build artifact version correctly set and tagged — `pyproject.toml` = `0.2.1`, annotated tag `v0.2.1` → commit `ca0fa85`
+- [x] Build artifact version correctly set and tagged — `pyproject.toml` = `0.2.1`, annotated tag `v0.2.1` → commit `7217821`
 - [ ] Dependency vulnerability scan clean — **not configured**
 
 ### Code Quality

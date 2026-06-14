@@ -2,10 +2,10 @@
 
 **Release Date:** 2026-06-14  
 **Version:** v0.2.1  
-**Tag:** `v0.2.1` (annotated tag object `eb343bda` points to commit `ca0fa85ad8694da3561ce5ccf9221411adda7eaf`)  
+**Tag:** `v0.2.1` (annotated tag object `e14525d` points to commit `7217821738b9d4032c8e1ba5839c7b3198638b71`)  
 **Branch:** `cdd-adoption-2026-06-11`  
-**Previous Release:** v0.2.0 (`6684ef5`)  
-**Post-Tag Governance Evidence Commit:** `c1f688a` (launch checklist; tag NOT moved)  
+**Previous Release:** v0.2.0 (`ad45634`)  
+**Post-Tag Governance Evidence Commits:** `ba883a3` (launch checklist), `3b0bc2e` (release report), `785b4e8` (active state); tag NOT moved  
 **Stage:** Release  
 **Deployment Model:** Local-first, single-operator, loopback-only
 
@@ -88,7 +88,7 @@
 
 | Item | Status |
 |---|---|
-| Git tag created and annotated | ✅ `v0.2.1` → `ca0fa85` |
+| Git tag created and annotated | ✅ `v0.2.1` → `7217821` |
 | Tag pushed to remote | ✅ |
 | Release branch pushed to remote | ✅ `cdd-adoption-2026-06-11` |
 | Package version aligned | ✅ `pyproject.toml` = `0.2.1` |
