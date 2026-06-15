@@ -16,7 +16,7 @@ Introduce the missing `src/doge/application/` use-case layer, move the compositi
 | S007-001 | Application contracts + composition boundary | done | `src/doge/application/`, `src/doge/core/ports/llm.py`, `src/doge/application/composition.py`, `src/doge/core/services/composition.py` | **Yes** |
 | S007-003 | CLI demo/query migration | done | `src/doge/interfaces/cli/`, `pyproject.toml`, `src/cli.py` (shim), `src/macro/cli.py` (shim), `docs/CLI.md` | **Yes** |
 | S007-002 | API scan workflow migration | done | `src/doge/interfaces/api/`, `src/api/` (shim) | **Yes** |
-| S007-004 | `ai_analysis` DuckDB/SQLite helpers → repository | in_progress | `src/doge/infrastructure/database/`, `src/ai_analysis/` (shim) | **Yes** |
+| S007-004 | `ai_analysis` DuckDB/SQLite helpers → repository | **done** | `src/doge/infrastructure/database/`, `src/ai_analysis/` (shim) | **Yes** |
 | S007-005 | `micro.market_scanner` → `ScanMarketUseCase` | todo | `src/doge/application/use_cases/scan_market.py`, `src/micro/market_scanner.py` (shim) | **Yes** |
 | S007-006 | `macro` report → `GenerateMacroReportUseCase` + `ILLMClient` | todo | `src/doge/application/use_cases/generate_macro_report.py`, `src/doge/infrastructure/llm/deepseek_client.py`, `src/macro/` (shim) | **Yes** |
 | S007-007 | Update `docs/MODULARIZATION_PLAN.md` | todo | `docs/MODULARIZATION_PLAN.md` | No (advisory) |
@@ -56,7 +56,7 @@ Implementation proceeds **story-by-story with user approval** after each story's
 - [x] S007-001 done: `src/doge/application/` exists, composition root in `doge.application.composition`, `doge.core.services` imports only `doge.core.ports`.
 - [x] S007-003 done: `doge` console script works, `src/cli.py` and `src/macro/cli.py` are shims, bilingual output + secret redaction preserved, `docs/CLI.md` updated.
 - [x] S007-002 done: `src/doge/interfaces/api/` is live surface, `src/api/` are shims, no direct sqlite3/duckdb in routers.
-- [ ] S007-004 done: `ai_analysis` files are shims, DuckDB/SQLite helpers live in infrastructure, no `from ai_analysis import` under `src/doge/`.
+- [x] S007-004 done: `ai_analysis` files are shims, DuckDB/SQLite helpers live in infrastructure, no `from ai_analysis import` under `src/doge/`.
 - [ ] S007-005 done: `ScanMarketUseCase` exists and is tested, `src/micro/market_scanner.py` is a shim.
 - [ ] S007-006 done: `GenerateMacroReportUseCase` + `ILLMClient` port + `DeepSeekClient` adapter exist and are tested, `src/macro/` are shims.
 - [ ] S007-007 done: `docs/MODULARIZATION_PLAN.md` reflects Sprint 007 batches and deferred deletion plan.

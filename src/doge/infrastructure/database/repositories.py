@@ -8,9 +8,15 @@ import sqlite3
 from typing import List, Optional
 
 from doge.config import get_settings
-from doge.core.ports.repository import IStockRepository, IReportRepository, ISchemaBrowser, INoteRepository
+from doge.core.ports.repository import (
+    IStockRepository,
+    IReportRepository,
+    ISchemaBrowser,
+    INoteRepository,
+    IStockNameRepository,
+)
 from .duckdb import DuckDBConnection
-from .sqlite import SQLiteConnection
+from .sqlite import SQLiteConnection, get_sqlite_stats
 
 
 class DuckDBStockRepository(IStockRepository):
@@ -328,6 +334,63 @@ class SQLiteReportRepository(IReportRepository):
         return [dict(r) for r in rows]
 
 
+class SQLiteStockNameRepository(IStockNameRepository):
+    """Stock-name cache repository backed by SQLite.
+
+    Persists ticker metadata (name, sector) to the ``stock_names`` table in the
+    research database. This is a separate domain from notes, so it implements
+    its own port (S007-004).
+    """
+
+    def __init__(self, conn: SQLiteConnection | None = None):
+        self._conn = conn or SQLiteConnection(use_row_factory=True)
+
+    def get_existing_names(self) -> dict[str, str]:
+        """Return ``{ticker: name_cn}`` for all cached names."""
+        try:
+            rows = self._conn.execute(
+                "SELECT ticker, name_cn FROM stock_names"
+            )
+            return {r["ticker"]: (r["name_cn"] or "") for r in rows}
+        except sqlite3.OperationalError:
+            # stock_names table may not exist on fresh/legacy DBs.
+            return {}
+
+    def save_name(
+        self,
+        ticker: str,
+        name_cn: str,
+        name_en: Optional[str] = None,
+        market: str = "cn",
+        sector: Optional[str] = None,
+        industry: Optional[str] = None,
+    ) -> None:
+        """Persist or update a stock name record."""
+        from datetime import datetime
+
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with self._conn.connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO stock_names
+                (ticker, name_cn, name_en, market, sector, industry, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (ticker, name_cn, name_en or "", market, sector or "", industry or "", now),
+            )
+            conn.commit()
+
+    def list_stock_names(self) -> List[dict]:
+        """Return all cached stock-name records."""
+        try:
+            rows = self._conn.execute(
+                "SELECT ticker, name_cn, sector FROM stock_names"
+            )
+            return [dict(r) for r in rows]
+        except sqlite3.OperationalError:
+            return []
+
+
 class SQLiteSchemaBrowser(ISchemaBrowser):
     """Schema-introspection adapter backed by SQLiteConnection.
 
@@ -453,6 +516,11 @@ class SQLiteSchemaBrowser(ISchemaBrowser):
                 db_stats[table_name] = count
             result[db_name] = db_stats
         return result
+
+    def get_sqlite_stats(self, market: str) -> dict:
+        """Return detailed per-table statistics for ``market``."""
+        db_path = self._db_path(market)
+        return get_sqlite_stats(db_path)
 
 
 class SQLiteNoteRepository(INoteRepository):

@@ -5,10 +5,29 @@
 
 ## Current Task
 
-**v0.2.1 RELEASE COMPLETE.**
+**Sprint 007 — Clean Architecture Modularization in progress.**
 
-Sprint 006 is fully closed and the `v0.2.1` patch release has been coordinated,
-signed off, and published.
+- S007-001 done: application contracts + composition root relocated.
+- S007-003 done: CLI migrated to `doge.interfaces.cli`.
+- S007-002 done: API migrated to `doge.interfaces.api`.
+- **S007-004 done**: `ai_analysis` helpers + Notes CRUD + reporting scripts migrated to canonical layers; `src/ai_analysis/*` are shims; `IStockNameRepository` port introduced.
+- **Next**: S007-005 `micro.market_scanner` → `ScanMarketUseCase`.
+
+### S007-004 Verification
+
+- `python -m pytest -q` → **678 passed, 5 skipped, 0 failed** (PyQt6 DLL-load fatal exception remains ADVISORY-only).
+- Layer gates pass: `tests/unit/layer_gates/test_no_ai_analysis_under_doge.py` green.
+- `src/doge/` contains zero `from ai_analysis` / `import ai_analysis`.
+- `src/ai_analysis/market_overview.py`, `anomaly_detection.py`, `catalog_generator.py`, `fetch_names.py` are deprecation shims forwarding to application use cases.
+
+### Uncommitted Work
+
+S007-004b changes ready to commit:
+- Filled `GenerateMarketOverviewUseCase`, `GenerateAnomalyReportUseCase`, `GenerateCatalogUseCase`, `PopulateStockNamesUseCase`.
+- Added `IStockNameRepository` port + `SQLiteStockNameRepository` adapter.
+- Restored `ViewService.list_views()` (MCP tool contract).
+- Rewrote `tests/test_market_reporting.py` to target canonical use cases with fake repositories.
+- Updated `production/sprint-status.yaml` and `production/sprints/sprint-007-modularization.md` to mark S007-004 done.
 
 ### Release Summary
 
@@ -56,9 +75,9 @@ signed off, and published.
 **NEXT:** No active sprint. Operator may open Sprint 007 or move to a new epic after the 48h observation window.
 
 <!-- STATUS -->
-Epic: Release / Release-Ready v1
-Feature: v0.2.1 Patch Release
-Task: released; 48h operator observation in progress
+Epic: Sprint 007 — Clean Architecture Modularization
+Feature: S007-004 ai_analysis → canonical layers
+Task: done; ready to commit 004b; next S007-005
 <!-- /STATUS -->
 
 ## Latest Verification Run (2026-06-13)

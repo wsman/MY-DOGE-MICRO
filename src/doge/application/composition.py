@@ -26,6 +26,7 @@ from doge.core.ports.repository import (
     ISchemaBrowser,
     IStockRepository,
     INoteRepository,
+    IStockNameRepository,
 )
 
 # ── Core services ──
@@ -42,6 +43,7 @@ from doge.infrastructure.database.repositories import (
     SQLiteReportRepository,
     SQLiteSchemaBrowser,
     SQLiteNoteRepository,
+    SQLiteStockNameRepository,
 )
 from doge.infrastructure.data_source.yfinance_metadata import YFinanceMetadataSource
 from doge.infrastructure.llm.deepseek_client import DeepSeekClient
@@ -97,6 +99,11 @@ def build_schema_browser() -> ISchemaBrowser:
 def build_note_repository() -> INoteRepository:
     """Construct the default SQLite-backed note repository."""
     return SQLiteNoteRepository()
+
+
+def build_stock_name_repository() -> IStockNameRepository:
+    """Construct the default SQLite-backed stock-name repository."""
+    return SQLiteStockNameRepository()
 
 
 def build_metadata_source(
@@ -189,12 +196,14 @@ def build_query_ticker_use_case(
 
 
 def build_generate_market_overview_use_case(
+    view_repo: IMarketViewRepository | None = None,
     breadth_service=None,
     ranking_service=None,
     anomaly_service=None,
 ) -> GenerateMarketOverviewUseCase:
-    """Build a :class:`GenerateMarketOverviewUseCase` with default services."""
+    """Build a :class:`GenerateMarketOverviewUseCase` with default adapters."""
     return GenerateMarketOverviewUseCase(
+        view_repo if view_repo is not None else build_view_repository(),
         breadth_service if breadth_service is not None else build_breadth_service(),
         ranking_service if ranking_service is not None else build_ranking_service(),
         anomaly_service if anomaly_service is not None else build_anomaly_service(),
@@ -202,11 +211,13 @@ def build_generate_market_overview_use_case(
 
 
 def build_generate_anomaly_report_use_case(
+    view_repo: IMarketViewRepository | None = None,
     anomaly_service=None,
 ) -> GenerateAnomalyReportUseCase:
     """Build a :class:`GenerateAnomalyReportUseCase` with the default service."""
     return GenerateAnomalyReportUseCase(
-        anomaly_service if anomaly_service is not None else build_anomaly_service()
+        view_repo if view_repo is not None else build_view_repository(),
+        anomaly_service if anomaly_service is not None else build_anomaly_service(),
     )
 
 
@@ -222,13 +233,15 @@ def build_catalog_use_case(
 
 
 def build_populate_stock_names_use_case(
+    stock_repo: IStockRepository | None = None,
+    name_repo: IStockNameRepository | None = None,
     metadata_source: ITickerMetadataSource | None = None,
-    note_repo: INoteRepository | None = None,
 ) -> PopulateStockNamesUseCase:
     """Build a :class:`PopulateStockNamesUseCase` with default adapters."""
     return PopulateStockNamesUseCase(
+        stock_repo if stock_repo is not None else build_stock_repository(),
+        name_repo if name_repo is not None else build_stock_name_repository(),
         metadata_source if metadata_source is not None else build_metadata_source(),
-        note_repo if note_repo is not None else build_note_repository(),
     )
 
 

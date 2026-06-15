@@ -187,6 +187,38 @@ class IReportRepository(ABC):
     def list_stock_names(self) -> List[dict]:
         ...
 
+
+class IStockNameRepository(ABC):
+    """Interface for stock-name cache persistence.
+
+    Decouples the ticker-metadata/name-cache domain from the underlying SQLite
+    ``stock_names`` table in the research database.
+    """
+
+    @abstractmethod
+    def get_existing_names(self) -> dict[str, str]:
+        """Return ``{ticker: name_cn}`` for all cached names."""
+        ...
+
+    @abstractmethod
+    def save_name(
+        self,
+        ticker: str,
+        name_cn: str,
+        name_en: Optional[str] = None,
+        market: str = "cn",
+        sector: Optional[str] = None,
+        industry: Optional[str] = None,
+    ) -> None:
+        """Persist or update a stock name record."""
+        ...
+
+    @abstractmethod
+    def list_stock_names(self) -> List[dict]:
+        """Return all cached stock-name records."""
+        ...
+
+
 class INoteRepository(ABC):
     """Interface for stock note / annotation data access.
 
@@ -385,5 +417,14 @@ class ISchemaBrowser(ABC):
         :class:`~doge.config.settings.Settings` and returns a mapping of
         ``{db_filename: {table_name: row_count}}``. Missing databases are
         omitted.
+        """
+        ...
+
+    @abstractmethod
+    def get_sqlite_stats(self, market: str) -> dict:
+        """Return detailed per-table statistics for ``market``.
+
+        Mirrors the legacy ``src/ai_analysis.get_sqlite_stats`` shape used by
+        the catalog generator.
         """
         ...

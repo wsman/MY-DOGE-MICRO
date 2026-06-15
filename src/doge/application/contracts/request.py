@@ -71,6 +71,8 @@ class GenerateAnomalyReportRequest:
     market: str = "cn"
     min_ratio: float = 3.0
     top: int = 20
+    gap_threshold: float = 5.0
+    recent_days: int = 3
 
 
 @dataclass(frozen=True)
@@ -84,6 +86,8 @@ class PopulateStockNamesRequest:
     """Input for :class:`~doge.application.use_cases.populate_stock_names.PopulateStockNamesUseCase`."""
     market: str = "cn"
     tickers: Optional[list[str]] = None
+    source: str = "yfinance"  # "yfinance" | "meta_cache"
+    cache_path: Optional[str] = None
     delay: float = 0.3
     batch_size: int = 50
 

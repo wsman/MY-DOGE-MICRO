@@ -62,6 +62,10 @@ last_updated: "2026-06-15"
 # 2026-06-14 (Sprint 007 ratified): v0.2.1 release complete; stage remains Release.
 # Sprint 007 "Clean Architecture Modularization" planned with 8 stories.
 # Implementation is story-by-story with user approval; legacy deletion deferred to S008.
+# 2026-06-15 (S007-004 done): Split into 004a (helpers + notes, committed 955add4)
+# and 004b (reports + catalog + fetch_names + IStockNameRepository, this commit).
+# ai_analysis files are now shims; no ai_analysis imports under src/doge/.
+# Full pytest: 678 passed / 5 skipped / 0 failed.
 
 sprints:
   - id: S007
@@ -135,10 +139,10 @@ sprints:
         priority: HIGH
         effort: M
         owner: python-specialist
-        status: in_progress
+        status: done
         depends_on: [S007-001, S007-002]
         blocking_gate: true
-        note: "Move connect_duckdb/query_view/query_sql helpers to infrastructure. Notes CRUD → ManageNotesUseCase. market_overview/anomaly/catalog/fetch_names → respective use cases. src/ai_analysis files become shims."
+        note: "004a: helpers + notes CRUD → canonical layers (955add4). 004b: market_overview/anomaly/catalog/fetch_names → use cases + IStockNameRepository port + test retargeting. ai_analysis files are shims; no ai_analysis imports under src/doge/."
 
       - id: S007-005
         title: "micro.market_scanner → ScanMarketUseCase"
@@ -983,11 +987,11 @@ rollup:
   sprint: S007
   total_stories: 8
   by_status:
-    todo: 4
-    in_progress: 1
+    todo: 3
+    in_progress: 0
     blocked: 0
     review: 0
-    done: 3
+    done: 4
     deferred: 0
   by_priority:
     HIGH: 6
@@ -997,5 +1001,5 @@ rollup:
     ep-architecture-debt: 6
     ep-ux: 1
     ep-governance: 1
-  blocking_gated_stories: [S007-004, S007-005, S007-006, S007-008]
-  top_priority_stories: [S007-004]
+  blocking_gated_stories: [S007-005, S007-006, S007-008]
+  top_priority_stories: [S007-005]

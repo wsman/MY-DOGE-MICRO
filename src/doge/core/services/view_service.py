@@ -17,7 +17,28 @@ class ViewService:
     def __init__(self, view: IMarketViewRepository):
         self._view = view
 
+    def get_view_stats(self) -> dict:
+        """Return {view_name: {"row_count": int|None}} for all DuckDB views."""
+        df = self._view.execute(
+            "SELECT table_name FROM information_schema.tables WHERE table_type='VIEW'"
+        )
+        views = {}
+        for vn in df["table_name"].tolist():
+            try:
+                cnt_df = self._view.execute(f"SELECT COUNT(*) FROM {vn}")
+                cnt = int(cnt_df.iloc[0, 0])
+                views[vn] = {"row_count": cnt}
+            except Exception:
+                views[vn] = {"row_count": None}
+        return views
+
     def list_views(self) -> str:
+        """Return a JSON envelope listing all DuckDB views with row counts.
+
+        The per-view count query is wrapped in a swallow-and-continue block so
+        one failing view does not break the whole listing. Used by the MCP
+        ``list_views`` tool.
+        """
         df = self._view.execute(
             "SELECT table_name FROM information_schema.tables WHERE table_type='VIEW'"
         )
