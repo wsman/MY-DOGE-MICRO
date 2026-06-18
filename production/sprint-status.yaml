@@ -62,10 +62,11 @@ last_updated: "2026-06-15"
 # 2026-06-14 (Sprint 007 ratified): v0.2.1 release complete; stage remains Release.
 # Sprint 007 "Clean Architecture Modularization" planned with 8 stories.
 # Implementation is story-by-story with user approval; legacy deletion deferred to S008.
-# 2026-06-15 (S007-004 done): Split into 004a (helpers + notes, committed 955add4)
-# and 004b (reports + catalog + fetch_names + IStockNameRepository, this commit).
-# ai_analysis files are now shims; no ai_analysis imports under src/doge/.
-# Full pytest: 678 passed / 5 skipped / 0 failed.
+# 2026-06-15 (S007-005 done): local-file scanner migrated to ITdxFileScanner +
+# TDXFileScanner + ScanMarketUseCase; market_scanner.py is a shim; API router
+# local fallback uses use case; new micro-import allowlist gate added.
+# S007-004 done: split into 004a (helpers + notes, committed 955add4) and
+# 004b (reports + catalog + fetch_names + IStockNameRepository, committed 59034d1).
 
 sprints:
   - id: S007
@@ -152,10 +153,10 @@ sprints:
         priority: HIGH
         effort: L
         owner: python-specialist
-        status: todo
+        status: done
         depends_on: [S007-001, S007-004]
         blocking_gate: true
-        note: "Create ScanMarketUseCase that orchestrates IMarketDataSource + IStockRepository + view refresh. src/micro/market_scanner.py becomes shim."
+        note: "New ITdxFileScanner port + TDXFileScanner adapter; ScanMarketUseCase owns local scan orchestration; market_scanner.py shim; API router local fallback uses use case. Server download + micro.database bridge deferred to S007-006/S007-008."
 
       - id: S007-006
         title: "macro report → GenerateMacroReportUseCase + ILLMClient port"
@@ -987,11 +988,11 @@ rollup:
   sprint: S007
   total_stories: 8
   by_status:
-    todo: 3
+    todo: 2
     in_progress: 0
     blocked: 0
     review: 0
-    done: 4
+    done: 5
     deferred: 0
   by_priority:
     HIGH: 6
@@ -1001,5 +1002,5 @@ rollup:
     ep-architecture-debt: 6
     ep-ux: 1
     ep-governance: 1
-  blocking_gated_stories: [S007-005, S007-006, S007-008]
-  top_priority_stories: [S007-005]
+  blocking_gated_stories: [S007-006, S007-008]
+  top_priority_stories: [S007-006]

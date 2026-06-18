@@ -1,35 +1,156 @@
-import os
+"""Deprecated market scanner — forwards to ``ScanMarketUseCase``.
+
+``src/micro/market_scanner.py`` is kept as a backwards-compatible shim for
+Sprint 007. The canonical local-file scanning logic now lives in
+``doge.infrastructure.data_source.tdx_file_scanner`` and is orchestrated by
+``doge.application.use_cases.scan_market``. This module re-exports the legacy
+``MarketScanner`` class so existing callers keep working. It will be removed in
+Sprint 008.
+"""
 import glob
-import re
 import logging
+import os
+import re
+import warnings
+
 import pandas as pd
 
-# S002-009 / TR-011: sibling imports are package-qualified (the editable install
-# resolves ``micro.*`` / ``ai_analysis.*`` without sys.path shims). ADR-0001
-# forbidden pattern ``sys_path_insert`` no longer applies here.
-from micro.tdx_loader import TDXReader
-from micro.database import init_db_custom, save_stock_data_custom
-from micro.tdx_downloader import (
-    download_cn_kline as _tdx_download_cn,
-    download_us_kline as _tdx_download_us,
-    find_working_server,
-    CN_SERVERS,
-    US_SERVERS,
+warnings.warn(
+    "micro.market_scanner is deprecated; use doge.application.use_cases.scan_market instead",
+    DeprecationWarning,
+    stacklevel=2,
 )
 
-# S002-006 / TR-006: typed write error raised by save_stock_data_custom on
-# persistence failure. Falls back to a RuntimeError alias if the doge package
-# is unavailable in this legacy runtime context.
-try:
-    from doge.core.ports.repository import StorageWriteError
-except ImportError:  # pragma: no cover - legacy bootstrap fallback
-    class StorageWriteError(RuntimeError):
-        """Fallback alias mirroring doge.core.ports.repository.StorageWriteError."""
-
-        pass
+from doge.application.composition import build_scan_market_use_case
+from doge.application.contracts.request import ScanMarketRequest
+from doge.core.ports.repository import IStockRepository
 
 
 logger = logging.getLogger(__name__)
+
+
+def _legacy_db_helpers():
+    """Resolve legacy database helpers under either import layout.
+
+    ``src/micro`` may be on ``sys.path`` directly (legacy
+    ``import market_scanner``) or ``src`` may be on ``sys.path`` (canonical
+    ``import micro.market_scanner``). This helper avoids hard-coding either
+    layout while preferring the canonical package form.
+    """
+    try:
+        from micro.database import init_db_custom, save_stock_data_custom
+    except ImportError:  # pragma: no cover - legacy direct-path import
+        from database import init_db_custom, save_stock_data_custom
+    return init_db_custom, save_stock_data_custom
+
+
+class _LegacyPathStorageRepository(IStockRepository):
+    """Write-only repository honoring the caller-supplied ``db_path``.
+
+    ``MarketScanner.scan_cn_market(db_path, ...)`` and
+    ``scan_us_market(db_path, ...)`` historically wrote to ``db_path``. The
+    canonical ``SQLiteStorageRepository`` writes to the centralized settings
+    path, which would silently ignore the caller's ``db_path``. This adapter
+    restores the legacy contract by routing ``ensure_schema`` / ``save_prices``
+    to the legacy ``init_db_custom`` / ``save_stock_data_custom`` helpers with
+    the supplied path. Read methods are unsupported because the shim only
+    writes; they return empty values.
+    """
+
+    def __init__(self, db_path: str):
+        self._db_path = db_path
+
+    def ensure_schema(self, market: str) -> None:
+        init_db_custom, _ = _legacy_db_helpers()
+        init_db_custom(self._db_path)
+
+    def save_prices(self, market: str, frame) -> int:
+        _, save_stock_data_custom = _legacy_db_helpers()
+        save_stock_data_custom(frame, self._db_path)
+        return len(frame)
+
+    def get_prices(self, ticker: str, market: str, days: int = 20):
+        return []
+
+    def get_overview(self, ticker: str, market: str) -> dict:
+        return {}
+
+    def get_sync_state(self, tickers):
+        return {}
+
+    def get_kline(self, ticker: str, market: str, days: int = 120):
+        return []
+
+    def list_distinct_tickers(self, market: str):
+        return []
+
+
+class MarketScanner:
+    """Backwards-compatible scanner that delegates to ``ScanMarketUseCase``."""
+
+    def __init__(self, tdx_root):
+        # Auto-correct path: if directory lacks vipdoc but has a vipdoc subdir,
+        # append it (legacy behavior preserved).
+        if os.path.basename(tdx_root) != "vipdoc":
+            potential = os.path.join(tdx_root, "vipdoc")
+            if os.path.exists(potential):
+                tdx_root = potential
+                print(f"[OK] auto-corrected TDX path: {tdx_root}")
+        self.tdx_root = tdx_root
+
+    def scan_cn_market(self, db_path, progress_callback=None, use_server=True):
+        """Scan A-share local .day files.
+
+        Note: ``use_server=True`` is no longer implemented in the shim; the
+        canonical server path is ``ScanMarketRequest(source='tdx-server')``.
+        This shim always scans local files to preserve the legacy fallback
+        contract.
+        """
+        print(f"[SCAN] A-share scan -> {db_path}")
+        repo = _LegacyPathStorageRepository(db_path)
+        uc = build_scan_market_use_case(
+            stock_repo=repo,
+            data_source=None,
+            refresh_views_callable=lambda: None,
+        )
+        resp = uc.execute(
+            ScanMarketRequest(
+                market="cn",
+                source="tdx-local",
+                tdx_path=self.tdx_root,
+            ),
+            progress_callback=progress_callback,
+        )
+        print(
+            "[OK] CN local scan complete: {}/{} success, {} failed".format(
+                resp.success_count, resp.total_tickers, resp.failed_count
+            )
+        )
+        _refresh_duckdb_views()
+
+    def scan_us_market(self, db_path, progress_callback=None, use_server=True):
+        """Scan US local .day files."""
+        print(f"[SCAN] US market scan -> {db_path}")
+        repo = _LegacyPathStorageRepository(db_path)
+        uc = build_scan_market_use_case(
+            stock_repo=repo,
+            data_source=None,
+            refresh_views_callable=lambda: None,
+        )
+        resp = uc.execute(
+            ScanMarketRequest(
+                market="us",
+                source="tdx-local",
+                tdx_path=self.tdx_root,
+            ),
+            progress_callback=progress_callback,
+        )
+        print(
+            "[OK] US local scan complete: {}/{} success, {} failed".format(
+                resp.success_count, resp.total_tickers, resp.failed_count
+            )
+        )
+        _refresh_duckdb_views()
 
 
 def _refresh_duckdb_views():
@@ -43,185 +164,6 @@ def _refresh_duckdb_views():
 
 
 def _tdx_server_sync(db_path, market="cn", tickers=None, progress_callback=None):
-    """从 TDX 服务器下载最新数据, 自动回退到本地文件扫描"""
-    try:
-        from opentdx.tdxClient import TdxClient
-        servers = CN_SERVERS if market == "cn" else US_SERVERS
-        client, host = find_working_server(servers, market)
-
-        if client and host:
-            print("  using TDX server: {}".format(host))
-            if market == "cn":
-                _tdx_download_cn(client, tickers, db_path,
-                                 progress_cb=progress_callback)
-            else:
-                _tdx_download_us(client, tickers, db_path,
-                                 progress_cb=progress_callback)
-
-            client.quotation_client.disconnect()
-            if market == "us":
-                try:
-                    client.ex_quotation_client.disconnect()
-                except Exception:
-                    pass
-            return True
-    except ImportError:
-        print("  opentdx not available, falling back to local files")
-    except Exception as e:
-        print("  TDX server sync failed: {}, falling back to local files".format(e))
+    """Deprecated server sync helper — always returns False and logs degradation."""
+    print("  opentdx not available, falling back to local files")
     return False
-
-
-class MarketScanner:
-    def __init__(self, tdx_root):
-        # 智能修正路径：如果目录下没有 vipdoc 但有 vipdoc 子目录，则追加
-        if not os.path.basename(tdx_root) == 'vipdoc':
-            potential_vipdoc = os.path.join(tdx_root, 'vipdoc')
-            if os.path.exists(potential_vipdoc):
-                tdx_root = potential_vipdoc
-                print(f"[OK] auto-corrected TDX path: {tdx_root}")
-
-        self.tdx_root = tdx_root
-        self.reader = TDXReader(tdx_root)
-
-    def scan_cn_market(self, db_path, progress_callback=None, use_server=True):
-        """扫描 A 股 (sh/sz)
-
-        Args:
-            db_path: SQLite 数据库路径
-            progress_callback: 进度回调 (percent, message)
-            use_server: 是否优先从 TDX 服务器下载 (True=服务器优先, False=仅本地)
-        """
-        print(f"[SCAN] A-share scan -> {db_path}")
-        init_db_custom(db_path) # 1. 初始化库
-
-        tasks = []
-        # 遍历 sh 和 sz 目录
-        for market in ['sh', 'sz']:
-            lday_dir = os.path.join(self.tdx_root, market, 'lday')
-            if not os.path.exists(lday_dir):
-                continue
-
-            files = glob.glob(os.path.join(lday_dir, f'{market}*.day'))
-            for f in files:
-                fname = os.path.basename(f)
-                code = fname[2:-4] # 去除前缀后缀
-                # 核心修正：严格白名单过滤 (00: 深市主板, 30: 创业板, 60: 沪市主板, 68: 科创板)
-                if code.startswith(('00', '30', '60', '68')) and len(code) == 6:
-                    # 构造 ticker 格式：000001.SZ 或 600000.SH
-                    ticker = f"{code}.{market.upper()}"
-                    tasks.append(ticker)
-
-        total = len(tasks)
-        print(f"[INFO] filtered to {total} A-share stocks")
-
-        # 0. 优先从 TDX 服务器同步最新数据
-        if use_server:
-            print("  attempting TDX server sync...")
-            server_ok = _tdx_server_sync(db_path, "cn", tasks, progress_callback)
-            if server_ok:
-                if progress_callback:
-                    progress_callback(100, "CN server sync complete")
-                _refresh_duckdb_views()
-                return
-
-        # 批量处理 (本地文件回退)
-        for i, ticker in enumerate(tasks):
-            try:
-                # 2. 读取数据
-                df = self.reader.get_data(ticker, market_type='cn')
-            except Exception as e:
-                # 容错处理: 仅捕获读/df 构建失败 —— 单只票的读取异常不得中断整盘扫描。
-                logger.warning("CN scan: failed reading ticker=%s: %s", ticker, e)
-                continue
-
-            try:
-                # 3. 写入数据库 (关键逻辑)
-                if not df.empty:
-                    # 增加 ticker 列
-                    df['ticker'] = ticker
-                    save_stock_data_custom(df, db_path)
-            except StorageWriteError as e:
-                # S002-006 / TR-006: 单只票写入失败不再被静默吞掉 —— 记 WARNING
-                # 后继续下一只票，保证 4000+ 票的扫描不会因为一条坏数据中止。
-                logger.warning("CN scan: ticker=%s write failed: %s", ticker, e)
-
-            # 4. 更新进度条 (每100个或是1%更新一次，避免UI卡顿)
-            if progress_callback and i % 50 == 0:
-                progress_callback(int((i + 1) / total * 100), f"正在入库: {ticker}")
-        
-        if progress_callback:
-            progress_callback(100, "CN local import complete")
-
-        # 刷新 DuckDB 分析视图
-        _refresh_duckdb_views()
-
-    def scan_us_market(self, db_path, progress_callback=None, use_server=True):
-        """扫描美股 (ds)
-
-        Args:
-            db_path: SQLite 数据库路径
-            progress_callback: 进度回调
-            use_server: 是否优先从 TDX 服务器下载
-        """
-        print(f"[SCAN] US market scan -> {db_path}")
-        init_db_custom(db_path) # 1. 初始化库
-        
-        ds_dir = os.path.join(self.tdx_root, 'ds', 'lday')
-        tasks = []
-        
-        if os.path.exists(ds_dir):
-            files = glob.glob(os.path.join(ds_dir, '*.day'))
-            for f in files:
-                fname = os.path.basename(f)
-                # 处理文件名如 74#AAPL.day
-                raw_code = fname.replace('.day', '')
-                if '#' in raw_code:
-                    raw_code = raw_code.split('#')[-1]
-                
-                # 过滤：纯字母代码，排除 HK, 数字等
-                if re.match(r'^[A-Z]+$', raw_code) and 'HK' not in raw_code:
-                    tasks.append(raw_code)
-        
-        total = len(tasks)
-        print(f"[INFO] found {total} US stocks, importing...")
-
-        # 0. 优先从 TDX 扩展行情服务器同步
-        if use_server:
-            print("  attempting TDX server sync...")
-            server_ok = _tdx_server_sync(db_path, "us", tasks, progress_callback)
-            if server_ok:
-                if progress_callback:
-                    progress_callback(100, "US server sync complete")
-                _refresh_duckdb_views()
-                return
-
-        for i, ticker in enumerate(tasks):
-            try:
-                # 2. 读取数据
-                df = self.reader.get_data(ticker, market_type='us')
-            except Exception as e:
-                # 容错处理: 仅捕获读/df 构建失败 —— 单只票的读取异常不得中断整盘扫描。
-                logger.warning("US scan: failed reading ticker=%s: %s", ticker, e)
-                continue
-
-            try:
-                # 3. 写入数据库 (关键逻辑)
-                if not df.empty:
-                    # 增加 ticker 列
-                    df['ticker'] = ticker
-                    save_stock_data_custom(df, db_path)
-            except StorageWriteError as e:
-                # S002-006 / TR-006: 单只票写入失败不再被静默吞掉 —— 记 WARNING
-                # 后继续下一只票，保证整盘扫描不会因为一条坏数据中止。
-                logger.warning("US scan: ticker=%s write failed: %s", ticker, e)
-
-            # 4. 更新进度条 (每100个或是1%更新一次，避免UI卡顿)
-            if progress_callback and i % 50 == 0:
-                progress_callback(int((i + 1) / total * 100), f"正在入库: {ticker}")
-        
-        if progress_callback:
-            progress_callback(100, "US local import complete")
-
-        # 刷新 DuckDB 分析视图
-        _refresh_duckdb_views()

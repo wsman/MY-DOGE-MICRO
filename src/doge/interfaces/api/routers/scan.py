@@ -243,11 +243,11 @@ async def start_scan(
                                     pass
                         else:
                             callback(0, "no server available, trying local files...")
-                            _run_local_scan(market, body.tdx_path, db_path, callback)
+                            _run_local_scan(market, body.tdx_path, db_path, callback, storage)
                     else:
-                        _run_local_scan(market, body.tdx_path, db_path, callback)
+                        _run_local_scan(market, body.tdx_path, db_path, callback, storage)
                 else:
-                    _run_local_scan(market, body.tdx_path, db_path, callback)
+                    _run_local_scan(market, body.tdx_path, db_path, callback, storage)
 
                 # 刷新 DuckDB — routed through the clean ViewService.refresh_views
                 # seam (S002-005). A refresh failure is LOGGED (logger.warning)
@@ -288,15 +288,32 @@ async def start_scan(
     return EventSourceResponse(event_generator())
 
 
-def _run_local_scan(market, tdx_path, db_path, callback):
-    """回退到本地 .day 文件扫描"""
+def _run_local_scan(market, tdx_path, db_path, callback, storage_repo):
+    """回退到本地 .day 文件扫描 via ScanMarketUseCase."""
     if not tdx_path:
         callback(0, "no tdx_path provided, skipping local scan")
         return
 
-    from src.micro.market_scanner import MarketScanner
-    scanner = MarketScanner(tdx_path)
-    if market == "cn":
-        scanner.scan_cn_market(db_path, progress_callback=callback, use_server=False)
-    else:
-        scanner.scan_us_market(db_path, progress_callback=callback, use_server=False)
+    from doge.application.composition import build_scan_market_use_case
+    from doge.application.contracts.request import ScanMarketRequest
+
+    uc = build_scan_market_use_case(
+        stock_repo=storage_repo,
+        data_source=None,
+        refresh_views_callable=lambda: None,
+    )
+    request = ScanMarketRequest(
+        market=market,
+        source="tdx-local",
+        tdx_path=tdx_path,
+    )
+
+    def _wrapped_callback(pct, msg):
+        callback(pct, msg)
+
+    try:
+        resp = uc.execute(request, progress_callback=_wrapped_callback)
+        callback(100, f"local scan complete: {resp.success_count}/{resp.total_tickers} success")
+    except Exception as e:
+        logger.exception("local scan failed")
+        callback(-1, "local scan failed")

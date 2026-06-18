@@ -19,6 +19,7 @@ import warnings
 from typing import Optional
 
 # ── Core ports ──
+from doge.core.ports.file_scanner import ITdxFileScanner
 from doge.core.ports.market_view import IMarketViewRepository
 from doge.core.ports.metadata import ITickerMetadataSource
 from doge.core.ports.repository import (
@@ -45,6 +46,8 @@ from doge.infrastructure.database.repositories import (
     SQLiteNoteRepository,
     SQLiteStockNameRepository,
 )
+from doge.infrastructure.database.sqlite_storage import SQLiteStorageRepository
+from doge.infrastructure.data_source.tdx_file_scanner import TDXFileScanner
 from doge.infrastructure.data_source.yfinance_metadata import YFinanceMetadataSource
 from doge.infrastructure.llm.deepseek_client import DeepSeekClient
 
@@ -141,23 +144,46 @@ def refresh_views() -> None:
     DuckDBConnection(read_only=False).refresh_views()
 
 
+def build_storage_repository() -> SQLiteStorageRepository:
+    """Construct the default SQLite single-logical-writer storage repository."""
+    return SQLiteStorageRepository()
+
+
 # ── Application use-case factories ──
+
 
 def build_scan_market_use_case(
     stock_repo: IStockRepository | None = None,
-    data_source=None,
+    data_source: IMarketDataSource | None = None,
+    file_scanner: ITdxFileScanner | None = None,
     refresh_views_callable=None,
 ) -> ScanMarketUseCase:
-    """Build a :class:`ScanMarketUseCase` with default adapters."""
+    """Build a :class:`ScanMarketUseCase` with default adapters.
+
+    Args:
+        stock_repo: Defaults to the SQLite single-logical-writer storage
+            repository (required for ``ensure_schema`` / ``save_prices``).
+        data_source: Defaults to ``TDXDataSource`` (lazy import so opentdx is
+            not required at import time).
+        file_scanner: Defaults to ``TDXFileScanner`` for local .day scans.
+        refresh_views_callable: Defaults to :func:`refresh_views`.
+    """
     if stock_repo is None:
-        stock_repo = build_stock_repository()
+        stock_repo = build_storage_repository()
     if data_source is None:
         # Lazy import so this module can be imported without opentdx installed.
         from doge.infrastructure.data_source.tdx import TDXDataSource
         data_source = TDXDataSource()
+    if file_scanner is None:
+        file_scanner = TDXFileScanner()
     if refresh_views_callable is None:
         refresh_views_callable = refresh_views
-    return ScanMarketUseCase(stock_repo, data_source, refresh_views_callable)
+    return ScanMarketUseCase(
+        stock_repo,
+        data_source=data_source,
+        file_scanner=file_scanner,
+        refresh_views_callable=refresh_views_callable,
+    )
 
 
 def build_generate_macro_report_use_case(

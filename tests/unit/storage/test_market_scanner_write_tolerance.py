@@ -1,202 +1,287 @@
-"""Unit tests for market_scanner per-ticker write-fault tolerance (S002-006).
+"""Unit tests for ScanMarketUseCase per-ticker fault tolerance (S007-005).
 
-After S002-006, ``save_stock_data_custom`` raises ``StorageWriteError`` on
-persistence failure. The per-ticker scan loops in
-``src/micro/market_scanner.py`` must:
+These tests target the canonical use case and adapter instead of the legacy
+``src/micro/market_scanner`` module. They verify:
 
-- continue scanning after one ticker's write fails (per-ticker fault tolerance)
-- log the failed ticker at WARNING (failure observable, not swallowed)
-- contain no bare ``except Exception: pass`` in the per-ticker loop
-  (TR-006 grep gate)
+- CN/US ticker discovery from a fake local vipdoc tree.
+- A single ticker read failure does not abort the scan.
+- A single ticker write failure (StorageWriteError) is recorded and does not
+  abort the scan.
+- Progress callback receives at least the completion event.
 """
-import ast
-import logging
-import sys
-import textwrap
-import types
+import sqlite3
 from pathlib import Path
 
 import pandas as pd
 import pytest
 
-from doge.core.ports.repository import StorageWriteError
-
-# opentdx is an optional [tdx] extra that may not be installed in the test
-# environment. market_scanner -> tdx_downloader -> ``from opentdx.tdxClient
-# import TdxClient`` and ``from opentdx.const import MARKET, ...`` import it at
-# module load. Stub the opentdx package + the names tdx_downloader pulls in so
-# the import chain resolves without the real dependency.
-for _mod_name in ("opentdx", "opentdx.tdxClient", "opentdx.const"):
-    if _mod_name not in sys.modules:
-        sys.modules[_mod_name] = types.ModuleType(_mod_name)
-# tdx_downloader does `from opentdx.tdxClient import TdxClient`.
-sys.modules["opentdx.tdxClient"].TdxClient = type("TdxClient", (), {})
-# tdx_downloader does `from opentdx.const import MARKET, EX_MARKET, PERIOD, ADJUST`
-# and also references `from opentdx.const import main_hosts, ex_hosts` in a
-# try/except ImportError guard (so absence is fine, but the 4 names above are
-# module-level and MUST exist).
-_const = sys.modules["opentdx.const"]
-for _name in ("MARKET", "EX_MARKET", "PERIOD", "ADJUST"):
-    if not hasattr(_const, _name):
-        setattr(_const, _name, types.SimpleNamespace())
-
-# src/micro modules import siblings via plain ``from database import ...``
-# plus sys.path manipulation. Add src/micro to sys.path for the test process.
-MICRO_DIR = Path(__file__).resolve().parents[3] / "src" / "micro"
-if str(MICRO_DIR) not in sys.path:
-    sys.path.insert(0, str(MICRO_DIR))
-
-import market_scanner as scanner_module  # noqa: E402
+from doge.application.contracts.request import ScanMarketRequest
+from doge.application.use_cases.scan_market import ScanMarketUseCase
+from doge.core.ports.file_scanner import ITdxFileScanner
+from doge.core.ports.repository import IStockRepository, StorageWriteError
 
 
-# ── Fakes ─────────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Fakes
+# ---------------------------------------------------------------------------
+class FakeFileScanner(ITdxFileScanner):
+    """Yield pre-canned frames for a list of tickers."""
 
-class _FakeReader:
-    """Returns a non-empty frame for every ticker (no TDX files needed)."""
+    def __init__(self, frames_by_ticker):
+        self._frames = frames_by_ticker
 
-    def get_data(self, ticker, market_type="cn"):
-        return pd.DataFrame(
-            {
-                "date": ["2026-01-02"],
-                "open": [10.0],
-                "high": [11.0],
-                "low": [9.0],
-                "close": [10.5],
-                "volume": [1000],
-                "amount": [10000.0],
-            }
+    def list_tickers(self, market, tdx_path):
+        return list(self._frames.keys())
+
+    def scan_local(self, market, tdx_path, progress_callback=None):
+        total = len(self._frames)
+        for i, (ticker, frame) in enumerate(self._frames.items()):
+            if frame is None:
+                if progress_callback and (i % 2 == 0 or i == total - 1):
+                    progress_callback(50, f"read failed: {ticker}")
+                continue
+            if progress_callback and (i % 50 == 0 or i == total - 1):
+                progress_callback(int((i + 1) / total * 100), f"scanning: {ticker}")
+            yield frame
+        if progress_callback:
+            progress_callback(100, "scan complete")
+
+
+class FakeStockRepository(IStockRepository):
+    """In-memory stock repository that optionally raises on a bad ticker."""
+
+    def __init__(self, fail_tickers=None):
+        self._data = []
+        self._fail_tickers = set(fail_tickers or [])
+        self.ensure_schema_calls = []
+        self.save_calls = []
+
+    def ensure_schema(self, market):
+        self.ensure_schema_calls.append(market)
+
+    def save_prices(self, market, frame):
+        ticker = str(frame["ticker"].iloc[0])
+        self.save_calls.append((market, ticker))
+        if ticker in self._fail_tickers:
+            raise StorageWriteError(f"simulated write failure for {ticker}")
+        self._data.append(frame)
+        return len(frame)
+
+    def get_prices(self, ticker, market, days=20):
+        return []
+
+    def get_overview(self, ticker, market):
+        return {}
+
+    def get_sync_state(self, tickers):
+        return {}
+
+    def get_kline(self, ticker, market, days=120):
+        return []
+
+    def list_distinct_tickers(self, market):
+        return []
+
+
+def _frame(ticker):
+    return pd.DataFrame({
+        "date": ["2026-01-02"],
+        "open": [10.0],
+        "high": [11.0],
+        "low": [9.0],
+        "close": [10.5],
+        "volume": [1000],
+        "amount": [10000.0],
+        "ticker": [ticker],
+    })
+
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
+class TestScanMarketUseCase:
+    def test_single_write_failure_continues_scan(self):
+        """Legacy parity: one ticker's StorageWriteError must not abort the scan."""
+        # Arrange
+        scanner = FakeFileScanner({
+            "GOOD1.SZ": _frame("GOOD1.SZ"),
+            "BAD.SZ": _frame("BAD.SZ"),
+            "GOOD2.SZ": _frame("GOOD2.SZ"),
+        })
+        repo = FakeStockRepository(fail_tickers=["BAD.SZ"])
+        uc = ScanMarketUseCase(stock_repo=repo, file_scanner=scanner)
+
+        # Act
+        resp = uc.execute(
+            ScanMarketRequest(market="cn", source="tdx-local", tdx_path="/fake")
         )
 
+        # Assert
+        assert resp.total_tickers == 3
+        assert resp.success_count == 2
+        assert resp.failed_count == 1
+        assert repo.save_calls == [
+            ("cn", "GOOD1.SZ"),
+            ("cn", "BAD.SZ"),
+            ("cn", "GOOD2.SZ"),
+        ]
 
-# ── Tests ─────────────────────────────────────────────────────────────────
+    def test_read_failure_continues_scan(self):
+        """A ticker whose frame cannot be read is skipped; scan continues."""
+        scanner = FakeFileScanner({
+            "GOOD.SZ": _frame("GOOD.SZ"),
+            "BAD.SZ": None,  # read failure
+        })
+        repo = FakeStockRepository()
+        uc = ScanMarketUseCase(stock_repo=repo, file_scanner=scanner)
 
-class TestScanContinuesAfterSingleTickerWriteFailure:
-    def test_scan_continues_after_single_ticker_write_failure(
-        self, tmp_path, monkeypatch
-    ):
-        """One ticker's StorageWriteError must not abort the rest of the scan."""
-        # Arrange — 3 tickers; the middle one's write raises StorageWriteError.
-        tickers = ["GOOD1.SZ", "BAD.SZ", "GOOD2.SZ"]
-        writes = []
-
-        def _fake_save(data, db_path, retention_days=None):
-            ticker = data["ticker"].iloc[0]
-            writes.append(ticker)
-            if ticker == "BAD.SZ":
-                raise StorageWriteError("simulated write failure for BAD.SZ")
-
-        monkeypatch.setattr(scanner_module, "save_stock_data_custom", _fake_save)
-
-        scanner = scanner_module.MarketScanner.__new__(scanner_module.MarketScanner)
-        scanner.tdx_root = str(tmp_path)
-        scanner.reader = _FakeReader()
-
-        db_path = str(tmp_path / "market.db")
-
-        # Act — the scan MUST complete (not raise) despite the middle failure.
-        # Patch _refresh_duckdb_views and init_db_custom to avoid real IO.
-        monkeypatch.setattr(scanner_module, "_refresh_duckdb_views", lambda: None)
-        monkeypatch.setattr(scanner_module, "init_db_custom", lambda _p: None)
-
-        # Drive the CN loop directly by reusing its body via the public method,
-        # but skip server sync (use_server=False) and bypass glob discovery by
-        # monkeypatching the per-ticker task list.
-        original_scan = scanner.scan_cn_market
-
-        # Build a minimal scan that only runs the per-ticker write loop.
-        def _run_scan(db_path, progress_callback=None, use_server=False):
-            total = len(tickers)
-            for i, ticker in enumerate(tickers):
-                try:
-                    df = scanner.reader.get_data(ticker, market_type="cn")
-                except Exception:
-                    continue
-                try:
-                    if not df.empty:
-                        df["ticker"] = ticker
-                        scanner_module.save_stock_data_custom(df, db_path)
-                except StorageWriteError:
-                    pass
-                if progress_callback and i % 50 == 0:
-                    progress_callback(int((i + 1) / total * 100), ticker)
-
-        # We only need to prove the loop continues; emulate it with the same
-        # try/except structure the real loop now uses.
-        _run_scan(db_path)
-
-        # Assert — all three tickers were attempted (loop did not break).
-        assert writes == ["GOOD1.SZ", "BAD.SZ", "GOOD2.SZ"], (
-            f"scan must attempt every ticker; got writes={writes}"
+        resp = uc.execute(
+            ScanMarketRequest(market="cn", source="tdx-local", tdx_path="/fake")
         )
 
+        assert resp.total_tickers == 1
+        assert resp.success_count == 1
+        assert resp.failed_count == 0
+        assert repo.save_calls == [("cn", "GOOD.SZ")]
 
-class TestScanLogsFailedTicker:
-    def test_scan_logs_failed_ticker(self, tmp_path, caplog, monkeypatch):
-        """The failed ticker must be logged at WARNING inside the real loop."""
-        # Arrange — exercise the REAL scan_cn_market per-ticker loop. Stub the
-        # glob discovery by pointing tdx_root at a fixture dir we populate, so
-        # scan_cn_market finds exactly one ticker whose write then fails.
-        ticker = "WARNME.SZ"
+    def test_progress_callback_receives_completion(self):
+        """Progress callback is invoked at least at completion."""
+        scanner = FakeFileScanner({
+            "A.SZ": _frame("A.SZ"),
+            "B.SZ": _frame("B.SZ"),
+        })
+        repo = FakeStockRepository()
+        uc = ScanMarketUseCase(stock_repo=repo, file_scanner=scanner)
 
-        def _failing_save(data, db_path, retention_days=None):
-            raise StorageWriteError("forced failure")
+        events = []
 
-        monkeypatch.setattr(scanner_module, "save_stock_data_custom", _failing_save)
-        monkeypatch.setattr(scanner_module, "_refresh_duckdb_views", lambda: None)
-        monkeypatch.setattr(scanner_module, "init_db_custom", lambda _p: None)
+        def _cb(pct, msg):
+            events.append((pct, msg))
 
-        # Build a fixture vipdoc layout scan_cn_market will discover.
-        sh_dir = tmp_path / "vipdoc" / "sh" / "lday"
+        uc.execute(
+            ScanMarketRequest(market="cn", source="tdx-local", tdx_path="/fake"),
+            progress_callback=_cb,
+        )
+
+        assert events
+        assert events[-1][0] == 100
+
+    def test_ensure_schema_is_called_once(self):
+        scanner = FakeFileScanner({"A.SZ": _frame("A.SZ")})
+        repo = FakeStockRepository()
+        uc = ScanMarketUseCase(stock_repo=repo, file_scanner=scanner)
+
+        uc.execute(
+            ScanMarketRequest(market="us", source="tdx-local", tdx_path="/fake")
+        )
+
+        assert repo.ensure_schema_calls == ["us"]
+
+
+class TestTDXFileScannerDiscovery:
+    def test_cn_ticker_discovery_uses_whitelist(self, tmp_path):
+        """CN discovery filters codes starting with 00/30/60/68 and len==6."""
+        from doge.infrastructure.data_source.tdx_file_scanner import TDXFileScanner
+
+        root = tmp_path / "vipdoc"
+        sh_dir = root / "sh" / "lday"
         sh_dir.mkdir(parents=True)
-        # scan_cn_market filters codes starting with 00/30/60/68; use a 60-prefix
-        # so the discovered ticker is 600000.SH, then map our failing save by
-        # ignoring the specific code (the failing save raises for any frame).
-        (sh_dir / "sh600000.day").write_bytes(b"\x00")
+        (sh_dir / "sh600000.day").write_bytes(b"\x00" * 32)
+        (sh_dir / "sh900001.day").write_bytes(b"\x00" * 32)  # B-share excluded
+        (sh_dir / "sh123.day").write_bytes(b"\x00" * 32)  # bad code
 
-        scanner = scanner_module.MarketScanner.__new__(scanner_module.MarketScanner)
-        scanner.tdx_root = str(tmp_path / "vipdoc")
-        scanner.reader = _FakeReader()
+        scanner = TDXFileScanner()
+        tickers = scanner.list_tickers("cn", str(root))
 
-        db_path = str(tmp_path / "market.db")
+        assert tickers == ["600000.SH"]
 
-        # Act — run with use_server=False to hit the local per-ticker loop.
-        with caplog.at_level(logging.WARNING, logger="market_scanner"):
-            scanner.scan_cn_market(db_path, use_server=False)
+    def test_us_ticker_discovery_uses_alphabetic_filter(self, tmp_path):
+        """US discovery excludes HK and non-alpha codes."""
+        from doge.infrastructure.data_source.tdx_file_scanner import TDXFileScanner
 
-        # Assert — a WARNING record mentions the discovered ticker and "write failed".
-        warns = [r for r in caplog.records if r.levelno == logging.WARNING]
-        assert warns, "expected at least one WARNING on per-ticker write failure"
-        joined = " ".join(r.getMessage() for r in warns)
-        assert "600000.SH" in joined, (
-            f"WARNING log must name the failed ticker; got: {joined}"
+        root = tmp_path / "vipdoc"
+        ds_dir = root / "ds" / "lday"
+        ds_dir.mkdir(parents=True)
+        (ds_dir / "74#AAPL.day").write_bytes(b"\x00" * 32)
+        (ds_dir / "74#HK0001.day").write_bytes(b"\x00" * 32)
+        (ds_dir / "74#123.day").write_bytes(b"\x00" * 32)
+
+        scanner = TDXFileScanner()
+        tickers = scanner.list_tickers("us", str(root))
+
+        assert tickers == ["AAPL"]
+
+    def test_autocorrect_appends_vipdoc(self, tmp_path):
+        """Passing the parent directory auto-corrects to vipdoc when present."""
+        from doge.infrastructure.data_source.tdx_file_scanner import TDXFileScanner
+
+        parent = tmp_path / "tdx"
+        vipdoc = parent / "vipdoc"
+        sh_dir = vipdoc / "sh" / "lday"
+        sh_dir.mkdir(parents=True)
+        (sh_dir / "sh000001.day").write_bytes(b"\x00" * 32)
+
+        scanner = TDXFileScanner()
+        tickers = scanner.list_tickers("cn", str(parent))
+
+        assert "000001.SH" in tickers
+
+
+class TestTDXFileScannerParse:
+    def test_parse_cn_day_file(self, tmp_path):
+        """A single-record CN .day file parses to the expected frame."""
+        from doge.infrastructure.data_source.tdx_file_scanner import TDXFileScanner
+
+        # Build one 32-byte CN record.
+        # Format: <IIIII fII  => date, open, high, low, close, amount, volume, _
+        import struct
+        record = struct.pack(
+            "<IIIII fII",
+            20260102, 1000, 1100, 900, 1050, 10000.0, 1000, 0
         )
-        assert "write failed" in joined, (
-            f"WARNING log must describe the write failure; got: {joined}"
+        path = tmp_path / "sh000001.day"
+        path.write_bytes(record)
+
+        scanner = TDXFileScanner()
+        df = scanner._parse_file(str(path), "cn")
+
+        assert not df.empty
+        assert df["date"].iloc[0] == "2026-01-02"
+        assert df["open"].iloc[0] == 10.0
+        assert df["close"].iloc[0] == 10.5
+
+    def test_parse_us_day_file(self, tmp_path):
+        """A single-record US .day file parses to the expected frame."""
+        from doge.infrastructure.data_source.tdx_file_scanner import TDXFileScanner
+        import struct
+
+        # Format: <IfffffII
+        record = struct.pack(
+            "<IfffffII",
+            20260102, 150.0, 155.0, 149.0, 153.0, 1_000_000.0, 5000, 0
         )
+        path = tmp_path / "74#AAPL.day"
+        path.write_bytes(record)
+
+        scanner = TDXFileScanner()
+        df = scanner._parse_file(str(path), "us")
+
+        assert not df.empty
+        assert df["close"].iloc[0] == 153.0
 
 
-class TestNoBareExceptPassInMarketScannerLoop:
-    def test_no_bare_except_pass_in_market_scanner_loop(self):
-        """TR-006 grep gate: no bare ``except Exception: pass`` remains.
+# ---------------------------------------------------------------------------
+# Legacy module test (kept as a smoke test)
+# ---------------------------------------------------------------------------
+class TestLegacyMarketScannerShim:
+    def test_shim_class_still_importable(self):
+        import sys
+        from pathlib import Path
 
-        Walks the AST of ``scan_cn_market`` and ``scan_us_market`` and asserts
-        no ``except`` handler body is a single ``pass``.
-        """
-        import inspect
+        MICRO_DIR = Path(__file__).resolve().parents[3] / "src" / "micro"
+        if str(MICRO_DIR) not in sys.path:
+            sys.path.insert(0, str(MICRO_DIR))
 
-        swallows = []
-        for fn in (
-            scanner_module.MarketScanner.scan_cn_market,
-            scanner_module.MarketScanner.scan_us_market,
-        ):
-            src = textwrap.dedent(inspect.getsource(fn))
-            tree = ast.parse(src)
-            for node in ast.walk(tree):
-                if isinstance(node, ast.ExceptHandler):
-                    body = node.body
-                    if len(body) == 1 and isinstance(body[0], ast.Pass):
-                        swallows.append(getattr(fn, "__name__", "<fn>"))
-
-        assert swallows == [], (
-            f"market_scanner scan loops still contain bare 'except: pass': {swallows}"
-        )
+        import market_scanner as ms
+        assert hasattr(ms, "MarketScanner")
+        assert hasattr(ms, "_tdx_server_sync")

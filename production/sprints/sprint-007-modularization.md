@@ -17,7 +17,7 @@ Introduce the missing `src/doge/application/` use-case layer, move the compositi
 | S007-003 | CLI demo/query migration | done | `src/doge/interfaces/cli/`, `pyproject.toml`, `src/cli.py` (shim), `src/macro/cli.py` (shim), `docs/CLI.md` | **Yes** |
 | S007-002 | API scan workflow migration | done | `src/doge/interfaces/api/`, `src/api/` (shim) | **Yes** |
 | S007-004 | `ai_analysis` DuckDB/SQLite helpers → repository | **done** | `src/doge/infrastructure/database/`, `src/ai_analysis/` (shim) | **Yes** |
-| S007-005 | `micro.market_scanner` → `ScanMarketUseCase` | todo | `src/doge/application/use_cases/scan_market.py`, `src/micro/market_scanner.py` (shim) | **Yes** |
+| S007-005 | `micro.market_scanner` → `ScanMarketUseCase` | **done** | `src/doge/application/use_cases/scan_market.py`, `src/doge/core/ports/file_scanner.py`, `src/doge/infrastructure/data_source/tdx_file_scanner.py`, `src/micro/market_scanner.py` (shim) | **Yes** |
 | S007-006 | `macro` report → `GenerateMacroReportUseCase` + `ILLMClient` | todo | `src/doge/application/use_cases/generate_macro_report.py`, `src/doge/infrastructure/llm/deepseek_client.py`, `src/macro/` (shim) | **Yes** |
 | S007-007 | Update `docs/MODULARIZATION_PLAN.md` | todo | `docs/MODULARIZATION_PLAN.md` | No (advisory) |
 | S007-008 | Layer gates + final regression | todo | `tests/unit/layer_gates/`, `tests/unit/application/`, `tests/cli/`, `tests/contract/` | **Yes** |
@@ -57,10 +57,27 @@ Implementation proceeds **story-by-story with user approval** after each story's
 - [x] S007-003 done: `doge` console script works, `src/cli.py` and `src/macro/cli.py` are shims, bilingual output + secret redaction preserved, `docs/CLI.md` updated.
 - [x] S007-002 done: `src/doge/interfaces/api/` is live surface, `src/api/` are shims, no direct sqlite3/duckdb in routers.
 - [x] S007-004 done: `ai_analysis` files are shims, DuckDB/SQLite helpers live in infrastructure, no `from ai_analysis import` under `src/doge/`.
-- [ ] S007-005 done: `ScanMarketUseCase` exists and is tested, `src/micro/market_scanner.py` is a shim.
+- [x] S007-005 done: `ScanMarketUseCase` exists and is tested, `src/micro/market_scanner.py` is a shim, local-file scanning logic lives in `doge.infrastructure.data_source.tdx_file_scanner`, API router local fallback uses the use case.
 - [ ] S007-006 done: `GenerateMacroReportUseCase` + `ILLMClient` port + `DeepSeekClient` adapter exist and are tested, `src/macro/` are shims.
 - [ ] S007-007 done: `docs/MODULARIZATION_PLAN.md` reflects Sprint 007 batches and deferred deletion plan.
 - [ ] S007-008 done: all layer-gate tests pass and `python -m pytest -q` returns **617+ passed / 5 skipped / 0 failed / 0 error**.
+
+### S007-005 Notes
+
+- Local-file scanning migrated to canonical layers:
+  - New port: `ITdxFileScanner` in `src/doge/core/ports/file_scanner.py`.
+  - New adapter: `TDXFileScanner` in `src/doge/infrastructure/data_source/tdx_file_scanner.py` (self-contained; no `micro.*` import).
+  - `ScanMarketUseCase` now orchestrates `ensure_schema` + `save_prices` and records per-ticker read/write failures without aborting.
+  - `src/micro/market_scanner.py` is a thin shim delegating to `build_scan_market_use_case()`.
+  - API router `_run_local_scan()` delegates to the use case.
+- **Deferred** to S007-006/S007-008:
+  - TDX server-download batch orchestration (still in `micro.tdx_downloader`).
+  - `SQLiteStorageRepository` still delegates to `micro.database.save_stock_data_custom`.
+  - `TDXDataSource` still delegates to `micro.tdx_downloader` helpers.
+  - Macro router still imports `src.macro.*`.
+- Layer gate `test_no_new_micro_imports_under_doge_except_legacy_allowlist.py` enforces that no *new* `micro` imports appear under `src/doge`; a small documented allowlist covers the deferred files above. The allowlist is temporary and will be removed once those files are migrated.
+
+## Verification
 
 ## Verification
 

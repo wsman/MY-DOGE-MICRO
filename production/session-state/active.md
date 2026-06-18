@@ -10,24 +10,30 @@
 - S007-001 done: application contracts + composition root relocated.
 - S007-003 done: CLI migrated to `doge.interfaces.cli`.
 - S007-002 done: API migrated to `doge.interfaces.api`.
-- **S007-004 done**: `ai_analysis` helpers + Notes CRUD + reporting scripts migrated to canonical layers; `src/ai_analysis/*` are shims; `IStockNameRepository` port introduced.
-- **Next**: S007-005 `micro.market_scanner` → `ScanMarketUseCase`.
+- S007-004 done: `ai_analysis` helpers + Notes CRUD + reporting scripts migrated to canonical layers.
+- **S007-005 done**: `micro.market_scanner` local-file scanning migrated to `ScanMarketUseCase` + `ITdxFileScanner` + `TDXFileScanner`; `src/micro/market_scanner.py` is a shim; API router local fallback uses use case.
+- **Next**: S007-006 `macro` report → `GenerateMacroReportUseCase` + `ILLMClient` port.
 
-### S007-004 Verification
+### S007-005 Verification
 
-- `python -m pytest -q` → **678 passed, 5 skipped, 0 failed** (PyQt6 DLL-load fatal exception remains ADVISORY-only).
-- Layer gates pass: `tests/unit/layer_gates/test_no_ai_analysis_under_doge.py` green.
-- `src/doge/` contains zero `from ai_analysis` / `import ai_analysis`.
-- `src/ai_analysis/market_overview.py`, `anomaly_detection.py`, `catalog_generator.py`, `fetch_names.py` are deprecation shims forwarding to application use cases.
+- `python -m pytest -q` → **696 passed, 5 skipped, 0 failed** (PyQt6 DLL-load fatal exception remains ADVISORY-only).
+- New/updated tests:
+  - `tests/unit/storage/test_market_scanner_write_tolerance.py` targets canonical `ScanMarketUseCase` and `TDXFileScanner`.
+  - `tests/unit/layer_gates/test_no_new_micro_imports_under_doge_except_legacy_allowlist.py` enforces no new `micro` imports under `src/doge` with a documented allowlist for deferred files.
+  - `tests/unit/micro/test_market_scanner_legacy_db_path.py` regression-tests the legacy shim's `db_path` routing.
+- `src/doge` 新代码零 `micro` / `src.micro` 导入。
+- `src/micro/market_scanner.py` shim 反向调用 `doge.application.composition`，并通过 `_LegacyPathStorageRepository` 保留 `scan_cn_market(db_path, ...)` / `scan_us_market(db_path, ...)` 的 `db_path` 参数。
 
 ### Uncommitted Work
 
-S007-004b changes ready to commit:
-- Filled `GenerateMarketOverviewUseCase`, `GenerateAnomalyReportUseCase`, `GenerateCatalogUseCase`, `PopulateStockNamesUseCase`.
-- Added `IStockNameRepository` port + `SQLiteStockNameRepository` adapter.
-- Restored `ViewService.list_views()` (MCP tool contract).
-- Rewrote `tests/test_market_reporting.py` to target canonical use cases with fake repositories.
-- Updated `production/sprint-status.yaml` and `production/sprints/sprint-007-modularization.md` to mark S007-004 done.
+S007-005 changes ready to commit:
+- New port `ITdxFileScanner` + adapter `TDXFileScanner`.
+- Filled `ScanMarketUseCase` for local scans with per-ticker fault tolerance.
+- Extended `ScanMarketRequest` with `source` / `tdx_path`.
+- API router `_run_local_scan()` delegates to use case with injected storage repo.
+- `src/micro/market_scanner.py` converted to shim; added `_LegacyPathStorageRepository` so `scan_cn_market(db_path, ...)` / `scan_us_market(db_path, ...)` continue to honor the caller-supplied `db_path`.
+- Updated tests and governance docs.
+- Added micro-import allowlist layer gate.
 
 ### Release Summary
 
@@ -76,8 +82,8 @@ S007-004b changes ready to commit:
 
 <!-- STATUS -->
 Epic: Sprint 007 — Clean Architecture Modularization
-Feature: S007-004 ai_analysis → canonical layers
-Task: done; ready to commit 004b; next S007-005
+Feature: S007-005 market_scanner → ScanMarketUseCase
+Task: done; ready to commit; next S007-006
 <!-- /STATUS -->
 
 ## Latest Verification Run (2026-06-13)

@@ -12,10 +12,19 @@ from typing import Optional
 class ScanMarketRequest:
     """Input for :class:`~doge.application.use_cases.scan_market.ScanMarketUseCase`."""
     market: str = "cn"
-    source: str = "tdx"
+    source: str = "tdx-server"  # "tdx-server" | "tdx-local"
     tickers: Optional[list[str]] = None
+    tdx_path: Optional[str] = None
     max_workers: int = 4
     batch_size: int = 50
+
+    def __post_init__(self):
+        object.__setattr__(
+            self, "source", self.source.lower() if self.source else "tdx-server"
+        )
+
+    def is_local(self) -> bool:
+        return self.source == "tdx-local"
 
 
 @dataclass(frozen=True)

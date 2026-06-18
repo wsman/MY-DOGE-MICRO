@@ -39,7 +39,8 @@ class TestRequestDtos:
     def test_scan_market_request_defaults(self):
         req = ScanMarketRequest()
         assert req.market == "cn"
-        assert req.source == "tdx"
+        assert req.source == "tdx-server"
+        assert req.tdx_path is None
         assert req.tickers is None
         assert req.max_workers == 4
         assert req.batch_size == 50
