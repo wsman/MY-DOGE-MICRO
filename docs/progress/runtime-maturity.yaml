@@ -44,11 +44,11 @@ sprint_008_runtime_gates:
       - tests/integration/test_daemon_worker.py
     blocked_by: []
   ci_cd_gate:
-    status: pending
+    status: passed
     evidence:
       - .github/workflows/ci.yml
-    blocked_by:
-      - first remote GitHub Actions run on push or pull_request must pass
+      - https://github.com/wsman/MY-DOGE-MICRO/actions/runs/27882493987
+    blocked_by: []
 
 level_1:
   session_persistence:
@@ -213,9 +213,17 @@ local_verification:
       actionlint: passed
       runtime_maturity_yaml_parse: passed
       ci_workflow_yaml_parse: passed
+  remote_ci:
+    run_id: 27882493987
+    url: "https://github.com/wsman/MY-DOGE-MICRO/actions/runs/27882493987"
+    head_sha: "f4a0ed58e700d7cd9775a1967be4bc9b59b5fa65"
+    event: push
+    result:
+      workflow: success
+      python_checks: success
+      typescript_checks: success
 
 remaining_stability_blockers:
-  - CI workflow must run green remotely.
   - Real CLI /attach file handling and evidence extraction remain out of Sprint 008.
   - Web Research Agent still uses polling after approval; SSE migration remains open.
   - SDK auto-reconnect and packaging/distribution hardening remain open.

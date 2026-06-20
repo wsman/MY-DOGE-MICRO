@@ -5,13 +5,13 @@
 
 ## Current Task
 
-**Sprint 008 — Runtime Stability P0 implementation applied; Python gate green; remote CI/Web verification pending.**
+**Sprint 008 — Runtime Stability P0 implementation merged; local gates and remote CI green.**
 
 - P0.1 done: enqueue now persists `QUEUED` status and emits `RUN_QUEUED`; state machine covers `CREATED -> QUEUED -> RUNNING` and approval continuation `AWAITING_APPROVAL -> QUEUED`.
 - P0.2 done: `IAgentUnitOfWork` + `SQLiteAgentUnitOfWork` wrap idempotency reservation, run creation, turn append, queue append, and `RUN_CREATED`/`RUN_QUEUED` in one `BEGIN IMMEDIATE` transaction.
 - P0.3 done: v1 approval returns `202`/`queued` and resumes through the daemon worker; legacy `/api/agent` approval and CLI `/approve` are explicitly unsupported/deprecated instead of synchronously continuing.
 - P0.4 done: cancellation requests enter `CANCELLING`, active worker tasks are cancelled, and the worker finalizes `RUN_CANCELLED`/`CANCELLED` without writing later model/tool result events.
-- P0.5 partial: `.github/workflows/ci.yml` added and local clean-install gates pass. First remote GitHub Actions run still must pass before any Stable claim.
+- P0.5 done: `.github/workflows/ci.yml` added, local clean-install gates pass, and GitHub Actions run `27882493987` passed on `f4a0ed5`.
 - Stable follow-up guardrail: `docs/progress/runtime-stability-followup-plan.md` now tracks the non-runtime blockers required before any Stable declaration.
 - Runtime maturity remains: Level 1 Preview, Level 2 Alpha, Level 3 Experimental, Production Ready false.
 
@@ -28,6 +28,7 @@
 - `cd packages/doge-sdk-typescript && npm run build` → **passed**.
 - `actionlint .github/workflows/ci.yml` → **passed**.
 - YAML parse check for `docs/progress/runtime-maturity.yaml` and `.github/workflows/ci.yml` → **passed**.
+- Remote CI: `https://github.com/wsman/MY-DOGE-MICRO/actions/runs/27882493987` → **success** (`Python checks`, `TypeScript checks`).
 
 ### Release Summary
 
