@@ -83,6 +83,7 @@ is read via the `_env_path` / `_env_int` helpers (`settings.py:18-49`).
 | `DOGE_CN_DB` | `{DOGE_DB_DIR}/market_data_cn.db` | A-share OHLCV SQLite database. |
 | `DOGE_US_DB` | `{DOGE_DB_DIR}/market_data_us.db` | US-equity OHLCV SQLite database. |
 | `DOGE_RESEARCH_DB` | `{DOGE_DB_DIR}/research_insights.db` | Research notes + stock names SQLite database. |
+| `DOGE_AGENT_DB` | `{DOGE_DB_DIR}/agent_state.db` | Research Copilot sessions, runs, events, artifacts, approvals, documents, and daemon queue metadata. |
 | `DOGE_DUCKDB_PATH` | `{DOGE_DB_DIR}/market.duckdb` | DuckDB analytical file (attached read-only to the SQLite sources for cross-database views). |
 | `DOGE_VIEWS_SQL_TRACKED` | `src/doge/infrastructure/database/views.sql` | Canonical, version-controlled DuckDB view DDL (S003-005). Preferred by the refresh path over the `data/views.sql` mirror when present. |
 

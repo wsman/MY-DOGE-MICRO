@@ -2,16 +2,15 @@
 
 import json
 
-from doge.application.composition import build_view_service
+from doge.application.agent.tool_service import ToolApplicationService
 
 
 async def list_views() -> str:
-    svc = build_view_service()
     try:
-        result = svc.list_views()
-        if not json.loads(result):
+        rows = ToolApplicationService().list_views()["views"]
+        if not rows:
             return json.dumps(_fallback_views(), indent=2, ensure_ascii=False)
-        return result
+        return json.dumps(rows, indent=2, ensure_ascii=False)
     except Exception:
         return json.dumps(_fallback_views(), indent=2, ensure_ascii=False)
 

@@ -66,6 +66,7 @@ class DBConfig:
     cn_db: Path = field(init=False)
     us_db: Path = field(init=False)
     research_db: Path = field(init=False)
+    agent_db: Path = field(init=False)
     duckdb: Path = field(init=False)
     views_sql: Path = field(init=False)
     views_sql_tracked: Path = field(init=False)
@@ -74,6 +75,7 @@ class DBConfig:
         object.__setattr__(self, "cn_db", _env_path("DOGE_CN_DB", self.dir / "market_data_cn.db"))
         object.__setattr__(self, "us_db", _env_path("DOGE_US_DB", self.dir / "market_data_us.db"))
         object.__setattr__(self, "research_db", _env_path("DOGE_RESEARCH_DB", self.dir / "research_insights.db"))
+        object.__setattr__(self, "agent_db", _env_path("DOGE_AGENT_DB", self.dir / "agent_state.db"))
         object.__setattr__(self, "duckdb", _env_path("DOGE_DUCKDB_PATH", self.dir / "market.duckdb"))
         object.__setattr__(self, "views_sql", self.dir / "views.sql")
         # Tracked, version-controlled DDL — lives with the package, not under

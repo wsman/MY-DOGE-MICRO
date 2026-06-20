@@ -1,10 +1,9 @@
 # HTTP API Reference (FastAPI)
 
 The local-first HTTP backend of MY-DOGE-MICRO. A single FastAPI application
-(`src/api/main.py`) binds to `127.0.0.1:8901` and exposes **34 product routes**:
-32 across eight routers (`scan`, `data`, `notes`, `macro`, `analysis`,
-`config`, `agent`, `documents`) plus two top-level helpers (`/api/health`,
-`/api/stats`). It is the surface the
+(`src/api/main.py`) binds to `127.0.0.1:8901` and exposes **51 product routes**:
+34 legacy `/api/*` routes plus 17 daemon/v1 routes (`sessions`, `runs`,
+`documents`, `tools`, `health`). It is the surface the
 Vue web console (`web/`) and optionally the PyQt desktop dashboard call to
 trigger market scans, browse persisted data, manage stock notes, read macro and
 research reports, run the Research Copilot demo workflow, and configure the TDX
@@ -44,8 +43,8 @@ install.
 | Bind host | `127.0.0.1` (loopback only) | `src/api/main.py:120` |
 | Bind port | `8901` | `src/api/main.py:120` |
 | Auth | None (local-first) | see [Authentication](#authentication) |
-| Routers | 8 (`scan`, `data`, `notes`, `macro`, `analysis`, `config`, `agent`, `documents`) | `src/api/main.py` |
-| Product routes | 34 (32 router routes + `/api/health` + `/api/stats`) | `src/api/main.py` |
+| Routers | legacy `/api/*` routers + v1 daemon routers | `src/api/main.py` |
+| Product routes | 51 (34 legacy routes + 17 v1/health routes) | `src/api/main.py` |
 | Framework | FastAPI 0.123.8 + uvicorn 0.38.0 | `pyproject.toml:19-20` |
 | Streaming | sse-starlette 3.0.3 (`EventSourceResponse`) | `pyproject.toml:21` |
 
@@ -182,6 +181,28 @@ code cannot drift.
 | # | Method | Path | Purpose | file:line |
 |---|---|---|---|---|
 | 34 | POST | `/api/documents` | Register a demo document payload | `documents.py` |
+
+### v1 daemon routes — prefix `/v1` plus health (`src/doge/interfaces/api/routers/v1/`)
+
+| # | Method | Path | Purpose | file:line |
+|---|---|---|---|---|
+| 35 | GET | `/health` | Daemon liveness probe | `v1/health.py` |
+| 36 | GET | `/health/ready` | Daemon readiness probe | `v1/health.py` |
+| 37 | POST | `/v1/sessions` | Create a persisted agent session | `v1/sessions.py` |
+| 38 | GET | `/v1/sessions` | List recent sessions | `v1/sessions.py` |
+| 39 | GET | `/v1/sessions/{session_id}` | Read a session and turns | `v1/sessions.py` |
+| 40 | POST | `/v1/sessions/{session_id}/turns` | Enqueue a session turn; returns 202 + run id | `v1/sessions.py` |
+| 41 | GET | `/v1/runs/{run_id}` | Read a persisted run | `v1/runs.py` |
+| 42 | POST | `/v1/runs/{run_id}/cancel` | Request run cancellation | `v1/runs.py` |
+| 43 | GET | `/v1/runs/{run_id}/events` | Read persisted events | `v1/runs.py` |
+| 44 | GET | `/v1/runs/{run_id}/stream` | SSE stream with `Last-Event-ID` replay | `v1/runs.py` |
+| 45 | GET | `/v1/runs/{run_id}/artifacts` | Read run artifacts | `v1/runs.py` |
+| 46 | GET | `/v1/runs/{run_id}/approvals` | Read run approvals | `v1/runs.py` |
+| 47 | POST | `/v1/runs/{run_id}/approvals/{approval_id}` | Resolve an approval and resume | `v1/runs.py` |
+| 48 | POST | `/v1/documents` | Persist a document payload | `v1/documents.py` |
+| 49 | GET | `/v1/documents` | List persisted documents | `v1/documents.py` |
+| 50 | GET | `/v1/documents/{document_id}` | Read a persisted document | `v1/documents.py` |
+| 51 | GET | `/v1/tools` | List function-tool schemas | `v1/tools.py` |
 
 > The OpenAPI surface also exposes `/openapi.json`, `/docs`,
 > `/docs/oauth2-redirect`, `/redoc` (FastAPI defaults) — infrastructure, not

@@ -1,0 +1,22 @@
+level_1:
+  session_persistence: required
+  multi_turn: required
+  approval_resume: required
+  offline_scripted_model: required
+  http_dependency: forbidden
+
+level_2:
+  durable_runs: required
+  background_worker: required
+  live_event_stream: required
+  cancellation: required
+  idempotency: required
+  restart_recovery: required
+
+level_3:
+  python_sdk: required
+  typescript_sdk: required
+  sdk_contract_tests: required
+  web_uses_sdk: required
+  custom_tool_registration: required
+  kimi_agent_sdk_adapter: optional

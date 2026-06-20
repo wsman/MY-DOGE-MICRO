@@ -10,11 +10,14 @@ export default defineConfig({
   resolve: {
     alias: {
       '@pretext': resolve(__dirname, 'src/vendor/pretext/layout.ts'),
+      'doge-sdk': resolve(__dirname, '../packages/doge-sdk-typescript/src/index.ts'),
     },
   },
   server: {
     proxy: {
-      '/api': 'http://localhost:8901'
+      '/api': 'http://localhost:8901',
+      '/v1': 'http://localhost:8901',
+      '/health': 'http://localhost:8901',
     }
   },
   build: {

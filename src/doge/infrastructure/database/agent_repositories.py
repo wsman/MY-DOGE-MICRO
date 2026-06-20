@@ -1,0 +1,417 @@
+"""SQLite repositories for persisted agent runtime state."""
+
+from __future__ import annotations
+
+import json
+import sqlite3
+from pathlib import Path
+from typing import Any
+
+from doge.config import get_settings
+from doge.core.domain.agent_models import (
+    AgentApproval,
+    AgentArtifact,
+    AgentEvent,
+    AgentRun,
+    AgentSession,
+    AgentTurn,
+    EventType,
+    RunStatus,
+    utc_now,
+)
+from doge.core.ports.agent_repository import (
+    IApprovalRepository,
+    IArtifactRepository,
+    IDocumentRepository,
+    IEventRepository,
+    IRunRepository,
+    ISessionRepository,
+)
+from doge.infrastructure.database.sqlite import SQLiteConnection
+
+
+def _schema_path() -> Path:
+    return Path(__file__).resolve().with_name("agent_schema.sql")
+
+
+def bootstrap_agent_schema(db_path: Path | str | None = None) -> None:
+    path = Path(db_path) if db_path is not None else get_settings().db.agent_db
+    path.parent.mkdir(parents=True, exist_ok=True)
+    sql = _schema_path().read_text(encoding="utf-8")
+    with sqlite3.connect(str(path)) as conn:
+        conn.executescript(sql)
+        conn.execute(
+            "INSERT OR IGNORE INTO schema_migrations(name, applied_at) VALUES (?, ?)",
+            ("agent_schema_v1", utc_now()),
+        )
+        conn.commit()
+
+
+class _BaseAgentRepository:
+    def __init__(self, db_path: Path | str | None = None) -> None:
+        self._db_path = Path(db_path) if db_path is not None else get_settings().db.agent_db
+        bootstrap_agent_schema(self._db_path)
+        self._connection = SQLiteConnection(self._db_path, use_row_factory=True)
+
+    def _connect(self):
+        return self._connection.connect()
+
+
+class SQLiteSessionRepository(_BaseAgentRepository, ISessionRepository):
+    def save(self, session: AgentSession) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO sessions(session_id, title, created_at, updated_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(session_id) DO UPDATE SET
+                    title = excluded.title,
+                    updated_at = excluded.updated_at
+                """,
+                (session.session_id, session.title, session.created_at, session.updated_at),
+            )
+            conn.execute("DELETE FROM turns WHERE session_id = ?", (session.session_id,))
+            for turn in session.turns:
+                conn.execute(
+                    """
+                    INSERT INTO turns(turn_id, session_id, user_message, run_id, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (turn.turn_id, turn.session_id, turn.user_message, turn.run_id, turn.created_at),
+                )
+            conn.commit()
+
+    def get(self, session_id: str) -> AgentSession | None:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM sessions WHERE session_id = ?", (session_id,)).fetchone()
+            if row is None:
+                return None
+            return self._row_to_session(conn, row)
+
+    def list_recent(self, limit: int = 20) -> list[AgentSession]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM sessions ORDER BY updated_at DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+            return [self._row_to_session(conn, row) for row in rows]
+
+    def _row_to_session(self, conn: sqlite3.Connection, row: sqlite3.Row) -> AgentSession:
+        turns = [
+            AgentTurn(
+                turn_id=item["turn_id"],
+                session_id=item["session_id"],
+                user_message=item["user_message"],
+                run_id=item["run_id"],
+                created_at=item["created_at"],
+            )
+            for item in conn.execute(
+                "SELECT * FROM turns WHERE session_id = ? ORDER BY created_at ASC",
+                (row["session_id"],),
+            ).fetchall()
+        ]
+        return AgentSession(
+            session_id=row["session_id"],
+            title=row["title"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+            turns=turns,
+        )
+
+
+class SQLiteRunRepository(_BaseAgentRepository, IRunRepository):
+    def save(self, run: AgentRun) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO runs(
+                    run_id, session_id, workflow, question, market, language,
+                    document_ids, portfolio_id, model_policy, status,
+                    cancel_requested_at, created_at, updated_at, schema_version
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(run_id) DO UPDATE SET
+                    session_id = excluded.session_id,
+                    workflow = excluded.workflow,
+                    question = excluded.question,
+                    market = excluded.market,
+                    language = excluded.language,
+                    document_ids = excluded.document_ids,
+                    portfolio_id = excluded.portfolio_id,
+                    model_policy = excluded.model_policy,
+                    status = excluded.status,
+                    cancel_requested_at = excluded.cancel_requested_at,
+                    updated_at = excluded.updated_at,
+                    schema_version = excluded.schema_version
+                """,
+                (
+                    run.run_id,
+                    run.session_id,
+                    run.workflow,
+                    run.question,
+                    run.market,
+                    run.language,
+                    json.dumps(run.document_ids, ensure_ascii=False),
+                    run.portfolio_id,
+                    json.dumps(run.model_policy, ensure_ascii=False),
+                    run.status.value,
+                    run.cancel_requested_at,
+                    run.created_at,
+                    run.updated_at,
+                    run.schema_version,
+                ),
+            )
+            conn.commit()
+
+    def get(self, run_id: str) -> AgentRun | None:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
+            if row is None:
+                return None
+            return _row_to_run(conn, row)
+
+    def list_by_session(self, session_id: str) -> list[AgentRun]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM runs WHERE session_id = ? ORDER BY created_at ASC",
+                (session_id,),
+            ).fetchall()
+            return [_row_to_run(conn, row) for row in rows]
+
+    def list_recent(self, limit: int = 20) -> list[AgentRun]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM runs ORDER BY updated_at DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+            return [_row_to_run(conn, row) for row in rows]
+
+
+class SQLiteEventRepository(_BaseAgentRepository, IEventRepository):
+    def append(self, event: AgentEvent) -> AgentEvent:
+        with self._connect() as conn:
+            if event.sequence <= 0:
+                row = conn.execute(
+                    "SELECT COALESCE(MAX(sequence), 0) + 1 AS next_sequence FROM events WHERE run_id = ?",
+                    (event.run_id,),
+                ).fetchone()
+                event.sequence = int(row["next_sequence"])
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO events(
+                    event_id, run_id, event_type, payload, sequence, schema_version, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    event.event_id,
+                    event.run_id,
+                    event.event_type.value,
+                    json.dumps(event.payload, ensure_ascii=False),
+                    event.sequence,
+                    event.schema_version,
+                    event.created_at,
+                ),
+            )
+            conn.commit()
+        return event
+
+    def list_for_run(self, run_id: str, after_sequence: int = 0) -> list[AgentEvent]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM events
+                WHERE run_id = ? AND sequence > ?
+                ORDER BY sequence ASC
+                """,
+                (run_id, after_sequence),
+            ).fetchall()
+            return [_row_to_event(row) for row in rows]
+
+
+class SQLiteArtifactRepository(_BaseAgentRepository, IArtifactRepository):
+    def save(self, artifact: AgentArtifact) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO artifacts(artifact_id, run_id, kind, title, content, data, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(artifact_id) DO UPDATE SET
+                    run_id = excluded.run_id,
+                    kind = excluded.kind,
+                    title = excluded.title,
+                    content = excluded.content,
+                    data = excluded.data
+                """,
+                (
+                    artifact.artifact_id,
+                    artifact.run_id,
+                    artifact.kind,
+                    artifact.title,
+                    artifact.content,
+                    json.dumps(artifact.data, ensure_ascii=False),
+                    artifact.created_at,
+                ),
+            )
+            conn.commit()
+
+    def list_for_run(self, run_id: str) -> list[AgentArtifact]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM artifacts WHERE run_id = ? ORDER BY created_at ASC",
+                (run_id,),
+            ).fetchall()
+            return [_row_to_artifact(row) for row in rows]
+
+
+class SQLiteApprovalRepository(_BaseAgentRepository, IApprovalRepository):
+    def save(self, approval: AgentApproval) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO approvals(approval_id, run_id, action, risk_level, status, created_at, resolved_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(approval_id) DO UPDATE SET
+                    run_id = excluded.run_id,
+                    action = excluded.action,
+                    risk_level = excluded.risk_level,
+                    status = excluded.status,
+                    resolved_at = excluded.resolved_at
+                """,
+                (
+                    approval.approval_id,
+                    approval.run_id,
+                    approval.action,
+                    approval.risk_level,
+                    approval.status,
+                    approval.created_at,
+                    approval.resolved_at,
+                ),
+            )
+            conn.commit()
+
+    def get(self, approval_id: str) -> AgentApproval | None:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM approvals WHERE approval_id = ?", (approval_id,)).fetchone()
+            return _row_to_approval(row) if row else None
+
+    def list_for_run(self, run_id: str) -> list[AgentApproval]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM approvals WHERE run_id = ? ORDER BY created_at ASC",
+                (run_id,),
+            ).fetchall()
+            return [_row_to_approval(row) for row in rows]
+
+
+class SQLiteDocumentRepository(_BaseAgentRepository, IDocumentRepository):
+    def save(self, document: dict[str, Any]) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO documents(document_id, filename, content, status, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(document_id) DO UPDATE SET
+                    filename = excluded.filename,
+                    content = excluded.content,
+                    status = excluded.status
+                """,
+                (
+                    document["document_id"],
+                    document.get("filename", document["document_id"]),
+                    document.get("content"),
+                    document.get("status", "uploaded"),
+                    document.get("created_at", utc_now()),
+                ),
+            )
+            conn.commit()
+
+    def get(self, document_id: str) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM documents WHERE document_id = ?", (document_id,)).fetchone()
+            return dict(row) if row else None
+
+    def list_recent(self, limit: int = 100) -> list[dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM documents ORDER BY created_at DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+            return [dict(row) for row in rows]
+
+
+def _row_to_run(conn: sqlite3.Connection, row: sqlite3.Row) -> AgentRun:
+    run = AgentRun(
+        run_id=row["run_id"],
+        workflow=row["workflow"],
+        question=row["question"],
+        session_id=row["session_id"],
+        market=row["market"],
+        language=row["language"],
+        document_ids=json.loads(row["document_ids"] or "[]"),
+        portfolio_id=row["portfolio_id"],
+        model_policy=json.loads(row["model_policy"] or "{}"),
+        status=RunStatus(row["status"]),
+        cancel_requested_at=row["cancel_requested_at"],
+        schema_version=row["schema_version"] or "1.0",
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
+    )
+    run.events = [
+        _row_to_event(item)
+        for item in conn.execute(
+            "SELECT * FROM events WHERE run_id = ? ORDER BY sequence ASC",
+            (run.run_id,),
+        ).fetchall()
+    ]
+    run.artifacts = [
+        _row_to_artifact(item)
+        for item in conn.execute(
+            "SELECT * FROM artifacts WHERE run_id = ? ORDER BY created_at ASC",
+            (run.run_id,),
+        ).fetchall()
+    ]
+    run.approvals = [
+        _row_to_approval(item)
+        for item in conn.execute(
+            "SELECT * FROM approvals WHERE run_id = ? ORDER BY created_at ASC",
+            (run.run_id,),
+        ).fetchall()
+    ]
+    return run
+
+
+def _row_to_event(row: sqlite3.Row) -> AgentEvent:
+    return AgentEvent(
+        event_id=row["event_id"],
+        run_id=row["run_id"],
+        event_type=EventType(row["event_type"]),
+        payload=json.loads(row["payload"] or "{}"),
+        sequence=int(row["sequence"]),
+        schema_version=row["schema_version"] or "1.0",
+        created_at=row["created_at"],
+    )
+
+
+def _row_to_artifact(row: sqlite3.Row) -> AgentArtifact:
+    return AgentArtifact(
+        artifact_id=row["artifact_id"],
+        run_id=row["run_id"],
+        kind=row["kind"],
+        title=row["title"],
+        content=row["content"],
+        data=json.loads(row["data"] or "{}"),
+        created_at=row["created_at"],
+    )
+
+
+def _row_to_approval(row: sqlite3.Row) -> AgentApproval:
+    return AgentApproval(
+        approval_id=row["approval_id"],
+        run_id=row["run_id"],
+        action=row["action"],
+        risk_level=row["risk_level"],
+        status=row["status"],
+        created_at=row["created_at"],
+        resolved_at=row["resolved_at"],
+    )

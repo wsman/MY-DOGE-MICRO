@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { DogeClient } from 'doge-sdk'
 
 const api = axios.create({
   baseURL: '/api',
@@ -6,3 +7,5 @@ const api = axios.create({
 })
 
 export default api
+
+export const dogeClient = new DogeClient({ baseUrl: '' })

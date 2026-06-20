@@ -6,8 +6,9 @@ import asyncio
 import json
 from typing import Any, AsyncIterator
 
+from doge.application.agent.model_response_assembler import ModelResponseAssembler
 from doge.application.agent.tools import ToolRegistry, build_default_tool_registry
-from doge.core.domain.agent_models import AgentEvent, AgentRun, EventType, RunStatus
+from doge.core.domain.agent_models import AgentArtifact, AgentEvent, AgentRun, EventType, RunStatus, utc_now
 from doge.core.ports.agent_model import AgentMessage, AgentResponse, IAgentModel
 from doge.core.ports.agent_runtime import IResearchAgentRuntime
 
@@ -81,6 +82,7 @@ class ResearchAgentRuntime(IResearchAgentRuntime):
         self._model = model or ScriptedAgentModel()
         self._tools = tool_registry or build_default_tool_registry()
         self._runs: dict[str, AgentRun] = {}
+        self._assembler = ModelResponseAssembler()
 
     async def create_run(self, request: dict[str, Any]) -> AgentRun:
         run = AgentRun.create(
@@ -88,6 +90,7 @@ class ResearchAgentRuntime(IResearchAgentRuntime):
             question=request.get("question", ""),
             market=request.get("market", "us"),
             language=request.get("language", "en"),
+            session_id=request.get("session_id"),
             document_ids=list(request.get("document_ids", [])),
             portfolio_id=request.get("portfolio_id"),
             model_policy=dict(request.get("model_policy", {})),
@@ -102,7 +105,7 @@ class ResearchAgentRuntime(IResearchAgentRuntime):
         run.status = RunStatus.RUNNING
         for _ in range(max_rounds):
             await self.step(run_id)
-            if run.status in (RunStatus.AWAITING_APPROVAL, RunStatus.COMPLETED, RunStatus.FAILED):
+            if run.status in (RunStatus.AWAITING_APPROVAL, RunStatus.CANCELLED, RunStatus.COMPLETED, RunStatus.FAILED):
                 return run
         run.status = RunStatus.FAILED
         run.add_event(EventType.ERROR, {"message": "max tool rounds exceeded"})
@@ -110,17 +113,20 @@ class ResearchAgentRuntime(IResearchAgentRuntime):
 
     async def step(self, run_id: str) -> AgentRun:
         run = self._require_run(run_id)
+        if run.status == RunStatus.CANCELLING:
+            run.status = RunStatus.CANCELLED
+            run.add_event(EventType.RUN_CANCELLED, {"cancelled": True})
+            return run
         messages = self._build_messages(run)
-        response = None
-        async for event in self._model.chat(
-            messages,
-            tools=self._tools.schemas,
-            tool_choice="auto",
-            max_tokens=int(run.model_policy.get("max_tokens", 16384) or 16384),
-            stream=bool(run.model_policy.get("stream", False)),
-        ):
-            response = event
-            break
+        response = await self._assembler.assemble(
+            self._model.chat(
+                messages,
+                tools=self._tools.schemas,
+                tool_choice="auto",
+                max_tokens=int(run.model_policy.get("max_tokens", 16384) or 16384),
+                stream=bool(run.model_policy.get("stream", False)),
+            )
+        )
         if response is None:
             run.status = RunStatus.FAILED
             run.add_event(EventType.ERROR, {"message": "model unavailable"})
@@ -183,9 +189,19 @@ class ResearchAgentRuntime(IResearchAgentRuntime):
     def get_run(self, run_id: str) -> AgentRun | None:
         return self._runs.get(run_id)
 
+    def list_runs(self, session_id: str | None = None, limit: int = 20) -> list[AgentRun]:
+        runs = list(self._runs.values())
+        if session_id:
+            runs = [run for run in runs if run.session_id == session_id]
+        return sorted(runs, key=lambda run: run.updated_at, reverse=True)[:limit]
+
     def list_events(self, run_id: str) -> list[AgentEvent]:
         run = self._require_run(run_id)
         return list(run.events)
+
+    def list_artifacts(self, run_id: str) -> list[AgentArtifact]:
+        run = self._require_run(run_id)
+        return list(run.artifacts)
 
     async def stream_events(self, run_id: str) -> AsyncIterator[AgentEvent]:
         for event in self.list_events(run_id):
@@ -198,27 +214,26 @@ class ResearchAgentRuntime(IResearchAgentRuntime):
         if approval is None:
             raise KeyError(f"approval not found: {approval_id}")
         approval.status = "approved" if approved else "denied"
-        from doge.core.domain.agent_models import utc_now
         approval.resolved_at = utc_now()
         run.add_event(EventType.APPROVAL_RESOLVED, {
             "approval_id": approval_id,
             "approved": approved,
         })
         if approved:
-            artifact = run.add_artifact(
-                kind="investment_memo",
-                title="Investment Committee Memo",
-                content=_default_memo(),
-                data={"approval_id": approval_id, "usage": {"total_tokens": 0}},
-            )
-            run.status = RunStatus.COMPLETED
-            run.add_event(EventType.ARTIFACT_CREATED, {
-                "artifact_id": artifact.artifact_id,
-                "kind": artifact.kind,
-                "title": artifact.title,
-            })
+            run.status = RunStatus.RUNNING
+            return await self.run_to_pause_or_completion(run_id)
         else:
             run.status = RunStatus.FAILED
+        return run
+
+    async def cancel_run(self, run_id: str) -> AgentRun:
+        run = self._require_run(run_id)
+        if run.status in (RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED):
+            return run
+        run.status = RunStatus.CANCELLING
+        run.cancel_requested_at = utc_now()
+        run.status = RunStatus.CANCELLED
+        run.add_event(EventType.RUN_CANCELLED, {"cancelled": True})
         return run
 
     def _require_run(self, run_id: str) -> AgentRun:
@@ -254,6 +269,12 @@ class ResearchAgentRuntime(IResearchAgentRuntime):
                     tool_call_id=event.payload.get("tool_call_id"),
                     name=event.payload.get("name"),
                     content=json.dumps(event.payload.get("result", {}), ensure_ascii=False),
+                ))
+            elif event.event_type == EventType.APPROVAL_RESOLVED:
+                status = "approved" if event.payload.get("approved") else "denied"
+                messages.append(AgentMessage(
+                    role="user",
+                    content=f"Human approval {event.payload.get('approval_id')} was {status}. Continue accordingly.",
                 ))
         return messages
 

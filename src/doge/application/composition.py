@@ -46,10 +46,19 @@ from doge.infrastructure.database.repositories import (
     SQLiteNoteRepository,
     SQLiteStockNameRepository,
 )
+from doge.infrastructure.database.agent_repositories import (
+    SQLiteApprovalRepository,
+    SQLiteArtifactRepository,
+    SQLiteDocumentRepository,
+    SQLiteEventRepository,
+    SQLiteRunRepository,
+    SQLiteSessionRepository,
+)
 from doge.infrastructure.database.sqlite_storage import SQLiteStorageRepository
 from doge.infrastructure.data_source.tdx_file_scanner import TDXFileScanner
 from doge.infrastructure.data_source.yfinance_metadata import YFinanceMetadataSource
 from doge.infrastructure.agent.research_runtime import InMemoryResearchAgentRuntime
+from doge.infrastructure.agent.persisted_runtime import PersistedResearchAgentRuntime
 from doge.infrastructure.llm.deepseek_client import DeepSeekClient
 from doge.infrastructure.llm.kimi_client import KimiAgentModel
 
@@ -63,7 +72,10 @@ from doge.application.use_cases.generate_anomaly_report import GenerateAnomalyRe
 from doge.application.use_cases.generate_catalog import GenerateCatalogUseCase
 from doge.application.use_cases.populate_stock_names import PopulateStockNamesUseCase
 from doge.application.use_cases.generate_industry_report import GenerateIndustryReportUseCase
+from doge.application.use_cases.run_use_cases import ExecuteRun, ResumeRun
+from doge.application.use_cases.session_use_cases import AppendTurn, CreateSession, ListSessions, ResumeSession
 from doge.application.agent.research_runtime import ScriptedAgentModel
+from doge.application.agent.runtime_kernel import RuntimeKernel
 from doge.application.agent.tools import build_default_tool_registry
 from doge.config import get_settings
 
@@ -211,6 +223,36 @@ def build_kimi_agent_model() -> KimiAgentModel:
     return KimiAgentModel()
 
 
+def build_agent_repositories(db_path=None):
+    """Build all SQLite-backed agent repositories for a shared database path."""
+    return {
+        "sessions": SQLiteSessionRepository(db_path),
+        "runs": SQLiteRunRepository(db_path),
+        "events": SQLiteEventRepository(db_path),
+        "artifacts": SQLiteArtifactRepository(db_path),
+        "approvals": SQLiteApprovalRepository(db_path),
+        "documents": SQLiteDocumentRepository(db_path),
+    }
+
+
+def build_agent_runtime_kernel(model=None, tool_registry=None, event_publisher=None, db_path=None) -> RuntimeKernel:
+    """Build the persisted agent runtime kernel."""
+    repos = build_agent_repositories(db_path)
+    if model is None:
+        model = build_kimi_agent_model() if get_settings().kimi.api_key else ScriptedAgentModel()
+    if tool_registry is None:
+        tool_registry = build_default_tool_registry()
+    return RuntimeKernel(
+        model=model,
+        tool_registry=tool_registry,
+        run_repository=repos["runs"],
+        event_repository=repos["events"],
+        artifact_repository=repos["artifacts"],
+        approval_repository=repos["approvals"],
+        event_publisher=event_publisher,
+    )
+
+
 def build_research_agent_runtime(model=None, tool_registry=None) -> InMemoryResearchAgentRuntime:
     """Build the in-memory research-agent runtime for the interview demo."""
     if model is None:
@@ -218,6 +260,49 @@ def build_research_agent_runtime(model=None, tool_registry=None) -> InMemoryRese
     if tool_registry is None:
         tool_registry = build_default_tool_registry()
     return InMemoryResearchAgentRuntime(model=model, tool_registry=tool_registry)
+
+
+def build_persisted_research_agent_runtime(model=None, tool_registry=None, event_publisher=None, db_path=None):
+    """Build the repository-backed runtime for CLI, daemon and SDK paths."""
+    return PersistedResearchAgentRuntime(
+        build_agent_runtime_kernel(
+            model=model,
+            tool_registry=tool_registry,
+            event_publisher=event_publisher,
+            db_path=db_path,
+        )
+    )
+
+
+def build_agent_document_repository(db_path=None):
+    """Build the default persisted document repository."""
+    return SQLiteDocumentRepository(db_path)
+
+
+def build_create_session_use_case(db_path=None) -> CreateSession:
+    return CreateSession(SQLiteSessionRepository(db_path))
+
+
+def build_resume_session_use_case(db_path=None) -> ResumeSession:
+    return ResumeSession(SQLiteSessionRepository(db_path))
+
+
+def build_list_sessions_use_case(db_path=None) -> ListSessions:
+    return ListSessions(SQLiteSessionRepository(db_path))
+
+
+def build_append_turn_use_case(db_path=None) -> AppendTurn:
+    return AppendTurn(SQLiteSessionRepository(db_path))
+
+
+def build_execute_run_use_case(model=None, tool_registry=None, db_path=None) -> ExecuteRun:
+    runtime = build_persisted_research_agent_runtime(model=model, tool_registry=tool_registry, db_path=db_path)
+    return ExecuteRun(runtime, SQLiteSessionRepository(db_path))
+
+
+def build_resume_run_use_case(model=None, tool_registry=None, db_path=None) -> ResumeRun:
+    runtime = build_persisted_research_agent_runtime(model=model, tool_registry=tool_registry, db_path=db_path)
+    return ResumeRun(runtime)
 
 
 def build_manage_notes_use_case(

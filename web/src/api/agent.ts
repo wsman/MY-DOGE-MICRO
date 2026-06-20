@@ -1,4 +1,4 @@
-import api from './client'
+import { dogeClient } from './client'
 
 export interface AgentEvent {
   event_id: string
@@ -42,23 +42,38 @@ export interface CreateAgentRunRequest {
   workflow: string
   question: string
   document_ids: string[]
-  portfolio_id: string
+  portfolio_id: string | null
   market: string
   language: string
   model_policy: Record<string, any>
 }
 
 export async function createAgentRun(payload: CreateAgentRunRequest): Promise<AgentRun> {
-  const { data } = await api.post('/agent/runs', payload)
-  return data
+  const session = await dogeClient.sessions.create('Research Agent Workspace')
+  const runId = await session.createTurn(payload.question, {
+    market: payload.market,
+    language: payload.language,
+    document_ids: payload.document_ids,
+    portfolio_id: payload.portfolio_id,
+    model_policy: payload.model_policy,
+  })
+  return await pollAgentRun(runId)
 }
 
 export async function fetchAgentRun(runId: string): Promise<AgentRun> {
-  const { data } = await api.get(`/agent/runs/${runId}`)
-  return data
+  return await dogeClient.runs.get(runId) as unknown as AgentRun
 }
 
 export async function approveAgentRun(runId: string, approvalId: string, approved: boolean): Promise<AgentRun> {
-  const { data } = await api.post(`/agent/runs/${runId}/approvals/${approvalId}`, { approved })
-  return data
+  return await dogeClient.runs.approve(runId, approvalId, approved) as unknown as AgentRun
+}
+
+async function pollAgentRun(runId: string): Promise<AgentRun> {
+  const terminal = new Set(['awaiting_approval', 'completed', 'failed', 'cancelled'])
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const run = await fetchAgentRun(runId)
+    if (terminal.has(run.status)) return run
+    await new Promise(resolve => setTimeout(resolve, 150))
+  }
+  return await fetchAgentRun(runId)
 }

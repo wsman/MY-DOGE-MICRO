@@ -24,6 +24,11 @@ from doge.config import get_settings
 from doge.core.ports.repository import ISchemaBrowser
 from doge.interfaces.api import deps
 from doge.interfaces.api.routers import scan, data, notes, macro, analysis, config, agent, documents
+from doge.interfaces.api.routers.v1 import documents as v1_documents
+from doge.interfaces.api.routers.v1 import health as v1_health
+from doge.interfaces.api.routers.v1 import runs as v1_runs
+from doge.interfaces.api.routers.v1 import sessions as v1_sessions
+from doge.interfaces.api.routers.v1 import tools as v1_tools
 
 logger = logging.getLogger("doge.api")
 
@@ -97,6 +102,11 @@ app.include_router(analysis.router, prefix="/api/analysis", tags=["analysis"])
 app.include_router(config.router, prefix="/api/config",   tags=["config"])
 app.include_router(agent.router, prefix="/api/agent", tags=["agent"])
 app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
+app.include_router(v1_sessions.router, prefix="/v1", tags=["v1-sessions"])
+app.include_router(v1_runs.router, prefix="/v1", tags=["v1-runs"])
+app.include_router(v1_documents.router, prefix="/v1", tags=["v1-documents"])
+app.include_router(v1_tools.router, prefix="/v1", tags=["v1-tools"])
+app.include_router(v1_health.router, tags=["health"])
 
 
 @app.get("/api/health")

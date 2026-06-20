@@ -4,7 +4,9 @@ from doge.interfaces.cli.commands.anomaly import cmd_anomaly
 from doge.interfaces.cli.commands.breadth import cmd_breadth
 from doge.interfaces.cli.commands.demo import cmd_demo
 from doge.interfaces.cli.commands.macro import cmd_macro
+from doge.interfaces.cli.commands.run import cmd_run
 from doge.interfaces.cli.commands.rsrs import cmd_rsrs
+from doge.interfaces.cli.commands.session import cmd_session
 from doge.interfaces.cli.commands.stock import cmd_stock
 
 __all__ = [
@@ -14,4 +16,6 @@ __all__ = [
     "cmd_anomaly",
     "cmd_demo",
     "cmd_macro",
+    "cmd_run",
+    "cmd_session",
 ]

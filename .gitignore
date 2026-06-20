@@ -40,6 +40,8 @@ user_settings.json
 web/node_modules/
 web/dist/
 .vite/
+packages/*/node_modules/
+packages/*/dist/
 
 # Claude Code user-specific
 .claude/settings.local.json

@@ -7,6 +7,8 @@ import { toFetchError, type FetchError } from '../utils/fetchError'
 export const useAgentStore = defineStore('agent', () => {
   const question = ref('Analyze the company earnings quality, industry momentum, and portfolio impact.')
   const market = ref<'cn' | 'us'>('us')
+  const documentIds = ref<string[]>([])
+  const portfolioId = ref<string | null>(null)
   const run = ref<AgentRun | null>(null)
   const loading = ref(false)
   const error = ref<FetchError | null>(null)
@@ -23,8 +25,8 @@ export const useAgentStore = defineStore('agent', () => {
       run.value = await createAgentRun({
         workflow: 'investment_research',
         question: question.value,
-        document_ids: ['doc-annual-report', 'doc-presentation', 'doc-chart'],
-        portfolio_id: 'portfolio-demo',
+        document_ids: documentIds.value,
+        portfolio_id: portfolioId.value,
         market: market.value,
         language: 'en',
         model_policy: {
@@ -56,6 +58,8 @@ export const useAgentStore = defineStore('agent', () => {
   return {
     question,
     market,
+    documentIds,
+    portfolioId,
     run,
     loading,
     error,

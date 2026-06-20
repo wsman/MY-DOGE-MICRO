@@ -4,7 +4,8 @@
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "types": ["vite/client"],
     "paths": {
-      "@pretext": ["./src/vendor/pretext/layout.ts"]
+      "@pretext": ["./src/vendor/pretext/layout.ts"],
+      "doge-sdk": ["../packages/doge-sdk-typescript/src/index.ts"]
     },
 
     /* Linting */
@@ -13,5 +14,6 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "../packages/doge-sdk-typescript/src/**/*.ts"],
+  "exclude": ["../packages/doge-sdk-typescript/src/__tests__/**/*.ts"]
 }

@@ -13,6 +13,7 @@
   "dependencies": {
     "@vicons/ionicons5": "^0.13.0",
     "axios": "^1.16.0",
+    "doge-sdk": "file:../packages/doge-sdk-typescript",
     "highlight.js": "^11.11.1",
     "lightweight-charts": "^5.2.0",
     "markdown-it": "^14.1.1",

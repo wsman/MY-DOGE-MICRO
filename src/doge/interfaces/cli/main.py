@@ -7,6 +7,8 @@ Usage:
     doge anomaly [--min-ratio 3.0] [--top 20]
     doge demo [--market cn] [--top 5]
     doge macro [--verbose]
+    doge session [--title "..."]
+    doge run "question" [--session <session_id>] [--json] [--trace]
 
 Clean-architecture wiring (ADR-0001 / ADR-0010): each subcommand delegates to
 its read-only service or application use case via ``doge.application.composition``.
@@ -36,7 +38,9 @@ from doge.interfaces.cli.commands import (
     cmd_breadth,
     cmd_demo,
     cmd_macro,
+    cmd_run,
     cmd_rsrs,
+    cmd_session,
     cmd_stock,
 )
 
@@ -81,6 +85,27 @@ def build_parser() -> argparse.ArgumentParser:
     p_macro.add_argument("--verbose", action="store_true", help="verbose output")
     p_macro.add_argument("--config-file", help="ignored — accepted for forward compatibility")
 
+    # session
+    p_session = sub.add_parser("session", help="create or resume an agent session")
+    p_session.add_argument("--title", default="Research session")
+    p_session.add_argument("--resume", help="session id to resume")
+    p_session.add_argument("--message", help="execute one message in the resumed session")
+    p_session.add_argument("--market", default="us", choices=["cn", "us"])
+    p_session.add_argument("--list", action="store_true", help="list recent sessions")
+    p_session.add_argument("--limit", type=int, default=20)
+    p_session.add_argument("--interactive", action="store_true", help="enter an interactive session loop")
+
+    # run
+    p_run = sub.add_parser("run", help="execute a persisted research-agent run")
+    p_run.add_argument("question", help="research question")
+    p_run.add_argument("--session", help="attach the run to an existing session")
+    p_run.add_argument("--market", default="us", choices=["cn", "us"])
+    p_run.add_argument("--language", default="en")
+    p_run.add_argument("--portfolio", default="portfolio-demo")
+    p_run.add_argument("--max-tool-rounds", type=int, default=8)
+    p_run.add_argument("--json", action="store_true", help="emit JSON only")
+    p_run.add_argument("--trace", action="store_true", help="print event trace after the summary")
+
     return parser
 
 
@@ -99,6 +124,8 @@ def main(argv: list[str] | None = None) -> None:
         "anomaly": cmd_anomaly,
         "demo": cmd_demo,
         "macro": cmd_macro,
+        "session": cmd_session,
+        "run": cmd_run,
     }
     dispatch[args.cmd](args)
 

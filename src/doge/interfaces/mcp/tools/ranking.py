@@ -1,6 +1,6 @@
 """MCP tools: rsrs_ranking, market_breadth."""
 
-from doge.application.composition import build_breadth_service, build_ranking_service
+from doge.application.agent.tool_service import ToolApplicationService
 
 
 def _fmt(columns, rows):
@@ -22,22 +22,14 @@ def _fmt(columns, rows):
 
 
 async def rsrs_ranking(market: str = "cn", top: int = 20) -> str:
-    svc = build_ranking_service()
-    try:
-        data = svc.rsrs(market, top)
-    except Exception:
-        data = []
+    data = ToolApplicationService().rsrs_ranking(market, top)["rows"]
     if not data:
         return "No data"
     return _fmt(list(data[0].keys()), [list(r.values()) for r in data])
 
 
 async def market_breadth(market: str = "cn", days: int = 10) -> str:
-    svc = build_breadth_service()
-    try:
-        data = svc.breadth(market, days)
-    except Exception:
-        data = []
+    data = ToolApplicationService().market_breadth(market, days)["rows"]
     if not data:
         return "No data"
     return _fmt(list(data[0].keys()), [list(r.values()) for r in data])

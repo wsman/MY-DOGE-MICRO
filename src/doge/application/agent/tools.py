@@ -6,6 +6,8 @@ import json
 from dataclasses import dataclass
 from typing import Any, Callable
 
+from doge.application.agent.tool_service import ToolApplicationService
+
 
 @dataclass(frozen=True)
 class ToolResult:
@@ -68,119 +70,37 @@ def _schema(name: str, description: str, properties: dict[str, Any], required: l
 
 def build_default_tool_registry() -> ToolRegistry:
     registry = ToolRegistry()
+    service = ToolApplicationService()
 
     def query_stock(ticker: str, market: str = "us", days: int = 20) -> ToolResult:
-        from doge.application import composition
-        try:
-            rows = composition.build_stock_service().query(ticker, market, days)
-        except Exception:
-            rows = []
-        return ToolResult(
-            "query_stock",
-            data={"ticker": ticker, "market": market, "days": days, "rows": rows},
-        )
+        return ToolResult("query_stock", data=service.query_stock(ticker, market, days))
 
     def stock_overview(ticker: str, market: str = "us") -> ToolResult:
-        from doge.application import composition
-        try:
-            data = composition.build_stock_service().overview(ticker, market)
-        except Exception:
-            data = {"ticker": ticker, "market": market, "status": "unavailable"}
-        if not data:
-            data = {"ticker": ticker, "market": market, "status": "unavailable"}
-        return ToolResult("stock_overview", data=data)
+        return ToolResult("stock_overview", data=service.stock_overview(ticker, market))
 
     def rsrs_ranking(market: str = "us", top: int = 20) -> ToolResult:
-        from doge.application import composition
-        try:
-            rows = composition.build_ranking_service().rsrs(market, top)
-        except Exception:
-            rows = []
-        return ToolResult("rsrs_ranking", data={"market": market, "top": top, "rows": rows})
+        return ToolResult("rsrs_ranking", data=service.rsrs_ranking(market, top))
 
     def market_breadth(market: str = "us", days: int = 10) -> ToolResult:
-        from doge.application import composition
-        try:
-            data = composition.build_breadth_service().breadth(market, days)
-        except Exception:
-            data = []
-        return ToolResult("market_breadth", data={"rows": data, "market": market, "days": days})
+        return ToolResult("market_breadth", data=service.market_breadth(market, days))
 
     def volume_anomalies(min_ratio: float = 3.0, top: int = 20) -> ToolResult:
-        from doge.application import composition
-        try:
-            rows = composition.build_anomaly_service().anomalies(min_ratio, top)
-        except Exception:
-            rows = []
-        return ToolResult(
-            "volume_anomalies",
-            data={"min_ratio": min_ratio, "top": top, "rows": rows},
-        )
+        return ToolResult("volume_anomalies", data=service.volume_anomalies(min_ratio, top))
 
     def list_views() -> ToolResult:
-        from doge.application import composition
-        try:
-            payload = composition.build_view_service().list_views()
-            rows = json.loads(payload)
-        except Exception:
-            rows = []
-        return ToolResult("list_views", data={"views": rows})
+        return ToolResult("list_views", data=service.list_views())
 
     def get_portfolio_exposure(portfolio_id: str = "portfolio-demo") -> ToolResult:
-        holdings = [
-            {"ticker": "AAPL", "weight": 0.24, "sector": "Technology"},
-            {"ticker": "MSFT", "weight": 0.21, "sector": "Technology"},
-            {"ticker": "NVDA", "weight": 0.18, "sector": "Semiconductors"},
-            {"ticker": "TLT", "weight": 0.12, "sector": "Rates"},
-            {"ticker": "CASH", "weight": 0.25, "sector": "Cash"},
-        ]
-        return ToolResult(
-            "get_portfolio_exposure",
-            data={
-                "portfolio_id": portfolio_id,
-                "holdings": holdings,
-                "top_concentration": 0.63,
-                "technology_exposure": 0.45,
-            },
-        )
+        return ToolResult("get_portfolio_exposure", data=service.get_portfolio_exposure(portfolio_id))
 
     def validate_financial_claims(claim: str, ticker: str = "AAPL", market: str = "us") -> ToolResult:
-        from doge.application import composition
-        try:
-            rows = composition.build_stock_service().query(ticker, market, 5)
-        except Exception:
-            rows = []
-        return ToolResult(
-            "validate_financial_claims",
-            data={
-                "claim": claim,
-                "ticker": ticker,
-                "market": market,
-                "status": "validated" if rows else "data_unavailable",
-                "sample_size": len(rows),
-            },
-        )
+        return ToolResult("validate_financial_claims", data=service.validate_financial_claims(claim, ticker, market))
 
     def lookup_evidence(query: str, limit: int = 5) -> ToolResult:
-        from doge.application import composition
-        try:
-            rows = composition.build_note_repository().search_notes(query, limit=limit)
-        except Exception:
-            rows = []
-        if not rows:
-            rows = [{
-                "evidence_id": "demo-evidence-001",
-                "source": "demo_materials",
-                "page": 1,
-                "snippet": "Deterministic fallback evidence for demo runs without a local research library.",
-            }]
-        return ToolResult("lookup_evidence", data={"query": query, "limit": limit, "results": rows[:limit]})
+        return ToolResult("lookup_evidence", data=service.lookup_evidence(query, limit))
 
     def request_approval(action: str, risk_level: str = "high") -> ToolResult:
-        return ToolResult(
-            "request_approval",
-            data={"approval_required": True, "action": action, "risk_level": risk_level},
-        )
+        return ToolResult("request_approval", data=service.request_approval(action, risk_level))
 
     registry.register(_schema("query_stock", "Query OHLCV rows for a ticker.", {
         "ticker": {"type": "string"},

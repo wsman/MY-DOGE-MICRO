@@ -7,7 +7,9 @@ or any legacy connection helper directly; they request a port/use case via
 ``doge.application.composition``.
 """
 
-from fastapi import Request
+import os
+
+from fastapi import Header, HTTPException, Request
 
 from doge.config import Settings, get_settings
 from doge.core.ports.metadata import ITickerMetadataSource
@@ -16,6 +18,9 @@ from doge import application as app_composition
 from doge.infrastructure.database.sqlite_storage import SQLiteStorageRepository
 
 _research_agent_runtime = None
+_persisted_research_agent_runtime = None
+_event_bus = None
+_worker = None
 
 
 def get_settings_dep() -> Settings:
@@ -59,6 +64,59 @@ def get_research_agent_runtime():
     if _research_agent_runtime is None:
         _research_agent_runtime = app_composition.build_research_agent_runtime()
     return _research_agent_runtime
+
+
+def get_event_bus():
+    """Provide the in-process event bus for daemon/v1 streams."""
+    global _event_bus
+    if _event_bus is None:
+        from doge.application.agent.event_bus import EventBus
+
+        _event_bus = EventBus()
+    return _event_bus
+
+
+def get_persisted_research_agent_runtime():
+    """Provide the repository-backed research agent runtime."""
+    global _persisted_research_agent_runtime
+    if _persisted_research_agent_runtime is None:
+        _persisted_research_agent_runtime = app_composition.build_persisted_research_agent_runtime(
+            event_publisher=get_event_bus()
+        )
+    return _persisted_research_agent_runtime
+
+
+def get_agent_document_repository():
+    """Provide the persisted document repository."""
+    return app_composition.build_agent_document_repository()
+
+
+def get_agent_session_repository():
+    """Provide the persisted session repository."""
+    return app_composition.build_agent_repositories()["sessions"]
+
+
+def get_daemon_worker():
+    """Provide the singleton daemon worker."""
+    global _worker
+    if _worker is None:
+        from doge.application.agent.worker import AsyncioWorker
+
+        _worker = AsyncioWorker(
+            get_persisted_research_agent_runtime(),
+            get_agent_session_repository(),
+        )
+    return _worker
+
+
+def require_api_token(authorization: str | None = Header(default=None)):
+    """Require bearer auth only when DOGE_API_TOKEN is configured."""
+    expected = os.environ.get("DOGE_API_TOKEN")
+    if not expected:
+        return None
+    if authorization != f"Bearer {expected}":
+        raise HTTPException(401, "unauthorized")
+    return None
 
 
 def get_metadata_source() -> ITickerMetadataSource:

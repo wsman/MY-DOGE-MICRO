@@ -28,6 +28,11 @@ def initialize_system_dbs() -> None:
     for market in ("cn", "us"):
         storage_repo.ensure_schema(market)
 
+    # Agent runtime state schema.
+    from doge.infrastructure.database.agent_repositories import bootstrap_agent_schema
+
+    bootstrap_agent_schema(settings.db.agent_db)
+
     # DuckDB view materialization.
     from doge.infrastructure.database.duckdb import DuckDBConnection
 

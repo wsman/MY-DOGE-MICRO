@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, AsyncIterator
 
-from doge.core.domain.agent_models import AgentEvent, AgentRun
+from doge.core.domain.agent_models import AgentArtifact, AgentEvent, AgentRun
 
 
 class IResearchAgentRuntime(ABC):
@@ -24,7 +24,15 @@ class IResearchAgentRuntime(ABC):
         ...
 
     @abstractmethod
+    def list_runs(self, session_id: str | None = None, limit: int = 20) -> list[AgentRun]:
+        ...
+
+    @abstractmethod
     def list_events(self, run_id: str) -> list[AgentEvent]:
+        ...
+
+    @abstractmethod
+    def list_artifacts(self, run_id: str) -> list[AgentArtifact]:
         ...
 
     @abstractmethod
@@ -33,4 +41,8 @@ class IResearchAgentRuntime(ABC):
 
     @abstractmethod
     async def resolve_approval(self, run_id: str, approval_id: str, approved: bool) -> AgentRun:
+        ...
+
+    @abstractmethod
+    async def cancel_run(self, run_id: str) -> AgentRun:
         ...

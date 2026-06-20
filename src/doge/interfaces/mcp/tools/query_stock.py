@@ -1,5 +1,6 @@
-"""MCP tool: query_stock — delegates to StockService via the composition root."""
+"""MCP tool: query_stock — delegates through the shared tool service."""
 
+from doge.application.agent.tool_service import ToolApplicationService
 from doge.application.composition import build_note_repository, build_stock_service
 
 
@@ -53,11 +54,7 @@ def _fmt(columns, rows):
 async def query_stock(ticker: str, market: str = "cn", days: int = 20) -> str:
     """Query stock OHLCV + indicators."""
     t = normalize_ticker(ticker, market)
-    svc = build_stock_service()
-    try:
-        data = svc.query(t, market, days)
-    except Exception:
-        data = _demo_prices(t, market, days)
+    data = ToolApplicationService(stock_service_factory=build_stock_service).query_stock(t, market, days)["rows"] or _demo_prices(t, market, days)
     if not data:
         return f"No data for {t}"
     return _fmt(list(data[0].keys()), [list(r.values()) for r in data])
@@ -73,10 +70,8 @@ async def stock_overview(ticker: str, market: str = "cn") -> str:
     interface layer — name/notes access goes through the port.
     """
     t = normalize_ticker(ticker, market)
-    svc = build_stock_service()
-    try:
-        overview = svc.overview(t, market)
-    except Exception:
+    overview = ToolApplicationService(stock_service_factory=build_stock_service).stock_overview(t, market)
+    if overview.get("status") == "unavailable":
         overview = {"ticker": t, "market": market, "name": None, "prices": _demo_prices(t, market, 3)}
 
     lines = [f"=== {t} ({market.upper()}) ==="]

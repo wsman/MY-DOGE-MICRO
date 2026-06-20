@@ -32,6 +32,7 @@ cn = ["akshare"]
 
 [project.scripts]
 doge = "doge.interfaces.cli.main:main"
+doged = "doge.interfaces.daemon.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -40,4 +41,4 @@ where = ["src"]
 testpaths = ["tests"]
 asyncio_mode = "strict"
 asyncio_default_fixture_loop_scope = "function"
-pythonpath = ["src"]
+pythonpath = ["src", "packages/doge-sdk-python"]

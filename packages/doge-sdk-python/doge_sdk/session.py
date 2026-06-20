@@ -1,0 +1,15 @@
+"""Session resource wrapper."""
+
+from __future__ import annotations
+
+from typing import Any
+
+
+class Session:
+    def __init__(self, client: Any, data: dict[str, Any]) -> None:
+        self._client = client
+        self.data = data
+        self.session_id = data["session_id"]
+
+    def create_turn(self, message: str, **kwargs: Any) -> str:
+        return self._client.sessions.create_turn(self.session_id, message, **kwargs)
