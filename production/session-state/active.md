@@ -10,15 +10,15 @@
 - S007-006 done: `GenerateMacroReportUseCase` now queries `IMarketViewRepository`, calls `ILLMClient`, persists through `IReportRepository`, and is used by both `/api/macro/run` and `doge macro`.
 - S007-007 done: `docs/MODULARIZATION_PLAN.md` and API docs reflect the completed modularization state and new Research Copilot surface.
 - S007-008 done: layer gates and full regression are green.
-- Interview Demo slice added: `IAgentModel`, `KimiAgentModel`, in-memory `IResearchAgentRuntime` adapter, Agent API, document registration API, Vue `/research-agent`, demo materials, eval harness, and production-roadmap docs.
-- Stage remains `Release`; legacy deletion remains deferred to Sprint 008.
+- Interview Demo slice added: `IAgentModel`, `KimiAgentModel`, RuntimeKernel-backed InMemory/Persisted runtime adapters, Agent API, document registration API, Vue `/research-agent`, demo materials, eval harness, and production-roadmap docs.
+- Stage remains `Release`; Sprint 008 runtime single-track cleanup removed the deferred legacy runtime path.
 
 ### Latest Verification
 
-- `python -m pytest -q` → **724 passed, 5 skipped, 0 failed, 0 error**. PyQt6 still prints a Windows DLL-load fatal advisory after the pytest summary, but the process exits 0.
+- `.\.venv\Scripts\python.exe -m pytest tests/ -q` → **774 passed, 5 skipped, 13 warnings**.
 - `cd web && npm test` → **72 passed**.
 - `cd web && npm run build` → green.
-- `python tests/eval/run_eval.py --cases tests/eval/cases.json` → **5/5 smoke cases passed**.
+- `python -m pytest tests/eval/ -v` → **4 passed**; eval harness now executes runtime cases and reports observed results.
 - `python -m pytest tests/test_mcp_tools.py tests/test_transport.py -q` → **77 passed**.
 
 ### Release Summary

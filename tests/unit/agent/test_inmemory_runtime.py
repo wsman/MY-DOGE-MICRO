@@ -71,3 +71,15 @@ async def test_inmemory_repositories_match_sqlite_semantics(tmp_path):
     assert [event.event_type for event in mem_run.events] == [event.event_type for event in sql_run.events]
     assert len(mem_run.artifacts) == len(sql_run.artifacts) == 1
     assert len(mem_run.approvals) == len(sql_run.approvals) == 1
+
+
+@pytest.mark.asyncio
+async def test_adapter_stream_events_matches_list_events():
+    runtime = InMemoryResearchAgentRuntime(model=ScriptedAgentModel(), tool_registry=_registry())
+    run = await runtime.create_run({"question": "Analyze AAPL", "model_policy": {"max_tool_rounds": 8}})
+    paused = await runtime.run_to_pause_or_completion(run.run_id)
+    completed = await runtime.resolve_approval(paused.run_id, paused.approvals[0].approval_id, True)
+
+    streamed = [event async for event in runtime.stream_events(completed.run_id)]
+
+    assert streamed == runtime.list_events(completed.run_id)
