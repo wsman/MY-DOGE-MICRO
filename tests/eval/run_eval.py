@@ -62,7 +62,8 @@ async def _run_case(case: dict, runtime: IResearchAgentRuntime) -> dict:
     run = await runtime.run_to_pause_or_completion(run.run_id)
     approval_required = bool(run.approvals)
     if run.status == RunStatus.AWAITING_APPROVAL and run.approvals:
-        run = await runtime.resolve_approval(run.run_id, run.approvals[0].approval_id, True)
+        await runtime.resolve_approval(run.run_id, run.approvals[0].approval_id, True)
+        run = await runtime.run_to_pause_or_completion(run.run_id)
 
     events = runtime.list_events(run.run_id)
     artifacts = runtime.list_artifacts(run.run_id)

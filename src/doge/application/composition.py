@@ -56,6 +56,7 @@ from doge.infrastructure.database.agent_repositories import (
     SQLiteRunRepository,
     SQLiteSessionRepository,
 )
+from doge.infrastructure.database.sqlite_uow import SQLiteAgentUnitOfWork
 from doge.infrastructure.database.sqlite_storage import SQLiteStorageRepository
 from doge.infrastructure.data_source.tdx_file_scanner import TDXFileScanner
 from doge.infrastructure.data_source.yfinance_metadata import YFinanceMetadataSource
@@ -291,6 +292,11 @@ def build_agent_run_queue(db_path=None):
 def build_agent_idempotency_store(db_path=None):
     """Build the durable idempotency-key adapter."""
     return SQLiteIdempotencyStore(db_path)
+
+
+def build_agent_unit_of_work(db_path=None, event_publisher=None):
+    """Build the transactional unit of work for agent run enqueue."""
+    return SQLiteAgentUnitOfWork(db_path, event_publisher=event_publisher)
 
 
 def build_create_session_use_case(db_path=None) -> CreateSession:

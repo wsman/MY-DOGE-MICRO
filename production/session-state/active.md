@@ -1,25 +1,33 @@
 # Active Session State
 
 > Living checkpoint. Gitignored. Read this first after any compaction/crash.
-> Branch: `main` · Date: 2026-06-20
+> Branch: `main` · Date: 2026-06-21
 
 ## Current Task
 
-**Sprint 007 — Clean Architecture Modularization closed. Interview Demo epic vertical slice implemented.**
+**Sprint 008 — Runtime Stability P0 implementation applied; Python gate green; remote CI/Web verification pending.**
 
-- S007-006 done: `GenerateMacroReportUseCase` now queries `IMarketViewRepository`, calls `ILLMClient`, persists through `IReportRepository`, and is used by both `/api/macro/run` and `doge macro`.
-- S007-007 done: `docs/MODULARIZATION_PLAN.md` and API docs reflect the completed modularization state and new Research Copilot surface.
-- S007-008 done: layer gates and full regression are green.
-- Interview Demo slice added: `IAgentModel`, `KimiAgentModel`, RuntimeKernel-backed InMemory/Persisted runtime adapters, Agent API, document registration API, Vue `/research-agent`, demo materials, eval harness, and production-roadmap docs.
-- Stage remains `Release`; Sprint 008 runtime single-track cleanup removed the deferred legacy runtime path.
+- P0.1 done: enqueue now persists `QUEUED` status and emits `RUN_QUEUED`; state machine covers `CREATED -> QUEUED -> RUNNING` and approval continuation `AWAITING_APPROVAL -> QUEUED`.
+- P0.2 done: `IAgentUnitOfWork` + `SQLiteAgentUnitOfWork` wrap idempotency reservation, run creation, turn append, queue append, and `RUN_CREATED`/`RUN_QUEUED` in one `BEGIN IMMEDIATE` transaction.
+- P0.3 done: v1 approval returns `202`/`queued` and resumes through the daemon worker; legacy `/api/agent` approval and CLI `/approve` are explicitly unsupported/deprecated instead of synchronously continuing.
+- P0.4 done: cancellation requests enter `CANCELLING`, active worker tasks are cancelled, and the worker finalizes `RUN_CANCELLED`/`CANCELLED` without writing later model/tool result events.
+- P0.5 partial: `.github/workflows/ci.yml` added and local clean-install gates pass. First remote GitHub Actions run still must pass before any Stable claim.
+- Stable follow-up guardrail: `docs/progress/runtime-stability-followup-plan.md` now tracks the non-runtime blockers required before any Stable declaration.
+- Runtime maturity remains: Level 1 Preview, Level 2 Alpha, Level 3 Experimental, Production Ready false.
 
 ### Latest Verification
 
-- `.\.venv\Scripts\python.exe -m pytest tests/ -q` → **774 passed, 5 skipped, 13 warnings**.
-- `cd web && npm test` → **72 passed**.
-- `cd web && npm run build` → green.
-- `python -m pytest tests/eval/ -v` → **4 passed**; eval harness now executes runtime cases and reports observed results.
-- `python -m pytest tests/test_mcp_tools.py tests/test_transport.py -q` → **77 passed**.
+- `.\.venv\Scripts\python.exe -m pytest tests/unit/agent/test_state_machine.py tests/unit/agent/test_unit_of_work.py tests/unit/agent/test_worker.py tests/unit/agent/test_runtime_kernel.py tests/unit/agent/test_inmemory_runtime.py tests/integration/test_daemon_worker.py tests/contract/test_v1_api.py tests/integration/test_agent_sse_stream.py tests/integration/test_event_bus_reconnect.py tests/contract/test_agent_router.py tests/cli/test_cli_session.py tests/contract/test_python_sdk.py tests/eval/test_run_eval.py tests/eval/test_failure_injection.py -q` → **48 passed in 15.28s**.
+- `.\.venv\Scripts\python.exe -m pytest tests/integration/test_daemon_worker.py -q` → **7 passed**; includes active slow-tool and slow-model cancellation proofs.
+- `.\.venv\Scripts\python.exe -m pytest tests/ -q` → **781 passed, 5 skipped, 11 warnings in 58.98s**.
+- Portable Node `v24.17.0` / npm `11.13.0` used for local Web/SDK gates.
+- `cd web && npm ci` → **passed** after syncing `web/package-lock.json`.
+- `cd web && npm test` → **73 passed**.
+- `cd web && npm run build` → **passed**.
+- `cd packages/doge-sdk-typescript && npm test` → **2 passed**.
+- `cd packages/doge-sdk-typescript && npm run build` → **passed**.
+- `actionlint .github/workflows/ci.yml` → **passed**.
+- YAML parse check for `docs/progress/runtime-maturity.yaml` and `.github/workflows/ci.yml` → **passed**.
 
 ### Release Summary
 
@@ -53,7 +61,7 @@
 ### Deferred / Out of Scope
 
 - **ADR-0007 path 1a** auth + non-loopback CORS — remains conditionally deferred.
-- CI/CD pipeline, formal a11y/Core Web Vitals audit, soak test.
+- Formal a11y/Core Web Vitals audit and soak test.
 - Monitoring, alerting, crash reporting, on-call — not applicable to single-operator local product.
 - Rollback / hotfix pipeline documentation — future ops improvement.
 

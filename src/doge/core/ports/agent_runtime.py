@@ -20,6 +20,10 @@ class IResearchAgentRuntime(ABC):
         ...
 
     @abstractmethod
+    async def queue_run(self, run_id: str, reason: str = "queued") -> AgentRun:
+        ...
+
+    @abstractmethod
     def get_run(self, run_id: str) -> AgentRun | None:
         ...
 
@@ -45,4 +49,8 @@ class IResearchAgentRuntime(ABC):
 
     @abstractmethod
     async def cancel_run(self, run_id: str) -> AgentRun:
+        ...
+
+    @abstractmethod
+    async def finalize_cancelled(self, run_id: str) -> AgentRun:
         ...

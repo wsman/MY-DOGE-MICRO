@@ -22,6 +22,12 @@ _STREAM_CLOSE_STATUSES = {
     RunStatus.FAILED,
     RunStatus.CANCELLED,
 }
+_STREAM_CLOSE_EVENTS = {
+    "approval_requested",
+    "artifact_created",
+    "error",
+    "run_cancelled",
+}
 
 
 class ApprovalRequest(BaseModel):
@@ -39,13 +45,13 @@ async def get_run(
     return serialize(run)
 
 
-@router.post("/runs/{run_id}/cancel")
+@router.post("/runs/{run_id}/cancel", status_code=202)
 async def cancel_run(
     run_id: str,
-    runtime: IResearchAgentRuntime = Depends(deps.get_persisted_research_agent_runtime),
+    worker: AsyncioWorker = Depends(deps.get_daemon_worker),
 ):
     try:
-        return serialize(await runtime.cancel_run(run_id))
+        return serialize(await worker.cancel_run(run_id))
     except KeyError:
         raise HTTPException(404, "run not found")
 
@@ -95,7 +101,7 @@ async def stream_run(
                 "data": json.dumps(serialize(event), ensure_ascii=False),
             }
             run = runtime.get_run(run_id)
-            if run and run.status in _STREAM_CLOSE_STATUSES:
+            if run and run.status in _STREAM_CLOSE_STATUSES and event.event_type.value in _STREAM_CLOSE_EVENTS:
                 return
 
     return EventSourceResponse(generator())
@@ -122,7 +128,7 @@ async def get_approvals(
     return {"approvals": serialize(run.approvals)}
 
 
-@router.post("/runs/{run_id}/approvals/{approval_id}")
+@router.post("/runs/{run_id}/approvals/{approval_id}", status_code=202)
 async def resolve_approval(
     run_id: str,
     approval_id: str,

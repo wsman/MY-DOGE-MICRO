@@ -147,6 +147,7 @@ class AgentRun:
         *,
         workflow: str,
         question: str,
+        run_id: Optional[str] = None,
         market: str = "us",
         language: str = "en",
         session_id: Optional[str] = None,
@@ -155,7 +156,7 @@ class AgentRun:
         model_policy: Optional[dict[str, Any]] = None,
     ) -> "AgentRun":
         return cls(
-            run_id=f"run-{uuid4().hex[:12]}",
+            run_id=run_id or f"run-{uuid4().hex[:12]}",
             workflow=workflow,
             question=question,
             session_id=session_id,

@@ -1,22 +1,222 @@
+generated_at: "2026-06-21"
+stable_declaration: forbidden
+non_runtime_followup_plan: docs/progress/runtime-stability-followup-plan.md
+
+maturity_labels:
+  level_1_embedded_cli_session: preview
+  level_2_daemon_gateway: alpha
+  level_3_sdk_platform: experimental
+  production_ready: false
+
+sprint_008_runtime_gates:
+  queued_status_and_event:
+    status: passed
+    evidence:
+      - tests/unit/agent/test_state_machine.py
+      - tests/unit/agent/test_unit_of_work.py
+      - tests/integration/test_daemon_worker.py
+    blocked_by: []
+  atomic_enqueue_unit_of_work:
+    status: passed
+    evidence:
+      - src/doge/core/ports/unit_of_work.py
+      - src/doge/infrastructure/database/sqlite_uow.py
+      - tests/unit/agent/test_unit_of_work.py
+    blocked_by: []
+  approval_continuation_in_worker:
+    status: passed
+    evidence:
+      - src/doge/application/agent/worker.py
+      - src/doge/interfaces/api/routers/v1/runs.py
+      - tests/integration/test_daemon_worker.py
+      - tests/contract/test_agent_router.py
+      - tests/cli/test_cli_session.py
+      - tests/contract/test_python_sdk.py
+      - packages/doge-sdk-typescript/src/__tests__/client.spec.ts
+      - web/src/__tests__/agentApi.spec.ts
+    blocked_by: []
+  collaborative_cancellation:
+    status: passed
+    evidence:
+      - src/doge/application/agent/runtime_kernel.py
+      - src/doge/application/agent/worker.py
+      - src/doge/application/agent/tools.py
+      - tests/integration/test_daemon_worker.py
+    blocked_by: []
+  ci_cd_gate:
+    status: pending
+    evidence:
+      - .github/workflows/ci.yml
+    blocked_by:
+      - first remote GitHub Actions run on push or pull_request must pass
+
 level_1:
-  session_persistence: required
-  multi_turn: required
-  approval_resume: required
-  offline_scripted_model: required
-  http_dependency: forbidden
+  session_persistence:
+    requirement: required
+    status: passed
+    evidence:
+      - tests/cli/test_cli_session.py
+      - tests/integration/test_cli_session_persistence.py
+      - tests/contract/test_v1_api.py
+    blocked_by: []
+  multi_turn:
+    requirement: required
+    status: partial
+    evidence:
+      - tests/cli/test_cli_session.py
+      - src/doge/interfaces/cli/commands/session.py
+    blocked_by:
+      - real CLI attach/file evidence remains out of Sprint 008 scope
+  approval_resume:
+    requirement: required
+    status: partial
+    evidence:
+      - tests/unit/agent/test_inmemory_runtime.py
+      - tests/integration/test_daemon_worker.py
+      - tests/cli/test_cli_session.py
+    blocked_by:
+      - CLI approval continuation is deprecated rather than daemon-routed
+  offline_scripted_model:
+    requirement: required
+    status: passed
+    evidence:
+      - src/doge/infrastructure/agent/scripted_model.py
+      - tests/eval/test_run_eval.py
+    blocked_by: []
+  http_dependency:
+    requirement: forbidden
+    status: passed
+    evidence:
+      - src/doge/infrastructure/agent/scripted_model.py
+      - tests/eval/test_failure_injection.py
+    blocked_by: []
 
 level_2:
-  durable_runs: required
-  background_worker: required
-  live_event_stream: required
-  cancellation: required
-  idempotency: required
-  restart_recovery: required
+  durable_runs:
+    requirement: required
+    status: passed
+    evidence:
+      - src/doge/infrastructure/database/agent_repositories.py
+      - tests/unit/agent/test_repositories.py
+      - tests/unit/agent/test_runtime_kernel.py
+    blocked_by: []
+  background_worker:
+    requirement: required
+    status: passed
+    evidence:
+      - src/doge/application/agent/worker.py
+      - tests/integration/test_daemon_worker.py
+    blocked_by: []
+  live_event_stream:
+    requirement: required
+    status: passed
+    evidence:
+      - src/doge/interfaces/api/routers/v1/runs.py
+      - tests/integration/test_agent_sse_stream.py
+      - tests/integration/test_event_bus_reconnect.py
+    blocked_by: []
+  cancellation:
+    requirement: required
+    status: passed
+    evidence:
+      - tests/integration/test_daemon_worker.py
+    blocked_by: []
+  idempotency:
+    requirement: required
+    status: passed
+    evidence:
+      - tests/unit/agent/test_unit_of_work.py
+      - tests/contract/test_v1_api.py
+    blocked_by: []
+  restart_recovery:
+    requirement: required
+    status: passed
+    evidence:
+      - tests/integration/test_daemon_worker.py
+    blocked_by: []
 
 level_3:
-  python_sdk: required
-  typescript_sdk: required
-  sdk_contract_tests: required
-  web_uses_sdk: required
-  custom_tool_registration: required
-  kimi_agent_sdk_adapter: optional
+  python_sdk:
+    requirement: required
+    status: passed
+    evidence:
+      - packages/doge-sdk-python/doge_sdk/client.py
+      - tests/contract/test_python_sdk.py
+    blocked_by: []
+  typescript_sdk:
+    requirement: required
+    status: passed
+    evidence:
+      - packages/doge-sdk-typescript/src/client.ts
+      - packages/doge-sdk-typescript/src/__tests__/client.spec.ts
+    blocked_by: []
+  sdk_contract_tests:
+    requirement: required
+    status: passed
+    evidence:
+      - tests/contract/test_python_sdk.py
+      - packages/doge-sdk-typescript/src/__tests__/client.spec.ts
+    blocked_by: []
+  web_uses_sdk:
+    requirement: required
+    status: passed
+    evidence:
+      - web/src/api/agent.ts
+      - web/src/__tests__/agentApi.spec.ts
+      - web/src/__tests__/agentStore.spec.ts
+    blocked_by: []
+  custom_tool_registration:
+    requirement: required
+    status: passed
+    evidence:
+      - src/doge/application/agent/tools.py
+      - tests/unit/agent/test_tool_registry.py
+      - tests/integration/test_daemon_worker.py
+    blocked_by: []
+  kimi_agent_sdk_adapter:
+    requirement: optional
+    status: partial
+    evidence:
+      - src/doge/infrastructure/llm/kimi_client.py
+      - tests/unit/agent/test_backends.py
+    blocked_by:
+      - live Kimi API verification remains environment-dependent
+
+local_verification:
+  python_full:
+    command: ".\\.venv\\Scripts\\python.exe -m pytest tests/ -q"
+    result: "781 passed, 5 skipped, 11 warnings in 58.98s"
+  python_sprint_008_target:
+    command: ".\\.venv\\Scripts\\python.exe -m pytest tests/unit/agent/test_state_machine.py tests/unit/agent/test_unit_of_work.py tests/unit/agent/test_worker.py tests/unit/agent/test_runtime_kernel.py tests/unit/agent/test_inmemory_runtime.py tests/integration/test_daemon_worker.py tests/contract/test_v1_api.py tests/integration/test_agent_sse_stream.py tests/integration/test_event_bus_reconnect.py tests/contract/test_agent_router.py tests/cli/test_cli_session.py tests/contract/test_python_sdk.py tests/eval/test_run_eval.py tests/eval/test_failure_injection.py -q"
+    result: "48 passed in 15.28s"
+  web_and_typescript:
+    node_version: "v24.17.0"
+    npm_version: "11.13.0"
+    commands:
+      - "cd web && npm ci"
+      - "cd web && npm test"
+      - "cd web && npm run build"
+      - "cd packages/doge-sdk-typescript && npm test"
+      - "cd packages/doge-sdk-typescript && npm run build"
+    result:
+      web_clean_install: passed
+      web_tests: "73 passed"
+      web_build: passed
+      typescript_sdk_tests: "2 passed"
+      typescript_sdk_build: passed
+  workflow_and_yaml:
+    commands:
+      - "actionlint .github/workflows/ci.yml"
+      - "YAML.parse docs/progress/runtime-maturity.yaml"
+      - "YAML.parse .github/workflows/ci.yml"
+    result:
+      actionlint: passed
+      runtime_maturity_yaml_parse: passed
+      ci_workflow_yaml_parse: passed
+
+remaining_stability_blockers:
+  - CI workflow must run green remotely.
+  - Real CLI /attach file handling and evidence extraction remain out of Sprint 008.
+  - Web Research Agent still uses polling after approval; SSE migration remains open.
+  - SDK auto-reconnect and packaging/distribution hardening remain open.
+  - Formal accessibility/Core Web Vitals, soak testing, and operational monitoring remain open.

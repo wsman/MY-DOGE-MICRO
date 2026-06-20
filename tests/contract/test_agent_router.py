@@ -10,7 +10,7 @@ def _client_with_runtime(runtime):
     return TestClient(app)
 
 
-def test_agent_run_lifecycle_and_approval():
+def test_legacy_agent_approval_does_not_synchronously_complete():
     runtime = build_research_agent_runtime()
     client = _client_with_runtime(runtime)
     try:
@@ -34,11 +34,11 @@ def test_agent_run_lifecycle_and_approval():
             f"/api/agent/runs/{run_id}/approvals/{approval_id}",
             json={"approved": True},
         )
-        assert approved.status_code == 200
-        assert approved.json()["status"] == "completed"
+        assert approved.status_code == 409
+        assert "legacy approval continuation is unsupported" in approved.json()["error"]["message"]
 
         artifacts = client.get(f"/api/agent/runs/{run_id}/artifacts")
-        assert artifacts.json()["artifacts"][0]["kind"] == "investment_memo"
+        assert artifacts.json()["artifacts"] == []
     finally:
         app.dependency_overrides.clear()
 

@@ -22,6 +22,9 @@ class PersistedResearchAgentRuntime(IResearchAgentRuntime):
     async def run_to_pause_or_completion(self, run_id: str) -> AgentRun:
         return await self._kernel.run_to_pause_or_completion(run_id)
 
+    async def queue_run(self, run_id: str, reason: str = "queued") -> AgentRun:
+        return await self._kernel.queue_run(run_id, reason)
+
     def get_run(self, run_id: str) -> AgentRun | None:
         return self._kernel.get_run(run_id)
 
@@ -44,3 +47,6 @@ class PersistedResearchAgentRuntime(IResearchAgentRuntime):
 
     async def cancel_run(self, run_id: str) -> AgentRun:
         return await self._kernel.cancel_run(run_id)
+
+    async def finalize_cancelled(self, run_id: str) -> AgentRun:
+        return await self._kernel.finalize_cancelled(run_id)

@@ -40,3 +40,16 @@ def test_python_sdk_reconnect_with_last_event_id():
 
     assert seen_header["last"] == "1"
     assert events[0].type == "tool_call"
+
+
+def test_python_sdk_approve_returns_accepted_queued_run():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert request.url.path == "/v1/runs/run-test/approvals/appr-1"
+        return httpx.Response(202, json={"run_id": "run-test", "status": "queued"})
+
+    client = DogeClient(base_url="http://testserver", transport=httpx.MockTransport(handler))
+
+    run = client.runs.approve("run-test", "appr-1")
+
+    assert run["status"] == "queued"

@@ -1,9 +1,11 @@
 import subprocess
 import sys
 import os
+from types import SimpleNamespace
 
 from doge.config import reset_settings
 from doge.interfaces.cli.main import main
+from doge.interfaces.cli.commands import session as session_command
 
 
 def test_cli_session_creates_new_session(tmp_path, monkeypatch, capsys):
@@ -52,3 +54,27 @@ def test_cli_session_persists_across_processes(tmp_path):
     )
 
     assert f"session_id={session_id}" in resume.stdout
+
+
+def test_cli_approval_does_not_synchronously_complete(monkeypatch, capsys):
+    class FakeExecuteRun:
+        async def execute(self, *args, **kwargs):
+            return SimpleNamespace(
+                run_id="run-cli",
+                status=SimpleNamespace(value="awaiting_approval"),
+            )
+
+    lines = iter(["Analyze AAPL", "/approve appr-1", "/exit"])
+    monkeypatch.setattr("builtins.input", lambda _prompt="": next(lines))
+    monkeypatch.setattr(session_command.composition, "build_execute_run_use_case", lambda: FakeExecuteRun())
+    monkeypatch.setattr(
+        session_command.composition,
+        "build_persisted_research_agent_runtime",
+        lambda: (_ for _ in ()).throw(AssertionError("runtime continuation must not run")),
+    )
+
+    session_command._interactive_loop("ses-cli", "us")
+
+    out = capsys.readouterr().out
+    assert "run_id=run-cli status=awaiting_approval" in out
+    assert "approval continuation is unsupported in the CLI" in out

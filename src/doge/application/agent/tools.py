@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from dataclasses import dataclass
 from typing import Any, Callable
@@ -51,6 +52,22 @@ class ToolRegistry:
             return self._tools[name](**kwargs)
         except Exception as exc:  # noqa: BLE001 - tool failures become trace data
             return ToolResult(name=name, data={}, ok=False, error=str(exc))
+
+    async def execute_async(
+        self,
+        name: str,
+        arguments: str | dict[str, Any] | None = None,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> ToolResult:
+        """Execute a synchronous tool through a cancellable async boundary."""
+        call = asyncio.to_thread(self.execute, name, arguments)
+        if timeout_seconds is None:
+            return await call
+        try:
+            return await asyncio.wait_for(call, timeout=timeout_seconds)
+        except TimeoutError:
+            return ToolResult(name=name, data={}, ok=False, error="tool execution timed out")
 
 
 def _schema(name: str, description: str, properties: dict[str, Any], required: list[str] | None = None) -> dict[str, Any]:

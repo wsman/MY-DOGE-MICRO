@@ -117,11 +117,12 @@ async def get_approvals(
 async def resolve_approval(
     run_id: str,
     approval_id: str,
-    body: ApprovalRequest,
+    _body: ApprovalRequest,
     runtime: IResearchAgentRuntime = Depends(deps.get_research_agent_runtime),
 ):
-    try:
-        run = await runtime.resolve_approval(run_id, approval_id, body.approved)
-    except KeyError as exc:
-        raise HTTPException(404, str(exc))
-    return _serialize(run)
+    if runtime.get_run(run_id) is None:
+        raise HTTPException(404, "run not found")
+    raise HTTPException(
+        409,
+        "legacy approval continuation is unsupported; use the /v1 daemon API",
+    )

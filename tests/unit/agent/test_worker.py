@@ -1,6 +1,7 @@
 import pytest
 
 from doge.application.agent.worker import AsyncioWorker
+from doge.core.domain.agent_models import RunStatus
 
 
 class FakeRunQueue:
@@ -36,11 +37,25 @@ class FakeIdempotencyStore:
 
 
 class FakeRuntime:
-    pass
+    def __init__(self):
+        self.runs = {}
+
+    def get_run(self, run_id: str):
+        return self.runs.get(run_id)
 
 
 class FakeSessions:
     pass
+
+
+class FakeUnitOfWork:
+    def __init__(self, run_id: str):
+        self.run_id = run_id
+        self.calls = []
+
+    async def enqueue_run_and_turn(self, **kwargs):
+        self.calls.append(kwargs)
+        return self.run_id
 
 
 def test_worker_recover_pending_enqueues_stranded_runs():
@@ -55,11 +70,22 @@ def test_worker_recover_pending_enqueues_stranded_runs():
 
 
 @pytest.mark.asyncio
-async def test_worker_idempotency_returns_existing_run_id():
-    idempotency = FakeIdempotencyStore()
-    idempotency.set("key-1", "ses-1", "run-existing")
-    worker = AsyncioWorker(FakeRuntime(), FakeSessions(), FakeRunQueue(), idempotency)
+async def test_worker_delegates_enqueue_to_unit_of_work():
+    runtime = FakeRuntime()
+    runtime.runs["run-existing"] = type("Run", (), {"status": RunStatus.COMPLETED})()
+    unit_of_work = FakeUnitOfWork("run-existing")
+    worker = AsyncioWorker(
+        runtime,
+        FakeSessions(),
+        FakeRunQueue(),
+        FakeIdempotencyStore(),
+        unit_of_work,
+    )
 
     run_id = await worker.enqueue_run("ses-1", "Analyze", idempotency_key="key-1")
 
     assert run_id == "run-existing"
+    assert unit_of_work.calls[0]["session_id"] == "ses-1"
+    assert unit_of_work.calls[0]["message"] == "Analyze"
+    assert unit_of_work.calls[0]["idempotency_key"] == "key-1"
+    await worker.stop()

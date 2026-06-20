@@ -23,6 +23,7 @@ _event_bus = None
 _worker = None
 _run_queue = None
 _idempotency_store = None
+_agent_unit_of_work = None
 
 
 def get_settings_dep() -> Settings:
@@ -114,6 +115,14 @@ def get_idempotency_store():
     return _idempotency_store
 
 
+def get_agent_unit_of_work():
+    """Provide the transactional unit of work for daemon enqueue."""
+    global _agent_unit_of_work
+    if _agent_unit_of_work is None:
+        _agent_unit_of_work = app_composition.build_agent_unit_of_work(event_publisher=get_event_bus())
+    return _agent_unit_of_work
+
+
 def get_daemon_worker():
     """Provide the singleton daemon worker."""
     global _worker
@@ -125,6 +134,7 @@ def get_daemon_worker():
             get_agent_session_repository(),
             get_run_queue(),
             get_idempotency_store(),
+            get_agent_unit_of_work(),
         )
     return _worker
 

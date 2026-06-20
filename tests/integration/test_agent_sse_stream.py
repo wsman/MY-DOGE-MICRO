@@ -18,6 +18,7 @@ def _reset_agent_deps(monkeypatch, tmp_path):
     deps._worker = None
     deps._run_queue = None
     deps._idempotency_store = None
+    deps._agent_unit_of_work = None
 
 
 def _collect_data_events(response):

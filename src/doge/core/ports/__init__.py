@@ -27,6 +27,7 @@ from doge.core.ports.repository import (
     IStockRepository,
     StorageWriteError,
 )
+from doge.core.ports.unit_of_work import IAgentUnitOfWork
 from doge.core.ports.worker_queue import IRunQueue
 
 __all__ = [
@@ -34,6 +35,7 @@ __all__ = [
     "AgentResponse",
     "IAgentBackend",
     "IAgentModel",
+    "IAgentUnitOfWork",
     "IApprovalRepository",
     "IArtifactRepository",
     "IDocumentRepository",

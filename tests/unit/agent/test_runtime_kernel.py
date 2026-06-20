@@ -86,8 +86,10 @@ async def test_kernel_resolve_approval_resumes_loop(tmp_path):
     paused = await kernel.run_to_pause_or_completion(run.run_id)
     approval_id = paused.approvals[0].approval_id
 
-    completed = await kernel.resolve_approval(paused.run_id, approval_id, True)
+    queued = await kernel.resolve_approval(paused.run_id, approval_id, True)
+    completed = await kernel.run_to_pause_or_completion(paused.run_id)
 
+    assert queued.status == RunStatus.QUEUED
     assert completed.status == RunStatus.COMPLETED
     assert completed.artifacts
 
@@ -97,9 +99,10 @@ async def test_kernel_cancel_run_transitions_state_machine(tmp_path):
     kernel = _kernel(tmp_path)
     run = await kernel.create_run({"question": "Analyze AAPL"})
 
-    cancelled = await kernel.cancel_run(run.run_id)
+    cancelling = await kernel.cancel_run(run.run_id)
 
-    assert cancelled.status == RunStatus.CANCELLED
+    assert cancelling.status == RunStatus.CANCELLING
+    assert cancelling.cancel_requested_at is not None
 
 
 @pytest.mark.asyncio
@@ -125,7 +128,8 @@ async def test_kernel_cancel_completed_run_is_idempotent(tmp_path):
     kernel = _kernel(tmp_path)
     run = await kernel.create_run({"question": "Analyze AAPL"})
     paused = await kernel.run_to_pause_or_completion(run.run_id)
-    completed = await kernel.resolve_approval(paused.run_id, paused.approvals[0].approval_id, True)
+    await kernel.resolve_approval(paused.run_id, paused.approvals[0].approval_id, True)
+    completed = await kernel.run_to_pause_or_completion(paused.run_id)
     event_count = len(completed.events)
 
     cancelled = await kernel.cancel_run(completed.run_id)
@@ -153,7 +157,8 @@ async def test_kernel_event_sequence_is_contiguous_and_ordered(tmp_path):
     kernel = _kernel(tmp_path)
     run = await kernel.create_run({"question": "Analyze AAPL"})
     paused = await kernel.run_to_pause_or_completion(run.run_id)
-    completed = await kernel.resolve_approval(paused.run_id, paused.approvals[0].approval_id, True)
+    await kernel.resolve_approval(paused.run_id, paused.approvals[0].approval_id, True)
+    completed = await kernel.run_to_pause_or_completion(paused.run_id)
 
     events = completed.events
     event_types = [event.event_type for event in events]
@@ -161,7 +166,8 @@ async def test_kernel_event_sequence_is_contiguous_and_ordered(tmp_path):
     assert [event.sequence for event in events] == list(range(1, len(events) + 1))
     assert event_types[0] == EventType.RUN_CREATED
     assert event_types.index(EventType.APPROVAL_REQUESTED) < event_types.index(EventType.APPROVAL_RESOLVED)
-    assert event_types.index(EventType.APPROVAL_RESOLVED) < event_types.index(EventType.ARTIFACT_CREATED)
+    assert event_types.index(EventType.APPROVAL_RESOLVED) < event_types.index(EventType.RUN_QUEUED)
+    assert event_types.index(EventType.RUN_QUEUED) < event_types.index(EventType.ARTIFACT_CREATED)
     assert event_types[-2:] == [EventType.MODEL_RESPONSE, EventType.ARTIFACT_CREATED]
     assert event_types.count(EventType.MODEL_RESPONSE) > 1
     assert event_types.count(EventType.TOOL_CALL) > 1
@@ -177,8 +183,10 @@ async def test_kernel_artifact_only_on_completed(tmp_path):
     assert paused.status == RunStatus.AWAITING_APPROVAL
     assert paused.artifacts == []
 
-    completed = await kernel.resolve_approval(paused.run_id, paused.approvals[0].approval_id, True)
+    queued = await kernel.resolve_approval(paused.run_id, paused.approvals[0].approval_id, True)
+    completed = await kernel.run_to_pause_or_completion(paused.run_id)
 
+    assert queued.status == RunStatus.QUEUED
     assert completed.status == RunStatus.COMPLETED
     assert len(completed.artifacts) == 1
     artifact = completed.artifacts[0]

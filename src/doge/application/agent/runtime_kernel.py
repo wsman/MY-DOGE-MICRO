@@ -87,6 +87,16 @@ class RuntimeKernel:
         await self._fail(run, "max tool rounds exceeded")
         return self._hydrate(run_id)
 
+    async def queue_run(self, run_id: str, reason: str = "queued") -> AgentRun:
+        run = self._require_run(run_id)
+        if run.status == RunStatus.QUEUED:
+            return run
+        if run.status in {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED}:
+            return run
+        self._set_status(run, RunStatus.QUEUED)
+        await self._add_event(run, EventType.RUN_QUEUED, {"reason": reason})
+        return self._hydrate(run_id)
+
     async def step(self, run_id: str) -> AgentRun:
         run = self._require_run(run_id)
         if run.status in {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED}:
@@ -106,6 +116,9 @@ class RuntimeKernel:
                 stream=bool(run.model_policy.get("stream", False)),
             )
         )
+        run = self._require_run(run_id)
+        if run.status == RunStatus.CANCELLING:
+            return await self._mark_cancelled(run)
         if response is None:
             await self._fail(run, "model unavailable")
             return self._hydrate(run.run_id)
@@ -118,13 +131,22 @@ class RuntimeKernel:
 
         if response.message.tool_calls:
             for call in response.message.tool_calls:
+                run = self._require_run(run_id)
                 if run.status == RunStatus.CANCELLING:
                     return await self._mark_cancelled(run)
                 function = call.get("function", {})
                 name = function.get("name", "")
                 arguments = function.get("arguments", "{}")
                 await self._add_event(run, EventType.TOOL_CALL, {"tool_call": call})
-                result = self._tools.execute(name, arguments)
+                timeout = run.model_policy.get("tool_timeout_seconds")
+                result = await self._tools.execute_async(
+                    name,
+                    arguments,
+                    timeout_seconds=float(timeout) if timeout else None,
+                )
+                run = self._require_run(run_id)
+                if run.status == RunStatus.CANCELLING:
+                    return await self._mark_cancelled(run)
                 result_payload = json.loads(result.to_json())
                 await self._add_event(run, EventType.TOOL_RESULT, {
                     "tool_call_id": call.get("id"),
@@ -178,16 +200,25 @@ class RuntimeKernel:
         if not approved:
             self._set_status(run, RunStatus.FAILED)
             return self._hydrate(run_id)
-        self._set_status(run, RunStatus.RUNNING)
-        return await self.run_to_pause_or_completion(run_id)
+        self._set_status(run, RunStatus.QUEUED)
+        await self._add_event(run, EventType.RUN_QUEUED, {"reason": "approval_resolved"})
+        return self._hydrate(run_id)
 
     async def cancel_run(self, run_id: str) -> AgentRun:
         run = self._require_run(run_id)
         if run.status in {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED}:
             return run
-        self._set_status(run, RunStatus.CANCELLING)
+        if run.status != RunStatus.CANCELLING:
+            self._set_status(run, RunStatus.CANCELLING)
+            run = self._require_run(run_id)
         run.cancel_requested_at = utc_now()
         self._runs.save(run)
+        return self._hydrate(run_id)
+
+    async def finalize_cancelled(self, run_id: str) -> AgentRun:
+        run = self._require_run(run_id)
+        if run.status in {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED}:
+            return run
         return await self._mark_cancelled(run)
 
     def get_run(self, run_id: str) -> AgentRun | None:

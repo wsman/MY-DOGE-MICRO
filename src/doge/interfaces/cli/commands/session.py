@@ -95,11 +95,7 @@ def _interactive_loop(session_id: str, market: str) -> None:
             if last_run_id is None:
                 print("no active run")
                 continue
-            approval_id = line.split(maxsplit=1)[1]
-            approved = line.startswith("/approve ")
-            runtime = composition.build_persisted_research_agent_runtime()
-            run = asyncio.run(runtime.resolve_approval(last_run_id, approval_id, approved))
-            print(f"run_id={run.run_id} status={run.status.value}")
+            print("approval continuation is unsupported in the CLI; use the /v1 daemon API")
             continue
         if line == "/save":
             print(f"session_id={session_id}")

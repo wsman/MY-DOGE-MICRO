@@ -65,7 +65,8 @@ export async function fetchAgentRun(runId: string): Promise<AgentRun> {
 }
 
 export async function approveAgentRun(runId: string, approvalId: string, approved: boolean): Promise<AgentRun> {
-  return await dogeClient.runs.approve(runId, approvalId, approved) as unknown as AgentRun
+  const run = await dogeClient.runs.approve(runId, approvalId, approved) as unknown as AgentRun
+  return isSettledForDisplay(run.status) ? run : await pollAgentRun(runId)
 }
 
 async function pollAgentRun(runId: string): Promise<AgentRun> {
@@ -76,4 +77,8 @@ async function pollAgentRun(runId: string): Promise<AgentRun> {
     await new Promise(resolve => setTimeout(resolve, 150))
   }
   return await fetchAgentRun(runId)
+}
+
+function isSettledForDisplay(status: string): boolean {
+  return ['awaiting_approval', 'completed', 'failed', 'cancelled'].includes(status)
 }

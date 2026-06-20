@@ -42,9 +42,11 @@ async def test_inmemory_runtime_completes_full_approval_flow():
     run = await runtime.create_run({"question": "Analyze AAPL", "model_policy": {"max_tool_rounds": 8}})
 
     paused = await runtime.run_to_pause_or_completion(run.run_id)
-    completed = await runtime.resolve_approval(paused.run_id, paused.approvals[0].approval_id, True)
+    queued = await runtime.resolve_approval(paused.run_id, paused.approvals[0].approval_id, True)
+    completed = await runtime.run_to_pause_or_completion(paused.run_id)
 
     assert paused.status == RunStatus.AWAITING_APPROVAL
+    assert queued.status == RunStatus.QUEUED
     assert completed.status == RunStatus.COMPLETED
     assert completed.artifacts
     assert [event.sequence for event in completed.events] == list(range(1, len(completed.events) + 1))
@@ -62,7 +64,8 @@ async def test_inmemory_repositories_match_sqlite_semantics(tmp_path):
     async def run_flow(runtime):
         run = await runtime.create_run({"question": "Analyze AAPL", "model_policy": {"max_tool_rounds": 8}})
         paused = await runtime.run_to_pause_or_completion(run.run_id)
-        return await runtime.resolve_approval(paused.run_id, paused.approvals[0].approval_id, True)
+        await runtime.resolve_approval(paused.run_id, paused.approvals[0].approval_id, True)
+        return await runtime.run_to_pause_or_completion(paused.run_id)
 
     mem_run = await run_flow(in_memory)
     sql_run = await run_flow(persisted)
@@ -78,7 +81,8 @@ async def test_adapter_stream_events_matches_list_events():
     runtime = InMemoryResearchAgentRuntime(model=ScriptedAgentModel(), tool_registry=_registry())
     run = await runtime.create_run({"question": "Analyze AAPL", "model_policy": {"max_tool_rounds": 8}})
     paused = await runtime.run_to_pause_or_completion(run.run_id)
-    completed = await runtime.resolve_approval(paused.run_id, paused.approvals[0].approval_id, True)
+    await runtime.resolve_approval(paused.run_id, paused.approvals[0].approval_id, True)
+    completed = await runtime.run_to_pause_or_completion(paused.run_id)
 
     streamed = [event async for event in runtime.stream_events(completed.run_id)]
 
