@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from doge.application.agent.worker import AsyncioWorker
+from doge.core.ports.agent_repository import ISessionRepository
 from doge.interfaces.api import deps
 
 router = APIRouter()
@@ -16,7 +16,9 @@ async def health():
 
 
 @router.get("/health/ready")
-async def ready(worker: AsyncioWorker = Depends(deps.get_daemon_worker)):
-    if not worker.is_ready():
+async def ready(sessions: ISessionRepository = Depends(deps.get_agent_session_repository)):
+    try:
+        sessions.list_recent(limit=1)
+    except Exception:
         raise HTTPException(503, "not ready")
     return {"status": "ready"}

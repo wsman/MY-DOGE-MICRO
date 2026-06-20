@@ -21,6 +21,8 @@ _research_agent_runtime = None
 _persisted_research_agent_runtime = None
 _event_bus = None
 _worker = None
+_run_queue = None
+_idempotency_store = None
 
 
 def get_settings_dep() -> Settings:
@@ -96,6 +98,22 @@ def get_agent_session_repository():
     return app_composition.build_agent_repositories()["sessions"]
 
 
+def get_run_queue():
+    """Provide the durable agent run queue."""
+    global _run_queue
+    if _run_queue is None:
+        _run_queue = app_composition.build_agent_run_queue()
+    return _run_queue
+
+
+def get_idempotency_store():
+    """Provide the durable idempotency-key store."""
+    global _idempotency_store
+    if _idempotency_store is None:
+        _idempotency_store = app_composition.build_agent_idempotency_store()
+    return _idempotency_store
+
+
 def get_daemon_worker():
     """Provide the singleton daemon worker."""
     global _worker
@@ -105,6 +123,8 @@ def get_daemon_worker():
         _worker = AsyncioWorker(
             get_persisted_research_agent_runtime(),
             get_agent_session_repository(),
+            get_run_queue(),
+            get_idempotency_store(),
         )
     return _worker
 

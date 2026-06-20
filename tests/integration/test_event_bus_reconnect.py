@@ -13,6 +13,8 @@ def test_v1_stream_supports_last_event_id_reconnect(tmp_path, monkeypatch):
     deps._persisted_research_agent_runtime = None
     deps._event_bus = None
     deps._worker = None
+    deps._run_queue = None
+    deps._idempotency_store = None
     client = TestClient(app)
     session = client.post("/v1/sessions", json={"title": "Stream"}).json()
     run_id = client.post(f"/v1/sessions/{session['session_id']}/turns", json={"message": "Analyze"}).json()["run_id"]

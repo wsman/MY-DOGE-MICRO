@@ -4,71 +4,23 @@ from __future__ import annotations
 
 import asyncio
 import json
+import warnings
 from typing import Any, AsyncIterator
 
 from doge.application.agent.model_response_assembler import ModelResponseAssembler
 from doge.application.agent.tools import ToolRegistry, build_default_tool_registry
 from doge.core.domain.agent_models import AgentArtifact, AgentEvent, AgentRun, EventType, RunStatus, utc_now
-from doge.core.ports.agent_model import AgentMessage, AgentResponse, IAgentModel
+from doge.core.ports.agent_model import AgentMessage, IAgentModel
 from doge.core.ports.agent_runtime import IResearchAgentRuntime
+from doge.infrastructure.agent.scripted_model import ScriptedAgentModel
 
 
-class ScriptedAgentModel(IAgentModel):
-    """Deterministic model used when no live Kimi key is available."""
-
-    async def chat(
-        self,
-        messages: list[AgentMessage],
-        *,
-        tools: list[dict[str, Any]] | None = None,
-        tool_choice: str | None = None,
-        max_tokens: int = 16384,
-        stream: bool = True,
-    ) -> AsyncIterator[AgentResponse]:
-        tool_results = [message for message in messages if message.role == "tool"]
-        turn = len(tool_results)
-        if turn == 0:
-            yield AgentResponse(message=AgentMessage(
-                role="assistant",
-                content="",
-                reasoning_content="Need company facts before drafting.",
-                tool_calls=[{
-                    "id": "call-stock-overview",
-                    "type": "function",
-                    "function": {"name": "stock_overview", "arguments": "{\"ticker\":\"AAPL\",\"market\":\"us\"}"},
-                }],
-            ))
-        elif turn == 1:
-            yield AgentResponse(message=AgentMessage(
-                role="assistant",
-                content="",
-                reasoning_content="Need portfolio concentration and exposure.",
-                tool_calls=[{
-                    "id": "call-portfolio",
-                    "type": "function",
-                    "function": {"name": "get_portfolio_exposure", "arguments": "{\"portfolio_id\":\"portfolio-demo\"}"},
-                }],
-            ))
-        elif turn == 2:
-            yield AgentResponse(message=AgentMessage(
-                role="assistant",
-                content="",
-                reasoning_content="The memo contains high-risk publication language; request approval.",
-                tool_calls=[{
-                    "id": "call-approval",
-                    "type": "function",
-                    "function": {
-                        "name": "request_approval",
-                        "arguments": "{\"action\":\"publish investment committee memo\",\"risk_level\":\"high\"}",
-                    },
-                }],
-            ))
-        else:
-            yield AgentResponse(
-                message=AgentMessage(role="assistant", content=_default_memo()),
-                finish_reason="stop",
-                usage={"total_tokens": 0},
-            )
+warnings.warn(
+    "doge.application.agent.research_runtime.ResearchAgentRuntime is deprecated; "
+    "use RuntimeKernel-backed infrastructure runtimes instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 class ResearchAgentRuntime(IResearchAgentRuntime):
@@ -79,6 +31,12 @@ class ResearchAgentRuntime(IResearchAgentRuntime):
         model: IAgentModel | None = None,
         tool_registry: ToolRegistry | None = None,
     ) -> None:
+        warnings.warn(
+            "ResearchAgentRuntime is deprecated; use build_research_agent_runtime() "
+            "or PersistedResearchAgentRuntime instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._model = model or ScriptedAgentModel()
         self._tools = tool_registry or build_default_tool_registry()
         self._runs: dict[str, AgentRun] = {}
@@ -172,9 +130,9 @@ class ResearchAgentRuntime(IResearchAgentRuntime):
             title="Investment Committee Memo",
             content=content,
             data={
-                "numerical_consistency": 1.0,
-                "citation_precision": 0.9,
-                "tool_execution_success": 1.0,
+                "numerical_consistency": None,
+                "citation_precision": None,
+                "tool_execution_success": _tool_execution_success(run.events),
                 "usage": response.usage or {},
             },
         )
@@ -283,15 +241,27 @@ def _default_memo() -> str:
     return """# Investment Committee Memo
 
 ## Executive Summary
-The demo portfolio has concentrated technology exposure and requires committee review before publication.
+The requested research memo requires source-backed validation and human approval before publication.
 
 ## Findings
 - Earnings-quality claims were routed through deterministic validation tools.
-- Portfolio exposure highlights a 45% technology allocation and 63% top-name concentration.
+- Portfolio exposure should be reported only when backed by configured holdings data.
 - Any high-risk publication action is gated by human approval.
 
 ## IC Questions
-1. Should technology concentration be reduced before the next rebalance?
-2. Which reported figures require source-page confirmation before publication?
-3. What downside scenario should be approved for client-facing material?
+1. Which reported figures require source-page confirmation before publication?
+2. What downside scenario should be approved for client-facing material?
+3. What unresolved data gaps should remain marked as unavailable?
 """
+
+
+def _tool_execution_success(events: list[AgentEvent]) -> float | None:
+    results = [
+        event.payload.get("result", {})
+        for event in events
+        if event.event_type == EventType.TOOL_RESULT
+    ]
+    if not results:
+        return None
+    ok_count = sum(1 for result in results if result.get("ok") is True)
+    return ok_count / len(results)

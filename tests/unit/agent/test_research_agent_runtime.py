@@ -1,12 +1,14 @@
 import pytest
 
-from doge.application.agent.research_runtime import ResearchAgentRuntime, ScriptedAgentModel
+from doge.application.agent.research_runtime import ResearchAgentRuntime
 from doge.core.domain.agent_models import EventType, RunStatus
+from doge.infrastructure.agent.scripted_model import ScriptedAgentModel
 
 
 @pytest.mark.asyncio
 async def test_scripted_runtime_pauses_for_approval_then_completes():
-    runtime = ResearchAgentRuntime(model=ScriptedAgentModel())
+    with pytest.warns(DeprecationWarning):
+        runtime = ResearchAgentRuntime(model=ScriptedAgentModel())
     run = await runtime.create_run({
         "workflow": "investment_research",
         "question": "Analyze earnings quality and portfolio risk.",
@@ -29,7 +31,8 @@ async def test_scripted_runtime_pauses_for_approval_then_completes():
 
 
 def test_missing_run_returns_none_and_empty_lookup_errors():
-    runtime = ResearchAgentRuntime(model=ScriptedAgentModel())
+    with pytest.warns(DeprecationWarning):
+        runtime = ResearchAgentRuntime(model=ScriptedAgentModel())
 
     assert runtime.get_run("missing") is None
     with pytest.raises(KeyError):

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Any, AsyncIterator
 
-from doge.application.agent.research_runtime import ScriptedAgentModel
 from doge.core.ports.agent_backend import IAgentBackend
 from doge.core.ports.agent_model import AgentMessage, AgentResponse
+from doge.infrastructure.agent.scripted_model import ScriptedAgentModel
 from doge.infrastructure.llm.kimi_client import KimiAgentModel
 
 

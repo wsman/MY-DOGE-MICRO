@@ -1,5 +1,5 @@
 import time
-import sqlite3
+import asyncio
 
 import pytest
 from fastapi.testclient import TestClient
@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from doge.config import reset_settings
 from doge.application.agent.worker import AsyncioWorker
 from doge.application.composition import build_persisted_research_agent_runtime
-from doge.infrastructure.database.agent_repositories import SQLiteSessionRepository
+from doge.infrastructure.database.agent_repositories import SQLiteIdempotencyStore, SQLiteRunQueue, SQLiteSessionRepository
 from doge.interfaces.api import deps
 from doge.interfaces.api.main import app
 
@@ -18,6 +18,8 @@ def _reset(monkeypatch, tmp_path):
     deps._persisted_research_agent_runtime = None
     deps._event_bus = None
     deps._worker = None
+    deps._run_queue = None
+    deps._idempotency_store = None
 
 
 def test_daemon_worker_processes_queued_runs(tmp_path, monkeypatch):
@@ -66,15 +68,35 @@ async def test_worker_recovers_queued_runs_from_sqlite(tmp_path, monkeypatch):
     reset_settings()
     runtime = build_persisted_research_agent_runtime(db_path=db)
     sessions = SQLiteSessionRepository(db)
-    worker = AsyncioWorker(runtime, sessions, db_path=db)
-    with sqlite3.connect(str(db)) as conn:
-        conn.execute(
-            "INSERT INTO run_queue(run_id, status, created_at, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-            ("run-recover", "queued"),
-        )
-        conn.commit()
+    run_queue = SQLiteRunQueue(db)
+    worker = AsyncioWorker(runtime, sessions, run_queue, SQLiteIdempotencyStore(db))
+    run_queue.enqueue("run-recover")
 
-    worker.start()
+    worker.recover()
 
     assert worker._queue.qsize() == 1
     await worker.stop()
+
+
+def test_worker_recovery_on_startup_without_new_tasks(tmp_path, monkeypatch):
+    _reset(monkeypatch, tmp_path)
+    db = tmp_path / "agent_state.db"
+    runtime = build_persisted_research_agent_runtime(db_path=db)
+    run = asyncio.run(runtime.create_run({
+        "workflow": "investment_research",
+        "question": "Analyze stranded run.",
+        "model_policy": {"max_tool_rounds": 8},
+    }))
+    SQLiteRunQueue(db).enqueue(run.run_id)
+
+    with TestClient(app) as client:
+        deadline = time.time() + 3
+        while time.time() < deadline:
+            loaded = client.get(f"/v1/runs/{run.run_id}").json()
+            if loaded["events"] and loaded["status"] == "awaiting_approval":
+                break
+            time.sleep(0.05)
+        else:
+            raise AssertionError("stranded run was not recovered")
+
+    assert loaded["status"] == "awaiting_approval"

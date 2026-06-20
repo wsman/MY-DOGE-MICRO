@@ -27,6 +27,8 @@ from doge.core.ports.agent_repository import (
     IRunRepository,
     ISessionRepository,
 )
+from doge.core.ports.idempotency_store import IIdempotencyStore
+from doge.core.ports.worker_queue import IRunQueue
 from doge.infrastructure.database.sqlite import SQLiteConnection
 
 
@@ -40,11 +42,38 @@ def bootstrap_agent_schema(db_path: Path | str | None = None) -> None:
     sql = _schema_path().read_text(encoding="utf-8")
     with sqlite3.connect(str(path)) as conn:
         conn.executescript(sql)
+        _migrate_idempotency_key_scope(conn)
         conn.execute(
             "INSERT OR IGNORE INTO schema_migrations(name, applied_at) VALUES (?, ?)",
             ("agent_schema_v1", utc_now()),
         )
         conn.commit()
+
+
+def _migrate_idempotency_key_scope(conn: sqlite3.Connection) -> None:
+    columns = conn.execute("PRAGMA table_info(idempotency_keys)").fetchall()
+    pk_columns = [row[1] for row in columns if row[5]]
+    if pk_columns in (["key", "scope"], ["scope", "key"]):
+        return
+    conn.execute("ALTER TABLE idempotency_keys RENAME TO idempotency_keys_legacy")
+    conn.execute(
+        """
+        CREATE TABLE idempotency_keys (
+            key TEXT NOT NULL,
+            scope TEXT NOT NULL,
+            run_id TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            PRIMARY KEY(key, scope)
+        )
+        """
+    )
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO idempotency_keys(key, scope, run_id, created_at)
+        SELECT key, scope, run_id, created_at FROM idempotency_keys_legacy
+        """
+    )
+    conn.execute("DROP TABLE idempotency_keys_legacy")
 
 
 class _BaseAgentRepository:
@@ -338,6 +367,77 @@ class SQLiteDocumentRepository(_BaseAgentRepository, IDocumentRepository):
                 (limit,),
             ).fetchall()
             return [dict(row) for row in rows]
+
+
+class SQLiteRunQueue(_BaseAgentRepository, IRunQueue):
+    def enqueue(self, run_id: str) -> None:
+        self.append_status(run_id, "queued")
+
+    def dequeue(self) -> str | None:
+        pending = self.list_pending()
+        if not pending:
+            return None
+        run_id = pending[0]
+        self.append_status(run_id, "running")
+        return run_id
+
+    def list_pending(self) -> list[str]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT q.run_id
+                FROM run_queue q
+                JOIN (
+                    SELECT run_id, MAX(queue_id) AS max_queue_id
+                    FROM run_queue
+                    GROUP BY run_id
+                ) latest
+                ON q.run_id = latest.run_id AND q.queue_id = latest.max_queue_id
+                WHERE q.status IN ('queued', 'running')
+                ORDER BY q.queue_id ASC
+                """
+            ).fetchall()
+            return [row["run_id"] for row in rows]
+
+    def append_status(self, run_id: str, status: str) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO run_queue(run_id, status, created_at, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """,
+                (run_id, status),
+            )
+            conn.commit()
+
+    def is_ready(self) -> bool:
+        try:
+            with self._connect() as conn:
+                conn.execute("SELECT 1 FROM run_queue LIMIT 1")
+            return True
+        except Exception:
+            return False
+
+
+class SQLiteIdempotencyStore(_BaseAgentRepository, IIdempotencyStore):
+    def get(self, key: str, scope: str) -> str | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT run_id FROM idempotency_keys WHERE key = ? AND scope = ?",
+                (key, scope),
+            ).fetchone()
+            return row["run_id"] if row else None
+
+    def set(self, key: str, scope: str, run_id: str) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO idempotency_keys(key, scope, run_id, created_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (key, scope, run_id, utc_now()),
+            )
+            conn.commit()
 
 
 def _row_to_run(conn: sqlite3.Connection, row: sqlite3.Row) -> AgentRun:

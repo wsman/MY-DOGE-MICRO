@@ -3,15 +3,13 @@
 from __future__ import annotations
 
 import asyncio
-import sqlite3
-from pathlib import Path
 from typing import Any
 
-from doge.config import get_settings
-from doge.core.domain.agent_models import AgentRun, AgentTurn, RunStatus, utc_now
+from doge.core.domain.agent_models import AgentRun, AgentTurn, utc_now
 from doge.core.ports.agent_repository import ISessionRepository
 from doge.core.ports.agent_runtime import IResearchAgentRuntime
-from doge.infrastructure.database.agent_repositories import bootstrap_agent_schema
+from doge.core.ports.idempotency_store import IIdempotencyStore
+from doge.core.ports.worker_queue import IRunQueue
 
 
 class AsyncioWorker:
@@ -21,23 +19,29 @@ class AsyncioWorker:
         self,
         runtime: IResearchAgentRuntime,
         sessions: ISessionRepository,
-        *,
-        db_path: Path | str | None = None,
+        run_queue: IRunQueue,
+        idempotency_store: IIdempotencyStore,
     ) -> None:
         self._runtime = runtime
         self._sessions = sessions
+        self._run_queue = run_queue
+        self._idempotency = idempotency_store
         self._queue: asyncio.Queue[str] = asyncio.Queue()
+        self._queued_run_ids: set[str] = set()
         self._task: asyncio.Task | None = None
         self._recovered = False
-        self._db_path = Path(db_path) if db_path is not None else get_settings().db.agent_db
-        bootstrap_agent_schema(self._db_path)
 
     def start(self) -> None:
         if self._task is None or self._task.done():
             self._task = asyncio.create_task(self._process_loop())
-        if not self._recovered:
-            self._recover_pending()
-            self._recovered = True
+        self.recover()
+
+    def recover(self) -> None:
+        if self._recovered:
+            return
+        for run_id in self._run_queue.list_pending():
+            self._enqueue_local(run_id)
+        self._recovered = True
 
     async def stop(self) -> None:
         if self._task is None:
@@ -61,7 +65,7 @@ class AsyncioWorker:
         idempotency_key: str | None = None,
     ) -> str:
         if idempotency_key:
-            existing = self._get_idempotent_run(idempotency_key, session_id)
+            existing = self._idempotency.get(idempotency_key, session_id)
             if existing:
                 return existing
         self.start()
@@ -76,16 +80,16 @@ class AsyncioWorker:
             "model_policy": model_policy or {"max_tool_rounds": 8},
         })
         self._append_turn(session_id, message, run.run_id)
-        self._record_queue(run.run_id, "queued")
+        self._run_queue.enqueue(run.run_id)
         if idempotency_key:
-            self._record_idempotency(idempotency_key, session_id, run.run_id)
-        await self._queue.put(run.run_id)
+            self._idempotency.set(idempotency_key, session_id, run.run_id)
+        await self._enqueue_local_async(run.run_id)
         return run.run_id
 
     async def enqueue_continuation(self, run_id: str) -> None:
-        self._record_queue(run_id, "queued")
+        self._run_queue.enqueue(run_id)
         self.start()
-        await self._queue.put(run_id)
+        await self._enqueue_local_async(run_id)
 
     async def resolve_approval(self, run_id: str, approval_id: str, approved: bool) -> AgentRun:
         return await self._runtime.resolve_approval(run_id, approval_id, approved)
@@ -94,11 +98,12 @@ class AsyncioWorker:
         while True:
             run_id = await self._queue.get()
             try:
-                self._record_queue(run_id, "running")
+                self._queued_run_ids.discard(run_id)
+                self._run_queue.append_status(run_id, "running")
                 await self._runtime.run_to_pause_or_completion(run_id)
-                self._record_queue(run_id, "done")
+                self._run_queue.append_status(run_id, "done")
             except Exception:
-                self._record_queue(run_id, "failed")
+                self._run_queue.append_status(run_id, "failed")
             finally:
                 self._queue.task_done()
 
@@ -110,58 +115,17 @@ class AsyncioWorker:
         session.updated_at = utc_now()
         self._sessions.save(session)
 
-    def _record_queue(self, run_id: str, status: str) -> None:
-        with sqlite3.connect(str(self._db_path)) as conn:
-            conn.execute(
-                """
-                INSERT INTO run_queue(run_id, status, created_at, updated_at)
-                VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                """,
-                (run_id, status),
-            )
-            conn.commit()
-
     def is_ready(self) -> bool:
-        try:
-            with sqlite3.connect(str(self._db_path)) as conn:
-                conn.execute("SELECT 1 FROM run_queue LIMIT 1")
-            return True
-        except Exception:
-            return False
+        return self._run_queue.is_ready()
 
-    def _recover_pending(self) -> None:
-        with sqlite3.connect(str(self._db_path)) as conn:
-            rows = conn.execute(
-                """
-                SELECT q.run_id, q.status
-                FROM run_queue q
-                JOIN (
-                    SELECT run_id, MAX(queue_id) AS max_queue_id
-                    FROM run_queue
-                    GROUP BY run_id
-                ) latest
-                ON q.run_id = latest.run_id AND q.queue_id = latest.max_queue_id
-                WHERE q.status IN ('queued', 'running')
-                """
-            ).fetchall()
-        for run_id, _status in rows:
-            self._queue.put_nowait(run_id)
+    def _enqueue_local(self, run_id: str) -> None:
+        if run_id in self._queued_run_ids:
+            return
+        self._queued_run_ids.add(run_id)
+        self._queue.put_nowait(run_id)
 
-    def _get_idempotent_run(self, key: str, scope: str) -> str | None:
-        with sqlite3.connect(str(self._db_path)) as conn:
-            row = conn.execute(
-                "SELECT run_id FROM idempotency_keys WHERE key = ? AND scope = ?",
-                (key, scope),
-            ).fetchone()
-            return row[0] if row else None
-
-    def _record_idempotency(self, key: str, scope: str, run_id: str) -> None:
-        with sqlite3.connect(str(self._db_path)) as conn:
-            conn.execute(
-                """
-                INSERT OR IGNORE INTO idempotency_keys(key, scope, run_id, created_at)
-                VALUES (?, ?, ?, ?)
-                """,
-                (key, scope, run_id, utc_now()),
-            )
-            conn.commit()
+    async def _enqueue_local_async(self, run_id: str) -> None:
+        if run_id in self._queued_run_ids:
+            return
+        self._queued_run_ids.add(run_id)
+        await self._queue.put(run_id)

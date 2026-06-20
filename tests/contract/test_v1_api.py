@@ -13,6 +13,8 @@ def _reset_agent_deps(monkeypatch, tmp_path):
     deps._persisted_research_agent_runtime = None
     deps._event_bus = None
     deps._worker = None
+    deps._run_queue = None
+    deps._idempotency_store = None
 
 
 def test_v1_post_turns_returns_202_with_run_id(tmp_path, monkeypatch):

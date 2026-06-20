@@ -22,14 +22,20 @@ def _fmt(columns, rows):
 
 
 async def rsrs_ranking(market: str = "cn", top: int = 20) -> str:
-    data = ToolApplicationService().rsrs_ranking(market, top)["rows"]
+    try:
+        data = ToolApplicationService().rsrs_ranking(market, top)["rows"]
+    except Exception:
+        data = []
     if not data:
         return "No data"
     return _fmt(list(data[0].keys()), [list(r.values()) for r in data])
 
 
 async def market_breadth(market: str = "cn", days: int = 10) -> str:
-    data = ToolApplicationService().market_breadth(market, days)["rows"]
+    try:
+        data = ToolApplicationService().market_breadth(market, days)["rows"]
+    except Exception:
+        data = []
     if not data:
         return "No data"
     return _fmt(list(data[0].keys()), [list(r.values()) for r in data])

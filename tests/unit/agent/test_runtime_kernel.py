@@ -1,9 +1,9 @@
 import pytest
 
-from doge.application.agent.research_runtime import ScriptedAgentModel
 from doge.application.agent.runtime_kernel import RuntimeKernel
 from doge.application.agent.tools import build_default_tool_registry
 from doge.core.domain.agent_models import RunStatus
+from doge.infrastructure.agent.scripted_model import ScriptedAgentModel
 from doge.infrastructure.database.agent_repositories import (
     SQLiteApprovalRepository,
     SQLiteArtifactRepository,

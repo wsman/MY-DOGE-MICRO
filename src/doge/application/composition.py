@@ -51,14 +51,17 @@ from doge.infrastructure.database.agent_repositories import (
     SQLiteArtifactRepository,
     SQLiteDocumentRepository,
     SQLiteEventRepository,
+    SQLiteIdempotencyStore,
+    SQLiteRunQueue,
     SQLiteRunRepository,
     SQLiteSessionRepository,
 )
 from doge.infrastructure.database.sqlite_storage import SQLiteStorageRepository
 from doge.infrastructure.data_source.tdx_file_scanner import TDXFileScanner
 from doge.infrastructure.data_source.yfinance_metadata import YFinanceMetadataSource
-from doge.infrastructure.agent.research_runtime import InMemoryResearchAgentRuntime
+from doge.infrastructure.agent.inmemory_runtime import InMemoryResearchAgentRuntime
 from doge.infrastructure.agent.persisted_runtime import PersistedResearchAgentRuntime
+from doge.infrastructure.agent.scripted_model import ScriptedAgentModel
 from doge.infrastructure.llm.deepseek_client import DeepSeekClient
 from doge.infrastructure.llm.kimi_client import KimiAgentModel
 
@@ -74,7 +77,6 @@ from doge.application.use_cases.populate_stock_names import PopulateStockNamesUs
 from doge.application.use_cases.generate_industry_report import GenerateIndustryReportUseCase
 from doge.application.use_cases.run_use_cases import ExecuteRun, ResumeRun
 from doge.application.use_cases.session_use_cases import AppendTurn, CreateSession, ListSessions, ResumeSession
-from doge.application.agent.research_runtime import ScriptedAgentModel
 from doge.application.agent.runtime_kernel import RuntimeKernel
 from doge.application.agent.tools import build_default_tool_registry
 from doge.config import get_settings
@@ -232,6 +234,8 @@ def build_agent_repositories(db_path=None):
         "artifacts": SQLiteArtifactRepository(db_path),
         "approvals": SQLiteApprovalRepository(db_path),
         "documents": SQLiteDocumentRepository(db_path),
+        "run_queue": SQLiteRunQueue(db_path),
+        "idempotency": SQLiteIdempotencyStore(db_path),
     }
 
 
@@ -277,6 +281,16 @@ def build_persisted_research_agent_runtime(model=None, tool_registry=None, event
 def build_agent_document_repository(db_path=None):
     """Build the default persisted document repository."""
     return SQLiteDocumentRepository(db_path)
+
+
+def build_agent_run_queue(db_path=None):
+    """Build the durable run queue adapter."""
+    return SQLiteRunQueue(db_path)
+
+
+def build_agent_idempotency_store(db_path=None):
+    """Build the durable idempotency-key adapter."""
+    return SQLiteIdempotencyStore(db_path)
 
 
 def build_create_session_use_case(db_path=None) -> CreateSession:

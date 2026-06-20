@@ -363,13 +363,12 @@ def create_mcp_server():
     async def health(request: Request):
         try:
             from doge.infrastructure.database.duckdb import DuckDBConnection
-            db_path = get_settings().db.duckdb
-            if not db_path.exists():
-                return JSONResponse({"status": "ok", "detail": "duckdb missing"})
             with DuckDBConnection(read_only=True).connect() as con:
                 con.execute("SELECT 1")
             return JSONResponse({"status": "ok"})
         except Exception as exc:
+            if "database does not exist" in str(exc).lower():
+                return JSONResponse({"status": "ok", "detail": "duckdb missing"})
             logger.error("Health check failed: %s", exc, exc_info=True)
             return JSONResponse({"status": "error", "detail": _sanitize_error(exc)}, status_code=503)
 

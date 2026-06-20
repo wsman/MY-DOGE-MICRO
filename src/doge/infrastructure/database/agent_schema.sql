@@ -83,8 +83,9 @@ CREATE TABLE IF NOT EXISTS run_queue (
 );
 
 CREATE TABLE IF NOT EXISTS idempotency_keys (
-    key TEXT PRIMARY KEY,
+    key TEXT NOT NULL,
     scope TEXT NOT NULL,
     run_id TEXT NOT NULL,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    PRIMARY KEY(key, scope)
 );

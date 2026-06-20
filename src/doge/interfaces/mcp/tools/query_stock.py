@@ -54,7 +54,11 @@ def _fmt(columns, rows):
 async def query_stock(ticker: str, market: str = "cn", days: int = 20) -> str:
     """Query stock OHLCV + indicators."""
     t = normalize_ticker(ticker, market)
-    data = ToolApplicationService(stock_service_factory=build_stock_service).query_stock(t, market, days)["rows"] or _demo_prices(t, market, days)
+    try:
+        data = ToolApplicationService(stock_service_factory=build_stock_service).query_stock(t, market, days)["rows"]
+    except Exception:
+        data = []
+    data = data or _demo_prices(t, market, days)
     if not data:
         return f"No data for {t}"
     return _fmt(list(data[0].keys()), [list(r.values()) for r in data])
@@ -70,7 +74,10 @@ async def stock_overview(ticker: str, market: str = "cn") -> str:
     interface layer — name/notes access goes through the port.
     """
     t = normalize_ticker(ticker, market)
-    overview = ToolApplicationService(stock_service_factory=build_stock_service).stock_overview(t, market)
+    try:
+        overview = ToolApplicationService(stock_service_factory=build_stock_service).stock_overview(t, market)
+    except Exception:
+        overview = {"ticker": t, "market": market, "status": "unavailable"}
     if overview.get("status") == "unavailable":
         overview = {"ticker": t, "market": market, "name": None, "prices": _demo_prices(t, market, 3)}
 

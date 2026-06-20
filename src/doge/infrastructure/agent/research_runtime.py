@@ -1,14 +1,18 @@
-"""In-memory research-agent runtime adapter."""
+"""Deprecated import path for the in-memory research-agent runtime."""
 
-from doge.application.agent.research_runtime import ResearchAgentRuntime
-from doge.core.ports.agent_runtime import IResearchAgentRuntime
+from __future__ import annotations
+
+import warnings
+
+from doge.infrastructure.agent.inmemory_runtime import InMemoryResearchAgentRuntime
 
 
-class InMemoryResearchAgentRuntime(ResearchAgentRuntime, IResearchAgentRuntime):
-    """Concrete demo adapter for the research-agent runtime port.
+warnings.warn(
+    "doge.infrastructure.agent.research_runtime is deprecated; "
+    "import InMemoryResearchAgentRuntime from doge.infrastructure.agent.inmemory_runtime.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
-    The state-machine implementation remains in the application layer. This
-    adapter makes the chosen storage policy explicit: in-memory run state is
-    acceptable for the interview demo and replaceable by a persisted runtime
-    adapter in production.
-    """
+
+__all__ = ["InMemoryResearchAgentRuntime"]

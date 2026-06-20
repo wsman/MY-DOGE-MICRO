@@ -3,10 +3,10 @@ from typing import Any, AsyncIterator
 
 import pytest
 
-from doge.application.agent.research_runtime import ResearchAgentRuntime
 from doge.application.agent.tools import ToolRegistry, ToolResult
 from doge.core.domain.agent_models import EventType, RunStatus
 from doge.core.ports.agent_model import AgentMessage, AgentResponse, IAgentModel
+from doge.infrastructure.agent.inmemory_runtime import InMemoryResearchAgentRuntime
 
 
 class TimeoutThenMemoModel(IAgentModel):
@@ -49,7 +49,7 @@ async def test_market_tool_timeout_degrades_without_fabrication():
             "parameters": {"type": "object", "properties": {}},
         },
     }, lambda **_: ToolResult("market_breadth", data={}, ok=False, error="timeout"))
-    runtime = ResearchAgentRuntime(model=TimeoutThenMemoModel(), tool_registry=registry)
+    runtime = InMemoryResearchAgentRuntime(model=TimeoutThenMemoModel(), tool_registry=registry)
     run = await runtime.create_run({"question": "Analyze market breadth."})
 
     run = await runtime.run_to_pause_or_completion(run.run_id)

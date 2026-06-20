@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from doge.application.agent.research_runtime import ResearchAgentRuntime, ScriptedAgentModel
+from doge.application.composition import build_research_agent_runtime
 from doge.interfaces.api import deps
 from doge.interfaces.api.main import app
 
@@ -11,7 +11,7 @@ def _client_with_runtime(runtime):
 
 
 def test_agent_run_lifecycle_and_approval():
-    runtime = ResearchAgentRuntime(model=ScriptedAgentModel())
+    runtime = build_research_agent_runtime()
     client = _client_with_runtime(runtime)
     try:
         created = client.post("/api/agent/runs", json={
@@ -44,7 +44,7 @@ def test_agent_run_lifecycle_and_approval():
 
 
 def test_agent_run_404():
-    runtime = ResearchAgentRuntime(model=ScriptedAgentModel())
+    runtime = build_research_agent_runtime()
     client = _client_with_runtime(runtime)
     try:
         assert client.get("/api/agent/runs/missing").status_code == 404

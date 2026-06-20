@@ -85,8 +85,9 @@ async def stream_run(
                 "event": event.event_type.value,
                 "data": json.dumps(serialize(event), ensure_ascii=False),
             }
-            if runtime.get_run(run_id).status in _STREAM_CLOSE_STATUSES:
-                return
+        run = runtime.get_run(run_id)
+        if run and run.status in _STREAM_CLOSE_STATUSES:
+            return
         async for event in bus.subscribe(run_id):
             yield {
                 "id": str(event.sequence),

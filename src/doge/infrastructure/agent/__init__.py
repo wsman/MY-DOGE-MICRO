@@ -1,3 +1,3 @@
 """Infrastructure adapters for agent runtime concerns."""
 
-__all__ = ["InMemoryResearchAgentRuntime", "PersistedResearchAgentRuntime"]
+__all__ = ["InMemoryResearchAgentRuntime", "PersistedResearchAgentRuntime", "ScriptedAgentModel"]

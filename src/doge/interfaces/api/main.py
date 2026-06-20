@@ -5,6 +5,7 @@ Tauri sidecar — runs on localhost:8901
 
 import logging
 import os
+from contextlib import asynccontextmanager
 
 # S002-009 / TR-011: project root sourced from get_settings() (ADR-0001
 # forbidden pattern ``_PROJECT_ROOT`` dirname-walk). The module-global name is
@@ -35,7 +36,18 @@ logger = logging.getLogger("doge.api")
 # Module-global project root — derived from Settings, monkeypatchable in tests.
 _PROJECT_ROOT = str(get_settings().project_root)
 
-app = FastAPI(title="MY-DOGE API", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    worker = deps.get_daemon_worker()
+    worker.start()
+    try:
+        yield
+    finally:
+        await worker.stop()
+
+
+app = FastAPI(title="MY-DOGE API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

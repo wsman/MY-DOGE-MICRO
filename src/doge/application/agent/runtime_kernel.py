@@ -152,12 +152,7 @@ class RuntimeKernel:
             kind="investment_memo",
             title="Investment Committee Memo",
             content=content,
-            data={
-                "numerical_consistency": 1.0,
-                "citation_precision": 0.9,
-                "tool_execution_success": 1.0,
-                "usage": response.usage or {},
-            },
+            data={**self._artifact_metrics(run.run_id), "usage": response.usage or {}},
         )
         self._artifacts.save(artifact)
         self._set_status(run, RunStatus.COMPLETED)
@@ -239,20 +234,36 @@ class RuntimeKernel:
     def _hydrate(self, run_id: str) -> AgentRun:
         return self._require_run(run_id)
 
+    def _artifact_metrics(self, run_id: str) -> dict[str, Any]:
+        results = [
+            event.payload.get("result", {})
+            for event in self._events.list_for_run(run_id)
+            if event.event_type == EventType.TOOL_RESULT
+        ]
+        tool_execution_success = None
+        if results:
+            ok_count = sum(1 for result in results if result.get("ok") is True)
+            tool_execution_success = ok_count / len(results)
+        return {
+            "numerical_consistency": None,
+            "citation_precision": None,
+            "tool_execution_success": tool_execution_success,
+        }
+
 
 def _default_memo() -> str:
     return """# Investment Committee Memo
 
 ## Executive Summary
-The demo portfolio has concentrated technology exposure and requires committee review before publication.
+The requested research memo requires source-backed validation and human approval before publication.
 
 ## Findings
 - Earnings-quality claims were routed through deterministic validation tools.
-- Portfolio exposure highlights a 45% technology allocation and 63% top-name concentration.
+- Portfolio exposure should be reported only when backed by configured holdings data.
 - Any high-risk publication action is gated by human approval.
 
 ## IC Questions
-1. Should technology concentration be reduced before the next rebalance?
-2. Which reported figures require source-page confirmation before publication?
-3. What downside scenario should be approved for client-facing material?
+1. Which reported figures require source-page confirmation before publication?
+2. What downside scenario should be approved for client-facing material?
+3. What unresolved data gaps should remain marked as unavailable?
 """
