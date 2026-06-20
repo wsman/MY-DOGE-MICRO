@@ -145,7 +145,7 @@ interfaces/ ──→ application/ ──→ core/services/ ──→ core/ports
 ### 批次 5：接口层重构
 - MCP 已完成：`doge_mcp.py` → `src/doge/interfaces/mcp/server.py`（Wave 4 删除旧 monolith）
 - `src/cli.py` → `src/doge/interfaces/cli/main.py`
-- `src/api/routers/*.py` — 注入服务替代直接 DB 操作
+- `src/doge/interfaces/api/routers/*.py` — 注入服务替代直接 DB 操作
 - 添加 `deps.py` 依赖注入容器
 
 ### 批次 6：清理与测试

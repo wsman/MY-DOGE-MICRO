@@ -111,7 +111,7 @@ class TestGettingStartedPathsResolve:
         drops a surface."""
         markdown = DOC.read_text(encoding="utf-8")
         required = {
-            "src/api/main.py",
+            "src/doge/interfaces/api/main.py",
             "doge_mcp.py",
             "src/interface/dashboard.py",
             "scripts/mcp_stdio.bat",

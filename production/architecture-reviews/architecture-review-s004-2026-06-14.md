@@ -22,9 +22,9 @@
 
 ### Evidence reviewed
 
-- `src/api/main.py:119-134` — `_LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}` and `_resolve_bind_host()` fail-closed assertion. Any non-loopback `DOGE_BIND_HOST` raises `AssertionError` with the ADR-0007 promotion-gate message before `uvicorn.run` is reached.
-- `src/api/main.py:35-40` — `CORSMiddleware` retains `allow_origins=["*"]`, explicitly justified by the loopback-only bind.
-- `tests/test_api_loopback_guarantee.py` — 6 tests covering default host, all loopback variants, non-loopback IP, and non-loopback hostname.
+- `src/doge/interfaces/api/main.py` — `_LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}` and `_resolve_bind_host()` fail-closed assertion. Any non-loopback `DOGE_BIND_HOST` raises `AssertionError` with the ADR-0007 promotion-gate message before `uvicorn.run` is reached.
+- `src/doge/interfaces/api/main.py` — `CORSMiddleware` retains `allow_origins=["*"]`, explicitly justified by the loopback-only bind.
+- `tests/compat/test_api_loopback_guarantee.py` — 6 tests covering default host, all loopback variants, non-loopback IP, and non-loopback hostname.
 - Full suite: **568 passed, 2 skipped, 0 failed**.
 
 ### Rationale
@@ -99,7 +99,7 @@ grep -rnE "import sqlite3|import duckdb|sqlite3.connect|duckdb.connect" src/api 
 # ZERO hits
 ```
 
-The only prior RED site (`src/doge/interfaces/mcp/tools/query_stock.py:4,92`) was removed in S004-003. `src/api/routers/notes.py` now depends on `deps.get_note_repository` rather than `ai_analysis.stock_notes` (S004-002). `src/api/routers/scan.py` uses the `SQLiteConnection` adapter, which is allowed by ADR-0001 §4.3.
+The only prior RED site (`src/doge/interfaces/mcp/tools/query_stock.py:4,92`) was removed in S004-003. `src/doge/interfaces/api/routers/notes.py` now depends on `deps.get_note_repository` rather than `ai_analysis.stock_notes` (S004-002). `src/doge/interfaces/api/routers/scan.py` uses the `SQLiteConnection` adapter, which is allowed by ADR-0001 §4.3.
 
 ### Ruling
 
@@ -132,7 +132,7 @@ This review authorizes the following next steps:
 - Prior review: `production/architecture-reviews/architecture-review-s003-014-2026-06-13.md`
 - ADR-0004: `docs/architecture/adr-0004-data-source-adapter-contract.md`
 - ADR-0007: `docs/architecture/adr-0007-api-surface-and-cors.md`
-- Loopback code: `src/api/main.py`, `tests/test_api_loopback_guarantee.py`
+- Loopback code: `src/doge/interfaces/api/main.py`, `tests/compat/test_api_loopback_guarantee.py`
 - TDX adapter: `src/doge/infrastructure/data_source/tdx.py`, `tests/test_tdx_adapter.py`
 - Notes port: `src/doge/core/ports/repository.py`, `src/doge/infrastructure/database/repositories.py`, `tests/unit/doge/test_note_repository.py`
 - Governance test: `tests/unit/governance/test_adr_lifecycle_status.py`

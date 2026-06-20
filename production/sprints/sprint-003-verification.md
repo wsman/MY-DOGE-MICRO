@@ -25,7 +25,7 @@ Sprint 003 consumes the **high-impact Verification backlog** surfaced by `/gate-
 - User-test / workflow validation evidence for the core operator path.
 - QA plan and smoke-check artifacts required before Verification → Release.
 - Performance baseline profile against declared budgets.
-- API router dependency injection (close direct DB connections in `src/api/routers/`).
+- API router dependency injection (close direct DB connections in `src/doge/interfaces/api/routers/`).
 - RSRS view sign-inversion fix with DDL under version control.
 - CORS / ADR-0007 formal deferral record.
 - FRESH `/architecture-review` for ADR-0004/0007 end-state sign-off.
@@ -90,7 +90,7 @@ These Wave-5 hygiene items are **deferred** and must not be pulled into Sprint 0
 |----|------|-------|-------------|--------------|-------------------------------|--------|
 | S003-001 | 里程碑 + sprint 基线 | producer | S | None | `production/milestones/verification-milestone.md` exists with target date 2026-06-26 and exit criteria | Done |
 | S003-002 | 用户验证报告 | ux-designer / qa-lead | M | S003-001 (milestone context) | One `production/qa/evidence/user-tests/user-test-001-*.md` documenting an unguided end-to-end operator walkthrough (scanner → existing reports in Insights → archive). The Insights/Analysis views are read-side per `design/ux/analysis-flow.md`; report generation is triggered outside this UI. | Done |
-| S003-003 | API 路由 DI | python-specialist | L | None | 0 direct `sqlite3.connect` / `connect_duckdb` in `src/api/routers/` and `src/api/main.py`; layer gate tests pass; services injected via `deps.py` | Done |
+| S003-003 | API 路由 DI | python-specialist | L | None | 0 direct `sqlite3.connect` / `connect_duckdb` in `src/doge/interfaces/api/routers/` and `src/doge/interfaces/api/main.py`; layer gate tests pass; services injected via `deps.py` | Done |
 | S003-005 | RSRS view sign fix | python-specialist | M | None | `vw_rsrs_ranking` sign convention matches Python RSRS path; DDL moved under version control; xfail removed | Done |
 | S003-011 | QA / smoke 计划 | qa-lead | M | S003-001 | `production/qa/qa-plan-verification.md` exists; at least one `production/qa/smoke/smoke-2026-06-*.md` covering 3 surfaces (CLI / API / Web or MCP) | Done |
 | S003-012 | 性能基线 profile | performance-analyst | M | S003-001 | `production/qa/evidence/perf/profile-*.md` exists; measurements against `standards/technical-preferences.md` budgets (MCP ≤30s, DB reads, UI off-thread) | Done |
@@ -143,7 +143,7 @@ These Wave-5 hygiene items are **deferred** and must not be pulled into Sprint 0
 - [x] Milestone document exists at `production/milestones/verification-milestone.md` with deadline 2026-06-26.
 - [x] QA / smoke plan exists and covers at least 3 surfaces.
 - [x] Performance baseline profile exists and is compared against declared budgets.
-- [x] `src/api/routers/` and `src/api/main.py` contain no direct `sqlite3.connect` / `connect_duckdb` calls.
+- [x] `src/doge/interfaces/api/routers/` and `src/doge/interfaces/api/main.py` contain no direct `sqlite3.connect` / `connect_duckdb` calls.
 - [x] RSRS view sign inversion is fixed and DDL is under version control.
 - [x] ADR-0004 and ADR-0007 states are finalized with documented rationale (promoted or deferred).
 - [x] `python -m pytest -q` green; `cd web && npm run build` green; `cd web && npm test` green.

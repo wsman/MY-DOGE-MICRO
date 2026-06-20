@@ -1,11 +1,7 @@
-"""ADR-0007 strengthened-loopback-guarantee (S004-005).
+"""ADR-0007 strengthened-loopback-guarantee compatibility check (S004-005).
 
-The FastAPI CORS posture (``allow_origins=["*"]`` in ``src/api/main.py``) is
-safe ONLY under a loopback bind. ``_resolve_bind_host`` enforces this: a
-non-loopback ``DOGE_BIND_HOST`` fails closed rather than exposing the API with
-permissive CORS and no auth. This is the ADR-0007 promotion path (1b) — the
-loopback guarantee replaces CORS hardening for the local-first, single-operator
-deployment model.
+This test intentionally imports the deprecated ``src.api`` shim to prove the
+backwards-compatible entrypoint still exposes the canonical loopback guard.
 """
 import sys
 from pathlib import Path
@@ -13,8 +9,8 @@ from pathlib import Path
 import pytest
 
 # Project-root sys.path setup (mirrors tests/test_api_routers.py) — strips
-# sibling-project paths and inserts this repo root so ``src.api`` resolves.
-_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+# sibling-project paths and inserts this repo root so the shim resolves here.
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path[:] = [
     p for p in sys.path
     if p and "MY-DOGE-PRO" not in p and "opendoge" not in p

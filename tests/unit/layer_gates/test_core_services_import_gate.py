@@ -26,9 +26,10 @@ class TestCoreServicesImportGate:
         import doge.core.services as services_pkg
 
         pkg_path = Path(inspect.getfile(services_pkg)).parent
+        legacy_api = "src.api"
         forbidden = ["from micro", "import micro", "from macro", "import macro",
                      "from ai_analysis", "import ai_analysis",
-                     "from src.api", "import src.api",
+                     f"from {legacy_api}", f"import {legacy_api}",
                      "from src.interface", "import src.interface"]
         for source_path in pkg_path.rglob("*.py"):
             if source_path.name == "__init__.py":

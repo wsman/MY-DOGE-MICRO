@@ -747,7 +747,7 @@ class SQLiteNoteRepository(INoteRepository):
         legacy best-effort intent and keeps tests with no DuckDB file
         working). All other blocks (name lookup, notes count + select)
         PROPAGATE their exceptions so the global
-        ``@app.exception_handler(Exception)`` in ``src/api/main.py`` can
+        ``@app.exception_handler(Exception)`` in ``src/doge/interfaces/api/main.py`` can
         shape them into the stable ``{"error": {"code": "internal_error",
         "message": "internal server error"}}`` envelope — the previously
         ``except Exception`` swallows that stuffed errors into

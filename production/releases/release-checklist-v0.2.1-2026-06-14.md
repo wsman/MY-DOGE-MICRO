@@ -115,11 +115,11 @@ The only code change since `v0.2.0` is the S006-006 migration of
 
 Re-verified with `rg` on current code:
 
-- `src/api/routers/scan.py`: no literal `sqlite3.connect`, `connect_duckdb`, or
+- `src/doge/interfaces/api/routers/scan.py`: no literal `sqlite3.connect`, `connect_duckdb`, or
   `sys.path.insert`. Uses `IStockRepository` (injected), `SQLiteStorageRepository`,
   centralized `get_settings()`, and `ViewService.refresh_views`. Legacy TDX
   downloader is invoked as a functional shim, not as a layer bypass.
-- `src/api/routers/notes.py`: no `sqlite3`, `connect_duckdb`, `sys.path.insert`,
+- `src/doge/interfaces/api/routers/notes.py`: no `sqlite3`, `connect_duckdb`, `sys.path.insert`,
   or legacy `stock_notes` import. All handlers depend on `INoteRepository` via
   `deps.get_note_repository`.
 - `src/doge/`: `sys.path.insert` gate green.

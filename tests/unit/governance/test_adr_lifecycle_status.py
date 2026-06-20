@@ -51,7 +51,7 @@ _EXPECTED_ACCEPTED = {
     "adr-0009": "ADR-0009 (cache-metadata-port-split) — Wave-4 accepted: ITickerNameCache + ITickerMetadataSource split realized; real yfinance metadata adapter is follow-on implementation work.",
     "adr-0010": "ADR-0010 (view-service-port-injection) — Wave-4 accepted: IMarketViewRepository + DuckDBMarketViewRepository + composition root are implemented and tested.",
     "adr-0004": "ADR-0004 (data-source-adapter-contract) — S004-004 promoted: TDXDataSource implements IMarketDataSource without NotImplementedError; tdx_downloader.py thin-wrapped as CLI shim; sys.path.insert removed (S002-005). _retry.py extraction deferred to a follow-on (not a promotion gate).",
-    "adr-0007": "ADR-0007 (api-surface-and-cors) — S004-005 + S004-008b promoted: strengthened-loopback-guarantee implemented (src/api/main.py fail-closed DOGE_BIND_HOST assertion), covered by tests/test_api_loopback_guarantee.py, signed off by fresh /architecture-review (architecture-review-s004-2026-06-14.md). CORS remains allow_origins=['*'] under loopback; non-loopback bind requires CORS hardening + auth first.",
+    "adr-0007": "ADR-0007 (api-surface-and-cors) — S004-005 + S004-008b promoted: strengthened-loopback-guarantee implemented (doge.interfaces.api.main fail-closed DOGE_BIND_HOST assertion), covered by tests/compat/test_api_loopback_guarantee.py, signed off by fresh /architecture-review (architecture-review-s004-2026-06-14.md). CORS remains allow_origins=['*'] under loopback; non-loopback bind requires CORS hardening + auth first.",
 }
 
 # ADRs that STAY Proposed and must carry a Promotion gate callout.

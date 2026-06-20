@@ -24,7 +24,7 @@ import pytest
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # Production source trees that must never reintroduce the scanner_filters
-# key-read. The config router (src/api/routers/config.py) historically listed
+# key-read. The config router (src/doge/interfaces/api/routers/config.py) historically listed
 # "scanner_filters" in a docstring as one of the preserved JSON fields; if it
 # ever starts READING it as a key (post-removal the field is gone from the
 # template), this guard fails.

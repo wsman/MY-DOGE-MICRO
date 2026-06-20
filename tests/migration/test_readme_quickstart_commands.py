@@ -15,7 +15,8 @@ What this test guards (the three quick-entry surfaces in README.md):
       doge_mcp.py                  (the entrypoint the scripts invoke)
 
   Surface B — FastAPI + Vue web console:
-      src/api/main.py              (FastAPI backend, binds 127.0.0.1:8901)
+      src/doge/interfaces/api/main.py
+                                  (FastAPI backend, binds 127.0.0.1:8901)
       web/package.json             (the npm project `cd web && npm run dev` runs)
 
   Surface C — PyQt6 desktop dashboard:
@@ -52,7 +53,7 @@ REQUIRED_QUICKSTART_PATHS = (
     "scripts/start_mcp_sse.sh",
     "doge_mcp.py",
     # Surface B — FastAPI + web console
-    "src/api/main.py",
+    "src/doge/interfaces/api/main.py",
     "web/package.json",
     # Surface C — PyQt6 desktop dashboard
     "src/interface/dashboard.py",
@@ -90,7 +91,7 @@ def test_readme_quickstart_section_names_three_surfaces() -> None:
     # Each surface's headline entrypoint must appear in the quick-start region.
     required_entrypoints = {
         "scripts/mcp_stdio.bat": "MCP stdio entrypoint",
-        "src/api/main.py": "FastAPI backend entrypoint",
+        "src/doge/interfaces/api/main.py": "FastAPI backend entrypoint",
         "src/interface/dashboard.py": "PyQt desktop entrypoint",
     }
     for entrypoint, label in required_entrypoints.items():

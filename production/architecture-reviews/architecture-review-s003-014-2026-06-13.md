@@ -32,7 +32,7 @@ local-first Verification scope:
 | `docs/architecture/adr-0004-data-source-adapter-contract.md` | Data-source adapter status and promotion gate |
 | `docs/architecture/adr-0007-api-surface-and-cors.md` | FastAPI / CORS status and deferral decision |
 | `src/doge/infrastructure/data_source/tdx.py` | Live TDX adapter implementation state |
-| `src/api/main.py` | Live FastAPI bind, CORS, and error-envelope implementation |
+| `src/doge/interfaces/api/main.py` | Live FastAPI bind, CORS, and error-envelope implementation |
 | `production/sprint-status.yaml` | Sprint 003 state and S003-014 dependency status |
 | `production/sprints/sprint-003-verification.md` | Sprint acceptance criteria and deferred items |
 | `production/milestones/verification-milestone.md` | Verification milestone governance criteria |
@@ -90,10 +90,10 @@ Answer: **Yes, with CONCERNS.**
 Rationale:
 
 - The error-envelope half of ADR-0007 is implemented:
-  `src/api/main.py` has global `HTTPException` and catch-all exception handlers,
+  `src/doge/interfaces/api/main.py` has global `HTTPException` and catch-all exception handlers,
   and the regression is covered by `tests/contract/test_api_error_envelope.py`.
 - The CORS hardening half is not implemented:
-  `src/api/main.py` still uses `allow_origins=["*"]`.
+  `src/doge/interfaces/api/main.py` still uses `allow_origins=["*"]`.
 - The current deployment boundary is loopback-only:
   `uvicorn.run(app, host="127.0.0.1", port=8901)`.
 - The permissive CORS posture is acceptable only under the loopback bind and
@@ -162,4 +162,3 @@ Sprint 003 may only close under this review if the following remain true:
 | Implement real `TDXDataSource` adapter and migrate/thin-wrap `tdx_downloader.py` | data-source / architecture owner | Post-Verification |
 | Harden FastAPI CORS or record strengthened loopback guarantee | API / security owner | Before any non-loopback bind |
 | Keep ADR-0004 and ADR-0007 Proposed in governance tests | lead-programmer | Until promotion gates land |
-

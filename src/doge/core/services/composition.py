@@ -6,7 +6,7 @@ the composition root moved to ``doge.application.composition`` so that
 infrastructure imports.
 
 This file is kept as a temporary re-export shim for legacy callers
-(``src/cli.py``, ``src/api/routers/scan.py``, ``src/micro/industry_analyzer.py``,
+(``src/cli.py``, ``src/doge/interfaces/api/routers/scan.py``, ``src/micro/industry_analyzer.py``,
 etc.) and will be removed in Sprint 008 after those callers are migrated.
 """
 

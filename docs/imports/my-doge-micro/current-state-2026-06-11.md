@@ -32,7 +32,7 @@ interfaces -> application -> core/services -> core/ports <- infrastructure
 |------|----------|-------|
 | Legacy micro/macro system | Tracked `src/micro`, `src/macro`, `src/interface` | Implemented baseline |
 | MCP server | Untracked `mcp_server.py`, `doge_mcp.py`, `docs/MCP_SERVER.md`, startup scripts | In Progress |
-| FastAPI service | Untracked `src/api/main.py` and routers | In Progress |
+| FastAPI service | Untracked `src/doge/interfaces/api/main.py` and routers | In Progress |
 | Clean architecture package | Untracked `src/doge/config`, `core`, `infrastructure`, `interfaces/mcp` | In Progress |
 | Vue web console | Untracked `web/` Vue/Vite app | In Progress |
 | Pytest suite | Untracked `tests/test_database.py`, `tests/test_mcp_tools.py`, `tests/test_transport.py` | In Progress |
@@ -48,7 +48,7 @@ The source `docs/MODULARIZATION_PLAN.md` defines six migration batches:
 | 2 | Repository and database abstraction | In progress. `core/ports/repository.py`, DuckDB/SQLite adapters, and repositories exist under untracked `src/doge/`. |
 | 3 | TDX data source abstraction | In progress. `core/ports/data_source.py` and `infrastructure/data_source/tdx.py` exist. |
 | 4 | Business service layer | In progress. `core/services/*` exists for stock, ranking, breadth, anomaly, and view services. |
-| 5 | Interface layer refactor | In progress. New MCP package exists, while legacy root `mcp_server.py`, `src/cli.py`, and `src/api/routers/*` still coexist. |
+| 5 | Interface layer refactor | In progress. New MCP package exists, while legacy root `mcp_server.py`, `src/cli.py`, and `src/doge/interfaces/api/routers/*` still coexist. |
 | 6 | Cleanup and tests | Started. Tests exist, but old compatibility code and direct DB/path coupling remain. |
 
 ## Known Architecture Debts

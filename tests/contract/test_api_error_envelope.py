@@ -5,7 +5,7 @@ ADR-0007 Validation criterion (line 317-318): "no response body on any path
 contains the raw ``str(e)`` of an internal exception (regression assertion)."
 
 These tests pin two guarantees delivered by the two global exception handlers
-registered in ``src/api/main.py`` (S002-009, ADR-0007 Decision 3):
+registered in ``doge.interfaces.api.main`` (S002-009, ADR-0007 Decision 3):
 
 1. Any otherwise-unhandled ``Exception`` raised inside a router body is caught
    by ``@app.exception_handler(Exception)`` and returned as::
@@ -40,16 +40,15 @@ import pytest
 from fastapi.testclient import TestClient
 
 # Path bootstrap — same documented test-shim exception as
-# tests/test_api_routers.py:78-83: strip sibling-project (MY-DOGE-PRO) entries
-# so `src.api` resolves to THIS repo.
+# tests/test_api_routers.py:78-83: strip sibling-project (MY-DOGE-PRO) entries.
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path[:] = [
     p for p in sys.path
     if p and "MY-DOGE-PRO" not in p and "opendoge" not in p
 ]
 
-from src.api import main as api_main  # noqa: E402
-from src.api.routers import scan as scan_router  # noqa: E402
+from doge.interfaces.api import main as api_main  # noqa: E402
+from doge.interfaces.api.routers import scan as scan_router  # noqa: E402
 from doge.interfaces.api import deps  # noqa: E402
 from doge.core.ports.repository import IStockRepository  # noqa: E402
 

@@ -7,8 +7,8 @@ Accepted (S004-008b, 2026-06-14)
 > **Promotion authorized by fresh `/architecture-review`**
 > (`production/architecture-reviews/architecture-review-s004-2026-06-14.md`).
 > The strengthened-loopback-guarantee path (1b) is now implemented and verified:
-> `src/api/main.py:119-134` asserts a fail-closed loopback bind via
-> `DOGE_BIND_HOST`; `tests/test_api_loopback_guarantee.py` covers the guarantee;
+> `src/doge/interfaces/api/main.py` asserts a fail-closed loopback bind via
+> `DOGE_BIND_HOST`; `tests/compat/test_api_loopback_guarantee.py` covers the guarantee;
 > and the full suite is green (568 passed / 2 skipped / 0 failed). CORS remains
 > `allow_origins=["*"]`, safe only under this loopback guarantee; any future
 > non-loopback bind requires CORS allow-list hardening + auth first. The posture
@@ -22,7 +22,7 @@ path (1b) — a strengthened loopback guarantee — rather than the original
 CORS-hardening path. The deferral is now closed by promotion to **Accepted**.
 
 **Security argument.** The FastAPI server binds to `127.0.0.1:8901`
-(`src/api/main.py:139`) via the `_resolve_bind_host()` fail-closed assertion; no
+(`src/doge/interfaces/api/main.py`) via the `_resolve_bind_host()` fail-closed assertion; no
 remote client can reach it in the default deployment. The platform is
 single-operator, local-first, and has **no authentication by design**
 (local-first constraint — see §Context/Constraints). Therefore the current
@@ -73,7 +73,7 @@ str(e))` pattern remains tracked tech debt.
 | **Engine** | N/A — product project (no game engine). Framework: FastAPI 0.123.8 / Uvicorn 0.38.0 / Pydantic 2.12.4 / sse-starlette 3.0.3. |
 | **Domain** | API / Interface layer (`src/api/`). |
 | **Knowledge Risk** | LOW — FastAPI CORS middleware and HTTPException are stable, long-standing APIs well within training data. |
-| **References Consulted** | `docs/reference/python/` (pinned stack per `standards/technical-preferences.md`); `.claude/rules/api-code.md`; live source `src/api/main.py:20-67`. |
+| **References Consulted** | `docs/reference/python/` (pinned stack per `standards/technical-preferences.md`); `.claude/rules/api-code.md`; live source `src/doge/interfaces/api/main.py`. |
 | **Post-Cutoff APIs Used** | None. |
 | **Verification Required** | None. |
 
@@ -90,7 +90,7 @@ str(e))` pattern remains tracked tech debt.
 
 ### Problem Statement
 
-The FastAPI service (`src/api/main.py` + six routers) is the local-first HTTP
+The FastAPI service (`src/doge/interfaces/api/main.py` + six routers) is the local-first HTTP
 interface every UI consumer (Vue web console, PyQt desktop) calls. Three
 decisions needed to be made and recorded so that (a) consumers have a stable,
 enumerated contract to build against; (b) the permissive CORS configuration is
@@ -101,7 +101,7 @@ handler.
 
 ### Current State
 
-- The app binds to `127.0.0.1:8901` (`src/api/main.py:67`) and registers six
+- The app binds to `127.0.0.1:8901` (`src/doge/interfaces/api/main.py`) and registers six
   routers under `/api/<router>` plus two top-level helpers (`/api/health`,
   `/api/stats`). The full 26-route table is enumerated in the fastapi-service
   CDD §4.1.
@@ -317,7 +317,7 @@ hot path.
 ## Migration Plan
 
 1. **Error envelope (do first)** — add the two exception handlers in
-   `src/api/main.py`; delete the `try/except Exception as e: raise
+   `src/doge/interfaces/api/main.py`; delete the `try/except Exception as e: raise
    HTTPException(500, str(e))` wrappers in `data.py` and `notes.py`. Update
    `tests/test_api_routers.py` to assert the new envelope shape on the
    previously-leaking paths. Verify: full suite green; no `detail` field
@@ -350,7 +350,7 @@ returned to `["*"]`; repository routing is backward-compatible by definition.
   contains the raw `str(e)` of an internal exception (regression assertion).
   **(DONE — S002-009.)** The two global handlers (`@app.exception_handler(
   HTTPException)` + `@app.exception_handler(Exception)`) are registered in
-  `src/api/main.py`; the six `try/except Exception as e: raise HTTPException(
+  `src/doge/interfaces/api/main.py`; the six `try/except Exception as e: raise HTTPException(
   500, str(e))` wrappers are removed from `data.py:get_kline` and the five
   `notes.py` handlers. The stable `code` convention is a **string enum**
   (`bad_request` / `not_found` / `conflict` / `unprocessable` /
@@ -381,5 +381,5 @@ returned to `["*"]`; repository routing is backward-compatible by definition.
 - [ADR-0001](adr-0001-brownfield-clean-architecture.md) — forbidden patterns this ADR's remediation items reference (`direct_sqlite_import_in_interface`, `_PROJECT_ROOT_recalculation`).
 - [ADR-0002](adr-0002-centralized-configuration.md) — the `get_settings()` target for the per-router `_PROJECT_ROOT` removal.
 - `design/cdd/fastapi-service.md` — the Module #9 CDD this ADR serves; §4.1 route table, §8 acceptance criteria, §9 integration requirements.
-- `src/api/main.py:20-67` — the live application construction (app, CORS, routers, bind).
-- `src/api/routers/{scan,data,notes,macro,analysis,config}.py` — the six routers.
+- `src/doge/interfaces/api/main.py` — the live application construction (app, CORS, routers, bind).
+- `src/doge/interfaces/api/routers/{scan,data,notes,macro,analysis,config}.py` — the six routers.

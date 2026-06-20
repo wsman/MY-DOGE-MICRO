@@ -6,7 +6,7 @@ this story owns, plus the src/doge sys.path gate. They are contract tests
 moment a forbidden pattern is reintroduced into one of the remediated files.
 
 Scope (per orchestrator decisions #1-#4):
-  - ``src/api/routers/scan.py`` is FREE of ``init_db_custom``,
+  - ``src/doge/interfaces/api/routers/scan.py`` is FREE of ``init_db_custom``,
     ``import sqlite3``, ``sqlite3.connect``, ``connect_duckdb``, and the
     interface-layer ``_PROJECT_ROOT`` recalc. (The broader §6 src/api gate
     covering the OTHER routers — data/macro/analysis/main — is owned by

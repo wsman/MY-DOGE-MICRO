@@ -18,10 +18,10 @@ drifting on:
 
 This is a docs-vs-code gate, not a runtime integration test: it parses
 docs/API.md for the route table markdown rows and exercises the live app via
-``TestClient`` against ``src/api/main.py:app``. Path-isolation mirrors
-``tests/test_api_routers.py:78-83`` (strip sibling-project entries so ``src.api``
-resolves to THIS repo) plus the ``src`` dir on ``sys.path`` so the ``doge``
-package imported by the scan router resolves.
+``TestClient`` against ``doge.interfaces.api.main:app``. Path-isolation mirrors
+``tests/test_api_routers.py:78-83`` (strip sibling-project entries) plus the
+``src`` dir on ``sys.path`` so the ``doge`` package imported by the scan router
+resolves.
 """
 import re
 import sys
@@ -33,10 +33,10 @@ from fastapi.testclient import TestClient
 
 # ---------------------------------------------------------------------------
 # Path bootstrap — same documented test-shim exception as
-# tests/test_api_routers.py:78-83: strip sibling-project (MY-DOGE-PRO) entries
-# so `src.api` resolves to THIS repo. The scan router imports `doge.config`
-# (scan.py:26), and `doge` lives under `src/`, so `src/` must also be on the
-# path (mirrors pyproject.toml [tool.setuptools.packages.find] where=["src"]).
+# tests/test_api_routers.py:78-83: strip sibling-project (MY-DOGE-PRO) entries.
+# The scan router imports `doge.config` (scan.py:26), and `doge` lives under
+# `src/`, so `src/` must also be on the path (mirrors pyproject.toml
+# [tool.setuptools.packages.find] where=["src"]).
 # ---------------------------------------------------------------------------
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path[:] = [
@@ -44,7 +44,7 @@ sys.path[:] = [
     if p and "MY-DOGE-PRO" not in p and "opendoge" not in p
 ]
 
-from src.api import main as api_main  # noqa: E402
+from doge.interfaces.api import main as api_main  # noqa: E402
 
 _DOC_PATH = _PROJECT_ROOT / "docs" / "API.md"
 
@@ -206,7 +206,7 @@ class TestApiDocErrorCodeTable:
         # non-blocking acquire() inside the handler fails -> 409. Released in
         # finally to avoid cross-test bleed (test-standards.md isolation).
         # Mirrors tests/contract/test_api_error_envelope.py:201-214.
-        from src.api.routers import scan as scan_router
+        from doge.interfaces.api.routers import scan as scan_router
         lock = scan_router._scan_locks["cn"]
         acquired = lock.acquire(blocking=False)
         assert acquired, "test setup: cn scan lock should be free"

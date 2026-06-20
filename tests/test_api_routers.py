@@ -72,8 +72,8 @@ import pytest
 #
 # The operator's site-packages may contain a .pth pointing at a sibling project
 # (e.g. MY-DOGE-PRO) whose own ``src`` package shadows this one. We strip those
-# polluting entries and insert ONLY this project's root, so ``import src.api``
-# resolves to this repo. This is the documented test-shim exception
+# polluting entries and insert ONLY this project's root, so canonical package
+# imports resolve to this repo. This is the documented test-shim exception
 # (tests/test_settings.py:18, tests/test_macro_strategist.py:26).
 # ---------------------------------------------------------------------------
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]

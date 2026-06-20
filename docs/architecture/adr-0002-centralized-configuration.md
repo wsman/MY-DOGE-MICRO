@@ -18,7 +18,7 @@ WSMAN, python-specialist
 
 ## Summary
 
-MY-DOGE-MICRO's legacy code recomputes `_PROJECT_ROOT` and inserts into `sys.path` independently in ~20 modules under `src/micro/`, `src/macro/`, `src/api/routers/`, `src/interface/`, and `src/ai_analysis/`. This ADR decides that all runtime paths, environment overrides, database locations, TDX endpoints, market constants, and MCP transport settings are owned by a single frozen-dataclass configuration module — `src/doge/config/settings.py` — exposed through the `get_settings()` lazy singleton, and that no new code may recalculate the project root or hardcode paths.
+MY-DOGE-MICRO's legacy code recomputes `_PROJECT_ROOT` and inserts into `sys.path` independently in ~20 modules under `src/micro/`, `src/macro/`, `src/doge/interfaces/api/routers/`, `src/interface/`, and `src/ai_analysis/`. This ADR decides that all runtime paths, environment overrides, database locations, TDX endpoints, market constants, and MCP transport settings are owned by a single frozen-dataclass configuration module — `src/doge/config/settings.py` — exposed through the `get_settings()` lazy singleton, and that no new code may recalculate the project root or hardcode paths.
 
 ## Engine Compatibility
 
@@ -57,7 +57,7 @@ The cost of not deciding is that every new module reinvents path resolution, dee
 
 - A centralized module already exists: `src/doge/config/settings.py` (frozen dataclasses `Settings`/`DBConfig`/`TDXConfig`/`MarketConfig`/`MCPConfig`, lazy `get_settings()`, `reset_settings()` test helper, single `_PROJECT_ROOT` at `settings.py:15`).
 - Clean-architecture code under `src/doge/**` already imports exclusively from `doge.config` (server.py, infrastructure/database/*, infrastructure/cache/*).
-- Legacy modules still recalculate roots: `src/micro/{tdx_downloader,market_scanner,momentum_scanner,industry_analyzer,database}.py`, all `src/api/routers/*.py`, `src/macro/config.py`, `src/cli.py`, `src/interface/{scanner_gui,dashboard,analysis_gui}.py`, and `src/ai_analysis/__init__.py` (which duplicates the env-reading helper).
+- Legacy modules still recalculate roots: `src/micro/{tdx_downloader,market_scanner,momentum_scanner,industry_analyzer,database}.py`, all `src/doge/interfaces/api/routers/*.py`, `src/macro/config.py`, `src/cli.py`, `src/interface/{scanner_gui,dashboard,analysis_gui}.py`, and `src/ai_analysis/__init__.py` (which duplicates the env-reading helper).
 - Environment vars honored: `DOGE_DB_DIR`, `DOGE_CN_DB`, `DOGE_US_DB`, `DOGE_RESEARCH_DB`, `DOGE_DUCKDB_PATH` (documented in `docs/MCP_SERVER.md:386-389`).
 - Process-global BLAS thread shims (`OPENBLAS_NUM_THREADS=1`, `OMP_NUM_THREADS=1`) are set in three separate modules, not in settings.
 - LLM/model configuration (`DEEPSEEK_API_KEY`, `DEEPSEEK_MODEL`, `models_config.json`) lives entirely in `src/macro/config.py`, outside this centralization.
@@ -223,7 +223,7 @@ This ADR's *module* already exists and is consumed by `src/doge/**`. The migrati
 1. **Freeze** (done): `src/doge/config/settings.py` is the canonical implementation; documented in CDD `runtime-configuration`.
 2. **Adopt in new code** (enforced): any new module under `src/doge/**` must import `get_settings()`; ADR-0001 forbidden patterns block alternatives.
 3. **Retire `src/ai_analysis/__init__.py` duplicate** (next): collapse the parallel `_env_path` + `DOGE_*` reading into `get_settings()`; move its DuckDB helpers to `src/doge/infrastructure/`.
-4. **Retire `src/api/routers/*.py` root recalcs** (per-router): replace each `_PROJECT_ROOT = os.path.dirname(...)x4` with `get_settings()`; keep routes behavior-identical; add router tests.
+4. **Retire `src/doge/interfaces/api/routers/*.py` root recalcs** (per-router): replace each `_PROJECT_ROOT = os.path.dirname(...)x4` with `get_settings()`; keep routes behavior-identical; add router tests.
 5. **Retire `src/micro/*.py` and `src/interface/*.py` root recalcs**: route through services/ports per ADR-0001; these are the largest offenders.
 6. **Retire `src/macro/config.py` root recalc** and decide on LLM-config consolidation (Open Question #1).
 7. **Registry migration** (Phase 5, separate blocking approval): move the constants enumerated in CDD Section 4.7 into `docs/registry/entities.yaml` / `architecture.yaml`.

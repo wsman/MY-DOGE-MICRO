@@ -186,9 +186,10 @@ class TestCliLayerGate:
         import doge.interfaces.cli as cli_pkg
 
         pkg_path = Path(inspect.getfile(cli_pkg)).parent
+        legacy_api = "src.api"
         forbidden = ["from micro", "import micro", "from ai_analysis", "import ai_analysis",
                      "from macro", "import macro",
-                     "from src.api", "import src.api",
+                     f"from {legacy_api}", f"import {legacy_api}",
                      "from src.interface", "import src.interface"]
         for source_path in pkg_path.rglob("*.py"):
             text = source_path.read_text(encoding="utf-8")

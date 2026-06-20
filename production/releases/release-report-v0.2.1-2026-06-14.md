@@ -112,7 +112,7 @@ Since this is a single-operator local product with no telemetry or monitoring, t
   - `python src/cli.py demo --market cn --top 3`
 - [ ] Smoke the three runtime surfaces:
   - CLI: `python src/cli.py rsrs --top 10`
-  - API: `python src/api/main.py` then check `http://127.0.0.1:8901/api/health`
+  - API: `python -m uvicorn doge.interfaces.api.main:app --host 127.0.0.1 --port 8901` then check `http://127.0.0.1:8901/api/health`
   - MCP: `python doge_mcp.py --transport stdio --log-level INFO`
 - [ ] Confirm no unexpected `print()` debug output in normal operator workflows.
 

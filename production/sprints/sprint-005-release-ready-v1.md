@@ -22,7 +22,7 @@ an agent over-cleaned test imports.
 | S005-005 | Retry consolidation (`_retry.py` + `YFinanceConfig`) | done | `src/doge/core/services/_retry.py`, YFinance data source |
 | S005-006 | Macro engine routes through `YFinanceDataSource` adapter | done | `src/doge/core/services/composition.py`, macro engine |
 | S005-007 | Macro adapter contract tests | done | `tests/integration/macro/test_data_loader_fetch_combined_via_adapter.py` |
-| S005-008 | `scan.py` `list_distinct_tickers` via `IStockRepository` DI | done | `src/api/routers/scan.py`, `src/doge/infrastructure/repository/sqlite_storage.py` |
+| S005-008 | `scan.py` `list_distinct_tickers` via `IStockRepository` DI | done | `src/doge/interfaces/api/routers/scan.py`, `src/doge/infrastructure/repository/sqlite_storage.py` |
 | S005-009 | `SQLiteStorageRepository` implements `list_distinct_tickers` | done | `src/doge/infrastructure/repository/sqlite_storage.py` |
 
 ## Deferred / Out of Scope

@@ -47,7 +47,7 @@ MY-DOGE-MICRO's storage layer (5 SQLite files + 1 DuckDB analytical file + `view
 Storage is the highest-risk foundation module. Today, two access shapes coexist:
 
 1. **Clean (target)**: `IStockRepository` / `IReportRepository` ports in `src/doge/core/ports/repository.py`, implemented by `DuckDBStockRepository` and `SQLiteReportRepository` in `src/doge/infrastructure/database/repositories.py`, using `DuckDBConnection` and `SQLiteConnection` adapters.
-2. **Legacy (current live path)**: `src/micro/database.py` opens SQLite directly; `src/api/routers/scan.py`, `src/micro/market_scanner.py`, and `src/interface/dashboard.py` import `save_stock_data_custom` / `init_db_custom` directly; `src/ai_analysis` and `market_scanner._refresh_duckdb_views` call the legacy `connect_duckdb()` shim.
+2. **Legacy (current live path)**: `src/micro/database.py` opens SQLite directly; `src/doge/interfaces/api/routers/scan.py`, `src/micro/market_scanner.py`, and `src/interface/dashboard.py` import `save_stock_data_custom` / `init_db_custom` directly; `src/ai_analysis` and `market_scanner._refresh_duckdb_views` call the legacy `connect_duckdb()` shim.
 
 This split means ADR-0001's forbidden patterns (`direct_sqlite_import_in_interface`, `direct_duckdb_connect_in_interface`, `_PROJECT_ROOT_recalculation`) are still violated by the live write path. It also means the destructive `retention_days=180` and the swallowed `except Exception: pass` in `save_stock_data_custom` (`src/micro/database.py:118-155`) are reachable from interface layers with no logging and no config override.
 
@@ -145,7 +145,7 @@ class StorageWriteError(RuntimeError): ...
 
 ### Alternative 1: Keep direct storage access in interfaces
 
-- **Description**: Continue letting `src/api/routers/scan.py` and `market_scanner.py` import `database.py` directly.
+- **Description**: Continue letting `src/doge/interfaces/api/routers/scan.py` and `market_scanner.py` import `database.py` directly.
 - **Pros**: Zero migration cost.
 - **Cons**: Perpetuates ADR-0001 forbidden patterns; the swallowed-exception and destructive-retention risks remain uncontrolled; every new interface duplicates connection logic.
 - **Estimated Effort**: Lowest now, highest over time.
@@ -208,7 +208,7 @@ class StorageWriteError(RuntimeError): ...
 1. **Declare the contract** (this ADR → Accepted) and add the CI grep check (non-blocking warning initially).
 2. **Add `save_prices` + `StorageWriteError` + `DOGE_RETENTION_DAYS`** to the repository; write unit + contract tests.
 3. **Route `market_scanner.py`** through `IStockRepository.save_prices`; verify scan output unchanged.
-4. **Route `src/api/routers/scan.py`** through the repository; remove its direct `database.py` import.
+4. **Route `src/doge/interfaces/api/routers/scan.py`** through the repository; remove its direct `database.py` import.
 5. **Enable WAL + `busy_timeout`** in `SQLiteConnection`; test concurrent read/write.
 6. **Formalize `ICache`** and route `JSONTickerNameCache` behind it.
 7. **Delete legacy free functions** in `src/micro/database.py` once no callers remain; keep `initialize_system_dbs` only if it remains the bootstrapper (and rewrite it to use `DBConfig`).

@@ -38,7 +38,7 @@ This is a **local-first, single-operator** system:
 
 | Port  | Process / surface                                   | Source |
 |-------|-----------------------------------------------------|--------|
-| 8901  | FastAPI app (Tauri sidecar) — `src/api/main.py`     | `src/api/main.py:120` (`uvicorn.run(app, host="127.0.0.1", port=8901)`) |
+| 8901  | FastAPI app (Tauri sidecar) — `doge.interfaces.api.main` | `src/doge/interfaces/api/main.py` (`uvicorn.run(app, host=_resolve_bind_host(), port=8901)`) |
 | 8902  | MCP SSE transport — `doge_mcp.py`                   | `src/doge/interfaces/mcp/server.py` (`--port` default 8902); `MCPConfig.sse_port`, `src/doge/config/settings.py:134` |
 | 7709  | TDX **CN** quote server                             | `TDXConfig.cn_port`, `src/doge/config/settings.py:81` |
 | 7727  | TDX **US** quote server                             | `TDXConfig.us_port`, `src/doge/config/settings.py:82` |
@@ -245,7 +245,7 @@ confirm the export in the **same shell/session** that runs the consumer.
 
 Do not add the key to log statements, error envelopes, or commit messages. The
 API error envelope (`{"error": {"code", "message"}}`, S002-009) is built to
-never leak `str(e)` (`src/api/routers/data.py:108-112`). If you debug a key
+never leak `str(e)` (`src/doge/interfaces/api/routers/data.py`). If you debug a key
 problem, redact the key before sharing logs.
 
 **Built-in protections.** `MacroConfig.__repr__` masks `api_key` as `'***'`
@@ -267,7 +267,7 @@ analytical views defined in `data/views.sql` (enumerated in
 - **Automatically after each CN/US sync** via `market_scanner._refresh_duckdb_views()`
   (`src/micro/market_scanner.py:44-53`), invoked at `:136`, `:168`, `:207`,
   `:238`. Each scan re-runs the full `views.sql`.
-- **Best-effort by the scan router** at `src/api/routers/scan.py:208-215`,
+- **Best-effort by the scan router** at `src/doge/interfaces/api/routers/scan.py`,
   where a refresh failure is swallowed (non-fatal).
 
 The refresh implementation is `DuckDBConnection.refresh_views`
@@ -373,11 +373,11 @@ convention. No workaround is required; the view output is sign-canonical.
 | `python -m src.macro.cli` prints a `RuntimeError` and exits 1 (`DEEPSEEK_API_KEY ... not set ... still carries the placeholder`) | `DEEPSEEK_API_KEY` env var unset/empty and `models_config.json` still has the placeholder | Set `DEEPSEEK_API_KEY=<key>` in the consumer's environment and restart; see [DeepSeek API key environment verification](#deepseek-api-key-environment-verification) | `src/macro/config.py:193-200`; `src/macro/cli.py:79-87` |
 | Macro run returns `None` / "无法获取市场数据" (exits 1) | Network failure fetching market data (yfinance/TDX upstream), not a key problem | Check network reachability to the data source; `data_loader` returned `None` and the CLI exited at `src/macro/cli.py:82-87` | `src/macro/cli.py:82-87`; `design/cdd/macro-strategy-engine.md` §3.2 |
 | First-run yfinance ingest returns no data / scanner empty after a cold start | Yahoo rate-limited the unauthenticated yfinance calls (HTTP 429 Too Many Requests); the `YFinanceDataSource` adapter degraded safely to `None` after its bounded retry (≈3×5s) — no crash, no DB corruption | Wait a few minutes and retry (Yahoo un-throttles); for CN bulk ingest use the TDX downloader (`pip install -e ".[tdx]"` then `python src/micro/tdx_downloader.py`), which is not rate-limited. Environmental, not a code defect (user-test-002 PARTIAL). | `src/doge/infrastructure/data_source/yfinance.py:216-254`; `docs/GETTING_STARTED.md` First scan walkthrough |
-| `database is locked` during a scan | Two writers hit the same SQLite DB concurrently — no `WAL`, no `busy_timeout` is configured | Ensure only one scan per market runs at a time (the scan lock normally serializes this, `src/api/routers/scan.py:46,157`); stop the second writer and retry | `design/cdd/market-data-storage.md` §9.3, Open Question 6 |
+| `database is locked` during a scan | Two writers hit the same SQLite DB concurrently — no `WAL`, no `busy_timeout` is configured | Ensure only one scan per market runs at a time (the scan lock normally serializes this, `src/doge/interfaces/api/routers/scan.py`); stop the second writer and retry | `design/cdd/market-data-storage.md` §9.3, Open Question 6 |
 | DuckDB `ATTACH ... AS cn/us` fails | `DOGE_CN_DB` / `DOGE_US_DB` paths do not sit alongside `DOGE_DUCKDB_PATH` under the resolved `DOGE_DB_DIR` — path mismatch between the DuckDB file and the SQLite files it attaches | Confirm all DB env vars resolve under the same `DOGE_DB_DIR`; `DBConfig` derives `cn_db`/`us_db`/`duckdb` from one `dir` (`__post_init__`), so mixing absolute overrides across the three breaks the attach | `src/doge/config/settings.py:62-67`; `design/cdd/runtime-configuration.md` §3.4 |
 | MCP tool returns "timed out after 30s" | Tool execution exceeded `TOOL_TIMEOUT` (30 s) | Narrow the query (fewer tickers / smaller `days`); for sustained heavy queries, raise is governed by `MCPConfig.tool_timeout` (`src/doge/config/settings.py:131`) | `src/doge/interfaces/mcp/server.py:80,173,182` |
-| SSE scan stream stuck on `running` after a dropped connection | (Resolved in S002-010) The scan now emits a terminal error event (`progress: -1`) and resets status to `idle` in `finally` | If you still observe a stuck `running`, the consumer predates S002-010 — restart the FastAPI app on the current build | `src/api/routers/scan.py:97-103` |
-| API returns `{"error":{"code":"internal_error",...}}` | An unexpected exception reached the global handler; the envelope never leaks `str(e)` | Inspect `logs/app.log` server-side for the stack trace; the response message is deliberately generic | `src/api/routers/data.py:108-112`; S002-009 |
+| SSE scan stream stuck on `running` after a dropped connection | (Resolved in S002-010) The scan now emits a terminal error event (`progress: -1`) and resets status to `idle` in `finally` | If you still observe a stuck `running`, the consumer predates S002-010 — restart the FastAPI app on the current build | `src/doge/interfaces/api/routers/scan.py` |
+| API returns `{"error":{"code":"internal_error",...}}` | An unexpected exception reached the global handler; the envelope never leaks `str(e)` | Inspect `logs/app.log` server-side for the stack trace; the response message is deliberately generic | `src/doge/interfaces/api/routers/data.py`; S002-009 |
 
 ---
 
@@ -435,10 +435,10 @@ stdio transport.
 The platform is built for a single operator and assumes a **single writer per
 market**:
 
-- **Per-market scan locks.** `src/api/routers/scan.py:46` holds one
+- **Per-market scan locks.** `src/doge/interfaces/api/routers/scan.py` holds one
   `threading.Lock` per market (`_scan_locks = {"cn": ..., "us": ...}`). A
   second scan for an already-running market is rejected with HTTP 409
-  (`src/api/routers/scan.py:157`). The lock is released and status reset to
+  (`src/doge/interfaces/api/routers/scan.py`). The lock is released and status reset to
   `idle` in a `finally` block (`:101-103`).
 - **No WAL, no `busy_timeout`.** SQLite runs in its default journal mode with
   no busy timeout. Two concurrent writers to the same DB receive
@@ -446,7 +446,7 @@ market**:
   Open Question 6). Storage performs **no retries** on this error
   (`design/cdd/market-data-storage.md` §9.5).
 - **Single-process uvicorn.** The FastAPI app assumes one uvicorn worker
-  (`src/api/main.py:120`). Scaling to multiple workers would multiply writers
+  (`src/doge/interfaces/api/main.py`). Scaling to multiple workers would multiply writers
   against the same SQLite files and is **not supported** by the current
   contract.
 

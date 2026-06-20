@@ -54,7 +54,7 @@ All four returned CONCERNS; none returned NOT READY.
 - ADR-0004 remains Proposed (TDX adapter stub)
 - ADR-0007 remains Proposed (CORS hardening incomplete)
   - **Resolution (S003-013):** the CORS deferral is now formally recorded in ADR-0007 §Deferral Decision (S003-013, 2026-06-12). ADR-0007 stays Proposed through Verification (deferral, not promotion). Promotion to Accepted is gated on the CORS-hardening story landing OR an explicit strengthened-loopback-guarantee decision, signed off by S003-014 (FRESH `/architecture-review`). The CONCERN's verdict is unchanged; this pointer records where the deferral is documented.
-- Direct DB connections remain in `src/api/routers/` and `src/api/main.py`
+- Direct DB connections remain in `src/doge/interfaces/api/routers/` and `src/doge/interfaces/api/main.py`
 - DuckDB `vw_rsrs_ranking` sign convention xfail-pinned
 
 **Producer**

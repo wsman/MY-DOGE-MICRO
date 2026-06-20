@@ -710,7 +710,8 @@ scripts/start_mcp_sse.sh     # POSIX
 
 ```bash
 # 后端（绑定 127.0.0.1:8901）
-python src/api/main.py
+# canonical source: src/doge/interfaces/api/main.py
+python -m uvicorn doge.interfaces.api.main:app --host 127.0.0.1 --port 8901
 
 # 另开终端启动 Web 控制台（Vite dev server，/api 反代到 8901）
 cd web && npm install && npm run dev

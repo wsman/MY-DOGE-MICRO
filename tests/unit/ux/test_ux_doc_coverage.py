@@ -145,7 +145,7 @@ def test_scanner_flow_documents_terminal_error_banner() -> None:
 
 
 def test_scanner_flow_cites_sse_routes() -> None:
-    """scanner-flow.md must cite the real scan API routes (src/api/routers/scan.py)."""
+    """scanner-flow.md must cite the real scan API routes (src/doge/interfaces/api/routers/scan.py)."""
     text = _read("scanner-flow.md")
     assert "/api/scan/" in text, "scan SSE route must be cited"
     assert "servers/test" in text, "server test route must be cited"

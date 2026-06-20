@@ -167,7 +167,7 @@ constants:
     range: 1-65535
     owner: runtime-configuration
     source: "src/doge/config/settings.py:51"
-    also_at: "src/api/routers/scan.py:50 (duplicate)"
+    also_at: "src/doge/interfaces/api/routers/scan.py (duplicate)"
     notes: "TDX protocol-fixed."
 
   - name: tdx.us_port
@@ -175,7 +175,7 @@ constants:
     unit: TCP port
     owner: runtime-configuration
     source: "src/doge/config/settings.py:52"
-    also_at: "src/api/routers/scan.py:50"
+    also_at: "src/doge/interfaces/api/routers/scan.py"
 
   - name: tdx.timeout
     value: 5
@@ -397,53 +397,53 @@ constants:
   - name: api.fastapi.title
     value: "MY-DOGE API"
     owner: fastapi-service
-    source: "src/api/main.py"
+    source: "src/doge/interfaces/api/main.py"
 
   - name: api.fastapi.version
     value: "0.1.0"
     owner: fastapi-service
-    source: "src/api/main.py"
+    source: "src/doge/interfaces/api/main.py"
 
   - name: api.fastapi.bind_host
     value: "127.0.0.1"
     owner: fastapi-service
-    source: "src/api/main.py:67"
+    source: "src/doge/interfaces/api/main.py"
     notes: "Loopback bind. local-first."
 
   - name: api.fastapi.bind_port
     value: 8901
     unit: TCP port
     owner: fastapi-service
-    source: "src/api/main.py:67"
+    source: "src/doge/interfaces/api/main.py"
 
   - name: api.cors.allow_origins
     value: "[\"*\"]"
     owner: fastapi-service
-    source: "src/api/main.py:22-27"
+    source: "src/doge/interfaces/api/main.py"
     op_risk: MEDIUM
     notes: "Safe ONLY because bind_host=127.0.0.1. Hardening target: explicit localhost origins (ADR-0007)."
 
   - name: api.data.page.default
     value: 1
     owner: fastapi-service
-    source: "src/api/routers/data.py:41"
+    source: "src/doge/interfaces/api/routers/data.py"
 
   - name: api.data.page_size.default
     value: 50
     owner: fastapi-service
-    source: "src/api/routers/data.py:42"
+    source: "src/doge/interfaces/api/routers/data.py"
     notes: "max 500 (Query(le=500))."
 
   - name: api.data.days.default
     value: 120
     owner: fastapi-service
-    source: "src/api/routers/data.py:104"
+    source: "src/doge/interfaces/api/routers/data.py"
     notes: "kline days; max 365 (Query(le=365))."
 
   - name: api.notes.search.min_length
     value: 1
     owner: fastapi-service
-    source: "src/api/routers/notes.py:53"
+    source: "src/doge/interfaces/api/routers/notes.py"
 
   # --- DeepSeek / LLM (Module #4) ---
   - name: deepseek.default_base_url
@@ -551,7 +551,7 @@ constants:
   - name: notes.default.market
     value: "cn"
     owner: research-insight-knowledge-base
-    source: "src/ai_analysis/stock_notes.py:52; src/api/routers/notes.py:15"
+    source: "src/ai_analysis/stock_notes.py:52; src/doge/interfaces/api/routers/notes.py"
     notes: "NOT VALIDATED — any string accepted; non-cn falls through to US price DB."
 
   - name: notes.default.note_type
@@ -567,7 +567,7 @@ constants:
   - name: notes.search.default_limit
     value: 50
     owner: research-insight-knowledge-base
-    source: "src/ai_analysis/stock_notes.py:200; src/api/routers/notes.py:53"
+    source: "src/ai_analysis/stock_notes.py:200; src/doge/interfaces/api/routers/notes.py"
 
   - name: notes.recent.default_days
     value: 7
@@ -710,38 +710,38 @@ entities:
   # --- FastAPI routes (26 canonical product routes) owned by Module #9 ---
   api_routes:
     # main router
-    - {num: 1, method: GET, path: "/api/health", router: main, source: "src/api/main.py:38-40"}
-    - {num: 2, method: GET, path: "/api/stats", router: main, source: "src/api/main.py:43-62"}
+    - {num: 1, method: GET, path: "/api/health", router: main, source: "src/doge/interfaces/api/main.py"}
+    - {num: 2, method: GET, path: "/api/stats", router: main, source: "src/doge/interfaces/api/main.py"}
     # scan router
-    - {num: 3, method: GET, path: "/api/scan/servers", router: scan, source: "src/api/routers/scan.py:44-51"}
-    - {num: 4, method: POST, path: "/api/scan/servers/test", router: scan, source: "src/api/routers/scan.py:58-108"}
-    - {num: 5, method: GET, path: "/api/scan/status", router: scan, source: "src/api/routers/scan.py:121-123"}
-    - {num: 6, method: POST, path: "/api/scan/{market}", router: scan, source: "src/api/routers/scan.py:126-237", notes: "SSE stream; one in-flight per market (409 on concurrent)"}
+    - {num: 3, method: GET, path: "/api/scan/servers", router: scan, source: "src/doge/interfaces/api/routers/scan.py"}
+    - {num: 4, method: POST, path: "/api/scan/servers/test", router: scan, source: "src/doge/interfaces/api/routers/scan.py"}
+    - {num: 5, method: GET, path: "/api/scan/status", router: scan, source: "src/doge/interfaces/api/routers/scan.py"}
+    - {num: 6, method: POST, path: "/api/scan/{market}", router: scan, source: "src/doge/interfaces/api/routers/scan.py", notes: "SSE stream; one in-flight per market (409 on concurrent)"}
     # data router
-    - {num: 7, method: GET, path: "/api/data/{market}/tables", router: data, source: "src/api/routers/data.py:22-34"}
-    - {num: 8, method: GET, path: "/api/data/{market}/table/{table_name}", router: data, source: "src/api/routers/data.py:37-100"}
-    - {num: 9, method: GET, path: "/api/data/{market}/ticker/{ticker}/kline", router: data, source: "src/api/routers/data.py:103-142"}
-    - {num: 10, method: GET, path: "/api/data/{market}/ticker-names", router: data, source: "src/api/routers/data.py:190-197"}
+    - {num: 7, method: GET, path: "/api/data/{market}/tables", router: data, source: "src/doge/interfaces/api/routers/data.py"}
+    - {num: 8, method: GET, path: "/api/data/{market}/table/{table_name}", router: data, source: "src/doge/interfaces/api/routers/data.py"}
+    - {num: 9, method: GET, path: "/api/data/{market}/ticker/{ticker}/kline", router: data, source: "src/doge/interfaces/api/routers/data.py"}
+    - {num: 10, method: GET, path: "/api/data/{market}/ticker-names", router: data, source: "src/doge/interfaces/api/routers/data.py"}
     # notes router
-    - {num: 11, method: GET, path: "/api/notes/ticker/{ticker}", router: notes, source: "src/api/routers/notes.py:21-32"}
-    - {num: 12, method: POST, path: "/api/notes", router: notes, source: "src/api/routers/notes.py:35-49"}
-    - {num: 13, method: GET, path: "/api/notes/search", router: notes, source: "src/api/routers/notes.py:52-59"}
-    - {num: 14, method: GET, path: "/api/notes/recent", router: notes, source: "src/api/routers/notes.py:62-68"}
-    - {num: 15, method: GET, path: "/api/notes/tracked", router: notes, source: "src/api/routers/notes.py:71-77"}
-    - {num: 16, method: DELETE, path: "/api/notes/{note_id}", router: notes, source: "src/api/routers/notes.py:80-92", notes: "200 {ok:true} / 404 not found (soft delete)"}
+    - {num: 11, method: GET, path: "/api/notes/ticker/{ticker}", router: notes, source: "src/doge/interfaces/api/routers/notes.py"}
+    - {num: 12, method: POST, path: "/api/notes", router: notes, source: "src/doge/interfaces/api/routers/notes.py"}
+    - {num: 13, method: GET, path: "/api/notes/search", router: notes, source: "src/doge/interfaces/api/routers/notes.py"}
+    - {num: 14, method: GET, path: "/api/notes/recent", router: notes, source: "src/doge/interfaces/api/routers/notes.py"}
+    - {num: 15, method: GET, path: "/api/notes/tracked", router: notes, source: "src/doge/interfaces/api/routers/notes.py"}
+    - {num: 16, method: DELETE, path: "/api/notes/{note_id}", router: notes, source: "src/doge/interfaces/api/routers/notes.py", notes: "200 {ok:true} / 404 not found (soft delete)"}
     # macro router
-    - {num: 17, method: GET, path: "/api/macro/reports", router: macro, source: "src/api/routers/macro.py:22-35"}
-    - {num: 18, method: GET, path: "/api/macro/reports/latest", router: macro, source: "src/api/routers/macro.py:38-53"}
-    - {num: 19, method: GET, path: "/api/macro/reports/{report_id}", router: macro, source: "src/api/routers/macro.py:56-68"}
-    - {num: 20, method: POST, path: "/api/macro/run", router: macro, source: "src/api/routers/macro.py:71-129", notes: "SSE stream"}
+    - {num: 17, method: GET, path: "/api/macro/reports", router: macro, source: "src/doge/interfaces/api/routers/macro.py"}
+    - {num: 18, method: GET, path: "/api/macro/reports/latest", router: macro, source: "src/doge/interfaces/api/routers/macro.py"}
+    - {num: 19, method: GET, path: "/api/macro/reports/{report_id}", router: macro, source: "src/doge/interfaces/api/routers/macro.py"}
+    - {num: 20, method: POST, path: "/api/macro/run", router: macro, source: "src/doge/interfaces/api/routers/macro.py", notes: "SSE stream"}
     # analysis router
-    - {num: 21, method: GET, path: "/api/analysis/reports", router: analysis, source: "src/api/routers/analysis.py:13-25"}
-    - {num: 22, method: GET, path: "/api/analysis/reports/{report_id}", router: analysis, source: "src/api/routers/analysis.py:28-40"}
+    - {num: 21, method: GET, path: "/api/analysis/reports", router: analysis, source: "src/doge/interfaces/api/routers/analysis.py"}
+    - {num: 22, method: GET, path: "/api/analysis/reports/{report_id}", router: analysis, source: "src/doge/interfaces/api/routers/analysis.py"}
     # config router
-    - {num: 23, method: GET, path: "/api/config", router: config, source: "src/api/routers/config.py:28-32"}
-    - {num: 24, method: GET, path: "/api/config/settings", router: config, source: "src/api/routers/config.py:35-39"}
-    - {num: 25, method: PUT, path: "/api/config/settings", router: config, source: "src/api/routers/config.py:46-54"}
-    - {num: 26, method: POST, path: "/api/config/validate-tdx", router: config, source: "src/api/routers/config.py:57-68"}
+    - {num: 23, method: GET, path: "/api/config", router: config, source: "src/doge/interfaces/api/routers/config.py"}
+    - {num: 24, method: GET, path: "/api/config/settings", router: config, source: "src/doge/interfaces/api/routers/config.py"}
+    - {num: 25, method: PUT, path: "/api/config/settings", router: config, source: "src/doge/interfaces/api/routers/config.py"}
+    - {num: 26, method: POST, path: "/api/config/validate-tdx", router: config, source: "src/doge/interfaces/api/routers/config.py"}
   api_router_prefixes:
     scan: "/api/scan"
     data: "/api/data"

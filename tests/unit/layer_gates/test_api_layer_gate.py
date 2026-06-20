@@ -55,18 +55,22 @@ class TestApiLayerGate:
                     f"{source_path.relative_to(pkg_path)} imports deprecated composition: {pattern}"
                 )
 
-    def test_api_package_does_not_import_src_api(self):
-        """The new canonical surface must not depend on the legacy src.api shim."""
+    def test_canonical_surfaces_do_not_import_src_api(self):
+        """Canonical packages must not depend on the deprecated src.api shim."""
         import doge.interfaces.api as api_pkg
+        import doge.application as app_pkg
+        import doge.infrastructure as infra_pkg
 
-        pkg_path = Path(inspect.getfile(api_pkg)).parent
-        forbidden = ["from src.api", "import src.api"]
-        for source_path in pkg_path.rglob("*.py"):
-            text = source_path.read_text(encoding="utf-8")
-            for pattern in forbidden:
-                assert pattern not in text, (
-                    f"{source_path.relative_to(pkg_path)} imports legacy src.api: {pattern}"
-                )
+        legacy_api = "src.api"
+        forbidden = [f"from {legacy_api}", f"import {legacy_api}"]
+        for pkg in (api_pkg, app_pkg, infra_pkg):
+            pkg_path = Path(inspect.getfile(pkg)).parent
+            for source_path in pkg_path.rglob("*.py"):
+                text = source_path.read_text(encoding="utf-8")
+                for pattern in forbidden:
+                    assert pattern not in text, (
+                        f"{source_path} imports deprecated {legacy_api}: {pattern}"
+                    )
 
     def test_api_deps_is_the_only_infra_import_site(self):
         """Only deps.py may import infrastructure adapters in the API package."""

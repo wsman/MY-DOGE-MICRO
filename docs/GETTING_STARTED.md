@@ -16,7 +16,7 @@ to loopback so it is safe to run on a developer workstation:
 | Surface | Entry point | Default bind | Purpose |
 |---------|-------------|--------------|---------|
 | **PyQt desktop dashboard** | `src/interface/dashboard.py` | local GUI window | Operator scan / macro / notes UI |
-| **FastAPI HTTP backend** | `src/api/main.py` | `127.0.0.1:8901` | REST + SSE API consumed by the web console |
+| **FastAPI HTTP backend** | `src/doge/interfaces/api/main.py` | `127.0.0.1:8901` | REST + SSE API consumed by the web console |
 | **MCP server** | `doge_mcp.py` | stdio, or `127.0.0.1:8902` (SSE) | Tool layer for Claude Code / MCP clients |
 
 You do not need all three at once. The two most common setups are:
@@ -206,25 +206,28 @@ Both invoke `doge_mcp.py --transport sse --host … --port …`
 ## Start the FastAPI backend
 
 ```bash
-python src/api/main.py
+python -m uvicorn doge.interfaces.api.main:app --host 127.0.0.1 --port 8901
 ```
 
-Binds `127.0.0.1:8901` (`src/api/main.py:118-120`). This process serves the
+Binds `127.0.0.1:8901` (`src/doge/interfaces/api/main.py`). This process serves the
 REST + SSE API consumed by the Vue web console. It registers six routers under
 `/api/{scan,data,notes,macro,analysis,config}` plus `/api/health` and
-`/api/stats` (`src/api/main.py:83-115`).
+`/api/stats` (`src/doge/interfaces/api/main.py`).
 
 The API uses a stable error envelope — every `HTTPException` is reshaped into
 `{"error": {"code", "message"}}` with string-enum codes
 (`bad_request` / `not_found` / `conflict` / `unprocessable` / `internal_error`,
-`src/api/main.py:33-57`); unhandled exceptions return a fixed operator-safe
-`internal server error` body with no stack-trace leak (`src/api/main.py:60-74`).
+`src/doge/interfaces/api/main.py`); unhandled exceptions return a fixed operator-safe
+`internal server error` body with no stack-trace leak (`src/doge/interfaces/api/main.py`).
 
 > **Local-only safety boundary.** The server binds `127.0.0.1` and CORS is
-> `allow_origins=["*"]` (`src/api/main.py:26-31`) — acceptable *only* because
+> `allow_origins=["*"]` (`src/doge/interfaces/api/main.py`) — acceptable *only* because
 > the bind address prevents remote access. Binding to `0.0.0.0` would expose
 > the API with no authentication; do not do this on a shared host.
 > CORS hardening is tracked under ADR-0007 (Proposed).
+
+`src/api` remains only as a deprecated compatibility redirect shim. New
+integrations and operator commands should use `doge.interfaces.api`.
 
 ## Start the web console
 
@@ -285,7 +288,7 @@ The fastest end-to-end path with **no LLM key required** (pure analytics):
    ```bash
    python src/cli.py demo
    ```
-3. Start the FastAPI backend (`python src/api/main.py`).
+3. Start the FastAPI backend (`python -m uvicorn doge.interfaces.api.main:app --host 127.0.0.1 --port 8901`).
 4. Open the web console (`cd web && npm run dev`) and use the **Scanner** tab,
    **or** drive the query CLI directly:
    ```bash
@@ -312,7 +315,7 @@ curl http://127.0.0.1:8902/health
 
 # FastAPI backend
 curl http://127.0.0.1:8901/api/health
-# → {"status":"ok"}     (src/api/main.py:91-93)
+# → {"status":"ok"}     (src/doge/interfaces/api/main.py)
 ```
 
 If the MCP `/health` call fails, the DuckDB attach to the SQLite sources could

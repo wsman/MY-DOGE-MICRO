@@ -1,7 +1,7 @@
 # HTTP API Reference (FastAPI)
 
 The local-first HTTP backend of MY-DOGE-MICRO. A single FastAPI application
-(`src/api/main.py`) binds to `127.0.0.1:8901` and exposes **51 product routes**:
+(`doge.interfaces.api.main`) binds to `127.0.0.1:8901` and exposes **51 product routes**:
 34 legacy `/api/*` routes plus 17 daemon/v1 routes (`sessions`, `runs`,
 `documents`, `tools`, `health`). It is the surface the
 Vue web console (`web/`) and optionally the PyQt desktop dashboard call to
@@ -39,23 +39,26 @@ install.
 
 | Property | Value | Source |
 |---|---|---|
-| Application | `FastAPI(title="MY-DOGE API", version="0.1.0")` | `src/api/main.py:24` |
-| Bind host | `127.0.0.1` (loopback only) | `src/api/main.py:120` |
-| Bind port | `8901` | `src/api/main.py:120` |
+| Application | `FastAPI(title="MY-DOGE API", version="0.1.0")` | `src/doge/interfaces/api/main.py` |
+| Bind host | `127.0.0.1` (loopback only) | `src/doge/interfaces/api/main.py` |
+| Bind port | `8901` | `src/doge/interfaces/api/main.py` |
 | Auth | None (local-first) | see [Authentication](#authentication) |
-| Routers | legacy `/api/*` routers + v1 daemon routers | `src/api/main.py` |
-| Product routes | 51 (34 legacy routes + 17 v1/health routes) | `src/api/main.py` |
+| Routers | legacy `/api/*` routers + v1 daemon routers | `src/doge/interfaces/api/main.py` |
+| Product routes | 51 (34 legacy routes + 17 v1/health routes) | `src/doge/interfaces/api/main.py` |
 | Framework | FastAPI 0.123.8 + uvicorn 0.38.0 | `pyproject.toml:19-20` |
 | Streaming | sse-starlette 3.0.3 (`EventSourceResponse`) | `pyproject.toml:21` |
 
-The server is started directly:
+The canonical server is started directly:
 
 ```bash
-python src/api/main.py        # uvicorn.run(app, host="127.0.0.1", port=8901)
+python -m uvicorn doge.interfaces.api.main:app --host 127.0.0.1 --port 8901
 ```
 
+`src/api` remains only as a deprecated compatibility redirect shim. New
+integrations should import or launch `doge.interfaces.api`.
+
 Two BLAS/OpenMP thread-count shims are set at import via
-`os.environ.setdefault` (`src/api/main.py:13-14`) — `OPENBLAS_NUM_THREADS=1`
+`os.environ.setdefault` (`src/doge/interfaces/api/main.py`) — `OPENBLAS_NUM_THREADS=1`
 and `OMP_NUM_THREADS=1` — shared with the DuckDB/ai_analysis layers.
 
 ## Base URL & Transports
@@ -69,7 +72,7 @@ Two response modes are used (`design/cdd/fastapi-service.md` §9.1):
    `Content-Type: application/json`. Request and response bodies are JSON.
 2. **Server-Sent Events (SSE)** — three endpoints return an
    `EventSourceResponse` with `Content-Type: text/event-stream`:
-   - `POST /api/scan/{market}` (`src/api/routers/scan.py:268`)
+  - `POST /api/scan/{market}` (`src/doge/interfaces/api/routers/scan.py`)
    - `POST /api/macro/run` (`src/doge/interfaces/api/routers/macro.py`)
    - `GET /api/agent/runs/{run_id}/stream` (`src/doge/interfaces/api/routers/agent.py`)
 
@@ -83,7 +86,7 @@ itself (local-first; a reverse proxy would own TLS if ever needed).
 **None.** This is a local-first API with no remote clients in scope. Safety
 rests entirely on the loopback bind:
 
-- The server binds to `127.0.0.1` (`src/api/main.py:120`), so no remote client
+- The server binds to `127.0.0.1` (`src/doge/interfaces/api/main.py`), so no remote client
   can reach it in the default configuration.
 - `.claude/rules/api-code.md`'s "auth failure" contract-test case is therefore
   N/A and intentionally skipped (documented in `tests/test_api_routers.py:5-8`).
@@ -91,7 +94,7 @@ rests entirely on the loopback bind:
 > **WARNING — rebinding is a security event.** If you change the bind host to
 > `0.0.0.0` (or any non-loopback interface) the API becomes reachable from the
 > LAN **with no authentication and with permissive CORS**
-> (`allow_origins=["*"]`, `src/api/main.py:28`). Binding off-loopback REQUIRES
+> (`allow_origins=["*"]`, `src/doge/interfaces/api/main.py`). Binding off-loopback REQUIRES
 > both (a) tightening CORS to an explicit origin allow-list and (b) adding an
 > auth layer — see [CORS](#cors) and ADR-0007 §Decision 2 + Migration Plan
 > step 3. Neither exists today.
@@ -107,10 +110,10 @@ code cannot drift.
 
 | # | Method | Path | Purpose | file:line |
 |---|---|---|---|---|
-| 1 | GET | `/api/health` | Liveness probe → `{"status":"ok"}` | `src/api/main.py:91-93` |
-| 2 | GET | `/api/stats` | Per-DB per-table row counts | `src/api/main.py:96-115` |
+| 1 | GET | `/api/health` | Liveness probe → `{"status":"ok"}` | `src/doge/interfaces/api/main.py` |
+| 2 | GET | `/api/stats` | Per-DB per-table row counts | `src/doge/interfaces/api/main.py` |
 
-### scan router — prefix `/api/scan` (`src/api/routers/scan.py`)
+### scan router — prefix `/api/scan` (`src/doge/interfaces/api/routers/scan.py`)
 
 | # | Method | Path | Purpose | file:line |
 |---|---|---|---|---|
@@ -119,7 +122,7 @@ code cannot drift.
 | 5 | GET | `/api/scan/status` | In-memory scan status | `scan.py:147-149` |
 | 6 | POST | `/api/scan/{market}` | Start scan (SSE) | `scan.py:152-268` |
 
-### data router — prefix `/api/data` (`src/api/routers/data.py`)
+### data router — prefix `/api/data` (`src/doge/interfaces/api/routers/data.py`)
 
 | # | Method | Path | Purpose | file:line |
 |---|---|---|---|---|
@@ -128,7 +131,7 @@ code cannot drift.
 | 9 | GET | `/api/data/{market}/ticker/{ticker}/kline` | OHLCV + MA kline (DuckDB) | `data.py:103-143` |
 | 10 | GET | `/api/data/{market}/ticker-names` | Ticker→name map | `data.py:191-198` |
 
-### notes router — prefix `/api/notes` (`src/api/routers/notes.py`)
+### notes router — prefix `/api/notes` (`src/doge/interfaces/api/routers/notes.py`)
 
 | # | Method | Path | Purpose | file:line |
 |---|---|---|---|---|
@@ -139,7 +142,7 @@ code cannot drift.
 | 15 | GET | `/api/notes/tracked` | Tracked tickers | `notes.py:61-64` |
 | 16 | DELETE | `/api/notes/{note_id}` | Soft-delete a note | `notes.py:67-79` |
 
-### macro router — prefix `/api/macro` (`src/api/routers/macro.py`)
+### macro router — prefix `/api/macro` (`src/doge/interfaces/api/routers/macro.py`)
 
 | # | Method | Path | Purpose | file:line |
 |---|---|---|---|---|
@@ -148,14 +151,14 @@ code cannot drift.
 | 19 | GET | `/api/macro/reports/{report_id}` | Single macro report | `macro.py:56-68` |
 | 20 | POST | `/api/macro/run` | Run macro analysis (SSE) | `macro.py:71-129` |
 
-### analysis router — prefix `/api/analysis` (`src/api/routers/analysis.py`)
+### analysis router — prefix `/api/analysis` (`src/doge/interfaces/api/routers/analysis.py`)
 
 | # | Method | Path | Purpose | file:line |
 |---|---|---|---|---|
 | 21 | GET | `/api/analysis/reports` | List research reports | `analysis.py:13-25` |
 | 22 | GET | `/api/analysis/reports/{report_id}` | Single research report | `analysis.py:28-40` |
 
-### config router — prefix `/api/config` (`src/api/routers/config.py`)
+### config router — prefix `/api/config` (`src/doge/interfaces/api/routers/config.py`)
 
 | # | Method | Path | Purpose | file:line |
 |---|---|---|---|---|
@@ -516,7 +519,7 @@ See [Concurrency](#concurrency).
 
 ## CORS
 
-**Current state** (`src/api/main.py:26-31`):
+**Current state** (`src/doge/interfaces/api/main.py`):
 
 ```python
 app.add_middleware(
@@ -528,7 +531,7 @@ app.add_middleware(
 ```
 
 `OPTIONS` preflight from a browser is answered permissively. This is safe
-**only because** the server binds to `127.0.0.1` (`src/api/main.py:120`); no
+**only because** the server binds to `127.0.0.1` (`src/doge/interfaces/api/main.py`); no
 remote client can reach it in the default deployment. The Vue web console is
 served from the same origin or a `localhost` dev server, so `*` is operationally
 equivalent to `http://localhost:*`.
@@ -550,19 +553,19 @@ stable, non-leaking envelope:
 {"error": {"code": "<stable-code>", "message": "<operator-safe message>"}}
 ```
 
-implemented by two global exception handlers in `src/api/main.py`:
+implemented by two global exception handlers in `doge.interfaces.api.main`:
 
-- `@app.exception_handler(HTTPException)` (`src/api/main.py:45-57`) — reshapes
+- `@app.exception_handler(HTTPException)` (`src/doge/interfaces/api/main.py`) — reshapes
   every `HTTPException(4xx/5xx, detail)` into the envelope, passing
   `exc.detail` (operator-authored fixed text) through unchanged as `message`.
-- `@app.exception_handler(Exception)` (`src/api/main.py:60-74`) — catch-all for
+- `@app.exception_handler(Exception)` (`src/doge/interfaces/api/main.py`) — catch-all for
   any otherwise-unhandled exception. The raw exception (type, message,
   traceback) is logged server-side via
   `logging.getLogger("doge.api").exception(...)` and is **never returned**; the
   response body is the fixed `{"error": {"code": "internal_error", "message":
   "internal server error"}}`.
 
-The `code` field is a **string enum** (`src/api/main.py:36-42`), not a numeric
+The `code` field is a **string enum** (`src/doge/interfaces/api/main.py`), not a numeric
 string, so UI consumers (and the S002-010 SSE client) can branch on
 `error.error.code`:
 
@@ -578,7 +581,7 @@ string, so UI consumers (and the S002-010 SSE client) can branch on
 > **422 special case**: FastAPI's default `RequestValidationError` handler is
   intentionally left as-is (emits `{"detail": [...]}`). Enveloping Pydantic
   validation errors was out of scope for S002-009; existing tests assert the
-  **422** status code only (`src/api/main.py:76-79`). S002-011 owns any
+  **422** status code only (`src/doge/interfaces/api/main.py`). S002-011 owns any
   follow-on.
 
 ### Status codes by situation
@@ -623,7 +626,7 @@ need retries must implement them at the HTTP layer.
 - **Single-process assumption**: `_scan_locks`/`_scan_status` are module-global.
   uvicorn `--workers > 1` would break the single-scan-per-market guarantee
   (each worker has its own lock map). The deployment assumption is a single
-  uvicorn worker (`python src/api/main.py`).
+  uvicorn worker (`python -m uvicorn doge.interfaces.api.main:app --host 127.0.0.1 --port 8901`).
 
 ## OpenAPI
 
@@ -648,9 +651,9 @@ here).
   integration requirements §9).
 - [ADR-0007](architecture/adr-0007-api-surface-and-cors.md) — API surface
   enumeration, CORS local-first rationale, error-envelope decision.
-- `src/api/main.py` — application construction (app, CORS, exception handlers,
+- `src/doge/interfaces/api/main.py` — application construction (app, CORS, exception handlers,
   routers, bind).
-- `src/api/routers/{scan,data,notes,macro,analysis,config}.py` — the six
+- `src/doge/interfaces/api/routers/{scan,data,notes,macro,analysis,config}.py` — the six
   routers.
 - `tests/test_api_routers.py` — 57-case router contract suite (every endpoint:
   success + validation failure + edge case).

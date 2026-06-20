@@ -133,7 +133,7 @@ sprints:
         status: done
         depends_on: [S007-001, S007-003]
         blocking_gate: true
-        note: "Migrate src/api/routers/*.py and src/api/main.py to src/doge/interfaces/api/. Legacy src/api/ becomes shim. Routers delegate to application use cases via deps.py providers."
+        note: "Migrate src/doge/interfaces/api/routers/*.py and src/doge/interfaces/api/main.py to src/doge/interfaces/api/. Legacy src/api/ becomes shim. Routers delegate to application use cases via deps.py providers."
 
       - id: S007-004
         title: "ai_analysis DuckDB/SQLite helpers → repository"
@@ -419,7 +419,7 @@ sprints:
       - "At least one user-test report exists in production/qa/evidence/user-tests/."
       - "QA plan and smoke report cover at least 3 surfaces."
       - "Performance baseline profile exists and is compared against declared budgets."
-      - "src/api/routers/ and src/api/main.py contain no direct sqlite3.connect / connect_duckdb calls."
+      - "src/doge/interfaces/api/routers/ and src/doge/interfaces/api/main.py contain no direct sqlite3.connect / connect_duckdb calls."
       - "RSRS DuckDB view sign convention matches Python path; DDL is version controlled."
       - "ADR-0004 and ADR-0007 states are finalized with documented rationale."
       - "python -m pytest -q green; web build and web tests green; layer gates pass."
@@ -452,7 +452,7 @@ sprints:
         title: "API 路由依赖注入（deps.py + 路由脱离 sqlite3.connect）"
         epic: ep-architecture-cleanup
         tr: TR-041
-        source: "gate-check technical concern: direct DB connections in src/api/routers/"
+        source: "gate-check technical concern: direct DB connections in src/doge/interfaces/api/routers/"
         priority: HIGH
         effort: L
         owner: python-specialist
@@ -657,7 +657,7 @@ sprints:
         owner: python-specialist
         status: done
         blocking_gate: false
-        note: "Commit d6dcb5d. INoteRepository(ABC) split from IReportRepository (closes OQ-4) + SQLiteNoteRepository adapter; src/api/routers/notes.py 6 handlers via Depends(get_note_repository). Porting-drift fixed (DB isolation + error-envelope tests)."
+        note: "Commit d6dcb5d. INoteRepository(ABC) split from IReportRepository (closes OQ-4) + SQLiteNoteRepository adapter; src/doge/interfaces/api/routers/notes.py 6 handlers via Depends(get_note_repository). Porting-drift fixed (DB isolation + error-envelope tests)."
 
       - id: S004-003
         title: "query_stock.stock_overview 改用 get_ticker_with_context (§6 gate green)"
@@ -693,7 +693,7 @@ sprints:
         owner: python-specialist
         status: done
         blocking_gate: false
-        note: "Commit 9696ec3. _resolve_bind_host() fail-closed assertion in src/api/main.py; DOGE_BIND_HOST knob; 6 tests. ADR-0007 Status flip deferred to S004-008b (needs fresh /architecture-review sign-off per ADR-0007:46-49)."
+        note: "Commit 9696ec3. _resolve_bind_host() fail-closed assertion in src/doge/interfaces/api/main.py; DOGE_BIND_HOST knob; 6 tests. ADR-0007 Status flip deferred to S004-008b (needs fresh /architecture-review sign-off per ADR-0007:46-49)."
 
       - id: S004-006
         title: "verification-milestone exit criteria 全 [x] (§4 + §6 green)"

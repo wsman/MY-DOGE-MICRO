@@ -64,7 +64,7 @@ from typing import Any, Callable
 # ── Path bootstrap (mirrors tests/test_api_routers.py) ──────────────────────
 # The operator's site-packages may contain a .pth pointing at a sibling project
 # (MY-DOGE-PRO) whose ``src`` package shadows this one. Strip polluting entries
-# and insert ONLY this project's root so ``import src.api`` resolves here.
+# and insert ONLY this project's root so local package imports resolve here.
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path[:] = [
     p for p in sys.path
@@ -203,7 +203,7 @@ def profile_mcp_tools(runs: int) -> list[dict]:
 def profile_health(runs: int) -> list[dict]:
     """Profile FastAPI /api/health via Starlette TestClient (no socket)."""
     from starlette.testclient import TestClient
-    from src.api import main as api_main
+    from doge.interfaces.api import main as api_main
 
     client = TestClient(api_main.app)
     samples: list[float] = []

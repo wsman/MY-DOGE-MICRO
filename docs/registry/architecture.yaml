@@ -181,7 +181,7 @@ interfaces:
     consumers: [mcp-server, fastapi-service, pyqt-desktop-dashboard, market-reporting, research-insight-knowledge-base]
     adr: docs/architecture/adr-0003-storage-repository-contract.md
     signature: "IStockRepository / IReportRepository ports (no direct sqlite3/duckdb in interface layers)"
-    notes: "Target shape. The MCP monolith is retired; legacy direct-connect remains in src/api/routers/* (Module #12 migration)."
+    notes: "Target shape. The MCP monolith is retired; legacy direct-connect remains in src/doge/interfaces/api/routers/* (Module #12 migration)."
     referenced_by:
       - docs/architecture/adr-0001-brownfield-clean-architecture.md
     added: "2026-06-12"
@@ -234,7 +234,7 @@ forbidden_patterns:
     description: "No file under src/api/, src/doge/interfaces/, src/interface/, or the MCP/web layers may import sqlite3 or call sqlite3.connect(). All storage access via IStockRepository / IReportRepository."
     why: "Direct SQLite access in interfaces duplicates connection logic, bypasses retention/error contracts, and makes the layer untestable in isolation."
     adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
-    current_offenders: "src/api/routers/data.py:7, src/api/routers/scan.py:150 (init_db_custom), src/api/routers/notes.py (lazy stock_notes import)"
+    current_offenders: "src/doge/interfaces/api/routers/data.py, src/doge/interfaces/api/routers/scan.py (init_db_custom), src/doge/interfaces/api/routers/notes.py (lazy stock_notes import)"
     added: "2026-06-12"
 
   - pattern: direct_duckdb_connect_in_interface
@@ -242,7 +242,7 @@ forbidden_patterns:
     description: "No interface module may import duckdb or call duckdb.connect / connect_duckdb. Use DuckDBConnection adapter."
     why: "Same as above for the analytical-read layer; preserves zero-copy read-only contract."
     adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
-    current_offenders: "src/api/routers/scan.py:210-211, src/ai_analysis/__init__.py:97-114 (legacy connect_duckdb)"
+    current_offenders: "src/doge/interfaces/api/routers/scan.py, src/ai_analysis/__init__.py:97-114 (legacy connect_duckdb)"
     added: "2026-06-12"
 
   - pattern: sys_path_insert
@@ -252,7 +252,7 @@ forbidden_patterns:
     adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
     referenced_by:
       - docs/architecture/adr-0002-centralized-configuration.md
-    current_offenders: "src/micro/{tdx_downloader,market_scanner,industry_analyzer}.py, all src/api/routers/*.py, src/cli.py, src/macro/cli.py, src/interface/scanner_gui.py, src/ai_analysis/*.py"
+    current_offenders: "src/micro/{tdx_downloader,market_scanner,industry_analyzer}.py, all src/doge/interfaces/api/routers/*.py, src/cli.py, src/macro/cli.py, src/interface/scanner_gui.py, src/ai_analysis/*.py"
     added: "2026-06-12"
 
   - pattern: _PROJECT_ROOT_recalculation

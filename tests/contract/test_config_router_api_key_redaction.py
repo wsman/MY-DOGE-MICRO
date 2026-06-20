@@ -18,7 +18,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 # Make src/ importable (documented test-shim exception). Filter out sibling
-# projects on sys.path so `src.api` resolves to THIS repo (mirrors
+# projects on sys.path so this repo resolves first (mirrors
 # tests/test_api_routers.py:79-83).
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path[:] = [
@@ -26,8 +26,8 @@ sys.path[:] = [
     if p and "MY-DOGE-PRO" not in p and "opendoge" not in p
 ]
 
-from src.api import main as api_main  # noqa: E402
-from src.api.routers import config as config_router  # noqa: E402
+from doge.interfaces.api import main as api_main  # noqa: E402
+from doge.interfaces.api.routers import config as config_router  # noqa: E402
 
 _SK_PREFIX_RE = re.compile(r"^sk-")
 PLACEHOLDER = "REPLACE_WITH_DEEPSEEK_API_KEY"
@@ -155,7 +155,7 @@ class TestGetConfigRedactsApiKey:
 class TestRedactHelperIsSurgical:
     def test_redact_helper_drops_api_key_from_each_profile(self):
         # Arrange
-        from src.api.routers.config import _redact_api_keys
+        from doge.interfaces.api.routers.config import _redact_api_keys
 
         config = {
             "profiles": [
@@ -177,7 +177,7 @@ class TestRedactHelperIsSurgical:
 
     def test_redact_helper_handles_missing_profiles_key(self):
         # Arrange — defensive: a config dict without profiles must not crash
-        from src.api.routers.config import _redact_api_keys
+        from doge.interfaces.api.routers.config import _redact_api_keys
 
         # Act
         redacted = _redact_api_keys({"default_profile": "x"})

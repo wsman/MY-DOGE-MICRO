@@ -20,7 +20,7 @@ The reviewer's task is to render a verdict on whether Sprint 003 may close with 
 
 | Story | Deliverable | Status | Evidence |
 |---|---|---|---|
-| S003-003 | API router dependency injection | Done | `src/api/routers/` refactored; no direct `sqlite3.connect` / `connect_duckdb` in routers; contract tests green |
+| S003-003 | API router dependency injection | Done | `src/doge/interfaces/api/routers/` refactored; no direct `sqlite3.connect` / `connect_duckdb` in routers; contract tests green |
 | S003-005 | RSRS DuckDB view sign convention fix | Done | `vw_rsrs_ranking` sign convention aligned with Python RSRS path; xfail removed |
 | S003-013 | CORS deferral formally recorded | Done | ADR-0007 §Deferral Decision (S003-013, 2026-06-12) written; deferral rationale documented |
 
@@ -49,9 +49,9 @@ Or does the reviewer require ADR-0004 promotion to **Accepted** now, which would
 
 **Current state**: `Proposed` (since 2026-06-12; deferral decision S003-013 added same day).
 
-**What is done**: Error envelope fully implemented — two global exception handlers (`@app.exception_handler(HTTPException)` + `@app.exception_handler(Exception)`) registered in `src/api/main.py`; six `try/except ... raise HTTPException(500, str(e))` wrappers removed from `data.py` and `notes.py`; regression locked behind `tests/contract/test_api_error_envelope.py`.
+**What is done**: Error envelope fully implemented — two global exception handlers (`@app.exception_handler(HTTPException)` + `@app.exception_handler(Exception)`) registered in `src/doge/interfaces/api/main.py`; six `try/except ... raise HTTPException(500, str(e))` wrappers removed from `data.py` and `notes.py`; regression locked behind `tests/contract/test_api_error_envelope.py`.
 
-**What remains**: CORS hardening — `allow_origins=["*"]` (`src/api/main.py:28`) remains permissive. The server binds to `127.0.0.1:8901` (loopback-only). No authentication is in scope (local-first design constraint).
+**What remains**: CORS hardening — `allow_origins=["*"]` (`src/doge/interfaces/api/main.py`) remains permissive. The server binds to `127.0.0.1:8901` (loopback-only). No authentication is in scope (local-first design constraint).
 
 **Question for reviewer**: Is the combination of **loopback-only bind** (`127.0.0.1:8901`) + **`allow_origins=['*']`** an acceptable security posture for the Verification stage, such that ADR-0007 may remain **Proposed** through Sprint 003 closure?
 
@@ -89,7 +89,7 @@ The following concerns from the Implementation → Verification gate check (`pro
 **Technical Director concerns (directly applicable)**:
 - ADR-0004 remains Proposed (TDX adapter stub) — the TDX adapter is not yet implemented; `tdx_downloader.py` remains a functional legacy shim.
 - ADR-0007 remains Proposed (CORS hardening incomplete) — the CORS deferral is now formally recorded (S003-013), but the ADR itself stays Proposed through Verification.
-- Direct DB connections remain in `src/api/routers/` and `src/api/main.py` — partially addressed by S003-003 (router DI done); any remaining direct connections should be flagged by the reviewer.
+- Direct DB connections remain in `src/doge/interfaces/api/routers/` and `src/doge/interfaces/api/main.py` — partially addressed by S003-003 (router DI done); any remaining direct connections should be flagged by the reviewer.
 - DuckDB `vw_rsrs_ranking` sign convention was xfail-pinned — addressed by S003-005; no longer relevant.
 
 **Other director concerns (context only, not ADR-gating)**:

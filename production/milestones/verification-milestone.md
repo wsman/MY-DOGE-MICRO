@@ -37,7 +37,7 @@ The milestone is complete when all of the following are true:
      - Memory bounded by local dataset size
 
 4. **Architecture Cleanup**
-   - [x] `src/api/routers/` and `src/api/main.py` contain no direct `sqlite3.connect` / `connect_duckdb` calls.
+   - [x] `src/doge/interfaces/api/routers/` and `src/doge/interfaces/api/main.py` contain no direct `sqlite3.connect` / `connect_duckdb` calls.
    - [x] RSRS DuckDB view sign convention matches Python RSRS path.
    - [x] DDL for analytical views is under version control.
 

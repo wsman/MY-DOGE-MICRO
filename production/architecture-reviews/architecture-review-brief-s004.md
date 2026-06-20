@@ -20,12 +20,12 @@ green. This review is the **independent sign-off** before the fresh `/gate-check
 ADR-0007 (API surface + CORS) stays Proposed; its promotion path (1b) is gated on
 a fresh `/architecture-review` sign-off (ADR-0007:46-49 — this review is that
 authority). S004-005 implemented the guarantee:
-- `src/api/main.py`: `_resolve_bind_host()` asserts the bind host is loopback
+- `src/doge/interfaces/api/main.py`: `_resolve_bind_host()` asserts the bind host is loopback
   (`127.0.0.1`/`localhost`/`::1`); `__main__` calls it via `DOGE_BIND_HOST`.
   Any non-loopback bind raises `AssertionError` (fail-closed) before
   `uvicorn.run`. CORS stays `allow_origins=["*"]` (safe only under loopback);
   auth deferred (local-first).
-- Tests: `tests/test_api_loopback_guarantee.py` (6 tests).
+- Tests: `tests/compat/test_api_loopback_guarantee.py` (6 tests).
 
 **Rule**: Is the loopback guarantee sound + unavoidable? If yes, authorize
 ADR-0007's flip to Accepted (S004-008b will then flip Status + the governance
@@ -60,7 +60,7 @@ src/api src/doge/interfaces src/interface` → ZERO hits. The cleanup:
 
 ## Key files
 - ADRs: `docs/architecture/adr-0004-*.md` (Accepted), `adr-0007-*.md` (Proposed).
-- Loopback: `src/api/main.py` (`_resolve_bind_host`), `tests/test_api_loopback_guarantee.py`.
+- Loopback: `src/doge/interfaces/api/main.py` (`_resolve_bind_host`), `tests/compat/test_api_loopback_guarantee.py`.
 - TDX: `src/doge/infrastructure/data_source/tdx.py`, `tests/test_tdx_adapter.py`, `src/doge/core/ports/data_source.py`.
 - Notes port: `src/doge/core/ports/repository.py` (`INoteRepository`),
   `src/doge/infrastructure/database/repositories.py` (`SQLiteNoteRepository`),
