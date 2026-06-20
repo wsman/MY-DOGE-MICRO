@@ -58,6 +58,13 @@ export const VIEW_REGISTRY: Record<ViewId, ViewRegistryEntry> = {
     loader: () => import('./AnalysisView.vue'),
     minWidth: 300,
   },
+  'research-agent': {
+    id: 'research-agent',
+    label: 'Research Agent',
+    icon: 'spark',
+    loader: () => import('./ResearchAgentView.vue'),
+    minWidth: 520,
+  },
 }
 
 export const ALL_VIEW_IDS: ViewId[] = Object.keys(VIEW_REGISTRY) as ViewId[]

@@ -228,6 +228,24 @@ class DeepSeekConfig:
 
 
 @dataclass(frozen=True)
+class KimiConfig:
+    """Kimi / Moonshot agent model settings."""
+
+    api_key: Optional[str] = field(
+        default_factory=lambda: os.environ.get("MOONSHOT_API_KEY") or None
+    )
+    base_url: str = field(
+        default_factory=lambda: os.environ.get("KIMI_BASE_URL") or "https://api.moonshot.ai/v1"
+    )
+    general_model: str = field(
+        default_factory=lambda: os.environ.get("KIMI_GENERAL_MODEL") or "kimi-k2.6"
+    )
+    code_model: str = field(
+        default_factory=lambda: os.environ.get("KIMI_CODE_MODEL") or "kimi-k2.7-code"
+    )
+
+
+@dataclass(frozen=True)
 class Settings:
     """Application settings container."""
     project_root: Path = _PROJECT_ROOT
@@ -238,6 +256,7 @@ class Settings:
     mcp: MCPConfig = field(default_factory=MCPConfig)
     network: NetworkConfig = field(default_factory=NetworkConfig)
     deepseek: DeepSeekConfig = field(default_factory=DeepSeekConfig)
+    kimi: KimiConfig = field(default_factory=KimiConfig)
 
     # Derived paths
     @property

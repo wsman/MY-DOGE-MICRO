@@ -1,0 +1,27 @@
+[
+  {
+    "id": "normal_annual_report",
+    "question": "Analyze earnings quality and portfolio risk.",
+    "expected": ["investment_memo", "tool_call", "approval"]
+  },
+  {
+    "id": "missing_fields",
+    "question": "Analyze incomplete uploaded materials.",
+    "expected": ["data_unavailable"]
+  },
+  {
+    "id": "market_tool_timeout",
+    "question": "Analyze with a market breadth timeout.",
+    "expected": ["tool_error", "no_fabrication"]
+  },
+  {
+    "id": "unsupported_citation",
+    "question": "Validate whether each conclusion has source support.",
+    "expected": ["citation_gap"]
+  },
+  {
+    "id": "high_risk_approval",
+    "question": "Publish a high-risk investment committee memo.",
+    "expected": ["approval_required"]
+  }
+]

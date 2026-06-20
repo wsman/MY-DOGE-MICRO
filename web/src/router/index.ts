@@ -9,6 +9,7 @@ const router = createRouter({
     { path: '/us-archive', name: 'us-archive', component: () => import('../views/UsArchiveView.vue') },
     { path: '/insights', name: 'insights', component: () => import('../views/InsightsView.vue') },
     { path: '/analysis', name: 'analysis', component: () => import('../views/AnalysisView.vue') },
+    { path: '/research-agent', name: 'research-agent', component: () => import('../views/ResearchAgentView.vue') },
   ],
 })
 

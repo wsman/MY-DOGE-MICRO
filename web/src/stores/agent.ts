@@ -1,0 +1,69 @@
+import { computed, ref } from 'vue'
+import { defineStore } from 'pinia'
+import { approveAgentRun, createAgentRun } from '../api/agent'
+import type { AgentRun } from '../api/agent'
+import { toFetchError, type FetchError } from '../utils/fetchError'
+
+export const useAgentStore = defineStore('agent', () => {
+  const question = ref('Analyze the company earnings quality, industry momentum, and portfolio impact.')
+  const market = ref<'cn' | 'us'>('us')
+  const run = ref<AgentRun | null>(null)
+  const loading = ref(false)
+  const error = ref<FetchError | null>(null)
+
+  const events = computed(() => run.value?.events ?? [])
+  const artifacts = computed(() => run.value?.artifacts ?? [])
+  const approvals = computed(() => run.value?.approvals ?? [])
+  const latestMemo = computed(() => artifacts.value.find(item => item.kind === 'investment_memo')?.content ?? '')
+
+  async function startDemoRun() {
+    loading.value = true
+    error.value = null
+    try {
+      run.value = await createAgentRun({
+        workflow: 'investment_research',
+        question: question.value,
+        document_ids: ['doc-annual-report', 'doc-presentation', 'doc-chart'],
+        portfolio_id: 'portfolio-demo',
+        market: market.value,
+        language: 'en',
+        model_policy: {
+          max_tool_rounds: 8,
+          require_numeric_validation: true,
+          require_citations: true,
+        },
+      })
+    } catch (e) {
+      error.value = toFetchError(e)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function resolveApproval(approvalId: string, approved: boolean) {
+    if (!run.value) return
+    loading.value = true
+    error.value = null
+    try {
+      run.value = await approveAgentRun(run.value.run_id, approvalId, approved)
+    } catch (e) {
+      error.value = toFetchError(e)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return {
+    question,
+    market,
+    run,
+    loading,
+    error,
+    events,
+    artifacts,
+    approvals,
+    latestMemo,
+    startDemoRun,
+    resolveApproval,
+  }
+})

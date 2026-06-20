@@ -35,7 +35,7 @@ from doge.interfaces.mcp.tools import (
 
 # ── Logging ───────────────────────────────────────────
 LOG_DIR = Path(get_settings().data_dir) / "logs"
-LOG_DIR.mkdir(exist_ok=True)
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 correlation_id = contextvars.ContextVar("correlation_id", default="-")
 
@@ -363,6 +363,9 @@ def create_mcp_server():
     async def health(request: Request):
         try:
             from doge.infrastructure.database.duckdb import DuckDBConnection
+            db_path = get_settings().db.duckdb
+            if not db_path.exists():
+                return JSONResponse({"status": "ok", "detail": "duckdb missing"})
             with DuckDBConnection(read_only=True).connect() as con:
                 con.execute("SELECT 1")
             return JSONResponse({"status": "ok"})

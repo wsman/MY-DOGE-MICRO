@@ -1,39 +1,25 @@
 # Active Session State
 
 > Living checkpoint. Gitignored. Read this first after any compaction/crash.
-> Branch: `cdd-adoption-2026-06-11` · Date: 2026-06-13
+> Branch: `main` · Date: 2026-06-20
 
 ## Current Task
 
-**Sprint 007 — Clean Architecture Modularization in progress.**
+**Sprint 007 — Clean Architecture Modularization closed. Interview Demo epic vertical slice implemented.**
 
-- S007-001 done: application contracts + composition root relocated.
-- S007-003 done: CLI migrated to `doge.interfaces.cli`.
-- S007-002 done: API migrated to `doge.interfaces.api`.
-- S007-004 done: `ai_analysis` helpers + Notes CRUD + reporting scripts migrated to canonical layers.
-- **S007-005 done**: `micro.market_scanner` local-file scanning migrated to `ScanMarketUseCase` + `ITdxFileScanner` + `TDXFileScanner`; `src/micro/market_scanner.py` is a shim; API router local fallback uses use case.
-- **Next**: S007-006 `macro` report → `GenerateMacroReportUseCase` + `ILLMClient` port.
+- S007-006 done: `GenerateMacroReportUseCase` now queries `IMarketViewRepository`, calls `ILLMClient`, persists through `IReportRepository`, and is used by both `/api/macro/run` and `doge macro`.
+- S007-007 done: `docs/MODULARIZATION_PLAN.md` and API docs reflect the completed modularization state and new Research Copilot surface.
+- S007-008 done: layer gates and full regression are green.
+- Interview Demo slice added: `IAgentModel`, `KimiAgentModel`, in-memory `IResearchAgentRuntime` adapter, Agent API, document registration API, Vue `/research-agent`, demo materials, eval harness, and production-roadmap docs.
+- Stage remains `Release`; legacy deletion remains deferred to Sprint 008.
 
-### S007-005 Verification
+### Latest Verification
 
-- `python -m pytest -q` → **696 passed, 5 skipped, 0 failed** (PyQt6 DLL-load fatal exception remains ADVISORY-only).
-- New/updated tests:
-  - `tests/unit/storage/test_market_scanner_write_tolerance.py` targets canonical `ScanMarketUseCase` and `TDXFileScanner`.
-  - `tests/unit/layer_gates/test_no_new_micro_imports_under_doge_except_legacy_allowlist.py` enforces no new `micro` imports under `src/doge` with a documented allowlist for deferred files.
-  - `tests/unit/micro/test_market_scanner_legacy_db_path.py` regression-tests the legacy shim's `db_path` routing.
-- `src/doge` 新代码零 `micro` / `src.micro` 导入。
-- `src/micro/market_scanner.py` shim 反向调用 `doge.application.composition`，并通过 `_LegacyPathStorageRepository` 保留 `scan_cn_market(db_path, ...)` / `scan_us_market(db_path, ...)` 的 `db_path` 参数。
-
-### Uncommitted Work
-
-S007-005 changes ready to commit:
-- New port `ITdxFileScanner` + adapter `TDXFileScanner`.
-- Filled `ScanMarketUseCase` for local scans with per-ticker fault tolerance.
-- Extended `ScanMarketRequest` with `source` / `tdx_path`.
-- API router `_run_local_scan()` delegates to use case with injected storage repo.
-- `src/micro/market_scanner.py` converted to shim; added `_LegacyPathStorageRepository` so `scan_cn_market(db_path, ...)` / `scan_us_market(db_path, ...)` continue to honor the caller-supplied `db_path`.
-- Updated tests and governance docs.
-- Added micro-import allowlist layer gate.
+- `python -m pytest -q` → **724 passed, 5 skipped, 0 failed, 0 error**. PyQt6 still prints a Windows DLL-load fatal advisory after the pytest summary, but the process exits 0.
+- `cd web && npm test` → **72 passed**.
+- `cd web && npm run build` → green.
+- `python tests/eval/run_eval.py --cases tests/eval/cases.json` → **5/5 smoke cases passed**.
+- `python -m pytest tests/test_mcp_tools.py tests/test_transport.py -q` → **77 passed**.
 
 ### Release Summary
 
@@ -81,9 +67,9 @@ S007-005 changes ready to commit:
 **NEXT:** No active sprint. Operator may open Sprint 007 or move to a new epic after the 48h observation window.
 
 <!-- STATUS -->
-Epic: Sprint 007 — Clean Architecture Modularization
-Feature: S007-005 market_scanner → ScanMarketUseCase
-Task: done; ready to commit; next S007-006
+Epic: Interview Demo — MY-DOGE Enterprise Research Copilot
+Feature: P2 Web Evidence + P3 Eval/SA Materials
+Task: implemented; pending cleanup and commit
 <!-- /STATUS -->
 
 ## Latest Verification Run (2026-06-13)
@@ -241,9 +227,9 @@ Deferred items (documented; see readiness doc §4 for full disposition):
   before GUI/macro workflows work. No key rotation needed: forensic audit found no
   real key in git history.
 <!-- STATUS -->
-Epic: Release / Release-Ready v1
-Feature: Sprint 006 — First-Run Experience + Architecture Completion
-Task: all Must-Have stories done; await operator review/commit
+Epic: Interview Demo — MY-DOGE Enterprise Research Copilot
+Feature: P2 Web Evidence + P3 Eval/SA Materials
+Task: implemented; pending cleanup and commit
 <!-- /STATUS -->
 
 ## Session Extract — /architecture-review 2026-06-13

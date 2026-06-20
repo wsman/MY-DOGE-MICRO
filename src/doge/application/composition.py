@@ -49,7 +49,9 @@ from doge.infrastructure.database.repositories import (
 from doge.infrastructure.database.sqlite_storage import SQLiteStorageRepository
 from doge.infrastructure.data_source.tdx_file_scanner import TDXFileScanner
 from doge.infrastructure.data_source.yfinance_metadata import YFinanceMetadataSource
+from doge.infrastructure.agent.research_runtime import InMemoryResearchAgentRuntime
 from doge.infrastructure.llm.deepseek_client import DeepSeekClient
+from doge.infrastructure.llm.kimi_client import KimiAgentModel
 
 # ── Application use cases ──
 from doge.application.use_cases.scan_market import ScanMarketUseCase
@@ -61,6 +63,9 @@ from doge.application.use_cases.generate_anomaly_report import GenerateAnomalyRe
 from doge.application.use_cases.generate_catalog import GenerateCatalogUseCase
 from doge.application.use_cases.populate_stock_names import PopulateStockNamesUseCase
 from doge.application.use_cases.generate_industry_report import GenerateIndustryReportUseCase
+from doge.application.agent.research_runtime import ScriptedAgentModel
+from doge.application.agent.tools import build_default_tool_registry
+from doge.config import get_settings
 
 
 # ── Low-level service factories (migrated from doge.core.services.composition) ──
@@ -199,6 +204,20 @@ def build_generate_macro_report_use_case(
     if report_repo is None:
         report_repo = build_report_repository()
     return GenerateMacroReportUseCase(view_repo, llm_client, report_repo)
+
+
+def build_kimi_agent_model() -> KimiAgentModel:
+    """Build the default Kimi agent-capable model adapter."""
+    return KimiAgentModel()
+
+
+def build_research_agent_runtime(model=None, tool_registry=None) -> InMemoryResearchAgentRuntime:
+    """Build the in-memory research-agent runtime for the interview demo."""
+    if model is None:
+        model = build_kimi_agent_model() if get_settings().kimi.api_key else ScriptedAgentModel()
+    if tool_registry is None:
+        tool_registry = build_default_tool_registry()
+    return InMemoryResearchAgentRuntime(model=model, tool_registry=tool_registry)
 
 
 def build_manage_notes_use_case(

@@ -146,12 +146,26 @@ To switch LLM models at runtime (used by the GUI model-switcher), also export
 
 > **Security verification for operators:** a forensic audit of the repository
 > confirmed that no real DeepSeek key was ever committed to git history
-> (`models_config.json` was gitignored from the initial commit; no `sk-...`
-> key appears in 82 commits, 4 refs, reflog, or dangling objects). The code
+> (no `sk-...` key appears in 82 commits, 4 refs, reflog, or dangling
+> objects). The code
 > remediation (placeholder swap + env-var read) shipped with S002-013. The
 > **operator must export `DEEPSEEK_API_KEY`** and verify that
 > `python -m macro.cli` works. No key rotation or history rewrite is required.
 > See `docs/MCP_SERVER.md` "Operator action — key verification".
+
+### Kimi / Moonshot variables (Research Copilot demo)
+
+The Research Copilot demo uses `src/doge/config/settings.py::KimiConfig` and
+the OpenAI-compatible Moonshot endpoint. If `MOONSHOT_API_KEY` is absent, the
+demo runtime falls back to a deterministic scripted model so local tests and
+the web workspace still run.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MOONSHOT_API_KEY` | unset | Secret for live Kimi calls. Keep it in the shell environment only. |
+| `KIMI_BASE_URL` | `https://api.moonshot.ai/v1` | OpenAI-compatible API base URL. |
+| `KIMI_GENERAL_MODEL` | `kimi-k2.6` | General research/planning/finalization model. |
+| `KIMI_CODE_MODEL` | `kimi-k2.7-code` | Code-sub-agent model for Python/SQL/data tasks. |
 
 ## Start the MCP server
 

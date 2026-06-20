@@ -539,12 +539,42 @@ class SQLiteNoteRepository(INoteRepository):
     # ------------------------------------------------------------------
     # Schema helpers
     # ------------------------------------------------------------------
+    def _ensure_note_schema(self) -> None:
+        """Create the minimal stock-notes schema on a fresh local DB.
+
+        The app treats an empty ``research_insights.db`` as a valid fresh
+        checkout. Creating an empty notes table preserves that contract while
+        still allowing read paths to return 404/[] instead of leaking a raw
+        ``sqlite3.OperationalError`` through the API.
+        """
+        with self._conn.connect() as conn:
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS stock_notes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ticker TEXT NOT NULL,
+                    market TEXT DEFAULT 'cn',
+                    created_at TEXT NOT NULL,
+                    note_type TEXT DEFAULT 'comment',
+                    title TEXT,
+                    content TEXT NOT NULL,
+                    tags TEXT,
+                    price_at_note REAL,
+                    source TEXT,
+                    sentiment TEXT,
+                    deleted_at TIMESTAMP
+                )
+                """
+            )
+            conn.commit()
+
     def _ensure_deleted_at_column(self) -> None:
         """Idempotently add the ``deleted_at`` column for soft-delete support.
 
         Safe to call on any DB: issues ``PRAGMA table_info`` first and only
         runs ``ALTER TABLE ... ADD COLUMN`` when the column is missing.
         """
+        self._ensure_note_schema()
         try:
             rows = self._conn.execute("PRAGMA table_info(stock_notes)")
             existing = {r[1] for r in rows}
@@ -555,8 +585,8 @@ class SQLiteNoteRepository(INoteRepository):
                     )
                     conn.commit()
         except sqlite3.OperationalError:
-            # Table does not exist yet (fresh test DB). Test fixtures create
-            # the table with deleted_at directly; nothing to migrate.
+            # Defensive fallback for malformed fixtures; the schema bootstrap
+            # above already handles normal fresh local DBs.
             pass
 
     # ------------------------------------------------------------------
@@ -587,6 +617,7 @@ class SQLiteNoteRepository(INoteRepository):
         now = datetime.now().isoformat(sep=" ", timespec="microseconds")
 
         # Build INSERT dynamically based on existing columns (legacy-safe)
+        self._ensure_deleted_at_column()
         rows = self._conn.execute("PRAGMA table_info(stock_notes)")
         existing_cols = {r[1] for r in rows}
 

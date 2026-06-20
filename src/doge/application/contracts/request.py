@@ -31,6 +31,7 @@ class ScanMarketRequest:
 class GenerateMacroReportRequest:
     """Input for :class:`~doge.application.use_cases.generate_macro_report.GenerateMacroReportUseCase`."""
     analyst_model: str = "deepseek-chat"
+    market: str = "cn"
     max_tokens: int = 4096
     temperature: float = 0.7
     custom_prompt: Optional[str] = None

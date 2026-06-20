@@ -1,0 +1,6 @@
+ticker,market,weight,sector
+AAPL,us,0.24,Technology
+MSFT,us,0.21,Technology
+NVDA,us,0.18,Semiconductors
+TLT,us,0.12,Rates
+CASH,us,0.25,Cash

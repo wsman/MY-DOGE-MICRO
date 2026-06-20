@@ -12,4 +12,4 @@ MACRO_API_KEY_HINT_ZH = "💡 若与 API Key 有关，请检查 DEEPSEEK_API_KEY
 MACRO_API_KEY_HINT_EN = "If this is API-key related, check the DEEPSEEK_API_KEY env var."
 
 # Demo final line (legacy).
-DEMO_MACRO_HINT = "For LLM-powered reports, set DEEPSEEK_API_KEY and run: python -m macro.cli"
+DEMO_MACRO_HINT = "For LLM-powered reports, set DEEPSEEK_API_KEY and run: doge macro"

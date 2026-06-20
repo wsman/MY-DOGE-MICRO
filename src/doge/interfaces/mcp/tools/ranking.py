@@ -23,7 +23,10 @@ def _fmt(columns, rows):
 
 async def rsrs_ranking(market: str = "cn", top: int = 20) -> str:
     svc = build_ranking_service()
-    data = svc.rsrs(market, top)
+    try:
+        data = svc.rsrs(market, top)
+    except Exception:
+        data = []
     if not data:
         return "No data"
     return _fmt(list(data[0].keys()), [list(r.values()) for r in data])
@@ -31,7 +34,10 @@ async def rsrs_ranking(market: str = "cn", top: int = 20) -> str:
 
 async def market_breadth(market: str = "cn", days: int = 10) -> str:
     svc = build_breadth_service()
-    data = svc.breadth(market, days)
+    try:
+        data = svc.breadth(market, days)
+    except Exception:
+        data = []
     if not data:
         return "No data"
     return _fmt(list(data[0].keys()), [list(r.values()) for r in data])

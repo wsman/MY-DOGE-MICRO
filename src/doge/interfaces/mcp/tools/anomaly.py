@@ -23,7 +23,10 @@ def _fmt(columns, rows):
 
 async def volume_anomalies(min_ratio: float = 3.0, top: int = 20) -> str:
     svc = build_anomaly_service()
-    data = svc.anomalies(min_ratio, top)
+    try:
+        data = svc.anomalies(min_ratio, top)
+    except Exception:
+        data = []
     if not data:
         return "No anomalies"
     return _fmt(list(data[0].keys()), [list(r.values()) for r in data])

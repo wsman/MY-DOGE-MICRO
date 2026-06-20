@@ -3,14 +3,14 @@
 """
 
 import json
-import os
 import asyncio
 import logging
-import threading
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 
+from doge.application.contracts.request import GenerateMacroReportRequest
+from doge.application.use_cases.generate_macro_report import GenerateMacroReportUseCase
 from doge.core.ports.repository import IReportRepository
 from doge.interfaces.api import deps
 
@@ -20,6 +20,8 @@ router = APIRouter()
 
 class MacroRunRequest(BaseModel):
     profile_name: Optional[str] = None
+    market: str = "cn"
+    custom_prompt: Optional[str] = None
 
 
 @router.get("/reports")
@@ -28,6 +30,7 @@ async def list_macro_reports(
 ):
     """列出所有宏观报告"""
     db_path = str(deps.get_settings_dep().db.research_db)
+    import os
     if not os.path.exists(db_path):
         return {"reports": []}
     return {"reports": repo.list_macro_reports()}
@@ -39,6 +42,7 @@ async def latest_macro_report(
 ):
     """最新宏观报告"""
     db_path = str(deps.get_settings_dep().db.research_db)
+    import os
     if not os.path.exists(db_path):
         raise HTTPException(404, "no reports")
     row = repo.get_latest_macro_report()
@@ -59,64 +63,32 @@ async def get_macro_report(
 
 
 @router.post("/run")
-async def run_macro(body: MacroRunRequest):
+async def run_macro(
+    body: MacroRunRequest,
+    use_case: GenerateMacroReportUseCase = Depends(deps.get_generate_macro_report_use_case),
+):
     """启动宏观分析 (SSE)"""
     from sse_starlette.sse import EventSourceResponse
 
     async def event_generator():
-        queue = asyncio.Queue()
-        loop = asyncio.get_event_loop()
-
-        def callback(pct, msg):
-            try:
-                asyncio.run_coroutine_threadsafe(
-                    queue.put({"progress": pct, "message": str(msg)}), loop
-                )
-            except Exception:
-                pass
-
-        def run():
-            try:
-                from src.macro.data_loader import GlobalMacroLoader
-                from src.macro.strategist import DeepSeekStrategist
-                from src.micro.database import save_macro_report
-
-                callback(10, "fetching global market data...")
-                loader = GlobalMacroLoader()
-                data_df = loader.fetch_combined_data()
-
-                callback(40, "calculating metrics...")
-                metrics = loader.calculate_metrics(data_df)
-
-                callback(60, "generating AI strategy report...")
-                strategist = DeepSeekStrategist()
-                report = strategist.generate_strategy_report(metrics, data_df)
-
-                callback(80, "archiving report...")
-                save_macro_report(
-                    content=report,
-                    risk_signal=metrics.get("risk_signal", "N/A"),
-                    volatility=metrics.get("current_volatility", "N/A"),
-                )
-
-                asyncio.run_coroutine_threadsafe(
-                    queue.put({"progress": 100, "message": "done"}), loop
-                )
-            except Exception as e:
-                # Operator-safe fixed message (ADR-0007 envelope convention);
-                # the macro path can carry the API key — never leak str(e).
-                logger.exception("macro run failed")
-                asyncio.run_coroutine_threadsafe(
-                    queue.put({"progress": -1, "message": "macro run failed"}), loop
-                )
-
-        thread = threading.Thread(target=run, daemon=True)
-        thread.start()
-
-        while True:
-            event = await queue.get()
-            yield {"event": "progress", "data": json.dumps(event)}
-            if event.get("progress") in (100, -1):
-                break
+        try:
+            yield {"event": "progress", "data": json.dumps({"progress": 10, "message": "fetching market views..."})}
+            yield {"event": "progress", "data": json.dumps({"progress": 40, "message": "generating AI strategy report..."})}
+            request = GenerateMacroReportRequest(
+                market=body.market,
+                analyst_model=body.profile_name or "deepseek-chat",
+                custom_prompt=body.custom_prompt,
+            )
+            response = await asyncio.to_thread(use_case.execute, request)
+            if response.error:
+                yield {"event": "progress", "data": json.dumps({"progress": -1, "message": "macro run failed"})}
+                return
+            yield {"event": "progress", "data": json.dumps({"progress": 80, "message": "archiving report..."})}
+            yield {"event": "progress", "data": json.dumps({"progress": 100, "message": "done"})}
+        except Exception:
+            # Operator-safe fixed message (ADR-0007 envelope convention);
+            # the macro path can carry the API key — never leak str(e).
+            logger.exception("macro run failed")
+            yield {"event": "progress", "data": json.dumps({"progress": -1, "message": "macro run failed"})}
 
     return EventSourceResponse(event_generator())

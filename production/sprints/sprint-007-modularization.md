@@ -2,7 +2,7 @@
 
 > **Stage**: Release · **Predecessor**: Sprint 006 (`v0.2.1` released)
 > **Milestone**: Modularization completion (no milestone gate; stage remains Release)
-> **Duration**: 2026-06-14 → TBD · **Status**: **in_progress**
+> **Duration**: 2026-06-14 → 2026-06-20 · **Status**: **done**
 > **Design CDD**: [`design/cdd/sprint-007-modularization-plan.md`](../../design/cdd/sprint-007-modularization-plan.md)
 
 ## Goal
@@ -18,9 +18,9 @@ Introduce the missing `src/doge/application/` use-case layer, move the compositi
 | S007-002 | API scan workflow migration | done | `src/doge/interfaces/api/`, `src/api/` (shim) | **Yes** |
 | S007-004 | `ai_analysis` DuckDB/SQLite helpers → repository | **done** | `src/doge/infrastructure/database/`, `src/ai_analysis/` (shim) | **Yes** |
 | S007-005 | `micro.market_scanner` → `ScanMarketUseCase` | **done** | `src/doge/application/use_cases/scan_market.py`, `src/doge/core/ports/file_scanner.py`, `src/doge/infrastructure/data_source/tdx_file_scanner.py`, `src/micro/market_scanner.py` (shim) | **Yes** |
-| S007-006 | `macro` report → `GenerateMacroReportUseCase` + `ILLMClient` | todo | `src/doge/application/use_cases/generate_macro_report.py`, `src/doge/infrastructure/llm/deepseek_client.py`, `src/macro/` (shim) | **Yes** |
-| S007-007 | Update `docs/MODULARIZATION_PLAN.md` | todo | `docs/MODULARIZATION_PLAN.md` | No (advisory) |
-| S007-008 | Layer gates + final regression | todo | `tests/unit/layer_gates/`, `tests/unit/application/`, `tests/cli/`, `tests/contract/` | **Yes** |
+| S007-006 | `macro` report → `GenerateMacroReportUseCase` + `ILLMClient` | done | `src/doge/application/use_cases/generate_macro_report.py`, `src/doge/infrastructure/llm/deepseek_client.py`, `src/macro/` (legacy compatibility retained) | **Yes** |
+| S007-007 | Update `docs/MODULARIZATION_PLAN.md` | done | `docs/MODULARIZATION_PLAN.md` | No (advisory) |
+| S007-008 | Layer gates + final regression | done | `tests/unit/layer_gates/`, `tests/unit/application/`, `tests/cli/`, `tests/contract/` | **Yes** |
 
 ## Story Sequencing
 
@@ -42,14 +42,14 @@ S007-001 (foundation: contracts + composition root)
 S007-008 (layer gates + regression) ◄───────────────────────┘
 ```
 
-Implementation proceeds **story-by-story with user approval** after each story's tests pass.
+Sprint 007 is closed. Legacy deletion remains deferred to Sprint 008.
 
 ## Deferred / Out of Scope
 
 - **Actual deletion of legacy files** — deferred to Sprint 008. Sprint 007 only shims legacy modules.
 - **ADR-0007 path 1a** auth + non-loopback CORS — remains conditionally deferred.
 - **PyQt `db_editor.py`** — marked as `legacy_standalone`; no clean-arch migration planned.
-- **Web UI changes** — web already consumes API; no web files are touched in Sprint 007.
+- **Legacy deletion** — deferred to Sprint 008. Sprint 007 leaves shims in place.
 
 ## Definition of Done
 
@@ -58,9 +58,17 @@ Implementation proceeds **story-by-story with user approval** after each story's
 - [x] S007-002 done: `src/doge/interfaces/api/` is live surface, `src/api/` are shims, no direct sqlite3/duckdb in routers.
 - [x] S007-004 done: `ai_analysis` files are shims, DuckDB/SQLite helpers live in infrastructure, no `from ai_analysis import` under `src/doge/`.
 - [x] S007-005 done: `ScanMarketUseCase` exists and is tested, `src/micro/market_scanner.py` is a shim, local-file scanning logic lives in `doge.infrastructure.data_source.tdx_file_scanner`, API router local fallback uses the use case.
-- [ ] S007-006 done: `GenerateMacroReportUseCase` + `ILLMClient` port + `DeepSeekClient` adapter exist and are tested, `src/macro/` are shims.
-- [ ] S007-007 done: `docs/MODULARIZATION_PLAN.md` reflects Sprint 007 batches and deferred deletion plan.
-- [ ] S007-008 done: all layer-gate tests pass and `python -m pytest -q` returns **617+ passed / 5 skipped / 0 failed / 0 error**.
+- [x] S007-006 done: `GenerateMacroReportUseCase` + `ILLMClient` port + `DeepSeekClient` adapter exist and are tested; API and CLI macro paths use the use case.
+- [x] S007-007 done: `docs/MODULARIZATION_PLAN.md` reflects Sprint 007 completion and deferred legacy deletion plan.
+- [x] S007-008 done: all layer-gate tests pass and `python -m pytest -q` returns **724 passed / 5 skipped / 0 failed / 0 error**.
+
+### S007-006 Notes
+
+- `GenerateMacroReportUseCase` now queries `IMarketViewRepository` DuckDB views for CN/US market breadth, RSRS ranking, and CN volume anomalies, builds a structured markdown prompt, calls `ILLMClient`, parses risk/volatility with neutral defaults, and persists through `IReportRepository`.
+- `/api/macro/run` now injects the use case via FastAPI dependencies and emits fixed operator-safe SSE progress (`10`, `40`, `80`, `100`, `-1`) without importing `src/macro.*`.
+- `doge macro` uses the same application use case and supports `--market cn|us`; CLI error paths remain redacted.
+- `KimiConfig`, `IAgentModel`, and `KimiAgentModel` were added for the Interview Demo agent runtime without expanding `ILLMClient`.
+- Research Copilot demo slice added Agent Runtime/API/Web/Eval artifacts; this starts the new Interview Demo epic while preserving Sprint 007's legacy-shim boundary.
 
 ### S007-005 Notes
 
@@ -74,10 +82,7 @@ Implementation proceeds **story-by-story with user approval** after each story's
   - TDX server-download batch orchestration (still in `micro.tdx_downloader`).
   - `SQLiteStorageRepository` still delegates to `micro.database.save_stock_data_custom`.
   - `TDXDataSource` still delegates to `micro.tdx_downloader` helpers.
-  - Macro router still imports `src.macro.*`.
 - Layer gate `test_no_new_micro_imports_under_doge_except_legacy_allowlist.py` enforces that no *new* `micro` imports appear under `src/doge`; a small documented allowlist covers the deferred files above. The allowlist is temporary and will be removed once those files are migrated.
-
-## Verification
 
 ## Verification
 
@@ -90,7 +95,7 @@ python -m pytest tests/cli/ -q
 
 # Full gate (S007-008 only)
 python -m pytest -q
-# Expected: 617+ passed, 5 skipped, 0 failed, 0 error
+# 2026-06-20: 724 passed, 5 skipped, 0 failed, 0 error
 
 cd web && npm test && npm run build
 

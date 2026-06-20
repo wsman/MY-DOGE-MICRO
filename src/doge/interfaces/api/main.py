@@ -23,7 +23,7 @@ from fastapi.responses import JSONResponse
 from doge.config import get_settings
 from doge.core.ports.repository import ISchemaBrowser
 from doge.interfaces.api import deps
-from doge.interfaces.api.routers import scan, data, notes, macro, analysis, config
+from doge.interfaces.api.routers import scan, data, notes, macro, analysis, config, agent, documents
 
 logger = logging.getLogger("doge.api")
 
@@ -95,6 +95,8 @@ app.include_router(notes.router,  prefix="/api/notes",    tags=["notes"])
 app.include_router(macro.router,  prefix="/api/macro",    tags=["macro"])
 app.include_router(analysis.router, prefix="/api/analysis", tags=["analysis"])
 app.include_router(config.router, prefix="/api/config",   tags=["config"])
+app.include_router(agent.router, prefix="/api/agent", tags=["agent"])
+app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
 
 
 @app.get("/api/health")

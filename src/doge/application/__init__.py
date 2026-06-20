@@ -8,6 +8,8 @@ from doge.application.composition import (
     build_generate_anomaly_report_use_case,
     build_generate_industry_report_use_case,
     build_generate_macro_report_use_case,
+    build_kimi_agent_model,
+    build_research_agent_runtime,
     build_generate_market_overview_use_case,
     build_industry_report_use_case,
     build_manage_notes_use_case,
@@ -47,6 +49,8 @@ __all__ = [
     # use-case factories
     "build_scan_market_use_case",
     "build_generate_macro_report_use_case",
+    "build_kimi_agent_model",
+    "build_research_agent_runtime",
     "build_manage_notes_use_case",
     "build_query_ticker_use_case",
     "build_generate_market_overview_use_case",

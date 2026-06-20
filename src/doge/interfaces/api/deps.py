@@ -15,6 +15,8 @@ from doge.core.ports.repository import IReportRepository, ISchemaBrowser, IStock
 from doge import application as app_composition
 from doge.infrastructure.database.sqlite_storage import SQLiteStorageRepository
 
+_research_agent_runtime = None
+
 
 def get_settings_dep() -> Settings:
     """Return the current ``Settings`` singleton."""
@@ -44,6 +46,19 @@ def get_note_repository() -> INoteRepository:
 def get_manage_notes_use_case():
     """Provide the default ``ManageNotesUseCase``."""
     return app_composition.build_manage_notes_use_case()
+
+
+def get_generate_macro_report_use_case():
+    """Provide the default ``GenerateMacroReportUseCase``."""
+    return app_composition.build_generate_macro_report_use_case()
+
+
+def get_research_agent_runtime():
+    """Provide the process-local in-memory research agent runtime."""
+    global _research_agent_runtime
+    if _research_agent_runtime is None:
+        _research_agent_runtime = app_composition.build_research_agent_runtime()
+    return _research_agent_runtime
 
 
 def get_metadata_source() -> ITickerMetadataSource:

@@ -21,7 +21,7 @@
 # READ BY: /sprint-status, /story-readiness, /story-done, CI sprint-gate jobs.
 
 version: 1
-last_updated: "2026-06-15"
+last_updated: "2026-06-20"
 # 2026-06-12 (Wave 4 cleanup): Sprint 002 implementation complete. All 13
 # stories shipped: S002-001..013 done. ADR governance — ADR-0002/0003/0005
 # Accepted in S002; ADR-0009/0010 Accepted by Wave 4 review. ADR-0004/0007
@@ -67,6 +67,9 @@ last_updated: "2026-06-15"
 # local fallback uses use case; new micro-import allowlist gate added.
 # S007-004 done: split into 004a (helpers + notes, committed 955add4) and
 # 004b (reports + catalog + fetch_names + IStockNameRepository, committed 59034d1).
+# 2026-06-20 (S007 closed): S007-006 macro report use case/API/CLI migration
+# done; S007-007 docs updated; S007-008 full regression green (724 passed /
+# 5 skipped). Interview Demo vertical slice added as follow-on Release epic.
 
 sprints:
   - id: S007
@@ -74,7 +77,7 @@ sprints:
     plan: production/sprints/sprint-007-modularization.md
     qa_plan: production/qa/qa-plan-sprint-007.md
     start: "2026-06-14"
-    status: in_progress
+    status: done
     control_manifest: "2026-06-12"
     duration_assumption: "1–2 weeks"
     goal: >-
@@ -166,10 +169,10 @@ sprints:
         priority: HIGH
         effort: L
         owner: python-specialist
-        status: todo
+        status: done
         depends_on: [S007-001, S007-004]
         blocking_gate: true
-        note: "Create ILLMClient port and DeepSeekClient adapter. Create GenerateMacroReportUseCase. Break micro→macro cross-import. src/macro files become shims."
+        note: "GenerateMacroReportUseCase queries DuckDB views via IMarketViewRepository, calls ILLMClient, persists through IReportRepository, and is used by /api/macro/run plus doge macro. API no longer imports src/macro.*; legacy src/macro remains compatibility surface."
 
       - id: S007-007
         title: "Update docs/MODULARIZATION_PLAN.md"
@@ -179,10 +182,10 @@ sprints:
         priority: MED
         effort: S
         owner: lead-programmer
-        status: todo
+        status: done
         depends_on: [S007-001]
         blocking_gate: false
-        note: "Advisory documentation story. Update batches 1-6, mark completed items, document deferred legacy deletion plan."
+        note: "docs/MODULARIZATION_PLAN.md and docs/API.md updated for Sprint 007 closure and Research Copilot API surface."
 
       - id: S007-008
         title: "Layer gates + final regression"
@@ -192,10 +195,10 @@ sprints:
         priority: HIGH
         effort: M
         owner: python-specialist
-        status: todo
+        status: done
         depends_on: [S007-001, S007-002, S007-003, S007-004, S007-005, S007-006]
         blocking_gate: true
-        note: "Final verification gate. New layer-gate tests, full pytest regression (617+ passed / 5 skipped / 0 failed / 0 error), web build/test green, manual smoke."
+        note: "Final verification gate green: 724 pytest passed / 5 skipped; web vitest 72 passed; web build green; MCP/transport 77 passed."
 
   - id: S001
     name: "Brownfield Metadata Import"
@@ -988,11 +991,11 @@ rollup:
   sprint: S007
   total_stories: 8
   by_status:
-    todo: 2
+    todo: 0
     in_progress: 0
     blocked: 0
     review: 0
-    done: 5
+    done: 8
     deferred: 0
   by_priority:
     HIGH: 6
@@ -1002,5 +1005,5 @@ rollup:
     ep-architecture-debt: 6
     ep-ux: 1
     ep-governance: 1
-  blocking_gated_stories: [S007-006, S007-008]
-  top_priority_stories: [S007-006]
+  blocking_gated_stories: []
+  top_priority_stories: []

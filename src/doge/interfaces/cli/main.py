@@ -76,7 +76,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_demo.add_argument("--top", type=int, default=5)
 
     # macro
-    p_macro = sub.add_parser("macro", help="macro strategy report via DeepSeek (legacy macro.cli)")
+    p_macro = sub.add_parser("macro", help="macro strategy report via configured text LLM")
+    p_macro.add_argument("--market", default="cn", choices=["cn", "us"])
     p_macro.add_argument("--verbose", action="store_true", help="verbose output")
     p_macro.add_argument("--config-file", help="ignored — accepted for forward compatibility")
 

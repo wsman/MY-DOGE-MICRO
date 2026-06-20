@@ -103,10 +103,9 @@ class TestApiDocRouteCoverage:
     def test_doc_route_table_has_expected_row_count(self):
         # Arrange/Act
         doc_routes = _parse_doc_routes()
-        # Assert — the canonical enumeration is 26 product routes
-        # (2 helpers + 24 router routes per design/cdd/fastapi-service.md §4.1).
-        assert len(doc_routes) == 26, (
-            f"docs/API.md route table should enumerate exactly 26 product "
+        # Assert — canonical enumeration: 2 helpers + 32 router routes.
+        assert len(doc_routes) == 34, (
+            f"docs/API.md route table should enumerate exactly 34 product "
             f"routes, found {len(doc_routes)}: {sorted(doc_routes)}"
         )
 

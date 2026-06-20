@@ -2,9 +2,9 @@
 
 S007-005 migrates local-file scanning from ``src/micro`` into canonical
 doge.infrastructure adapters. A few existing adapters/routers still legitimately
-import ``micro.*`` because their full migration is deferred to S007-006 or
-S007-008. This gate blocks any *new* micro imports under ``src/doge`` while
-allowing the small, documented allowlist of existing offenders.
+import ``micro.*`` because their full migration is deferred to S007-008. This
+gate blocks any *new* micro imports under ``src/doge`` while allowing the small,
+documented allowlist of existing offenders.
 """
 import inspect
 from pathlib import Path
@@ -19,15 +19,13 @@ class TestNoNewMicroImportsUnderDoge:
         # S007-005 deferred: SQLite single-logical-writer bridge; the legacy
         # save_stock_data_custom/init_db_custom helpers will be inlined or
         # replaced once the storage write path is fully canonicalized.
-        "infrastructure/database/sqlite_storage.py": "legacy SQLite writer bridge (S007-006/S007-008)",
+        "infrastructure/database/sqlite_storage.py": "legacy SQLite writer bridge (S007-008)",
         # S007-005 deferred: TDX server-download orchestration remains in
         # micro.tdx_downloader; the adapter only wraps connection lifecycle.
-        "infrastructure/data_source/tdx.py": "server download helper bridge (S007-006/S007-008)",
+        "infrastructure/data_source/tdx.py": "server download helper bridge (S007-008)",
         # S007-005 deferred: server download path in scan router; only the
         # local .day fallback is migrated in S007-005.
-        "interfaces/api/routers/scan.py": "server download path deferred (S007-006/S007-008)",
-        # S007-006: macro/industry report router delegates to legacy macro.*.
-        "interfaces/api/routers/macro.py": "macro report router (S007-006)",
+        "interfaces/api/routers/scan.py": "server download path deferred (S007-008)",
     }
 
     FORBIDDEN = [

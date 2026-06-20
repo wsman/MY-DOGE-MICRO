@@ -19,7 +19,7 @@ export type SplitLayout = 'horizontal' | 'vertical'
 export type SpatialDirection = 'left' | 'right' | 'up' | 'down'
 
 /** All view IDs that can be displayed in a panel. */
-export type ViewId = 'scanner' | 'cn-archive' | 'us-archive' | 'ticker' | 'insights' | 'analysis'
+export type ViewId = 'scanner' | 'cn-archive' | 'us-archive' | 'ticker' | 'insights' | 'analysis' | 'research-agent'
 
 /** Normalized spatial slot in the [0,1]×[0,1] grid. */
 export interface SpatialSlot {

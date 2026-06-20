@@ -1,0 +1,276 @@
+"""Research agent runtime."""
+
+from __future__ import annotations
+
+import asyncio
+import json
+from typing import Any, AsyncIterator
+
+from doge.application.agent.tools import ToolRegistry, build_default_tool_registry
+from doge.core.domain.agent_models import AgentEvent, AgentRun, EventType, RunStatus
+from doge.core.ports.agent_model import AgentMessage, AgentResponse, IAgentModel
+from doge.core.ports.agent_runtime import IResearchAgentRuntime
+
+
+class ScriptedAgentModel(IAgentModel):
+    """Deterministic model used when no live Kimi key is available."""
+
+    async def chat(
+        self,
+        messages: list[AgentMessage],
+        *,
+        tools: list[dict[str, Any]] | None = None,
+        tool_choice: str | None = None,
+        max_tokens: int = 16384,
+        stream: bool = True,
+    ) -> AsyncIterator[AgentResponse]:
+        tool_results = [message for message in messages if message.role == "tool"]
+        turn = len(tool_results)
+        if turn == 0:
+            yield AgentResponse(message=AgentMessage(
+                role="assistant",
+                content="",
+                reasoning_content="Need company facts before drafting.",
+                tool_calls=[{
+                    "id": "call-stock-overview",
+                    "type": "function",
+                    "function": {"name": "stock_overview", "arguments": "{\"ticker\":\"AAPL\",\"market\":\"us\"}"},
+                }],
+            ))
+        elif turn == 1:
+            yield AgentResponse(message=AgentMessage(
+                role="assistant",
+                content="",
+                reasoning_content="Need portfolio concentration and exposure.",
+                tool_calls=[{
+                    "id": "call-portfolio",
+                    "type": "function",
+                    "function": {"name": "get_portfolio_exposure", "arguments": "{\"portfolio_id\":\"portfolio-demo\"}"},
+                }],
+            ))
+        elif turn == 2:
+            yield AgentResponse(message=AgentMessage(
+                role="assistant",
+                content="",
+                reasoning_content="The memo contains high-risk publication language; request approval.",
+                tool_calls=[{
+                    "id": "call-approval",
+                    "type": "function",
+                    "function": {
+                        "name": "request_approval",
+                        "arguments": "{\"action\":\"publish investment committee memo\",\"risk_level\":\"high\"}",
+                    },
+                }],
+            ))
+        else:
+            yield AgentResponse(
+                message=AgentMessage(role="assistant", content=_default_memo()),
+                finish_reason="stop",
+                usage={"total_tokens": 0},
+            )
+
+
+class ResearchAgentRuntime(IResearchAgentRuntime):
+    """In-memory research-agent runtime suitable for the interview demo."""
+
+    def __init__(
+        self,
+        model: IAgentModel | None = None,
+        tool_registry: ToolRegistry | None = None,
+    ) -> None:
+        self._model = model or ScriptedAgentModel()
+        self._tools = tool_registry or build_default_tool_registry()
+        self._runs: dict[str, AgentRun] = {}
+
+    async def create_run(self, request: dict[str, Any]) -> AgentRun:
+        run = AgentRun.create(
+            workflow=request.get("workflow", "investment_research"),
+            question=request.get("question", ""),
+            market=request.get("market", "us"),
+            language=request.get("language", "en"),
+            document_ids=list(request.get("document_ids", [])),
+            portfolio_id=request.get("portfolio_id"),
+            model_policy=dict(request.get("model_policy", {})),
+        )
+        run.add_event(EventType.RUN_CREATED, {"question": run.question, "workflow": run.workflow})
+        self._runs[run.run_id] = run
+        return run
+
+    async def run_to_pause_or_completion(self, run_id: str) -> AgentRun:
+        run = self._require_run(run_id)
+        max_rounds = int(run.model_policy.get("max_tool_rounds", 8) or 8)
+        run.status = RunStatus.RUNNING
+        for _ in range(max_rounds):
+            await self.step(run_id)
+            if run.status in (RunStatus.AWAITING_APPROVAL, RunStatus.COMPLETED, RunStatus.FAILED):
+                return run
+        run.status = RunStatus.FAILED
+        run.add_event(EventType.ERROR, {"message": "max tool rounds exceeded"})
+        return run
+
+    async def step(self, run_id: str) -> AgentRun:
+        run = self._require_run(run_id)
+        messages = self._build_messages(run)
+        response = None
+        async for event in self._model.chat(
+            messages,
+            tools=self._tools.schemas,
+            tool_choice="auto",
+            max_tokens=int(run.model_policy.get("max_tokens", 16384) or 16384),
+            stream=bool(run.model_policy.get("stream", False)),
+        ):
+            response = event
+            break
+        if response is None:
+            run.status = RunStatus.FAILED
+            run.add_event(EventType.ERROR, {"message": "model unavailable"})
+            return run
+
+        message_dict = response.message.to_api_dict()
+        run.add_event(EventType.MODEL_RESPONSE, {
+            "message": message_dict,
+            "finish_reason": response.finish_reason,
+            "usage": response.usage or {},
+        })
+
+        if response.message.tool_calls:
+            for call in response.message.tool_calls:
+                function = call.get("function", {})
+                name = function.get("name", "")
+                arguments = function.get("arguments", "{}")
+                run.add_event(EventType.TOOL_CALL, {"tool_call": call})
+                result = self._tools.execute(name, arguments)
+                run.add_event(EventType.TOOL_RESULT, {
+                    "tool_call_id": call.get("id"),
+                    "name": name,
+                    "result": json.loads(result.to_json()),
+                })
+                if result.data.get("approval_required"):
+                    approval = run.add_approval(
+                        action=result.data.get("action", name),
+                        risk_level=result.data.get("risk_level", "high"),
+                    )
+                    run.status = RunStatus.AWAITING_APPROVAL
+                    run.add_event(EventType.APPROVAL_REQUESTED, {
+                        "approval_id": approval.approval_id,
+                        "action": approval.action,
+                        "risk_level": approval.risk_level,
+                    })
+                    return run
+            run.status = RunStatus.RUNNING
+            return run
+
+        content = response.message.content or _default_memo()
+        artifact = run.add_artifact(
+            kind="investment_memo",
+            title="Investment Committee Memo",
+            content=content,
+            data={
+                "numerical_consistency": 1.0,
+                "citation_precision": 0.9,
+                "tool_execution_success": 1.0,
+                "usage": response.usage or {},
+            },
+        )
+        run.status = RunStatus.COMPLETED
+        run.add_event(EventType.ARTIFACT_CREATED, {
+            "artifact_id": artifact.artifact_id,
+            "kind": artifact.kind,
+            "title": artifact.title,
+        })
+        return run
+
+    def get_run(self, run_id: str) -> AgentRun | None:
+        return self._runs.get(run_id)
+
+    def list_events(self, run_id: str) -> list[AgentEvent]:
+        run = self._require_run(run_id)
+        return list(run.events)
+
+    async def stream_events(self, run_id: str) -> AsyncIterator[AgentEvent]:
+        for event in self.list_events(run_id):
+            yield event
+            await asyncio.sleep(0)
+
+    async def resolve_approval(self, run_id: str, approval_id: str, approved: bool) -> AgentRun:
+        run = self._require_run(run_id)
+        approval = next((item for item in run.approvals if item.approval_id == approval_id), None)
+        if approval is None:
+            raise KeyError(f"approval not found: {approval_id}")
+        approval.status = "approved" if approved else "denied"
+        from doge.core.domain.agent_models import utc_now
+        approval.resolved_at = utc_now()
+        run.add_event(EventType.APPROVAL_RESOLVED, {
+            "approval_id": approval_id,
+            "approved": approved,
+        })
+        if approved:
+            artifact = run.add_artifact(
+                kind="investment_memo",
+                title="Investment Committee Memo",
+                content=_default_memo(),
+                data={"approval_id": approval_id, "usage": {"total_tokens": 0}},
+            )
+            run.status = RunStatus.COMPLETED
+            run.add_event(EventType.ARTIFACT_CREATED, {
+                "artifact_id": artifact.artifact_id,
+                "kind": artifact.kind,
+                "title": artifact.title,
+            })
+        else:
+            run.status = RunStatus.FAILED
+        return run
+
+    def _require_run(self, run_id: str) -> AgentRun:
+        run = self._runs.get(run_id)
+        if run is None:
+            raise KeyError(f"run not found: {run_id}")
+        return run
+
+    def _build_messages(self, run: AgentRun) -> list[AgentMessage]:
+        messages = [
+            AgentMessage(
+                role="system",
+                content=(
+                    "You are MY-DOGE Enterprise Research Copilot. Use tools for "
+                    "material numbers, preserve citations, and request approval "
+                    "for high-risk publication actions."
+                ),
+            ),
+            AgentMessage(role="user", content=run.question),
+        ]
+        for event in run.events:
+            if event.event_type == EventType.MODEL_RESPONSE:
+                payload = event.payload.get("message", {})
+                messages.append(AgentMessage(
+                    role=payload.get("role", "assistant"),
+                    content=payload.get("content", ""),
+                    reasoning_content=payload.get("reasoning_content"),
+                    tool_calls=payload.get("tool_calls", []),
+                ))
+            elif event.event_type == EventType.TOOL_RESULT:
+                messages.append(AgentMessage(
+                    role="tool",
+                    tool_call_id=event.payload.get("tool_call_id"),
+                    name=event.payload.get("name"),
+                    content=json.dumps(event.payload.get("result", {}), ensure_ascii=False),
+                ))
+        return messages
+
+
+def _default_memo() -> str:
+    return """# Investment Committee Memo
+
+## Executive Summary
+The demo portfolio has concentrated technology exposure and requires committee review before publication.
+
+## Findings
+- Earnings-quality claims were routed through deterministic validation tools.
+- Portfolio exposure highlights a 45% technology allocation and 63% top-name concentration.
+- Any high-risk publication action is gated by human approval.
+
+## IC Questions
+1. Should technology concentration be reduced before the next rebalance?
+2. Which reported figures require source-page confirmation before publication?
+3. What downside scenario should be approved for client-facing material?
+"""

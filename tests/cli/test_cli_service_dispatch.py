@@ -186,11 +186,8 @@ class TestCliLayerGate:
         import doge.interfaces.cli as cli_pkg
 
         pkg_path = Path(inspect.getfile(cli_pkg)).parent
-        # macro.cli is intentionally delegated-to from doge macro in S007-003;
-        # the real migration is S007-006. Exclude commands/macro.py from the
-        # blanket "import macro" gate so the documented delegation is allowed.
-        macro_cmd_path = pkg_path / "commands" / "macro.py"
         forbidden = ["from micro", "import micro", "from ai_analysis", "import ai_analysis",
+                     "from macro", "import macro",
                      "from src.api", "import src.api",
                      "from src.interface", "import src.interface"]
         for source_path in pkg_path.rglob("*.py"):
@@ -198,14 +195,6 @@ class TestCliLayerGate:
             for pattern in forbidden:
                 assert pattern not in text, (
                     f"{source_path.relative_to(pkg_path)} imports legacy surface: {pattern}"
-                )
-            # Allow the documented macro delegation only in commands/macro.py.
-            if source_path != macro_cmd_path:
-                assert "from macro" not in text, (
-                    f"{source_path.relative_to(pkg_path)} imports macro package directly"
-                )
-                assert "import macro" not in text, (
-                    f"{source_path.relative_to(pkg_path)} imports macro package directly"
                 )
 
     def test_canonical_cli_imports_no_duckdb_or_sqlite(self):

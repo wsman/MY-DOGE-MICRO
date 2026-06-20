@@ -1,12 +1,14 @@
 # HTTP API Reference (FastAPI)
 
 The local-first HTTP backend of MY-DOGE-MICRO. A single FastAPI application
-(`src/api/main.py`) binds to `127.0.0.1:8901` and exposes **26 product routes**:
-24 across six routers (`scan`, `data`, `notes`, `macro`, `analysis`, `config`)
-plus two top-level helpers (`/api/health`, `/api/stats`). It is the surface the
+(`src/api/main.py`) binds to `127.0.0.1:8901` and exposes **34 product routes**:
+32 across eight routers (`scan`, `data`, `notes`, `macro`, `analysis`,
+`config`, `agent`, `documents`) plus two top-level helpers (`/api/health`,
+`/api/stats`). It is the surface the
 Vue web console (`web/`) and optionally the PyQt desktop dashboard call to
 trigger market scans, browse persisted data, manage stock notes, read macro and
-research reports, and configure the TDX install.
+research reports, run the Research Copilot demo workflow, and configure the TDX
+install.
 
 > **Stack**: FastAPI 0.123.8, Uvicorn 0.38.0, Pydantic 2.12.4, sse-starlette
 > 3.0.3, httpx 0.28.1 (TestClient) — pinned in `pyproject.toml:11-25`. Reverse-documented
@@ -26,6 +28,8 @@ research reports, and configure the TDX install.
   - [macro router](#macro-router)
   - [analysis router](#analysis-router)
   - [config router](#config-router)
+  - [agent router](#agent-router)
+  - [documents router](#documents-router)
 - [SSE Contract](#sse-contract)
 - [CORS](#cors)
 - [Error Contract](#error-contract)
@@ -40,8 +44,8 @@ research reports, and configure the TDX install.
 | Bind host | `127.0.0.1` (loopback only) | `src/api/main.py:120` |
 | Bind port | `8901` | `src/api/main.py:120` |
 | Auth | None (local-first) | see [Authentication](#authentication) |
-| Routers | 6 (`scan`, `data`, `notes`, `macro`, `analysis`, `config`) | `src/api/main.py:83-88` |
-| Product routes | 26 (24 router routes + `/api/health` + `/api/stats`) | `src/api/main.py:91-115` |
+| Routers | 8 (`scan`, `data`, `notes`, `macro`, `analysis`, `config`, `agent`, `documents`) | `src/api/main.py` |
+| Product routes | 34 (32 router routes + `/api/health` + `/api/stats`) | `src/api/main.py` |
 | Framework | FastAPI 0.123.8 + uvicorn 0.38.0 | `pyproject.toml:19-20` |
 | Streaming | sse-starlette 3.0.3 (`EventSourceResponse`) | `pyproject.toml:21` |
 
@@ -64,10 +68,11 @@ Two response modes are used (`design/cdd/fastapi-service.md` §9.1):
 
 1. **JSON** (default) — every read/write endpoint except the two SSE streams.
    `Content-Type: application/json`. Request and response bodies are JSON.
-2. **Server-Sent Events (SSE)** — exactly two endpoints return an
+2. **Server-Sent Events (SSE)** — three endpoints return an
    `EventSourceResponse` with `Content-Type: text/event-stream`:
    - `POST /api/scan/{market}` (`src/api/routers/scan.py:268`)
-   - `POST /api/macro/run` (`src/api/routers/macro.py:129`)
+   - `POST /api/macro/run` (`src/doge/interfaces/api/routers/macro.py`)
+   - `GET /api/agent/runs/{run_id}/stream` (`src/doge/interfaces/api/routers/agent.py`)
 
    See [SSE Contract](#sse-contract) for the event format.
 
@@ -160,6 +165,24 @@ code cannot drift.
 | 25 | PUT | `/api/config/settings` | Update `user_settings.json` | `config.py:66-74` |
 | 26 | POST | `/api/config/validate-tdx` | Validate TDX vipdoc path | `config.py:77-88` |
 
+### agent router — prefix `/api/agent` (`src/doge/interfaces/api/routers/agent.py`)
+
+| # | Method | Path | Purpose | file:line |
+|---|---|---|---|---|
+| 27 | POST | `/api/agent/runs` | Create and advance a Research Copilot run | `agent.py` |
+| 28 | GET | `/api/agent/runs/{run_id}` | Read run status and metadata | `agent.py` |
+| 29 | GET | `/api/agent/runs/{run_id}/events` | Read stored agent events | `agent.py` |
+| 30 | GET | `/api/agent/runs/{run_id}/stream` | Stream run events as SSE | `agent.py` |
+| 31 | GET | `/api/agent/runs/{run_id}/artifacts` | Read generated artifacts | `agent.py` |
+| 32 | GET | `/api/agent/runs/{run_id}/approvals` | Read pending/resolved approvals | `agent.py` |
+| 33 | POST | `/api/agent/runs/{run_id}/approvals/{approval_id}` | Approve or deny a high-risk action | `agent.py` |
+
+### documents router — prefix `/api/documents` (`src/doge/interfaces/api/routers/documents.py`)
+
+| # | Method | Path | Purpose | file:line |
+|---|---|---|---|---|
+| 34 | POST | `/api/documents` | Register a demo document payload | `documents.py` |
+
 > The OpenAPI surface also exposes `/openapi.json`, `/docs`,
 > `/docs/oauth2-redirect`, `/redoc` (FastAPI defaults) — infrastructure, not
 > product endpoints, so not counted in the 26.
@@ -195,6 +218,8 @@ class NoteCreate(BaseModel):
 # macro.py:18-19
 class MacroRunRequest(BaseModel):
     profile_name: Optional[str] = None
+    market: str = "cn"
+    custom_prompt: Optional[str] = None
 
 # config.py:62-63
 class SettingsUpdate(BaseModel):
@@ -322,9 +347,10 @@ soft-deletes) → **404**.
 
 ### macro router
 
-Every macro handler opens `research_insights.db` directly. `POST /api/macro/run`
-spawns a background thread that calls `GlobalMacroLoader` (yfinance),
-`DeepSeekStrategist` (the project's single LLM client), and `save_macro_report`.
+Read handlers use the report repository dependency. `POST /api/macro/run`
+streams progress while invoking `GenerateMacroReportUseCase`, which queries the
+DuckDB market views, calls the configured `ILLMClient`, and persists through
+`IReportRepository`. The API no longer imports `src/macro.*`.
 
 #### `GET /api/macro/reports` — `macro.py:22-35`
 Lists macro reports (id/date/timestamp/tags/analyst/risk_signal/volatility), most
@@ -343,8 +369,9 @@ Single report by id. Absent → **404** `"not found"`.
 #### `POST /api/macro/run` — `macro.py:71-129`
 Body: `MacroRunRequest` (all fields optional; `{}` is valid). Returns an SSE
 stream of `{progress, message}` events (see [SSE Contract](#sse-contract)). The
-worker emits progress `10/40/60/80/100` (fetch metrics / calculate / generate
-AI report / archive / done) or `progress=-1` on error.
+worker emits progress `10/40/80/100` (fetch market views / generate AI report /
+archive / done) or `progress=-1` with fixed message `"macro run failed"` on
+error.
 
 ### analysis router
 
@@ -385,12 +412,53 @@ Returns `{valid: true, vipdoc_path}` if `<path>/vipdoc` exists or `<path>`
 itself is named `vipdoc`, else `{valid: false, message: "vipdoc directory not found"}`
 (**200** in both cases — an invalid path is not an error).
 
+### agent router
+
+The Research Copilot endpoints expose the interview-demo agent workflow. The
+runtime stores run state in memory for the demo and returns operator-safe 404
+errors when a run or approval id is unknown.
+
+#### `POST /api/agent/runs` — `agent.py`
+Body: arbitrary JSON matching the demo request shape (`workflow`, `question`,
+`document_ids`, `portfolio_id`, `market`, `language`, `model_policy`). Creates a
+run and advances it until completion or approval pause.
+
+**200** body: serialized `AgentRun` with `status`, `events`, `artifacts`, and
+`approvals`.
+
+#### `GET /api/agent/runs/{run_id}` — `agent.py`
+Returns a serialized run. Unknown id → **404** `"run not found"`.
+
+#### `GET /api/agent/runs/{run_id}/events` — `agent.py`
+Returns `{"events": [...]}` for the run.
+
+#### `GET /api/agent/runs/{run_id}/stream` — `agent.py`
+Returns stored run events as SSE (`event: agent_event`, JSON payload per event).
+
+#### `GET /api/agent/runs/{run_id}/artifacts` — `agent.py`
+Returns `{"artifacts": [...]}`.
+
+#### `GET /api/agent/runs/{run_id}/approvals` — `agent.py`
+Returns `{"approvals": [...]}`.
+
+#### `POST /api/agent/runs/{run_id}/approvals/{approval_id}` — `agent.py`
+Body: `{"approved": true|false}`. Resolves an approval and returns the updated
+run. Unknown run or approval id → **404**.
+
+### documents router
+
+#### `POST /api/documents` — `documents.py`
+Registers a demo document payload without multipart requirements. Body:
+`{"filename": "annual-report.pdf", "content": "..."}`. Returns a deterministic
+document id and metadata.
+
 ## SSE Contract
 
-Two endpoints stream Server-Sent Events via `sse_starlette.sse.EventSourceResponse`:
+Three endpoints stream Server-Sent Events via `sse_starlette.sse.EventSourceResponse`:
 
 - `POST /api/scan/{market}` (`scan.py:152-268`)
 - `POST /api/macro/run` (`macro.py:71-129`)
+- `GET /api/agent/runs/{run_id}/stream` (`agent.py`)
 
 Each SSE event has the shape (emitted at `scan.py:264` and `macro.py:125`):
 
@@ -409,7 +477,8 @@ data: {"progress": <int>, "message": "<str>"}
 | `0..99` | Intermediate progress; client should keep the connection open. |
 
 > **Scan progress markers**: the scan worker emits `0`/`2`/`5`/`100` plus
-> download-driver callbacks; the macro worker emits `10`/`40`/`60`/`80`/`100`.
+> download-driver callbacks; the macro worker emits `10`/`40`/`80`/`100`;
+> the agent stream emits stored `agent` events rather than numeric progress.
 
 **Single-scan-per-market lock** (scan only): `POST /api/scan/{market}` acquires
 `_scan_locks[market]` non-blocking (`scan.py:157`); if a scan for that market is

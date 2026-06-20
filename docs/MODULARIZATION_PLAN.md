@@ -1,5 +1,16 @@
 # MY-DOGE 彻底模块化改造方案
 
+## Sprint 007 Closure Update (2026-06-20)
+
+Sprint 007 已关闭，当前状态是 **Release 阶段内的 Clean Architecture 基线 + Interview Demo 纵向切片**：
+
+- `src/doge/application/composition.py` 是组合根；legacy `src/api` 已是 shim，FastAPI live app 在 `doge.interfaces.api.main`。
+- `/api/macro/run` 和 `doge macro` 已迁移到 `GenerateMacroReportUseCase`，不再从 API 路由调用 `src/macro.*`。
+- `ILLMClient` 保持窄文本接口；新增 `IAgentModel` / `KimiAgentModel` 承载多模态、tool calls、`reasoning_content`、usage 和流式事件。
+- 新增 Research Copilot demo surface：Agent Runtime、Tool Registry、Agent API、Documents API、Vue `/research-agent`、eval smoke harness、demo/roadmap docs。
+- `python -m pytest -q`：724 passed / 5 skipped / 0 failed；`web`：72 vitest passed，build green。
+- Legacy 文件删除仍推迟到 Sprint 008；当前策略是“兼容 shim + layer gates”，避免破坏 CLI/GUI 兼容面。
+
 ## 现状诊断
 
 ### 核心问题
@@ -138,6 +149,33 @@ interfaces/ ──→ application/ ──→ core/services/ ──→ core/ports
 - 添加 `deps.py` 依赖注入容器
 
 ### 批次 6：清理与测试
-- 删除旧兼容代码
+- 保留旧兼容代码到 Sprint 008；Sprint 007 不删除 legacy 文件
 - 运行所有测试
 - 验证 MCP 工具、CLI、API 正常工作
+
+## Sprint 007 批次完成情况
+
+| 批次 | 状态 | 结果 |
+|---|---|---|
+| 批次 1：基础设施 | done | `pyproject.toml`、settings、editable install、sys.path gates 已建立 |
+| 批次 2：数据访问抽象 | done | DuckDB/SQLite repository adapters 已作为主链路 |
+| 批次 3：数据源抽象 | done | TDX/YFinance adapters 已接入；legacy downloader 保留兼容 |
+| 批次 4：业务服务层 | done | stock/ranking/breadth/anomaly/view services 通过 ports 访问数据 |
+| 批次 5：接口层重构 | done | API/CLI/MCP 走 `doge.interfaces.*` 与 application composition |
+| 批次 6：清理与测试 | done/deferred | layer gates + full regression green；legacy 删除 deferred to Sprint 008 |
+
+## Interview Demo Extension
+
+在模块化基线之上，本次新增面试 demo 纵向切片：
+
+- `src/doge/core/ports/agent_model.py`
+- `src/doge/infrastructure/llm/kimi_client.py`
+- `src/doge/core/ports/agent_runtime.py`
+- `src/doge/infrastructure/agent/research_runtime.py`
+- `src/doge/application/agent/`
+- `src/doge/interfaces/api/routers/agent.py`
+- `src/doge/interfaces/api/routers/documents.py`
+- `web/src/views/ResearchAgentView.vue`
+- `tests/eval/`
+
+生产级 SSO、多租户、PostgreSQL、Redis、Queue、Object Storage、企业 API Gateway 和 SLA 暂只记录在 `docs/roadmap/`，不进入当前代码实现范围。

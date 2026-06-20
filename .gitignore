@@ -8,7 +8,8 @@ env/
 .env
 
 # Configuration with Secrets
-models_config.json
+# models_config.json is tracked with placeholders only; real keys come from env.
+models_config.local.json
 
 # Local Databases (Heavy files)
 data/
@@ -22,6 +23,7 @@ ai_report/
 # Logs
 logs/
 *.log
+production/session-logs/
 
 # IDE settings
 .vscode/
