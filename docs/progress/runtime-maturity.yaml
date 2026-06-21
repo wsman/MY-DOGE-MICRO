@@ -155,7 +155,6 @@ sprint_011_streaming_gates:
       - production/qa/qa-plan-sprint-011.md
     blocked_by:
       - browser/manual reconnect evidence pending
-      - remote CI pending
 
 sprint_012_rag_foundation_gates:
   embedding_and_cache_ports:
@@ -486,6 +485,16 @@ local_verification:
       workflow: success
       python_checks: success
       typescript_checks: success
+  sprint_009_015_remote_ci:
+    run_id: 27897991661
+    url: "https://github.com/wsman/MY-DOGE-MICRO/actions/runs/27897991661"
+    pr: "https://github.com/wsman/MY-DOGE-MICRO/pull/1"
+    head_sha: "f0e8928a32e0f50ab1789e5530029d604e5632ac"
+    event: pull_request
+    result:
+      workflow: success
+      python_checks: success
+      typescript_checks: success
   sprint_009_file_pipeline:
     commands:
       - ".\\.venv\\Scripts\\python.exe -m pytest tests/unit/test_file_upload_service.py tests/unit/infrastructure/test_kimi_files_client.py tests/contract/test_agent_repositories.py tests/contract/test_v1_api.py tests/cli/test_cli_session.py -q"
@@ -493,14 +502,14 @@ local_verification:
     result:
       targeted_file_pipeline: "21 passed in 6.39s"
       python_full: "791 passed, 5 skipped, 11 warnings in 55.22s"
-      remote_ci: pending
+      remote_ci: "CI run 27897991661 success"
   sprint_010_evidence_foundation:
     commands:
       - ".\\.venv\\Scripts\\python.exe -m pytest tests/unit/test_file_upload_service.py tests/unit/test_chunking_service.py tests/unit/test_page_extraction.py tests/unit/test_evidence_repository.py tests/unit/core/ports/test_agent_model_port.py tests/unit/infrastructure/test_kimi_client.py tests/integration/test_multimodal_chat.py -q"
     result:
       targeted_evidence_foundation: "23 passed in 2.57s"
       python_full: "803 passed, 5 skipped, 11 warnings in 57.41s"
-      remote_ci: pending
+      remote_ci: "CI run 27897991661 success"
   sprint_011_streaming_reliability:
     commands:
       - ".\\.venv\\Scripts\\python.exe -m pytest tests/contract/test_python_sdk.py -q"
@@ -515,14 +524,14 @@ local_verification:
       web_build: passed
       typescript_sdk_full: "3 passed"
       typescript_sdk_build: passed
-      remote_ci: pending
+      remote_ci: "CI run 27897991661 success"
   sprint_012_rag_foundation:
     commands:
       - ".\\.venv\\Scripts\\python.exe -m pytest tests/unit/test_embedding_cache.py tests/unit/test_vector_store.py tests/integration/test_rag_retrieval.py tests/unit/agent/test_tool_service.py tests/unit/agent/test_tool_registry.py -q"
     result:
       targeted_rag_foundation: "13 passed in 1.30s"
       python_full: "811 passed, 5 skipped, 11 warnings in 57.30s"
-      remote_ci: pending
+      remote_ci: "CI run 27897991661 success"
   sprint_013_financial_tools:
     commands:
       - ".\\.venv\\Scripts\\python.exe -m pytest tests/unit/test_portfolio_service.py tests/unit/agent/test_tool_service.py tests/unit/agent/test_tool_registry.py -q"
@@ -530,14 +539,14 @@ local_verification:
     result:
       targeted_financial_tools: "14 passed in 1.58s"
       python_full: "817 passed, 5 skipped, 11 warnings in 63.65s"
-      remote_ci: pending
+      remote_ci: "CI run 27897991661 success"
   sprint_014_industry_report_modular_migration:
     commands:
       - ".\\.venv\\Scripts\\python.exe -m pytest tests/unit/test_citation_service.py tests/unit/test_claim_validation.py tests/unit/test_claim_repository.py tests/integration/test_industry_report.py tests/unit/infrastructure/test_tdx_server_list.py tests/contract/test_no_micro_imports_in_interface.py tests/unit/agent/test_tool_service.py tests/unit/agent/test_tool_registry.py tests/unit/application/contracts/test_dtos.py tests/test_api_routers.py::TestScanRouter tests/unit/interfaces/api/test_scan_local_fallback.py tests/test_tdx_adapter.py tests/unit/layer_gates/test_no_micro_under_doge.py tests/unit/layer_gates/test_api_layer_gate.py tests/unit/layer_gates/test_composition_root_location.py -q"
     result:
       targeted_industry_report_modular_migration: "91 passed in 11.83s"
       python_full: "828 passed, 5 skipped, 11 warnings in 63.48s"
-      remote_ci: pending
+      remote_ci: "CI run 27897991661 success"
   sprint_015_release_quality:
     commands:
       - ".\\.venv\\Scripts\\python.exe -m pytest tests/unit/infrastructure/test_kimi_client.py tests/performance/test_sprint_015_release_gates.py -q"
@@ -554,7 +563,7 @@ local_verification:
       web_build: passed
       typescript_sdk_full: "3 passed"
       typescript_sdk_build: passed
-      remote_ci: pending
+      remote_ci: "CI run 27897991661 success"
 
 remaining_stability_blockers:
   - Real CLI /attach file registration and local page/chunk context grounding landed in Sprint 009/010; Sprint 014 adds report-level claim/citation assembly; citation-quality evaluation remains open.
@@ -564,4 +573,4 @@ remaining_stability_blockers:
   - Deterministic portfolio/risk/scenario tools landed; real fundamentals/announcement connectors and portfolio import workflow remain open.
   - Industry report use case and agent tool landed; real fundamentals/announcement connectors, live Kimi synthesis smoke, and legacy TDX helper deletion remain open.
   - Live Kimi Vision/File Q&A smoke remains operator-environment-dependent.
-  - S015 local performance, accessibility, Kimi retry, and soak protocol evidence landed; remote CI after push, executed soak evidence, screen-reader manual pass, and browser/manual reconnect evidence remain open.
+  - S015 local performance, accessibility, Kimi retry, soak protocol, and remote CI evidence landed; executed soak evidence, screen-reader manual pass, and browser/manual reconnect evidence remain open.
