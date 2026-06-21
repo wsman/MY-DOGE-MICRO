@@ -1,0 +1,216 @@
+# Memory Bank Document Map
+# Initialized by /constitute on 2026-06-21 for MY-DOGE QUANT SYSTEM.
+# Keep this as the routing map between canonical documents, source documents,
+# mirrors, indexes, and archives.
+
+documents:
+  memory_bank/t0_core/basic_law_index.md:
+    tier: T0
+    role: canonical
+    owner: /constitute
+    update_rule: amendment_only
+    sources:
+      - design/cdd/product-concept.md
+      - design/cdd/module-index.md
+      - docs/architecture/adr-*.md
+      - docs/architecture/control-manifest.md
+      - docs/architecture/architecture-traceability.md
+
+  memory_bank/t0_core/active_context.md:
+    tier: T0
+    role: canonical
+    owner: /constitute
+    update_rule: amendment_or_state_update
+    sources:
+      - production/session-state/active.md
+      - production/sprint-status.yaml
+
+  memory_bank/t0_core/current_state.md:
+    tier: T0
+    role: canonical
+    owner: /constitute, /gate-check, /cdd-status
+    mirrors:
+      - production/stage.txt
+      - production/review-mode.txt
+      - docs/progress/runtime-maturity.yaml
+
+  memory_bank/t0_core/release_state.md:
+    tier: T0
+    role: canonical
+    owner: /team-release and /hotfix
+    evidence_index: memory_bank/t3_archive/release_evidence/
+    sources:
+      - production/releases/
+      - docs/progress/runtime-maturity.yaml
+
+  memory_bank/t0_core/amendment_log.md:
+    tier: T0
+    role: canonical
+    owner: /constitute
+    archive: memory_bank/t3_archive/amendments/
+
+  memory_bank/t1_axioms/tech_context.md:
+    tier: T1
+    role: index
+    owner: /setup-engine, /constitute
+    indexes:
+      - AGENTS.md
+      - CLAUDE.md
+      - standards/technical-preferences.md
+      - requirements.txt
+      - pyproject.toml
+      - web/package.json
+      - docs/reference/**/VERSION.md
+
+  memory_bank/t1_axioms/system_patterns.md:
+    tier: T1
+    role: index
+    owner: /constitute, /architecture-review
+    indexes:
+      - design/cdd/module-index.md
+      - docs/architecture/control-manifest.md
+      - src/doge/**
+
+  memory_bank/t1_axioms/behavior_context.md:
+    tier: T1
+    role: index
+    owner: /constitute
+    indexes:
+      - design/cdd/product-concept.md
+      - AGENTS.md
+      - CLAUDE.md
+      - production/session-state/active.md
+
+  memory_bank/t1_axioms/architecture_context.md:
+    tier: T1
+    role: index
+    owner: /architecture-review
+    indexes:
+      - docs/architecture/adr-*.md
+      - docs/architecture/control-manifest.md
+      - docs/architecture/architecture-traceability.md
+      - docs/architecture/tr-registry.yaml
+      - docs/progress/runtime-maturity.yaml
+
+  memory_bank/t1_axioms/ux_accessibility_context.md:
+    tier: T1
+    role: index
+    owner: /ux-design, /ux-review, /art-bible
+    indexes:
+      - design/ux/*.md
+      - design/art/art-bible.md
+      - production/qa/accessibility-sprint-015.md
+
+  memory_bank/t1_axioms/qa_context.md:
+    tier: T1
+    role: index
+    owner: /qa-plan, /smoke-check, /team-qa
+    indexes:
+      - tests/**
+      - web/src/**/*.spec.ts
+      - production/qa/**
+      - .github/workflows/ci.yml
+
+  memory_bank/t1_axioms/knowledge_graph.md:
+    tier: T1
+    role: index
+    owner: /constitute
+    indexes:
+      - design/cdd/*.md
+      - docs/architecture/*.md
+      - docs/progress/*.md
+      - production/epics/**/*.md
+
+  memory_bank/t1_axioms/module_support_map.yaml:
+    tier: T1
+    role: index
+    owner: /architecture-review, /constitute
+    indexes:
+      - design/cdd/module-index.md
+      - docs/architecture/tr-registry.yaml
+
+  workflow/workflow-catalog.yaml:
+    tier: T2
+    role: canonical
+    owner: maintainers
+    generated_views:
+      - docs/PHASE-CHECKLISTS.md
+      - workflow/generated/gate-required-artifacts.md
+      - memory_bank/t2_execution/phase_checklists.md
+      - memory_bank/t2_execution/gate_required_artifacts.md
+
+  memory_bank/t2_execution/workflow_contract.md:
+    tier: T2
+    role: index
+    owner: /constitute, /cdd-status
+    sources:
+      - workflow/workflow-catalog.yaml
+      - production/stage.txt
+      - production/sprint-status.yaml
+
+  memory_bank/t2_execution/phase_checklists.md:
+    tier: T2
+    role: mirror
+    owner: scripts/generate_phase_checklists.py --memory-bank
+    source: workflow/workflow-catalog.yaml
+
+  memory_bank/t2_execution/gate_required_artifacts.md:
+    tier: T2
+    role: mirror
+    owner: scripts/generate_gate_required_sections.py --memory-bank
+    source: workflow/workflow-catalog.yaml
+
+  memory_bank/t2_execution/current_roadmap.md:
+    tier: T2
+    role: mirror
+    owner: /cdd-status
+    sources:
+      - production/project-roadmap.md
+      - production/sprint-status.yaml
+      - docs/progress/runtime-maturity.yaml
+
+  memory_bank/t3_archive/qa_evidence_index.md:
+    tier: T3
+    role: index
+    owner: QA and validation workflows
+    indexes:
+      - production/qa/**
+      - tests/**
+
+  memory_bank/t3_archive/gate_runs/:
+    tier: T3
+    role: archive
+    owner: /gate-check
+    indexes:
+      - production/gate-checks/**
+
+  memory_bank/t3_archive/release_evidence/:
+    tier: T3
+    role: archive
+    owner: /team-release and /hotfix
+    indexes:
+      - production/releases/**
+
+  memory_bank/t3_archive/reviews/review-index.md:
+    tier: T3
+    role: index
+    owner: review workflows
+    indexes:
+      - production/architecture-reviews/**
+      - production/code-reviews/**
+      - docs/architecture/architecture-traceability.md
+      - docs/progress/release-quality-promotion-review.md
+
+  memory_bank/t3_archive/sprint_snapshots/story-closure-index.md:
+    tier: T3
+    role: index
+    owner: /story-done, /sprint-status
+    indexes:
+      - production/sprints/**
+      - production/sprint-status.yaml
+
+  memory_bank/t3_archive/amendments/:
+    tier: T3
+    role: archive
+    owner: /constitute
+    current_index: memory_bank/t0_core/amendment_log.md

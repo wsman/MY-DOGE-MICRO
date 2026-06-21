@@ -1,0 +1,110 @@
+version: 1
+last_updated: "2026-06-21"
+source: design/cdd/module-index.md
+
+modules:
+  runtime-configuration:
+    cdd: design/cdd/runtime-configuration.md
+    layer: Foundation
+    status: Designed
+    laws: [BL-02, BL-05]
+    adrs: [ADR-0001, ADR-0002]
+    trs: [TR-001, TR-002, TR-003, TR-004]
+  market-data-storage:
+    cdd: design/cdd/market-data-storage.md
+    layer: Foundation
+    status: Designed
+    laws: [BL-02, BL-05]
+    adrs: [ADR-0001, ADR-0003]
+    trs: [TR-005, TR-006, TR-007, TR-008]
+  data-sources:
+    cdd: design/cdd/data-sources.md
+    layer: Foundation
+    status: Designed
+    laws: [BL-02, BL-03, BL-06]
+    adrs: [ADR-0001, ADR-0004]
+    trs: [TR-009, TR-010, TR-011, TR-012]
+  macro-strategy-engine:
+    cdd: design/cdd/macro-strategy-engine.md
+    layer: Core
+    status: Designed
+    laws: [BL-03, BL-04, BL-06]
+    adrs: [ADR-0004, ADR-0005]
+    trs: [TR-013, TR-014, TR-015, TR-016]
+  micro-momentum-scanner:
+    cdd: design/cdd/micro-momentum-scanner.md
+    layer: Core
+    status: Designed
+    laws: [BL-02, BL-03]
+    adrs: [ADR-0001]
+    trs: [TR-017, TR-018, TR-019]
+  market-reporting:
+    cdd: design/cdd/market-reporting.md
+    layer: Feature
+    status: Designed
+    laws: [BL-02, BL-03, BL-05]
+    adrs: [ADR-0001, ADR-0002]
+    trs: [TR-043, TR-044]
+  research-insight-knowledge-base:
+    cdd: design/cdd/research-insight-knowledge-base.md
+    layer: Core
+    status: Designed
+    laws: [BL-02, BL-03]
+    adrs: [ADR-0001, ADR-0003]
+    trs: [TR-022, TR-023, TR-024, TR-045, TR-046]
+  mcp-server:
+    cdd: design/cdd/mcp-server.md
+    layer: Interface
+    status: Designed
+    laws: [BL-04, BL-05]
+    adrs: [ADR-0003, ADR-0006]
+    trs: [TR-025, TR-026, TR-027, TR-028]
+  fastapi-service:
+    cdd: design/cdd/fastapi-service.md
+    layer: Interface
+    status: In Review
+    laws: [BL-02, BL-04, BL-05]
+    adrs: [ADR-0007, ADR-0011]
+    trs: [TR-029, TR-030, TR-031, TR-032, TR-049, TR-051]
+  pyqt-desktop-dashboard:
+    cdd: design/cdd/pyqt-desktop-dashboard.md
+    layer: Presentation
+    status: Designed
+    laws: [BL-04, BL-06]
+    adrs: [ADR-0001]
+    trs: [TR-033, TR-034]
+  vue-web-console:
+    cdd: design/cdd/vue-web-console.md
+    layer: Presentation
+    status: Designed
+    laws: [BL-04, BL-05]
+    adrs: [ADR-0007, ADR-0008, ADR-0011]
+    trs: [TR-035, TR-036, TR-037, TR-050]
+  clean-architecture-migration:
+    cdd: design/cdd/clean-architecture-migration.md
+    layer: Operations
+    status: Designed
+    laws: [BL-05, BL-06]
+    adrs: [ADR-0001, ADR-0009, ADR-0010]
+    trs: [TR-038, TR-039, TR-040, TR-041, TR-042]
+  research-copilot-agent-runtime:
+    cdd: design/cdd/research-copilot-agent-runtime.md
+    layer: Core
+    status: In Review
+    laws: [BL-03, BL-04, BL-06]
+    adrs: [ADR-0001, ADR-0002, ADR-0007, ADR-0011]
+    trs: [TR-047, TR-048, TR-049, TR-054]
+  document-evidence-pipeline:
+    cdd: design/cdd/document-evidence-pipeline.md
+    layer: Core
+    status: In Review
+    laws: [BL-02, BL-03]
+    adrs: [ADR-0001, ADR-0003, ADR-0005, ADR-0011]
+    trs: [TR-051, TR-052, TR-053]
+  sdk-daemon-client-interfaces:
+    cdd: design/cdd/sdk-daemon-client-interfaces.md
+    layer: Interface
+    status: In Review
+    laws: [BL-04, BL-05, BL-06]
+    adrs: [ADR-0007, ADR-0008, ADR-0011]
+    trs: [TR-049, TR-050, TR-054]
