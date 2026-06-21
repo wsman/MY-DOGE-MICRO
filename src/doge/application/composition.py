@@ -56,15 +56,24 @@ from doge.infrastructure.database.agent_repositories import (
     SQLiteRunRepository,
     SQLiteSessionRepository,
 )
+from doge.infrastructure.database.evidence_repository import SQLiteEvidenceRepository
+from doge.infrastructure.database.embedding_cache import SQLiteEmbeddingCache
+from doge.infrastructure.database.claim_repository import SQLiteClaimRepository
+from doge.infrastructure.database.portfolio_repository import SQLitePortfolioRepository, demo_portfolio
 from doge.infrastructure.database.sqlite_uow import SQLiteAgentUnitOfWork
 from doge.infrastructure.database.sqlite_storage import SQLiteStorageRepository
 from doge.infrastructure.data_source.tdx_file_scanner import TDXFileScanner
+from doge.infrastructure.data_source.tdx_server_list import ConfigTDXServerList
 from doge.infrastructure.data_source.yfinance_metadata import YFinanceMetadataSource
 from doge.infrastructure.agent.inmemory_runtime import InMemoryResearchAgentRuntime
 from doge.infrastructure.agent.persisted_runtime import PersistedResearchAgentRuntime
 from doge.infrastructure.agent.scripted_model import ScriptedAgentModel
+from doge.infrastructure.documents.local_parser import LocalDocumentParser
 from doge.infrastructure.llm.deepseek_client import DeepSeekClient
 from doge.infrastructure.llm.kimi_client import KimiAgentModel
+from doge.infrastructure.llm.kimi_files_client import KimiFilesClient
+from doge.infrastructure.llm.embedding_client import HashingEmbeddingProvider
+from doge.infrastructure.vector.sqlite_store import SQLiteVectorStore
 
 # ── Application use cases ──
 from doge.application.use_cases.scan_market import ScanMarketUseCase
@@ -79,7 +88,14 @@ from doge.application.use_cases.generate_industry_report import GenerateIndustry
 from doge.application.use_cases.run_use_cases import ExecuteRun, ResumeRun
 from doge.application.use_cases.session_use_cases import AppendTurn, CreateSession, ListSessions, ResumeSession
 from doge.application.agent.runtime_kernel import RuntimeKernel
+from doge.application.agent.context_builder import ContextBuilder
 from doge.application.agent.tools import build_default_tool_registry
+from doge.application.services.file_upload_service import FileUploadService
+from doge.application.services.page_extraction_service import PageExtractionService
+from doge.application.services.rag_service import RAGService
+from doge.application.services.portfolio_service import PortfolioService, RiskService, ScenarioService
+from doge.application.services.citation_service import CitationService
+from doge.application.services.claim_validation_service import ClaimValidationService
 from doge.config import get_settings
 
 
@@ -169,6 +185,18 @@ def build_storage_repository() -> SQLiteStorageRepository:
     return SQLiteStorageRepository()
 
 
+def build_tdx_data_source(preferred_server: str | None = None):
+    """Construct the default TDX market data source."""
+    from doge.infrastructure.data_source.tdx import TDXDataSource
+
+    return TDXDataSource(preferred_server=preferred_server)
+
+
+def build_tdx_server_list():
+    """Construct the configured TDX server-list adapter."""
+    return ConfigTDXServerList()
+
+
 # ── Application use-case factories ──
 
 
@@ -192,8 +220,7 @@ def build_scan_market_use_case(
         stock_repo = build_storage_repository()
     if data_source is None:
         # Lazy import so this module can be imported without opentdx installed.
-        from doge.infrastructure.data_source.tdx import TDXDataSource
-        data_source = TDXDataSource()
+        data_source = build_tdx_data_source()
     if file_scanner is None:
         file_scanner = TDXFileScanner()
     if refresh_views_callable is None:
@@ -235,6 +262,7 @@ def build_agent_repositories(db_path=None):
         "artifacts": SQLiteArtifactRepository(db_path),
         "approvals": SQLiteApprovalRepository(db_path),
         "documents": SQLiteDocumentRepository(db_path),
+        "evidence": SQLiteEvidenceRepository(db_path),
         "run_queue": SQLiteRunQueue(db_path),
         "idempotency": SQLiteIdempotencyStore(db_path),
     }
@@ -255,6 +283,10 @@ def build_agent_runtime_kernel(model=None, tool_registry=None, event_publisher=N
         artifact_repository=repos["artifacts"],
         approval_repository=repos["approvals"],
         event_publisher=event_publisher,
+        context_builder=ContextBuilder(
+            document_repository=repos["documents"],
+            evidence_repository=repos["evidence"],
+        ),
     )
 
 
@@ -282,6 +314,69 @@ def build_persisted_research_agent_runtime(model=None, tool_registry=None, event
 def build_agent_document_repository(db_path=None):
     """Build the default persisted document repository."""
     return SQLiteDocumentRepository(db_path)
+
+
+def build_agent_evidence_repository(db_path=None):
+    """Build the default persisted page/chunk/evidence repository."""
+    return SQLiteEvidenceRepository(db_path)
+
+
+def build_file_upload_service(db_path=None, kimi_files_client=None):
+    """Build the default file upload service for API and CLI attach paths."""
+    settings = get_settings()
+    if kimi_files_client is None and settings.kimi.api_key:
+        kimi_files_client = KimiFilesClient()
+    return FileUploadService(
+        build_agent_document_repository(db_path),
+        storage_dir=settings.documents.storage_dir,
+        max_file_bytes=settings.documents.max_file_bytes,
+        parser=LocalDocumentParser(),
+        kimi_files_client=kimi_files_client,
+        extraction_service=build_page_extraction_service(db_path),
+    )
+
+
+def build_page_extraction_service(db_path=None):
+    """Build the local page/chunk extraction service."""
+    return PageExtractionService(
+        evidence_repository=build_agent_evidence_repository(db_path),
+        parser=LocalDocumentParser(),
+    )
+
+
+def build_rag_service(db_path=None):
+    """Build the local-first RAG service over extracted evidence chunks."""
+    return RAGService(
+        evidence_repository=build_agent_evidence_repository(db_path),
+        embedding_provider=HashingEmbeddingProvider(),
+        vector_store=SQLiteVectorStore(db_path),
+        embedding_cache=SQLiteEmbeddingCache(db_path),
+    )
+
+
+def build_claim_repository(db_path=None):
+    """Build the claim/citation repository."""
+    return SQLiteClaimRepository(db_path)
+
+
+def build_portfolio_repository(db_path=None):
+    """Build the portfolio repository and ensure the demo portfolio exists."""
+    repo = SQLitePortfolioRepository(db_path)
+    if repo.get("portfolio-demo") is None:
+        repo.save(demo_portfolio())
+    return repo
+
+
+def build_portfolio_service(db_path=None):
+    return PortfolioService(build_portfolio_repository(db_path))
+
+
+def build_risk_service(db_path=None):
+    return RiskService(build_portfolio_repository(db_path))
+
+
+def build_scenario_service(db_path=None):
+    return ScenarioService(build_portfolio_repository(db_path))
 
 
 def build_agent_run_queue(db_path=None):
@@ -398,19 +493,40 @@ def build_populate_stock_names_use_case(
 def build_industry_report_use_case(
     ranking_service=None,
     llm_client=None,
+    stock_service=None,
+    rag_service=None,
+    report_repository=None,
+    claim_repository=None,
 ) -> GenerateIndustryReportUseCase:
     """Alias for :func:`build_generate_industry_report_use_case`."""
-    return build_generate_industry_report_use_case(ranking_service, llm_client)
+    return build_generate_industry_report_use_case(
+        ranking_service,
+        llm_client,
+        stock_service=stock_service,
+        rag_service=rag_service,
+        report_repository=report_repository,
+        claim_repository=claim_repository,
+    )
 
 
 def build_generate_industry_report_use_case(
     ranking_service=None,
     llm_client=None,
+    stock_service=None,
+    rag_service=None,
+    report_repository=None,
+    claim_repository=None,
 ) -> GenerateIndustryReportUseCase:
     """Build a :class:`GenerateIndustryReportUseCase` with default adapters."""
     return GenerateIndustryReportUseCase(
         ranking_service if ranking_service is not None else build_ranking_service(),
         llm_client if llm_client is not None else DeepSeekClient(),
+        stock_service=stock_service if stock_service is not None else build_stock_service(),
+        rag_service=rag_service if rag_service is not None else build_rag_service(),
+        report_repository=report_repository if report_repository is not None else build_report_repository(),
+        claim_repository=claim_repository if claim_repository is not None else build_claim_repository(),
+        citation_service=CitationService(),
+        claim_validation_service=ClaimValidationService(),
     )
 
 

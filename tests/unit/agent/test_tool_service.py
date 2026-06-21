@@ -13,6 +13,20 @@ class EmptyNotes:
         return []
 
 
+class EmptyRAG:
+    def search(self, query, limit=5):
+        return {"query": query, "limit": limit, "results": []}
+
+
+class FilledRAG:
+    def search(self, query, limit=5):
+        return {
+            "query": query,
+            "limit": limit,
+            "results": [{"source": "rag", "chunk_id": "chk-1", "text": "earnings quality improved"}],
+        }
+
+
 class StockRows:
     def query(self, ticker, market, days):
         return [{"ticker": ticker, "close": 101.5, "volume": 1000}]
@@ -28,6 +42,7 @@ def test_query_stock_propagates_service_error():
 def test_lookup_evidence_returns_empty_when_no_notes(monkeypatch):
     from doge.application import composition
 
+    monkeypatch.setattr(composition, "build_rag_service", lambda: EmptyRAG())
     monkeypatch.setattr(composition, "build_note_repository", lambda: EmptyNotes())
     service = ToolApplicationService()
 
@@ -36,11 +51,34 @@ def test_lookup_evidence_returns_empty_when_no_notes(monkeypatch):
     assert result["results"] == []
 
 
+def test_lookup_evidence_prefers_rag_results(monkeypatch):
+    from doge.application import composition
+
+    monkeypatch.setattr(composition, "build_rag_service", lambda: FilledRAG())
+    service = ToolApplicationService()
+
+    result = service.lookup_evidence("earnings", limit=1)
+
+    assert result["results"] == [{"source": "rag", "chunk_id": "chk-1", "text": "earnings quality improved"}]
+
+
 def test_validate_financial_claims_requires_matching_number():
     service = ToolApplicationService(stock_service_factory=lambda: StockRows())
 
     validated = service.validate_financial_claims("AAPL close was 101.5", "AAPL", "us")
-    unverified = service.validate_financial_claims("AAPL close was 88.0", "AAPL", "us")
+    contradicted = service.validate_financial_claims("AAPL close was 88.0", "AAPL", "us")
 
-    assert validated["status"] == "validated"
-    assert unverified["status"] == "unverified"
+    assert validated["status"] == "supported"
+    assert contradicted["status"] == "contradicted"
+
+
+def test_validate_financial_claims_uses_rag_evidence(monkeypatch):
+    from doge.application import composition
+
+    monkeypatch.setattr(composition, "build_rag_service", lambda: FilledRAG())
+    service = ToolApplicationService(stock_service_factory=lambda: StockRows())
+
+    result = service.validate_financial_claims("earnings quality improved", "AAPL", "us")
+
+    assert result["status"] == "supported"
+    assert result["evidence"] == [{"source": "rag", "chunk_id": "chk-1", "text": "earnings quality improved"}]

@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
-
 from doge.core.domain.agent_models import (
     AgentApproval,
     AgentArtifact,
@@ -12,6 +10,7 @@ from doge.core.domain.agent_models import (
     AgentRun,
     AgentSession,
 )
+from doge.core.ports.document_repository import IDocumentRepository
 
 
 class ISessionRepository(ABC):
@@ -77,18 +76,4 @@ class IApprovalRepository(ABC):
 
     @abstractmethod
     def list_for_run(self, run_id: str) -> list[AgentApproval]:
-        ...
-
-
-class IDocumentRepository(ABC):
-    @abstractmethod
-    def save(self, document: dict[str, Any]) -> None:
-        ...
-
-    @abstractmethod
-    def get(self, document_id: str) -> dict[str, Any] | None:
-        ...
-
-    @abstractmethod
-    def list_recent(self, limit: int = 100) -> list[dict[str, Any]]:
         ...

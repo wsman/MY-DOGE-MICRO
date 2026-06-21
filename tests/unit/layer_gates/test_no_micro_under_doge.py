@@ -23,9 +23,6 @@ class TestNoNewMicroImportsUnderDoge:
         # S007-005 deferred: TDX server-download orchestration remains in
         # micro.tdx_downloader; the adapter only wraps connection lifecycle.
         "infrastructure/data_source/tdx.py": "server download helper bridge (S007-008)",
-        # S007-005 deferred: server download path in scan router; only the
-        # local .day fallback is migrated in S007-005.
-        "interfaces/api/routers/scan.py": "server download path deferred (S007-008)",
     }
 
     FORBIDDEN = [

@@ -148,5 +148,14 @@ class PopulateStockNamesResponse:
 class IndustryReportResponse:
     """Output from :class:`~doge.application.use_cases.generate_industry_report.GenerateIndustryReportUseCase`."""
     market: str = ""
+    industry: str = ""
+    report_id: Optional[str] = None
+    title: str = ""
     content: str = ""
+    rankings: List[dict] = field(default_factory=list)
+    fundamentals: List[dict] = field(default_factory=list)
+    research: List[dict] = field(default_factory=list)
+    claims: List[dict] = field(default_factory=list)
+    citations: List[dict] = field(default_factory=list)
+    persisted: bool = False
     error: Optional[str] = None

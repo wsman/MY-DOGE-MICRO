@@ -18,7 +18,14 @@ The Python SDK and TypeScript SDK call the v1 daemon API. Web uses the
 TypeScript SDK for research-agent workflows while legacy `/api/*` endpoints
 remain available for existing screens.
 
-## Stability Rule
+## Maturity Rule
 
-A level is marked stable only when every required gate in
+A level's maturity label can only be promoted when every required gate in
 `docs/progress/runtime-maturity.yaml` is satisfied by code and tests.
+
+## Promotion Review Status - 2026-06-21
+
+Sprint 015 added local release-quality evidence for performance, Kimi retry,
+Research Agent accessibility, and soak readiness. The review verdict is no
+Stable promotion: remote CI after push, executed soak evidence, live Kimi smoke,
+browser/manual reconnect evidence, and citation-quality evaluation remain open.

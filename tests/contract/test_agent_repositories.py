@@ -1,5 +1,7 @@
 from doge.core.domain.agent_models import AgentRun, AgentSession
+from doge.core.domain.document_models import Document, DocumentStatus
 from doge.infrastructure.database.agent_repositories import (
+    SQLiteDocumentRepository,
     SQLiteIdempotencyStore,
     SQLiteRunQueue,
     SQLiteRunRepository,
@@ -43,3 +45,28 @@ def test_idempotency_store_scopes_keys(tmp_path):
 
     assert store.get("idem-1", "ses-a") == "run-a"
     assert store.get("idem-1", "ses-b") == "run-b"
+
+
+def test_document_repository_persists_file_metadata_and_hash_lookup(tmp_path):
+    db = tmp_path / "agent_state.db"
+    repo = SQLiteDocumentRepository(db)
+    document = Document.create(
+        original_filename="report.pdf",
+        file_hash="abc123",
+        mime_type="application/pdf",
+        size_bytes=42,
+        storage_path=str(tmp_path / "report.pdf"),
+        parsing_status=DocumentStatus.UPLOADED,
+    )
+
+    repo.save(document)
+
+    saved = repo.get(document.document_id)
+    by_hash = repo.get_by_hash("abc123")
+    assert saved is not None
+    assert saved["original_filename"] == "report.pdf"
+    assert saved["file_hash"] == "abc123"
+    assert saved["mime_type"] == "application/pdf"
+    assert saved["size_bytes"] == 42
+    assert saved["parsing_status"] == "uploaded"
+    assert by_hash == saved

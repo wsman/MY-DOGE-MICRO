@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from dataclasses import asdict, is_dataclass
 from typing import Any
 
 
@@ -54,26 +55,72 @@ class ToolApplicationService:
         return {"views": rows}
 
     def get_portfolio_exposure(self, portfolio_id: str = "portfolio-demo") -> dict[str, Any]:
-        raise NotImplementedError(f"portfolio exposure is not configured for {portfolio_id}")
+        from doge.application import composition
+
+        return composition.build_portfolio_service().get_exposure(portfolio_id)
+
+    def portfolio_risk(self, portfolio_id: str = "portfolio-demo") -> dict[str, Any]:
+        from doge.application import composition
+
+        return composition.build_risk_service().portfolio_risk(portfolio_id)
+
+    def scenario_analysis(self, portfolio_id: str = "portfolio-demo", basis_points: float = 100.0) -> dict[str, Any]:
+        from doge.application import composition
+
+        return composition.build_scenario_service().rate_shock(portfolio_id, basis_points)
 
     def validate_financial_claims(self, claim: str, ticker: str = "AAPL", market: str = "us") -> dict[str, Any]:
+        evidence = []
+        try:
+            from doge.application import composition
+
+            evidence = composition.build_rag_service().search(claim, limit=3).get("results", [])
+        except Exception:
+            evidence = []
         rows = self._stock_service().query(ticker, market, 5)
         status = "data_unavailable"
-        if rows:
-            status = "validated" if _claim_matches_rows(claim, rows) else "unverified"
+        if evidence:
+            status = "supported" if _claim_matches_evidence(claim, evidence) else "insufficient_evidence"
+        elif rows:
+            status = "supported" if _claim_matches_rows(claim, rows) else "contradicted"
         return {
             "claim": claim,
             "ticker": ticker,
             "market": market,
             "status": status,
             "sample_size": len(rows),
+            "evidence": evidence,
         }
+
+    def generate_industry_report(
+        self,
+        industry: str = "semiconductor",
+        market: str = "us",
+        tickers: list[str] | None = None,
+    ) -> dict[str, Any]:
+        from doge.application import composition
+        from doge.application.contracts.request import GenerateIndustryReportRequest
+
+        response = composition.build_generate_industry_report_use_case().execute(
+            GenerateIndustryReportRequest(
+                market=market,
+                industry=industry,
+                tickers=tickers,
+            )
+        )
+        return asdict(response) if is_dataclass(response) else dict(response)
 
     def lookup_evidence(self, query: str, limit: int = 5) -> dict[str, Any]:
         from doge.application import composition
 
+        try:
+            rag_result = composition.build_rag_service().search(query, limit=limit)
+            if rag_result.get("results"):
+                return rag_result
+        except Exception:
+            pass
         rows = composition.build_note_repository().search_notes(query, limit=limit)
-        return {"query": query, "limit": limit, "results": rows[:limit]}
+        return {"query": query, "limit": limit, "source": "notes", "results": rows[:limit]}
 
     def request_approval(self, action: str, risk_level: str = "high") -> dict[str, Any]:
         return {"approval_required": True, "action": action, "risk_level": risk_level}
@@ -93,3 +140,15 @@ def _claim_matches_rows(claim: str, rows: list[dict[str, Any]]) -> bool:
         for claimed in numbers
         for actual in numeric_values
     )
+
+
+def _claim_matches_evidence(claim: str, evidence: list[dict[str, Any]]) -> bool:
+    numbers = re.findall(r"\d+(?:\.\d+)?", claim)
+    texts = " ".join(str(item.get("text", "")) for item in evidence).lower()
+    if numbers:
+        return any(number in texts for number in numbers)
+    claim_terms = {term for term in re.findall(r"[\w\u4e00-\u9fff]+", claim.lower()) if len(term) > 3}
+    if not claim_terms:
+        return False
+    evidence_terms = set(re.findall(r"[\w\u4e00-\u9fff]+", texts))
+    return bool(claim_terms & evidence_terms)

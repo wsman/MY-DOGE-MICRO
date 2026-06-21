@@ -78,3 +78,34 @@ def test_cli_approval_does_not_synchronously_complete(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "run_id=run-cli status=awaiting_approval" in out
     assert "approval continuation is unsupported in the CLI" in out
+
+
+def test_cli_attach_registers_real_file_and_passes_document_id(tmp_path, monkeypatch, capsys):
+    db = tmp_path / "agent_state.db"
+    document_dir = tmp_path / "documents"
+    source = tmp_path / "report.txt"
+    source.write_text("alpha beta", encoding="utf-8")
+    monkeypatch.setenv("DOGE_AGENT_DB", str(db))
+    monkeypatch.setenv("DOGE_DOCUMENT_STORAGE_DIR", str(document_dir))
+    reset_settings()
+    captured = {}
+
+    class FakeExecuteRun:
+        async def execute(self, *args, **kwargs):
+            captured.update(kwargs)
+            return SimpleNamespace(
+                run_id="run-cli",
+                status=SimpleNamespace(value="completed"),
+            )
+
+    lines = iter([f"/attach {source}", "Analyze attached file", "/exit"])
+    monkeypatch.setattr("builtins.input", lambda _prompt="": next(lines))
+    monkeypatch.setattr(session_command.composition, "build_execute_run_use_case", lambda: FakeExecuteRun())
+
+    session_command._interactive_loop("ses-cli", "us")
+
+    out = capsys.readouterr().out
+    assert "attached=doc-" in out
+    assert "status=parsed" in out
+    assert captured["document_ids"][0].startswith("doc-")
+    assert document_dir.exists()

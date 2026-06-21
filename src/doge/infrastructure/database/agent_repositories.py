@@ -19,6 +19,7 @@ from doge.core.domain.agent_models import (
     RunStatus,
     utc_now,
 )
+from doge.core.domain.document_models import Document, DocumentStatus
 from doge.core.ports.agent_repository import (
     IApprovalRepository,
     IArtifactRepository,
@@ -43,6 +44,7 @@ def bootstrap_agent_schema(db_path: Path | str | None = None) -> None:
     with sqlite3.connect(str(path)) as conn:
         conn.executescript(sql)
         _migrate_idempotency_key_scope(conn)
+        _migrate_documents_metadata(conn)
         conn.execute(
             "INSERT OR IGNORE INTO schema_migrations(name, applied_at) VALUES (?, ?)",
             ("agent_schema_v1", utc_now()),
@@ -74,6 +76,40 @@ def _migrate_idempotency_key_scope(conn: sqlite3.Connection) -> None:
         """
     )
     conn.execute("DROP TABLE idempotency_keys_legacy")
+
+
+def _migrate_documents_metadata(conn: sqlite3.Connection) -> None:
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(documents)").fetchall()}
+    additions = {
+        "original_filename": "TEXT",
+        "file_hash": "TEXT",
+        "mime_type": "TEXT",
+        "size_bytes": "INTEGER",
+        "storage_path": "TEXT",
+        "kimi_file_id": "TEXT",
+        "parsing_status": "TEXT NOT NULL DEFAULT 'registered'",
+        "parser_error": "TEXT",
+        "updated_at": "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
+    }
+    for column, ddl in additions.items():
+        if column not in columns:
+            conn.execute(f"ALTER TABLE documents ADD COLUMN {column} {ddl}")
+    conn.execute(
+        """
+        UPDATE documents
+        SET original_filename = COALESCE(original_filename, filename),
+            parsing_status = CASE
+                WHEN parsing_status IS NULL OR parsing_status = '' THEN
+                    CASE WHEN status = 'ready' THEN 'parsed' ELSE COALESCE(status, 'registered') END
+                ELSE parsing_status
+            END,
+            status = CASE
+                WHEN status = 'ready' THEN 'parsed'
+                ELSE COALESCE(status, parsing_status, 'registered')
+            END,
+            updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP)
+        """
+    )
 
 
 class _BaseAgentRepository:
@@ -334,23 +370,46 @@ class SQLiteApprovalRepository(_BaseAgentRepository, IApprovalRepository):
 
 
 class SQLiteDocumentRepository(_BaseAgentRepository, IDocumentRepository):
-    def save(self, document: dict[str, Any]) -> None:
+    def save(self, document: Document | dict[str, Any]) -> None:
+        record = _document_to_record(document)
         with self._connect() as conn:
             conn.execute(
                 """
-                INSERT INTO documents(document_id, filename, content, status, created_at)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO documents(
+                    document_id, filename, original_filename, content,
+                    file_hash, mime_type, size_bytes, storage_path, kimi_file_id,
+                    parsing_status, parser_error, status, created_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(document_id) DO UPDATE SET
                     filename = excluded.filename,
+                    original_filename = excluded.original_filename,
                     content = excluded.content,
-                    status = excluded.status
+                    file_hash = excluded.file_hash,
+                    mime_type = excluded.mime_type,
+                    size_bytes = excluded.size_bytes,
+                    storage_path = excluded.storage_path,
+                    kimi_file_id = excluded.kimi_file_id,
+                    parsing_status = excluded.parsing_status,
+                    parser_error = excluded.parser_error,
+                    status = excluded.status,
+                    updated_at = excluded.updated_at
                 """,
                 (
-                    document["document_id"],
-                    document.get("filename", document["document_id"]),
-                    document.get("content"),
-                    document.get("status", "uploaded"),
-                    document.get("created_at", utc_now()),
+                    record["document_id"],
+                    record["filename"],
+                    record["original_filename"],
+                    record.get("content"),
+                    record.get("file_hash"),
+                    record.get("mime_type"),
+                    record.get("size_bytes"),
+                    record.get("storage_path"),
+                    record.get("kimi_file_id"),
+                    record["parsing_status"],
+                    record.get("parser_error"),
+                    record["status"],
+                    record["created_at"],
+                    record["updated_at"],
                 ),
             )
             conn.commit()
@@ -358,7 +417,15 @@ class SQLiteDocumentRepository(_BaseAgentRepository, IDocumentRepository):
     def get(self, document_id: str) -> dict[str, Any] | None:
         with self._connect() as conn:
             row = conn.execute("SELECT * FROM documents WHERE document_id = ?", (document_id,)).fetchone()
-            return dict(row) if row else None
+            return _row_to_document_dict(row) if row else None
+
+    def get_by_hash(self, file_hash: str) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM documents WHERE file_hash = ? ORDER BY created_at DESC LIMIT 1",
+                (file_hash,),
+            ).fetchone()
+            return _row_to_document_dict(row) if row else None
 
     def list_recent(self, limit: int = 100) -> list[dict[str, Any]]:
         with self._connect() as conn:
@@ -366,7 +433,7 @@ class SQLiteDocumentRepository(_BaseAgentRepository, IDocumentRepository):
                 "SELECT * FROM documents ORDER BY created_at DESC LIMIT ?",
                 (limit,),
             ).fetchall()
-            return [dict(row) for row in rows]
+            return [_row_to_document_dict(row) for row in rows]
 
 
 class SQLiteRunQueue(_BaseAgentRepository, IRunQueue):
@@ -515,3 +582,53 @@ def _row_to_approval(row: sqlite3.Row) -> AgentApproval:
         created_at=row["created_at"],
         resolved_at=row["resolved_at"],
     )
+
+
+def _document_to_record(document: Document | dict[str, Any]) -> dict[str, Any]:
+    if isinstance(document, Document):
+        data = document.to_dict()
+    else:
+        data = dict(document)
+    status = _normalize_document_status(data.get("parsing_status") or data.get("status"))
+    now = utc_now()
+    filename = data.get("original_filename") or data.get("filename") or data["document_id"]
+    return {
+        "document_id": data["document_id"],
+        "filename": data.get("filename") or filename,
+        "original_filename": filename,
+        "content": data.get("content") or data.get("parsed_content"),
+        "file_hash": data.get("file_hash"),
+        "mime_type": data.get("mime_type"),
+        "size_bytes": data.get("size_bytes") or data.get("file_size_bytes"),
+        "storage_path": data.get("storage_path"),
+        "kimi_file_id": data.get("kimi_file_id"),
+        "parsing_status": status.value,
+        "parser_error": data.get("parser_error") or data.get("error_message"),
+        "status": status.value,
+        "created_at": data.get("created_at") or now,
+        "updated_at": data.get("updated_at") or now,
+    }
+
+
+def _row_to_document_dict(row: sqlite3.Row) -> dict[str, Any]:
+    data = dict(row)
+    status = _normalize_document_status(data.get("parsing_status") or data.get("status"))
+    original_filename = data.get("original_filename") or data.get("filename") or data["document_id"]
+    return {
+        **data,
+        "filename": data.get("filename") or original_filename,
+        "original_filename": original_filename,
+        "parsing_status": status.value,
+        "status": status.value,
+        "size_bytes": data.get("size_bytes"),
+        "parser_error": data.get("parser_error"),
+        "updated_at": data.get("updated_at") or data.get("created_at"),
+    }
+
+
+def _normalize_document_status(value: str | None) -> DocumentStatus:
+    if value == "ready":
+        return DocumentStatus.PARSED
+    if not value:
+        return DocumentStatus.REGISTERED
+    return DocumentStatus(value)

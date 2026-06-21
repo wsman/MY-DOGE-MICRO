@@ -358,6 +358,25 @@ doge macro --verbose
 
 完整环境变量总览另见 [docs/MCP_SERVER.md](MCP_SERVER.md) 的「配置」章节。
 
+### Research Copilot / Kimi 所需
+
+`doge session`、`doge run` 和 daemon v1 Research Agent 路径使用本地
+`DOGE_AGENT_DB`；Kimi 是可选 live provider。未设置 `MOONSHOT_API_KEY` 时，
+runtime 使用 deterministic scripted fallback，文件上传和 `/attach` 仍会在本地
+保存 hash/MIME/size/status 与解析结果。
+
+| 变量 | 必填 | 默认 | 说明 |
+|------|------|------|------|
+| `MOONSHOT_API_KEY` | 否 | unset | Live Kimi / Moonshot API 密钥；未设置时走本地 fallback。 |
+| `KIMI_BASE_URL` | 否 | `https://api.moonshot.ai/v1` | OpenAI-compatible Kimi API base URL。 |
+| `KIMI_GENERAL_MODEL` | 否 | `kimi-k2.6` | Research Agent 默认模型。 |
+| `KIMI_CODE_MODEL` | 否 | `kimi-k2.7-code` | 预留的代码子任务模型。 |
+| `KIMI_MAX_RETRIES` | 否 | `2` | Kimi chat create 请求遇到 429/rate/timeout/connection/5xx 类错误时的最大重试次数。 |
+| `KIMI_RETRY_DELAY` | 否 | `1.0` | Kimi chat 重试间隔秒数；测试可设为 `0`。 |
+| `DOGE_AGENT_DB` | 否 | `{DOGE_DB_DIR}/agent_state.db` | Research Copilot session/run/document/queue SQLite。 |
+| `DOGE_DOCUMENT_STORAGE_DIR` | 否 | `{DOGE_DB_DIR}/documents` | `/v1/documents` 与 CLI `/attach` 的本地文件副本目录。 |
+| `DOGE_DOCUMENT_MAX_BYTES` | 否 | `104857600` | 单文件大小上限，默认 100 MB。 |
+
 ---
 
 ## MCP 服务器命令行参数
@@ -380,6 +399,26 @@ doge run "Analyze earnings quality" --trace
 
 `--json` 只输出序列化 `AgentRun`，适合脚本消费；`--trace` 在 human summary
 后打印事件序列。需要高风险发布审批时，run 会停在 `awaiting_approval`。
+
+交互式 `doge session --resume ses-xxxx --interactive` 支持真实文件附件：
+
+```text
+> /attach demo_materials/market_summary_2026Q2.pdf
+attached=doc-... path=demo_materials/market_summary_2026Q2.pdf status=parsed
+> Summarize the attached report.
+run_id=run-... status=...
+```
+
+`/attach <path>` 会读取本地文件、计算 SHA-256、检测 MIME、写入
+`DOGE_AGENT_DB` 的 `documents` 表，并把文件副本存入
+`DOGE_DOCUMENT_STORAGE_DIR`。后续问题会把返回的真实 `document_id` 传给
+Agent run。不存在的文件、空文件、超限文件或不支持的扩展名会打印
+`attach_error=...`，不会启动 run。
+
+如果 `MOONSHOT_API_KEY` 未配置，`/attach` 仍使用本地 parser fallback；如果
+Kimi live call 遇到 429/rate-limit/timeout/connection/5xx 类错误，chat adapter
+会按 `KIMI_MAX_RETRIES` / `KIMI_RETRY_DELAY` 做有界重试，耗尽后安全降级而不
+让 CLI 泄露 provider 异常细节。
 
 ## Daemon CLI：`doged`
 

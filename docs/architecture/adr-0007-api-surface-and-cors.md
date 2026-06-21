@@ -54,24 +54,24 @@ sign-off is recorded in
 ## Decision Makers
 
 lead-programmer, python-specialist (reverse-documentation of the brownfield
-FastAPI service in `src/api/`).
+FastAPI service in `src/doge/interfaces/api/`).
 
 ## Summary
 
 This ADR records the API surface of the local-first FastAPI service (the
-canonical 26-product-route table across six routers bound to
-`127.0.0.1:8901`), the decision to ship `CORSMiddleware` with
+canonical 51-product-route table across legacy `/api/*` routers and daemon
+`/v1/*` routes bound to `127.0.0.1:8901`), the decision to ship
+`CORSMiddleware` with
 `allow_origins=["*"]` justified by the loopback bind + local-first scope, and
 the stance that error responses must converge on a stable, non-leaking
-envelope while the current `except Exception as e: raise HTTPException(500,
-str(e))` pattern remains tracked tech debt.
+envelope for explicit and otherwise-unhandled internal errors.
 
-## Engine Compatibility
+## Technology Compatibility
 
 | Field | Value |
 |-------|-------|
 | **Engine** | N/A — product project (no game engine). Framework: FastAPI 0.123.8 / Uvicorn 0.38.0 / Pydantic 2.12.4 / sse-starlette 3.0.3. |
-| **Domain** | API / Interface layer (`src/api/`). |
+| **Domain** | API / Interface layer (`src/doge/interfaces/api/`). |
 | **Knowledge Risk** | LOW — FastAPI CORS middleware and HTTPException are stable, long-standing APIs well within training data. |
 | **References Consulted** | `docs/reference/python/` (pinned stack per `standards/technical-preferences.md`); `.claude/rules/api-code.md`; live source `src/doge/interfaces/api/main.py`. |
 | **Post-Cutoff APIs Used** | None. |
@@ -83,14 +83,14 @@ str(e))` pattern remains tracked tech debt.
 |-------|-------|
 | **Depends On** | ADR-0001 (brownfield-clean-architecture — establishes the layer rules and forbidden patterns this ADR's remediation items reference), ADR-0002 (centralized-configuration — the `get_settings()` target for the `_PROJECT_ROOT` remediation). |
 | **Enables** | Module #9 `fastapi-service` CDD; the future CORS-hardening story; the error-envelope remediation story. |
-| **Blocks** | No story is blocked from *starting*; stories that claim "API error contract is stable" or "CORS is production-hardened" cannot be marked Done until the corresponding ACs in the fastapi-service CDD §8 are satisfied. |
+| **Blocks** | No story is blocked from *starting*; stories that claim "CORS is production-hardened" cannot be marked Done until the corresponding ACs in the fastapi-service CDD §8 are satisfied. |
 | **Ordering Note** | The CORS hardening and error-envelope work can proceed independently of each other; both are independent of the repository-routing migration (ADR-0001/#12). |
 
 ## Context
 
 ### Problem Statement
 
-The FastAPI service (`src/doge/interfaces/api/main.py` + six routers) is the local-first HTTP
+The FastAPI service (`src/doge/interfaces/api/main.py` + legacy `/api/*` and daemon `/v1/*` routers) is the local-first HTTP
 interface every UI consumer (Vue web console, PyQt desktop) calls. Three
 decisions needed to be made and recorded so that (a) consumers have a stable,
 enumerated contract to build against; (b) the permissive CORS configuration is
@@ -102,9 +102,9 @@ handler.
 ### Current State
 
 - The app binds to `127.0.0.1:8901` (`src/doge/interfaces/api/main.py`) and registers six
-  routers under `/api/<router>` plus two top-level helpers (`/api/health`,
-  `/api/stats`). The full 26-route table is enumerated in the fastapi-service
-  CDD §4.1.
+  routers under `/api/*`, daemon routes under `/v1/*`, and health helpers.
+  The full 51-route table is enumerated in `docs/API.md` and summarized in the
+  fastapi-service CDD §4.1.
 - `CORSMiddleware` is added with `allow_origins=["*"]`, `allow_methods=["*"]`,
   `allow_headers=["*"]` (`main.py:22-27`). The inline comment
   "仅 localhost, 无安全风险" records the local-first intent but the decision
@@ -146,10 +146,11 @@ handler.
 
 ## Decision
 
-1. **API surface** — the 26 product routes enumerated in fastapi-service CDD
-   §4.1 are the canonical contract. Any new route requires a CDD update and a
-   contract test. The OpenAPI auto-generated routes (`/openapi.json`, `/docs`,
-   `/redoc`) are infrastructure, not product endpoints.
+1. **API surface** — the 51 product routes enumerated in `docs/API.md` and
+   summarized in fastapi-service CDD §4.1 are the canonical contract. Any new
+   route requires a docs/CDD update and a contract test. The OpenAPI
+   auto-generated routes (`/openapi.json`, `/docs`, `/redoc`) are
+   infrastructure, not product endpoints.
 
 2. **CORS** — keep `allow_origins=["*"]` for the local-first deployment
    **because** the server binds to `127.0.0.1` (`main.py:67`) and no remote

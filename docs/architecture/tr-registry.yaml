@@ -40,7 +40,7 @@
 #   status      -> active | deprecated | superseded-by: TR-NNN
 
 version: 1
-last_updated: "2026-06-12"
+last_updated: "2026-06-21"
 
 requirements:
   # ────────────────────────────────────────────────────────────────────
@@ -393,22 +393,22 @@ requirements:
     system: fastapi-service
     cdd: design/cdd/fastapi-service.md
     section: "1 / 4.1"
-    requirement: "The FastAPI service binds to 127.0.0.1:8901 and exposes the canonical 26 product routes (24 across six routers + /api/health + /api/stats); the route table is the auditable contract."
+    requirement: "The canonical FastAPI app (doge.interfaces.api.main) binds to 127.0.0.1:8901 and exposes exactly 51 product routes: 34 legacy /api routes plus 17 daemon/v1 routes; docs/API.md route table is the auditable contract."
     adr: docs/architecture/adr-0007-api-surface-and-cors.md
-    test: tests/test_api_routers.py
+    test: tests/contract/test_api_doc_route_coverage.py
     created: 2026-06-12
-    revised: ""
+    revised: "2026-06-21"
     status: active
 
   - id: TR-030
     system: fastapi-service
     cdd: design/cdd/fastapi-service.md
     section: "8 / ADR-0007 Decision 3"
-    requirement: "Error responses converge on a stable non-leaking envelope {error:{code,message}} via a global exception handler; the current 'except Exception as e: raise HTTPException(500, str(e))' leak is tracked tech debt, not the contract."
+    requirement: "HTTPException and otherwise-unhandled internal errors use the shipped non-leaking envelope {error:{code,message}} via FastAPI exception handlers; FastAPI/Pydantic 422 validation responses intentionally keep the default detail shape."
     adr: docs/architecture/adr-0007-api-surface-and-cors.md
     test: tests/test_api_routers.py
     created: 2026-06-12
-    revised: ""
+    revised: "2026-06-21"
     status: active
 
   - id: TR-031
@@ -601,5 +601,109 @@ requirements:
     adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
     test: tests/test_notes_crud.py
     created: 2026-06-14
+    revised: ""
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Module #13 — research-copilot-agent-runtime (Core)
+  # CDD: design/cdd/research-copilot-agent-runtime.md · ADR-0011
+  # Appended during 2026-06-21 Release follow-up documentation governance.
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-047
+    system: research-copilot-agent-runtime
+    cdd: design/cdd/research-copilot-agent-runtime.md
+    section: "3 / 8 (runtime levels)"
+    requirement: "Research Copilot runtime is organized into Level 1 embedded CLI session, Level 2 daemon gateway, and Level 3 SDK/platform clients; all levels share session, turn, run, event, tool, model, artifact, and approval concepts and are maturity-gated by docs/progress/runtime-maturity.yaml."
+    adr: docs/architecture/adr-0011-agent-runtime-levels.md
+    test: tests/integration/test_daemon_worker.py
+    created: 2026-06-21
+    revised: ""
+    status: active
+
+  - id: TR-048
+    system: research-copilot-agent-runtime
+    cdd: design/cdd/research-copilot-agent-runtime.md
+    section: "3 / 8 (Level 1)"
+    requirement: "Level 1 CLI runtime uses repository-backed local session state for doge session/run workflows and must not require an HTTP daemon dependency for scripted offline execution."
+    adr: docs/architecture/adr-0011-agent-runtime-levels.md
+    test: tests/cli/test_cli_session.py
+    created: 2026-06-21
+    revised: ""
+    status: active
+
+  - id: TR-049
+    system: research-copilot-agent-runtime
+    cdd: design/cdd/research-copilot-agent-runtime.md
+    section: "3 / 9 (Level 2 daemon)"
+    requirement: "Level 2 daemon gateway exposes /v1 sessions/runs routes with durable run state, live SSE event replay via Last-Event-ID, approval resume, cancellation, artifacts, and tool schema discovery."
+    adr: docs/architecture/adr-0011-agent-runtime-levels.md
+    test: tests/contract/test_v1_api.py
+    created: 2026-06-21
+    revised: ""
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Module #15 — sdk-daemon-client-interfaces (Interface)
+  # CDD: design/cdd/sdk-daemon-client-interfaces.md · ADR-0011
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-050
+    system: sdk-daemon-client-interfaces
+    cdd: design/cdd/sdk-daemon-client-interfaces.md
+    section: "1 / 8 (experimental SDK status)"
+    requirement: "Python SDK, TypeScript SDK, web daemon clients, and daemon streaming helpers are experimental until Level 2/3 maturity gates pass; docs must point new runtime clients to /v1/* and avoid production-readiness claims."
+    adr: docs/architecture/adr-0011-agent-runtime-levels.md
+    test: tests/contract/test_python_sdk.py
+    created: 2026-06-21
+    revised: ""
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Module #14 — document-evidence-pipeline (Core)
+  # CDD: design/cdd/document-evidence-pipeline.md · ADR-0011
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-051
+    system: document-evidence-pipeline
+    cdd: design/cdd/document-evidence-pipeline.md
+    section: "3 / 4 / 8 (document upload metadata)"
+    requirement: "Document upload and registration preserve local metadata including document ID, filename, content type, size, checksum/source surface, and provider file ID when present; /api/documents and /v1/documents must converge on persisted metadata semantics."
+    adr: docs/architecture/adr-0011-agent-runtime-levels.md
+    test: tests/unit/test_file_upload_service.py
+    created: 2026-06-21
+    revised: ""
+    status: active
+
+  - id: TR-052
+    system: document-evidence-pipeline
+    cdd: design/cdd/document-evidence-pipeline.md
+    section: "4 / 8 (page chunk evidence storage)"
+    requirement: "Pages, chunks, and evidence are persisted with source document/page/chunk provenance so agent answers can cite local evidence rather than ungrounded prompt text."
+    adr: docs/architecture/adr-0011-agent-runtime-levels.md
+    test: tests/unit/test_evidence_repository.py
+    created: 2026-06-21
+    revised: ""
+    status: active
+
+  - id: TR-053
+    system: document-evidence-pipeline
+    cdd: design/cdd/document-evidence-pipeline.md
+    section: "3 / 9 (Kimi file and vision boundary)"
+    requirement: "Kimi Files and Kimi Vision serialization remain behind provider adapters; live provider IDs/request shapes may be stored as metadata, but canonical evidence remains local and mocked tests must cover request shape without live network spend."
+    adr: docs/architecture/adr-0005-llm-client-strategy.md
+    test: tests/unit/infrastructure/test_kimi_client.py
+    created: 2026-06-21
+    revised: ""
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Cross-module runtime maturity guard
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-054
+    system: runtime-maturity-governance
+    cdd: docs/progress/runtime-maturity.yaml
+    section: "maturity_labels / stable_declaration"
+    requirement: "README, release notes, CDDs, SDK docs, and architecture summaries must not claim a runtime level is production-ready while docs/progress/runtime-maturity.yaml has production_ready: false or required level gates remain incomplete."
+    adr: docs/architecture/adr-0011-agent-runtime-levels.md
+    test: docs/progress/runtime-maturity.yaml
+    created: 2026-06-21
     revised: ""
     status: active

@@ -119,10 +119,9 @@ class ScanMarketUseCase:
     ) -> list[ScanResultItem]:
         """Download tickers from a remote source and persist each frame.
 
-        This is a minimal placeholder for the full server-download orchestration
-        (incremental fetches, reconnection, batching) which remains in
-        ``micro.tdx_downloader`` for Sprint 007. The use case still provides the
-        persistence loop and error handling seam.
+        This owns the canonical server-download persistence loop. Connection
+        probing, retry behavior, and provider-specific download details remain
+        behind the injected ``IMarketDataSource`` adapter.
         """
         if self._data_source is None:
             return []

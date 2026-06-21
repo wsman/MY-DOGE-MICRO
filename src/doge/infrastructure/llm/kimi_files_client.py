@@ -1,0 +1,62 @@
+"""Kimi Files API adapter."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Optional
+
+from doge.config import get_settings
+
+
+class KimiFilesClient:
+    """Small synchronous adapter around Moonshot/Kimi file APIs."""
+
+    def __init__(
+        self,
+        *,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+    ) -> None:
+        settings = get_settings().kimi
+        self._api_key = api_key if api_key is not None else settings.api_key
+        self._base_url = base_url if base_url is not None else settings.base_url
+
+    @property
+    def is_configured(self) -> bool:
+        return bool(self._api_key)
+
+    def upload_file(self, path: Path, *, purpose: str = "file-extract") -> str:
+        client = self._client()
+        with Path(path).open("rb") as handle:
+            file_object = client.files.create(file=handle, purpose=purpose)
+        return file_object.id
+
+    def get_file_content(self, file_id: str) -> str:
+        client = self._client()
+        response = client.files.content(file_id)
+        text = getattr(response, "text", None)
+        if isinstance(text, str):
+            return text
+        if callable(text):
+            return text()
+        return str(response)
+
+    def get_file_info(self, file_id: str) -> dict:
+        client = self._client()
+        response = client.files.retrieve(file_id)
+        if hasattr(response, "model_dump"):
+            return response.model_dump(exclude_none=True)
+        return dict(response)
+
+    def delete_file(self, file_id: str) -> None:
+        client = self._client()
+        client.files.delete(file_id)
+
+    def _client(self):
+        if not self._api_key:
+            raise RuntimeError("MOONSHOT_API_KEY is not configured")
+        try:
+            from openai import OpenAI
+        except ImportError as exc:  # pragma: no cover - installed in normal envs
+            raise RuntimeError("openai package is not installed") from exc
+        return OpenAI(api_key=self._api_key, base_url=self._base_url)

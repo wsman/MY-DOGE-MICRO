@@ -6,6 +6,7 @@ import asyncio
 import sys
 
 from doge.application import composition
+from doge.application.services.file_upload_service import FileUploadError
 
 
 def cmd_session(args) -> None:
@@ -73,9 +74,18 @@ def _interactive_loop(session_id: str, market: str) -> None:
             continue
         if line.startswith("/attach "):
             path = line.split(maxsplit=1)[1]
-            doc_id = f"doc-{len(document_ids) + 1}"
-            document_ids.append(doc_id)
-            print(f"attached={doc_id} path={path}")
+            try:
+                document = composition.build_file_upload_service().register_path(path)
+            except FileUploadError as exc:
+                print(f"attach_error={exc}")
+                continue
+            doc_id = document["document_id"]
+            if doc_id not in document_ids:
+                document_ids.append(doc_id)
+            print(
+                f"attached={doc_id} path={path} "
+                f"status={document.get('parsing_status') or document.get('status')}"
+            )
             continue
         if line.startswith("/portfolio "):
             portfolio_id = line.split(maxsplit=1)[1]

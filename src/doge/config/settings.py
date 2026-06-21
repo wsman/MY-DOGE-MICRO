@@ -49,6 +49,14 @@ def _env_int(name: str, default: int) -> int:
     return int(env)
 
 
+def _env_float(name: str, default: float) -> float:
+    """Read a float env var, treating unset/empty values as ``default``."""
+    env = os.environ.get(name)
+    if not env:
+        return default
+    return float(env)
+
+
 @dataclass(frozen=True)
 class DBConfig:
     """Database paths (override via env vars).
@@ -245,6 +253,23 @@ class KimiConfig:
     code_model: str = field(
         default_factory=lambda: os.environ.get("KIMI_CODE_MODEL") or "kimi-k2.7-code"
     )
+    max_retries: int = field(default_factory=lambda: _env_int("KIMI_MAX_RETRIES", 2))
+    retry_delay: float = field(default_factory=lambda: _env_float("KIMI_RETRY_DELAY", 1.0))
+
+
+@dataclass(frozen=True)
+class DocumentConfig:
+    """Uploaded document storage and validation settings."""
+
+    storage_dir: Path = field(
+        default_factory=lambda: _env_path(
+            "DOGE_DOCUMENT_STORAGE_DIR",
+            _env_path("DOGE_DB_DIR", _PROJECT_ROOT / "data") / "documents",
+        )
+    )
+    max_file_bytes: int = field(
+        default_factory=lambda: _env_int("DOGE_DOCUMENT_MAX_BYTES", 100 * 1024 * 1024)
+    )
 
 
 @dataclass(frozen=True)
@@ -259,6 +284,7 @@ class Settings:
     network: NetworkConfig = field(default_factory=NetworkConfig)
     deepseek: DeepSeekConfig = field(default_factory=DeepSeekConfig)
     kimi: KimiConfig = field(default_factory=KimiConfig)
+    documents: DocumentConfig = field(default_factory=DocumentConfig)
 
     # Derived paths
     @property

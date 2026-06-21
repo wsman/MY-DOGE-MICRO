@@ -106,7 +106,9 @@ class PopulateStockNamesRequest:
 class GenerateIndustryReportRequest:
     """Input for :class:`~doge.application.use_cases.generate_industry_report.GenerateIndustryReportUseCase`."""
     market: str = "cn"
+    industry: str = "semiconductor"
     tickers: Optional[list[str]] = None
     analyst_model: str = "deepseek-chat"
     max_tokens: int = 4096
     temperature: float = 0.7
+    research_query: Optional[str] = None

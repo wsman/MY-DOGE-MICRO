@@ -2,37 +2,46 @@
 
 from __future__ import annotations
 
-from uuid import uuid4
-
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
-from doge.core.domain.agent_models import utc_now
-from doge.core.ports.agent_repository import IDocumentRepository
+from doge.application.services.file_upload_service import FileUploadError, FileUploadService
+from doge.core.ports.document_repository import IDocumentRepository
 from doge.interfaces.api import deps
 
 router = APIRouter(dependencies=[Depends(deps.require_api_token)])
 
 
 class DocumentRequest(BaseModel):
+    document_id: str | None = None
     filename: str
     content: str = ""
 
 
 @router.post("/documents")
 async def create_document(
-    body: DocumentRequest,
-    documents: IDocumentRepository = Depends(deps.get_agent_document_repository),
+    request: Request,
+    upload_service: FileUploadService = Depends(deps.get_file_upload_service),
 ):
-    document = {
-        "document_id": f"doc-{uuid4().hex[:12]}",
-        "filename": body.filename,
-        "content": body.content,
-        "status": "ready",
-        "created_at": utc_now(),
-    }
-    documents.save(document)
-    return document
+    content_type = request.headers.get("content-type", "")
+    try:
+        if content_type.startswith("multipart/form-data"):
+            form = await request.form()
+            upload = form.get("file")
+            if upload is None or not hasattr(upload, "read"):
+                raise FileUploadError("multipart field 'file' is required")
+            filename = getattr(upload, "filename", None) or "document"
+            payload = await upload.read()
+            return upload_service.register_bytes(filename=filename, payload=payload)
+
+        body = DocumentRequest.model_validate(await request.json())
+        return upload_service.register_text(
+            filename=body.filename,
+            content=body.content,
+            document_id=body.document_id,
+        )
+    except FileUploadError as exc:
+        raise HTTPException(400, str(exc)) from exc
 
 
 @router.get("/documents")

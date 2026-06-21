@@ -69,8 +69,110 @@ CREATE TABLE IF NOT EXISTS approvals (
 CREATE TABLE IF NOT EXISTS documents (
     document_id TEXT PRIMARY KEY,
     filename TEXT NOT NULL,
+    original_filename TEXT,
     content TEXT,
+    file_hash TEXT,
+    mime_type TEXT,
+    size_bytes INTEGER,
+    storage_path TEXT,
+    kimi_file_id TEXT,
+    parsing_status TEXT NOT NULL DEFAULT 'registered',
+    parser_error TEXT,
     status TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS document_pages (
+    page_id TEXT PRIMARY KEY,
+    document_id TEXT NOT NULL,
+    page_number INTEGER NOT NULL,
+    text TEXT NOT NULL DEFAULT '',
+    image_metadata TEXT,
+    source_hash TEXT,
+    parser_error TEXT,
+    created_at TEXT NOT NULL,
+    UNIQUE(document_id, page_number)
+);
+
+CREATE TABLE IF NOT EXISTS document_chunks (
+    chunk_id TEXT PRIMARY KEY,
+    document_id TEXT NOT NULL,
+    page_id TEXT NOT NULL,
+    page_number INTEGER NOT NULL,
+    text TEXT NOT NULL,
+    start_char INTEGER NOT NULL,
+    end_char INTEGER NOT NULL,
+    source_hash TEXT,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS evidence_records (
+    evidence_id TEXT PRIMARY KEY,
+    run_id TEXT,
+    document_id TEXT NOT NULL,
+    page_id TEXT NOT NULL,
+    chunk_id TEXT NOT NULL,
+    page_number INTEGER NOT NULL,
+    claim TEXT NOT NULL DEFAULT '',
+    support_snippet TEXT NOT NULL,
+    relevance_score REAL,
+    metadata TEXT,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS embedding_cache (
+    key TEXT PRIMARY KEY,
+    vector TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS vector_entries (
+    record_id TEXT PRIMARY KEY,
+    vector TEXT NOT NULL,
+    text TEXT NOT NULL,
+    metadata TEXT,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS portfolios (
+    portfolio_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS portfolio_holdings (
+    portfolio_id TEXT NOT NULL,
+    symbol TEXT NOT NULL,
+    asset_class TEXT NOT NULL,
+    sector TEXT NOT NULL,
+    quantity REAL NOT NULL DEFAULT 0,
+    market_value REAL NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'USD',
+    PRIMARY KEY(portfolio_id, symbol)
+);
+
+CREATE TABLE IF NOT EXISTS claim_records (
+    claim_id TEXT PRIMARY KEY,
+    report_id TEXT NOT NULL,
+    text TEXT NOT NULL,
+    status TEXT NOT NULL,
+    evidence_count INTEGER NOT NULL DEFAULT 0,
+    metadata TEXT,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS citation_records (
+    citation_id TEXT PRIMARY KEY,
+    claim_id TEXT NOT NULL,
+    report_id TEXT NOT NULL,
+    source TEXT NOT NULL,
+    snippet TEXT NOT NULL,
+    document_id TEXT,
+    page_number INTEGER,
+    chunk_id TEXT,
+    evidence_id TEXT,
+    metadata TEXT,
     created_at TEXT NOT NULL
 );
 

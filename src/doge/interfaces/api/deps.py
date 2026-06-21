@@ -14,6 +14,7 @@ from fastapi import Header, HTTPException, Request
 from doge.config import Settings, get_settings
 from doge.core.ports.metadata import ITickerMetadataSource
 from doge.core.ports.repository import IReportRepository, ISchemaBrowser, IStockRepository, INoteRepository
+from doge.core.ports.tdx_server_list import ITDXServerList
 from doge import application as app_composition
 from doge.infrastructure.database.sqlite_storage import SQLiteStorageRepository
 
@@ -24,6 +25,7 @@ _worker = None
 _run_queue = None
 _idempotency_store = None
 _agent_unit_of_work = None
+_file_upload_service = None
 
 
 def get_settings_dep() -> Settings:
@@ -61,6 +63,11 @@ def get_generate_macro_report_use_case():
     return app_composition.build_generate_macro_report_use_case()
 
 
+def get_generate_industry_report_use_case():
+    """Provide the default ``GenerateIndustryReportUseCase``."""
+    return app_composition.build_generate_industry_report_use_case()
+
+
 def get_research_agent_runtime():
     """Provide the process-local in-memory research agent runtime."""
     global _research_agent_runtime
@@ -92,6 +99,14 @@ def get_persisted_research_agent_runtime():
 def get_agent_document_repository():
     """Provide the persisted document repository."""
     return app_composition.build_agent_document_repository()
+
+
+def get_file_upload_service():
+    """Provide the shared file upload service."""
+    global _file_upload_service
+    if _file_upload_service is None:
+        _file_upload_service = app_composition.build_file_upload_service()
+    return _file_upload_service
 
 
 def get_agent_session_repository():
@@ -161,6 +176,11 @@ def get_storage_repository() -> SQLiteStorageRepository:
     does not import an infrastructure adapter directly.
     """
     return SQLiteStorageRepository()
+
+
+def get_tdx_server_list() -> ITDXServerList:
+    """Provide the configured TDX server directory adapter."""
+    return app_composition.build_tdx_server_list()
 
 
 def get_request_state(request: Request) -> dict:

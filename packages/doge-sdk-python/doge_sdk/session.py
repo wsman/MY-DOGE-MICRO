@@ -13,3 +13,8 @@ class Session:
 
     def create_turn(self, message: str, **kwargs: Any) -> str:
         return self._client.sessions.create_turn(self.session_id, message, **kwargs)
+
+
+class AsyncSession(Session):
+    async def create_turn(self, message: str, **kwargs: Any) -> str:
+        return await self._client.sessions.create_turn(self.session_id, message, **kwargs)

@@ -108,6 +108,7 @@ class TestRequestDtos:
     def test_generate_industry_report_request_defaults(self):
         req = GenerateIndustryReportRequest()
         assert req.market == "cn"
+        assert req.industry == "semiconductor"
         assert req.tickers is None
         assert req.analyst_model == "deepseek-chat"
 
@@ -183,6 +184,8 @@ class TestResponseDtos:
     def test_industry_report_response_defaults(self):
         resp = IndustryReportResponse()
         assert resp.content == ""
+        assert resp.rankings == []
+        assert resp.citations == []
         assert resp.error is None
 
 

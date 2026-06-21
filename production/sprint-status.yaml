@@ -21,7 +21,7 @@
 # READ BY: /sprint-status, /story-readiness, /story-done, CI sprint-gate jobs.
 
 version: 1
-last_updated: "2026-06-20"
+last_updated: "2026-06-21"
 # 2026-06-12 (Wave 4 cleanup): Sprint 002 implementation complete. All 13
 # stories shipped: S002-001..013 done. ADR governance — ADR-0002/0003/0005
 # Accepted in S002; ADR-0009/0010 Accepted by Wave 4 review. ADR-0004/0007
@@ -70,8 +70,822 @@ last_updated: "2026-06-20"
 # 2026-06-20 (S007 closed): S007-006 macro report use case/API/CLI migration
 # done; S007-007 docs updated; S007-008 full regression green (724 passed /
 # 5 skipped). Interview Demo vertical slice added as follow-on Release epic.
+# 2026-06-21 (Sprint 009 opened): Kimi File Pipeline Foundation started from
+# C:\Users\Aby\.claude\plans\replicated-nibbling-pine.md. Must-have file upload,
+# metadata, Kimi Files adapter boundary, API multipart, CLI /attach, and docs/QA
+# evidence landed locally; full Python suite is green, remote CI verification
+# still pending.
+# 2026-06-21 (Sprint 010 opened): Kimi Vision and Evidence Foundation started.
+# Provider-neutral multimodal content, Kimi Vision/file-Q&A serialization,
+# page/chunk/evidence storage, upload-triggered extraction, and runtime chunk
+# context landed locally; live Kimi smoke and remote CI remain pending.
+# 2026-06-21 (Sprint 011 opened): Web SSE and SDK streaming reliability started.
+# Web Research Agent create/approval flows now use v1 SSE instead of polling;
+# TypeScript SDK stream reconnect/backoff and Python sync/async streaming landed
+# locally; browser/manual reconnect evidence and remote CI remain pending.
+# 2026-06-21 (Sprint 012 opened): local RAG foundation started. Embedding/vector
+# ports, deterministic hashing embeddings, SQLite embedding/vector stores,
+# RAGService, and lookup_evidence RAG-first fallback landed locally; production
+# embedding quality and enterprise ACL remain deferred.
+# 2026-06-21 (Sprint 013 opened): deterministic finance toolset started.
+# Portfolio persistence/exposure, risk approximation, scenario analysis, and
+# evidence-aware claim validation landed locally; real fundamentals/connectors
+# and portfolio import workflow remain deferred.
+# 2026-06-21 (Sprint 014 opened): industry report and modular migration started.
+# GenerateIndustryReportUseCase, claim/citation persistence, report tool,
+# TDX server-list port, and canonical scan-router decoupling landed locally;
+# citation-quality eval, live Kimi/TDX smoke, and legacy helper deletion remain
+# deferred.
+# 2026-06-21 (Sprint 015 opened/closed locally): release-quality polish and
+# promotion review landed locally. Performance smoke, Kimi retry/fallback,
+# Research Agent a11y semantics, soak protocol, and promotion review completed;
+# remote CI after push and executed soak evidence remain deferred.
+# 2026-06-21 (Release follow-up documentation governance): product docs,
+# CDD/module index, ADR traceability, TR registry, memory_bank skeleton,
+# adapter assets, and 78-skill catalog synchronized. This is documentation and
+# governance control-plane work only; runtime maturity remains governed by
+# docs/progress/runtime-maturity.yaml and production_ready stays false.
 
 sprints:
+  - id: S015
+    name: "Polish, Performance, And Promotion Review"
+    plan: production/sprints/sprint-015-polish-performance-promotion-review.md
+    qa_plan: production/qa/qa-plan-sprint-015.md
+    start: "2026-06-21"
+    status: done
+    source: "C:\\Users\\Aby\\.claude\\plans\\replicated-nibbling-pine.md"
+    goal: >-
+      Add local release-quality evidence for the Kimi-native research demo and
+      decide whether any runtime maturity label can be promoted.
+    exit_criteria:
+      - "Performance evidence exists for document ingestion, RAG/cache, and concurrent enqueue."
+      - "Kimi retry/rate-limit and no-key fallback behavior are covered."
+      - "Research Agent accessibility review exists."
+      - "Soak protocol exists for long-running daemon sessions."
+      - "Formal promotion review completed before maturity labels change."
+      - "Remote CI green after push."
+    stories:
+      - id: S015-001
+        title: "Performance smoke gates"
+        epic: ep-release-quality
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 015"
+        priority: HIGH
+        effort: S
+        owner: qa-lead
+        status: done
+        blocking_gate: true
+        note: "Document ingestion, RAG/cache, and concurrent enqueue smoke budgets landed in tests/performance/test_sprint_015_release_gates.py."
+
+      - id: S015-002
+        title: "Kimi retry and fallback behavior"
+        epic: ep-kimi
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 015"
+        priority: HIGH
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "Kimi chat create calls now retry rate-limit/transient failures and keep missing-key fallback safe."
+
+      - id: S015-003
+        title: "Research Agent accessibility pass"
+        epic: ep-ux-polish
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 015"
+        priority: HIGH
+        effort: S
+        owner: accessibility-specialist
+        status: done
+        blocking_gate: true
+        note: "ResearchAgentView status, approval, error, and timeline semantics now have a regression test."
+
+      - id: S015-004
+        title: "Core Web Vitals applicability decision"
+        epic: ep-ux-polish
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 015"
+        priority: MED
+        effort: S
+        owner: qa-lead
+        status: done
+        blocking_gate: false
+        note: "Scoped N/A for local loopback operator SPA; future hosted deployment must add Lighthouse/CWV evidence."
+
+      - id: S015-005
+        title: "Daemon soak protocol"
+        epic: ep-release-quality
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 015"
+        priority: HIGH
+        effort: S
+        owner: qa-lead
+        status: done
+        blocking_gate: true
+        note: "One-hour daemon soak protocol exists; execution is a deferred gate."
+
+      - id: S015-006
+        title: "API/CLI/operator docs update"
+        epic: ep-governance
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 015"
+        priority: MED
+        effort: S
+        owner: lead-programmer
+        status: done
+        blocking_gate: false
+        note: "API, CLI, and Getting Started docs reflect scan decoupling, Kimi fallback, and retry knobs."
+
+      - id: S015-007
+        title: "Promotion review and maturity update"
+        epic: ep-governance
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 015"
+        priority: HIGH
+        effort: S
+        owner: release-manager
+        status: done
+        blocking_gate: true
+        note: "Promotion review completed with no Stable promotion; runtime-maturity keeps stable_declaration forbidden."
+
+      - id: S015-008
+        title: "Remote CI after push"
+        epic: ep-release-quality
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 015"
+        priority: HIGH
+        effort: S
+        owner: release-manager
+        status: deferred
+        blocking_gate: true
+        note: "Requires pushed branch/PR."
+
+      - id: S015-009
+        title: "Executed one-hour daemon soak"
+        epic: ep-release-quality
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 015"
+        priority: HIGH
+        effort: M
+        owner: qa-lead
+        status: deferred
+        blocking_gate: true
+        note: "Protocol exists; execution deferred to operator window."
+
+  - id: S014
+    name: "Industry Report And Modular Migration"
+    plan: production/sprints/sprint-014-industry-report-modular-migration.md
+    qa_plan: production/qa/qa-plan-sprint-014.md
+    start: "2026-06-21"
+    status: done
+    source: "C:\\Users\\Aby\\.claude\\plans\\replicated-nibbling-pine.md"
+    goal: >-
+      Complete the representative industry-report workflow and remove direct
+      legacy TDX downloader coupling from the canonical scan router.
+    exit_criteria:
+      - "GenerateIndustryReportUseCase returns a structured report with rankings, evidence, claims, and citations."
+      - "generate_industry_report is registered as an agent tool."
+      - "Canonical scan router has no direct legacy downloader imports."
+      - "TDX server list/testing is behind a port/adapter."
+      - "Full Python suite green before merge."
+      - "Remote CI green after push."
+    stories:
+      - id: S014-001
+        title: "Implement GenerateIndustryReportUseCase"
+        epic: ep-industry-report
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 014"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "Use case orchestrates rankings, fundamentals, local RAG, LLM fallback, claims, citations, and report persistence."
+
+      - id: S014-002
+        title: "Claim/citation domain, repository, and services"
+        epic: ep-evidence
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 014"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "ClaimRecord/CitationRecord, IClaimRepository, SQLiteClaimRepository, CitationService, and ClaimValidationService landed."
+
+      - id: S014-003
+        title: "Agent tool generate_industry_report"
+        epic: ep-runtime-stability
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 014"
+        priority: HIGH
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "Default tool registry exposes generate_industry_report."
+
+      - id: S014-004
+        title: "TDX server list/testing port and adapter"
+        epic: ep-architecture-debt
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 014"
+        priority: HIGH
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "ITDXServerList and ConfigTDXServerList own configured server lists and opentdx-absent degradation."
+
+      - id: S014-005
+        title: "Canonical scan router legacy downloader decoupling"
+        epic: ep-architecture-debt
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 014"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "scan.py routes server downloads through ScanMarketUseCase/TDXDataSource and has a no-legacy-import contract test."
+
+      - id: S014-006
+        title: "ADR/CDD/progress governance update"
+        epic: ep-governance
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 014"
+        priority: MED
+        effort: S
+        owner: lead-programmer
+        status: done
+        blocking_gate: false
+        note: "ADR-0004, clean-architecture migration CDD, maturity, QA, and progress notes updated."
+
+      - id: S014-007
+        title: "Real fundamentals and announcement connectors"
+        epic: ep-financial-tools
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 014"
+        priority: MED
+        effort: M
+        owner: python-specialist
+        status: deferred
+        blocking_gate: false
+        note: "Needs provider choice and fixtures."
+
+      - id: S014-008
+        title: "Full legacy TDX helper deletion"
+        epic: ep-architecture-debt
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 014"
+        priority: MED
+        effort: M
+        owner: python-specialist
+        status: deferred
+        blocking_gate: false
+        note: "Canonical scan router is decoupled; deletion needs a separate parity pass."
+
+      - id: S014-009
+        title: "Citation-quality evaluation"
+        epic: ep-evidence
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 014"
+        priority: MED
+        effort: M
+        owner: qa-lead
+        status: deferred
+        blocking_gate: false
+        note: "Claim/citation objects exist; measured citation precision remains a release-quality gate."
+
+  - id: S013
+    name: "Financial Industry Toolset"
+    plan: production/sprints/sprint-013-financial-industry-toolset.md
+    qa_plan: production/qa/qa-plan-sprint-013.md
+    start: "2026-06-21"
+    status: done
+    source: "C:\\Users\\Aby\\.claude\\plans\\replicated-nibbling-pine.md"
+    goal: >-
+      Replace visible financial tool stubs with deterministic portfolio,
+      risk, scenario, and evidence-aware claim-validation tools.
+    exit_criteria:
+      - "get_portfolio_exposure no longer raises NotImplementedError."
+      - "Risk/scenario tools return deterministic documented approximations."
+      - "Claim validation returns supported/contradicted/insufficient_evidence/data_unavailable states."
+      - "Full Python suite green before merge."
+      - "Remote CI green after push."
+    stories:
+      - id: S013-001
+        title: "Portfolio domain model, port, and SQLite repository"
+        epic: ep-financial-tools
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 013"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "Portfolio/holding models, IPortfolioRepository, SQLitePortfolioRepository, and schema tables landed."
+
+      - id: S013-002
+        title: "Portfolio exposure service and demo portfolio seed"
+        epic: ep-financial-tools
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 013"
+        priority: HIGH
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "PortfolioService groups by asset class and sector; composition seeds portfolio-demo."
+
+      - id: S013-003
+        title: "Risk and scenario services"
+        epic: ep-financial-tools
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 013"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "RiskService and ScenarioService provide documented deterministic approximations."
+
+      - id: S013-004
+        title: "Agent tool registry exposes portfolio/risk/scenario tools"
+        epic: ep-runtime-stability
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 013"
+        priority: HIGH
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "Default tool registry includes get_portfolio_exposure, portfolio_risk, and scenario_analysis."
+
+      - id: S013-005
+        title: "Claim validation returns evidence-aware statuses"
+        epic: ep-rag
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 013"
+        priority: HIGH
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "validate_financial_claims prefers RAG evidence and returns supported/contradicted/insufficient_evidence/data_unavailable."
+
+      - id: S013-006
+        title: "Calculation definitions and progress governance"
+        epic: ep-governance
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 013"
+        priority: MED
+        effort: S
+        owner: lead-programmer
+        status: done
+        blocking_gate: false
+        note: "Financial tool definitions, Sprint 013 QA plan, sprint plan, maturity, and follow-up docs updated."
+
+      - id: S013-007
+        title: "Real fundamentals/announcement connectors"
+        epic: ep-financial-tools
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 013"
+        priority: MED
+        effort: M
+        owner: python-specialist
+        status: deferred
+        blocking_gate: false
+        note: "Requires additional data providers and fixtures."
+
+      - id: S013-008
+        title: "Portfolio CSV/XLSX import workflow"
+        epic: ep-financial-tools
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 013"
+        priority: MED
+        effort: M
+        owner: python-specialist
+        status: deferred
+        blocking_gate: false
+        note: "Portfolio persistence exists; import UX/parser remains future work."
+
+  - id: S012
+    name: "Knowledge Ecosystem And RAG Foundation"
+    plan: production/sprints/sprint-012-knowledge-rag-foundation.md
+    qa_plan: production/qa/qa-plan-sprint-012.md
+    start: "2026-06-21"
+    status: done
+    source: "C:\\Users\\Aby\\.claude\\plans\\replicated-nibbling-pine.md"
+    goal: >-
+      Turn extracted document chunks into a local searchable evidence corpus
+      and make lookup_evidence prefer source-backed RAG results while
+      preserving notes fallback.
+    exit_criteria:
+      - "Embedding provider/cache are behind ports."
+      - "Vector store is behind a port and persists locally."
+      - "RAG service ingests chunks with document/page/chunk metadata."
+      - "lookup_evidence prefers RAG results and falls back to notes."
+      - "Full Python suite green before merge."
+      - "Remote CI green after push."
+    stories:
+      - id: S012-001
+        title: "Embedding provider/cache ports and deterministic local provider"
+        epic: ep-rag
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 012"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "IEmbeddingProvider/IEmbeddingCache, HashingEmbeddingProvider, and SQLiteEmbeddingCache provide no-network deterministic embedding plumbing."
+
+      - id: S012-002
+        title: "Vector store port and SQLite vector store"
+        epic: ep-rag
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 012"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "IVectorStore and SQLiteVectorStore persist vectors/text/metadata and support metadata filters."
+
+      - id: S012-003
+        title: "RAG service over evidence chunks"
+        epic: ep-rag
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 012"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "RAGService ingests DocumentChunk records and returns source-backed metadata with visibility=local."
+
+      - id: S012-004
+        title: "lookup_evidence prefers RAG and falls back to notes"
+        epic: ep-runtime-stability
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 012"
+        priority: HIGH
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "ToolApplicationService.lookup_evidence uses build_rag_service().search first, then notes fallback."
+
+      - id: S012-005
+        title: "RAG notes and progress governance"
+        epic: ep-governance
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 012"
+        priority: MED
+        effort: S
+        owner: lead-programmer
+        status: done
+        blocking_gate: false
+        note: "RAG notes, Sprint 012 QA plan, sprint plan, maturity, and follow-up docs updated."
+
+      - id: S012-006
+        title: "Production embedding/vector backend"
+        epic: ep-rag
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 012"
+        priority: MED
+        effort: M
+        owner: python-specialist
+        status: deferred
+        blocking_gate: false
+        note: "Current backend is hashing+SQLite; production embeddings/vector DB are future hardening."
+
+      - id: S012-007
+        title: "Industry taxonomy and ACL workflow depth"
+        epic: ep-rag
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 012"
+        priority: MED
+        effort: M
+        owner: lead-programmer
+        status: deferred
+        blocking_gate: false
+        note: "RAG metadata includes visibility=local; full industry ontology and multi-user ACL workflow remain deferred."
+
+  - id: S011
+    name: "Web SSE And SDK Streaming Reliability"
+    plan: production/sprints/sprint-011-web-sdk-streaming-reliability.md
+    qa_plan: production/qa/qa-plan-sprint-011.md
+    start: "2026-06-21"
+    status: done
+    source: "C:\\Users\\Aby\\.claude\\plans\\replicated-nibbling-pine.md"
+    goal: >-
+      Remove polling/reconnect gaps from Research Agent clients so approval
+      continuation and run status updates flow through v1 SSE.
+    exit_criteria:
+      - "Web helper consumes v1 SSE after create and approval."
+      - "TypeScript SDK stream reconnect/backoff preserves Last-Event-ID."
+      - "Python sync SDK stream reconnect preserves Last-Event-ID."
+      - "Python async SDK exposes async session/run streaming."
+      - "Full Web and SDK tests/builds pass before merge."
+      - "Remote CI green after push."
+    stories:
+      - id: S011-001
+        title: "Web Research Agent flows use v1 SSE instead of polling"
+        epic: ep-ux
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 011"
+        priority: HIGH
+        effort: M
+        owner: typescript-specialist
+        status: done
+        blocking_gate: true
+        note: "web/src/api/agent.ts streams create and approval continuations through dogeClient.runs.stream; targeted tests cover both paths."
+
+      - id: S011-002
+        title: "TypeScript SDK stream reconnect/backoff"
+        epic: ep-sdk
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 011"
+        priority: HIGH
+        effort: S
+        owner: typescript-specialist
+        status: done
+        blocking_gate: true
+        note: "runs.stream accepts backward-compatible lastEventId or options with reconnect/maxReconnects/backoffMs and preserves Last-Event-ID."
+
+      - id: S011-003
+        title: "Python sync SDK stream reconnect"
+        epic: ep-sdk
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 011"
+        priority: HIGH
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "Sync runs.stream retries httpx transport errors with bounded backoff and preserved Last-Event-ID."
+
+      - id: S011-004
+        title: "Python async SDK streaming"
+        epic: ep-sdk
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 011"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "AsyncDogeClient, AsyncSession, async runs/documents APIs, and async SSE parsing are covered by contract tests."
+
+      - id: S011-005
+        title: "Streaming notes and progress governance"
+        epic: ep-governance
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 011"
+        priority: MED
+        effort: S
+        owner: lead-programmer
+        status: done
+        blocking_gate: false
+        note: "SSE/SDK streaming notes, Sprint 011 QA plan, sprint plan, maturity, and follow-up docs updated."
+
+      - id: S011-006
+        title: "Browser/manual reconnect evidence"
+        epic: ep-ux
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 011"
+        priority: MED
+        effort: S
+        owner: operator
+        status: deferred
+        blocking_gate: false
+        note: "Requires running daemon+web and manually interrupting/reconnecting stream; automated tests cover helper/SDK behavior."
+
+  - id: S010
+    name: "Kimi Vision And Evidence Foundation"
+    plan: production/sprints/sprint-010-kimi-vision-evidence-foundation.md
+    qa_plan: production/qa/qa-plan-sprint-010.md
+    start: "2026-06-21"
+    status: done
+    source: "C:\\Users\\Aby\\.claude\\plans\\replicated-nibbling-pine.md"
+    goal: >-
+      Make Kimi-native visual/document input concrete at the adapter boundary
+      and create the first local evidence chain: Document -> Page -> Chunk ->
+      Evidence.
+    exit_criteria:
+      - "Structured multimodal content is provider-neutral in the core port."
+      - "Kimi adapter serializes base64 images and uploaded file IDs into official Vision message shape."
+      - "Kimi file-based Q&A path places extracted file content into messages, not the file ID."
+      - "Documents can produce pages and chunks in SQLite from extracted text or deterministic local fallback."
+      - "Evidence records persist and are queryable by run/document."
+      - "Runtime context can include selected chunks within a character budget."
+      - "Live Kimi smoke evidence is operator-approved or explicitly deferred."
+      - "Remote CI green after push."
+    stories:
+      - id: S010-001
+        title: "Provider-neutral structured agent content parts"
+        epic: ep-runtime-stability
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 010"
+        priority: HIGH
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "AgentContentPart supports text, image base64, image file-id, and extracted file text without making the core port Kimi-specific."
+
+      - id: S010-002
+        title: "Kimi multimodal message serialization"
+        epic: ep-runtime-stability
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 010"
+        priority: HIGH
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "KimiMessageSerializer maps base64 images to data:image URLs, uploaded vision files to ms:// file references, and file-Q&A extracted text to system messages."
+
+      - id: S010-003
+        title: "Page extraction and deterministic chunking service"
+        epic: ep-runtime-stability
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 010"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "PageExtractionService and ChunkingService create page-like units, image metadata pages, deterministic chunks, offsets, and safe parser errors."
+
+      - id: S010-004
+        title: "SQLite page/chunk/evidence repository"
+        epic: ep-runtime-stability
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 010"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "SQLiteEvidenceRepository persists document_pages, document_chunks, and evidence_records."
+
+      - id: S010-005
+        title: "Runtime context includes selected document chunks"
+        epic: ep-runtime-stability
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 010"
+        priority: HIGH
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "ContextBuilder can include selected chunks for run.document_ids within a character budget."
+
+      - id: S010-006
+        title: "Upload pipeline triggers extraction after registration"
+        epic: ep-api-resilience
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 010 carryover from S009-007"
+        priority: HIGH
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "FileUploadService accepts an extraction post-processor; default composition wires PageExtractionService."
+
+      - id: S010-007
+        title: "Parser support matrix and progress docs"
+        epic: ep-governance
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 010"
+        priority: MED
+        effort: S
+        owner: lead-programmer
+        status: done
+        blocking_gate: false
+        note: "QA plan, sprint plan, parser support matrix, maturity, and follow-up docs updated without Stable promotion."
+
+      - id: S010-008
+        title: "Live Kimi Vision/File Q&A smoke"
+        epic: ep-runtime-stability
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 010"
+        priority: MED
+        effort: S
+        owner: operator
+        status: deferred
+        blocking_gate: false
+        note: "Requires operator-approved MOONSHOT_API_KEY/live network spend; mocked adapter tests cover request shape in CI."
+
+  - id: S009
+    name: "Kimi File Pipeline Foundation"
+    plan: production/sprints/sprint-009-kimi-file-pipeline.md
+    qa_plan: production/qa/qa-plan-sprint-009.md
+    start: "2026-06-21"
+    status: done
+    source: "C:\\Users\\Aby\\.claude\\plans\\replicated-nibbling-pine.md"
+    goal: >-
+      Replace placeholder document handling with a real file pipeline that
+      stores hash/MIME/size/status metadata and lets CLI /attach pass real
+      document IDs into agent runs.
+    exit_criteria:
+      - "Real file upload persists file metadata."
+      - "Duplicate payloads are idempotent by hash."
+      - "CLI /attach no longer creates fake doc-1 IDs."
+      - "Kimi Files adapter is isolated behind mocked tests."
+      - "API and CLI docs describe the new behavior."
+      - "Full Python suite green before merge."
+      - "Remote CI green after push."
+    stories:
+      - id: S009-001
+        title: "Document aggregate and repository metadata migration"
+        epic: ep-runtime-stability
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 009"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "Document model, document repository port, SQLite metadata fields, hash lookup, and migration tests."
+
+      - id: S009-002
+        title: "File upload application service"
+        epic: ep-runtime-stability
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 009"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "FileUploadService validates paths/uploads, computes SHA-256, detects MIME, stores payload copies, and supports local parser fallback."
+
+      - id: S009-003
+        title: "Kimi Files adapter boundary"
+        epic: ep-runtime-stability
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 009"
+        priority: HIGH
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "KimiFilesClient wraps upload/content/retrieve/delete with mocked unit tests and no live CI dependency."
+
+      - id: S009-004
+        title: "/v1/documents multipart upload with JSON compatibility"
+        epic: ep-api-resilience
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 009"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "v1 document route accepts multipart field file and preserves existing JSON registration behavior."
+
+      - id: S009-005
+        title: "CLI /attach <path> uses real file registration"
+        epic: ep-ux
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 009"
+        priority: HIGH
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "Interactive CLI reads the real file, registers it, prints the real document ID, and passes it to subsequent runs."
+
+      - id: S009-006
+        title: "User docs and QA evidence"
+        epic: ep-governance
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 009"
+        priority: MED
+        effort: S
+        owner: lead-programmer
+        status: done
+        blocking_gate: false
+        note: "API/CLI/GETTING_STARTED/runtime follow-up docs plus production/qa/qa-plan-sprint-009.md."
+
+      - id: S009-007
+        title: "Attached document content appears in full agent context evidence"
+        epic: ep-runtime-stability
+        tr: null
+        source: "replicated-nibbling-pine.md Sprint 010 carryover"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: deferred
+        blocking_gate: true
+        note: "Deferred to Sprint 010 with page/chunk/evidence grounding."
+
   - id: S007
     name: "Clean Architecture Modularization"
     plan: production/sprints/sprint-007-modularization.md
@@ -594,7 +1408,7 @@ sprints:
         title: "CORS（ADR-0007）延期决策记录"
         epic: ep-governance
         tr: null
-        source: "gate-check technical concern: ADR-0007 remains Proposed"
+        source: "historical gate-check technical concern: ADR-0007 was Proposed during Verification"
         priority: MED
         effort: S
         owner: lead-programmer
@@ -986,24 +1800,29 @@ sprints:
         blocking_gate: false
         note: "docs/GETTING_STARTED.md 5-Minute Demo section; docs/CLI.md demo subcommand; tests/cli/test_cli_arg_parsing.py parser mirror updated."
 
-# Rollup counts for the active sprint (S007).
+# Rollup counts for the active sprint (S015).
 rollup:
-  sprint: S007
-  total_stories: 8
+  sprint: S015
+  total_stories: 9
   by_status:
     todo: 0
     in_progress: 0
     blocked: 0
     review: 0
-    done: 8
-    deferred: 0
+    done: 7
+    deferred: 2
   by_priority:
-    HIGH: 6
+    HIGH: 7
     MED: 2
     LOW: 0
   by_epic:
-    ep-architecture-debt: 6
-    ep-ux: 1
-    ep-governance: 1
-  blocking_gated_stories: []
-  top_priority_stories: []
+    ep-release-quality: 4
+    ep-kimi: 1
+    ep-ux-polish: 2
+    ep-governance: 2
+  blocking_gated_stories:
+    - S015-008
+    - S015-009
+  top_priority_stories:
+    - S015-008
+    - S015-009

@@ -202,7 +202,7 @@ code cannot drift.
 | 45 | GET | `/v1/runs/{run_id}/artifacts` | Read run artifacts | `v1/runs.py` |
 | 46 | GET | `/v1/runs/{run_id}/approvals` | Read run approvals | `v1/runs.py` |
 | 47 | POST | `/v1/runs/{run_id}/approvals/{approval_id}` | Resolve an approval and resume | `v1/runs.py` |
-| 48 | POST | `/v1/documents` | Persist a document payload | `v1/documents.py` |
+| 48 | POST | `/v1/documents` | Upload a real document file or register a compatible text payload | `v1/documents.py` |
 | 49 | GET | `/v1/documents` | List persisted documents | `v1/documents.py` |
 | 50 | GET | `/v1/documents/{document_id}` | Read a persisted document | `v1/documents.py` |
 | 51 | GET | `/v1/tools` | List function-tool schemas | `v1/tools.py` |
@@ -253,9 +253,10 @@ class SettingsUpdate(BaseModel):
 ### scan router
 
 #### `GET /api/scan/servers` — `scan.py:70-77`
-Returns the CN/US TDX server lists with fixed ports (CN 7709, US 7727). Sourced
-from `src/micro/tdx_downloader.CN_SERVERS/US_SERVERS` if importable, else a
-hardcoded fallback IP list (`scan.py:56-67`).
+Returns the CN/US TDX server lists with fixed ports (CN 7709, US 7727). The
+canonical router reads them through the `ITDXServerList` port and
+`ConfigTDXServerList` adapter, which source values from `Settings().tdx`. The
+router no longer imports the legacy `src.micro.tdx_downloader` helper.
 
 **200** body:
 ```json
@@ -283,11 +284,11 @@ Body: `ScanRequest`. Starts a market scan and returns an SSE stream of
 - A second concurrent scan for the same market returns **409**
   `"{market} scan already running"` (`scan.py:157-158`) — see
   [Concurrency](#concurrency).
-- The worker prefers a TDX server download
-  (`find_working_server` + `download_{cn,us}_kline`), falls back to local
-  `.day` files via `MarketScanner` (`scan.py:271-282`), then best-effort
-  refreshes the DuckDB views (`scan.py:240-246`; a refresh failure is logged,
-  not swallowed).
+- The worker prefers a TDX server download through `ScanMarketUseCase` and the
+  `TDXDataSource` adapter. If the server path is unavailable, it falls back to
+  local `.day` files through the same use case, then best-effort refreshes the
+  DuckDB views. Refresh failures are logged and surfaced through terminal SSE
+  state rather than hidden behind router imports.
 - Terminal events: `progress=100` (`"done"`) or `progress=-1`
   (`"error: {e}"`).
 
@@ -476,6 +477,27 @@ Registers a demo document payload without multipart requirements. Body:
 `{"filename": "annual-report.pdf", "content": "..."}`. Returns a deterministic
 document id and metadata.
 
+#### `POST /v1/documents` — `v1/documents.py`
+Preferred daemon document endpoint. Accepts either:
+
+- `multipart/form-data` with field `file` for a real uploaded file.
+- Backward-compatible JSON `{"filename": "...", "content": "...", "document_id": "optional"}` for text registration.
+
+Successful responses include `document_id`, `filename`, `original_filename`,
+`file_hash`, `mime_type`, `size_bytes`, `storage_path`, `kimi_file_id`,
+`parsing_status`, `parser_error`, `content`, `created_at`, and `updated_at`.
+Unsupported file types, empty files, and oversized uploads return **400** via
+the standard error envelope.
+
+When the default composition root is used, successful registration also triggers
+local page/chunk extraction for agent context. The public v1 API does not expose
+page/chunk/evidence read endpoints yet; those records are currently consumed by
+the runtime context builder.
+
+#### `GET /v1/documents` / `GET /v1/documents/{document_id}` — `v1/documents.py`
+List recent persisted document metadata or retrieve one document. Unknown
+document id returns **404**.
+
 ## SSE Contract
 
 Three endpoints stream Server-Sent Events via `sse_starlette.sse.EventSourceResponse`:
@@ -536,13 +558,12 @@ remote client can reach it in the default deployment. The Vue web console is
 served from the same origin or a `localhost` dev server, so `*` is operationally
 equivalent to `http://localhost:*`.
 
-**Hardening target (gated on ADR-0007 Acceptance)**: replace `["*"]` with an
+**Hardening target (gated before any non-loopback bind)**: replace `["*"]` with an
 explicit allow-list of localhost origins (e.g. `http://localhost:5173`,
 `http://127.0.0.1:5173`, the Tauri/desktop origin), gated behind a new
-`APIConfig.cors_origins` setting. ADR-0007 stays **Proposed** because the
-CORS-hardening half of its promotion gate is still open (the error-envelope
-half shipped via S002-009 — see [Error Contract](#error-contract)). Do NOT treat
-the tightened CORS list as the current contract.
+`APIConfig.cors_origins` setting. ADR-0007 is Accepted with a
+loopback-guaranteed posture; do not treat the tightened CORS list as the current
+contract.
 
 ## Error Contract
 

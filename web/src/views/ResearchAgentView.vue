@@ -1,13 +1,14 @@
 <template>
-  <div class="research-agent-view">
-    <section class="input-pane">
-      <div class="pane-header">Input</div>
+  <div class="research-agent-view" aria-label="Research Agent workspace">
+    <section class="input-pane" aria-labelledby="research-agent-input-title">
+      <div id="research-agent-input-title" class="pane-header">Input</div>
       <n-space vertical size="small">
-        <n-select v-model:value="store.market" :options="marketOptions" size="small" />
+        <n-select v-model:value="store.market" :options="marketOptions" size="small" aria-label="Market" />
         <n-input
           v-model:value="store.question"
           type="textarea"
           :autosize="{ minRows: 5, maxRows: 8 }"
+          aria-label="Research question"
         />
         <n-button type="primary" size="small" :loading="store.loading" @click="store.startDemoRun">
           Run
@@ -21,23 +22,29 @@
       </n-space>
     </section>
 
-    <section class="memo-pane">
-      <div class="pane-header">Research Memo</div>
-      <n-alert v-if="store.error" type="error" :show-icon="false">
+    <section class="memo-pane" aria-labelledby="research-agent-memo-title">
+      <div id="research-agent-memo-title" class="pane-header">Research Memo</div>
+      <n-alert v-if="store.error" type="error" :show-icon="false" role="alert" aria-live="assertive">
         {{ store.error.message }}
       </n-alert>
-      <div v-if="store.latestMemo" class="memo-body" v-html="renderedMemo" />
+      <div v-if="store.latestMemo" class="memo-body" aria-live="polite" v-html="renderedMemo" />
       <div v-else class="empty-state">No memo generated</div>
     </section>
 
-    <section class="evidence-pane">
-      <div class="pane-header">Evidence</div>
-      <div class="status-row">
+    <section class="evidence-pane" aria-labelledby="research-agent-evidence-title">
+      <div id="research-agent-evidence-title" class="pane-header">Evidence</div>
+      <div class="status-row" role="status" aria-live="polite" :aria-label="statusAnnouncement">
         <n-tag :type="statusType" size="small">{{ store.run?.status || 'idle' }}</n-tag>
         <n-tag size="small">tokens {{ usage.total_tokens ?? 0 }}</n-tag>
       </div>
-      <div class="approval-list">
-        <div v-for="approval in store.approvals" :key="approval.approval_id" class="approval-item">
+      <div class="approval-list" aria-label="Approval requests">
+        <div
+          v-for="approval in store.approvals"
+          :key="approval.approval_id"
+          class="approval-item"
+          role="group"
+          :aria-label="approvalLabel(approval)"
+        >
           <div class="approval-title">{{ approval.risk_level }} · {{ approval.status }}</div>
           <div class="approval-action">{{ approval.action }}</div>
           <n-space v-if="approval.status === 'pending'" size="small">
@@ -48,10 +55,10 @@
       </div>
     </section>
 
-    <section class="timeline-pane">
-      <div class="pane-header">Agent Timeline</div>
-      <div class="timeline">
-        <div v-for="event in store.events" :key="event.event_id" class="timeline-item">
+    <section class="timeline-pane" aria-labelledby="research-agent-timeline-title">
+      <div id="research-agent-timeline-title" class="pane-header">Agent Timeline</div>
+      <div class="timeline" role="list" aria-label="Agent event timeline">
+        <div v-for="event in store.events" :key="event.event_id" class="timeline-item" role="listitem">
           <n-tag size="small">{{ event.event_type }}</n-tag>
           <code>{{ compactPayload(event.payload) }}</code>
         </div>
@@ -82,8 +89,17 @@ const statusType = computed(() => {
   return 'default'
 })
 const usage = computed(() => store.artifacts[0]?.data?.usage ?? {})
+const statusAnnouncement = computed(() => {
+  const status = store.run?.status || 'idle'
+  const tokens = usage.value.total_tokens ?? 0
+  return `Agent status ${status}; tokens ${tokens}`
+})
 
-function compactPayload(payload: Record<string, any>) {
+function approvalLabel(approval: { risk_level: string; status: string; action: string }) {
+  return `${approval.risk_level} risk approval ${approval.status}: ${approval.action}`
+}
+
+function compactPayload(payload: Record<string, unknown>) {
   const text = JSON.stringify(payload)
   return text.length > 180 ? `${text.slice(0, 180)}...` : text
 }

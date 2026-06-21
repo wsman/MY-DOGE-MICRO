@@ -5,7 +5,37 @@
 
 ## Current Task
 
-**Sprint 008 — Runtime Stability P0 implementation merged; local gates and remote CI green.**
+**Sprint 015 — Release-quality polish and promotion review is locally implemented. Sprint 009-014 file, multimodal, evidence, Web SSE, SDK streaming, local RAG, deterministic finance, industry-report, and modular-migration foundations are locally implemented.**
+
+- S009 file metadata foundation landed locally: `Document` domain model, document repository port, SQLite document metadata migration, file upload application service, Kimi Files adapter boundary, multipart `/v1/documents`, and real CLI `/attach <path>`.
+- S010 evidence foundation landed locally: `DocumentPage`, `DocumentChunk`, `EvidenceRecord`, `IEvidenceRepository`, SQLite evidence repository, `PageExtractionService`, deterministic chunking, parser failure surfacing, and upload-triggered extraction.
+- Agent messages now support provider-neutral structured content; Kimi serialization maps base64 images to `data:image/...;base64,...`, uploaded vision files to `ms://<file_id>`, and file-Q&A extracted text to system messages.
+- `ContextBuilder` can include selected document chunks for `run.document_ids` within a character budget.
+- S011 streaming landed locally: Web Research Agent create/approval helper paths use v1 SSE instead of polling, TypeScript SDK `runs.stream` supports reconnect/backoff, Python sync stream reconnects `httpx` failures, and Python `AsyncDogeClient` supports async session/turn creation plus async SSE iteration.
+- S012 RAG landed locally: embedding/cache/vector ports, deterministic hashing embeddings, SQLite embedding/vector stores, `RAGService`, and `lookup_evidence` RAG-first plus notes fallback.
+- S013 deterministic finance tools landed locally: portfolio models/repository, seeded demo portfolio, portfolio exposure, risk approximations, rate-shock scenario analysis, `portfolio_risk`/`scenario_analysis` tools, and evidence-aware claim validation statuses.
+- S014 industry report/modular migration landed locally: `GenerateIndustryReportUseCase`, claim/citation models and SQLite repository, citation and claim-validation services, `generate_industry_report` agent tool, TDX server-list port/adapter, and canonical scan-router decoupling from direct legacy downloader imports.
+- S015 release-quality polish landed locally: performance smoke tests for document ingestion/RAG/concurrent enqueue, Kimi chat retry/rate-limit behavior, Research Agent accessibility semantics, Core Web Vitals local-app N/A decision, daemon soak protocol, and no-Stable promotion review.
+- New S010 evidence: `tests/unit/test_chunking_service.py`, `tests/unit/test_page_extraction.py`, `tests/unit/test_evidence_repository.py`, `tests/unit/core/ports/test_agent_model_port.py`, `tests/unit/infrastructure/test_kimi_client.py`, and `tests/integration/test_multimodal_chat.py`.
+- New S011 evidence: `web/src/__tests__/agentApi.spec.ts`, `web/src/__tests__/agentStore.spec.ts`, `packages/doge-sdk-typescript/src/__tests__/client.spec.ts`, and `tests/contract/test_python_sdk.py`.
+- New S012 evidence: `tests/unit/test_embedding_cache.py`, `tests/unit/test_vector_store.py`, `tests/integration/test_rag_retrieval.py`, `tests/unit/agent/test_tool_service.py`, and `tests/unit/agent/test_tool_registry.py`.
+- New S013 evidence: `tests/unit/test_portfolio_service.py`, `tests/unit/agent/test_tool_service.py`, and `tests/unit/agent/test_tool_registry.py`.
+- New S014 evidence: `tests/integration/test_industry_report.py`, `tests/unit/test_claim_repository.py`, `tests/unit/test_citation_service.py`, `tests/unit/test_claim_validation.py`, `tests/unit/infrastructure/test_tdx_server_list.py`, and `tests/contract/test_no_micro_imports_in_interface.py`.
+- New S015 evidence: `tests/performance/test_sprint_015_release_gates.py`, `web/src/views/ResearchAgentView.spec.ts`, `production/qa/performance-sprint-015.md`, `production/qa/accessibility-sprint-015.md`, `production/qa/soak-protocol-sprint-015.md`, and `production/releases/promotion-review-sprint-015-2026-06-21.md`.
+- Local S010 targeted gate: `.\.venv\Scripts\python.exe -m pytest tests/unit/test_file_upload_service.py tests/unit/test_chunking_service.py tests/unit/test_page_extraction.py tests/unit/test_evidence_repository.py tests/unit/core/ports/test_agent_model_port.py tests/unit/infrastructure/test_kimi_client.py tests/integration/test_multimodal_chat.py -q` → **23 passed in 2.57s**.
+- Local S011 targeted gates: Python SDK contract **5 passed in 0.21s**; TypeScript SDK targeted **3 passed**; Web agent targeted **4 passed**.
+- Local S012 targeted gate: `.\.venv\Scripts\python.exe -m pytest tests/unit/test_embedding_cache.py tests/unit/test_vector_store.py tests/integration/test_rag_retrieval.py tests/unit/agent/test_tool_service.py tests/unit/agent/test_tool_registry.py -q` → **13 passed in 1.30s**.
+- Local S013 targeted gate: `.\.venv\Scripts\python.exe -m pytest tests/unit/test_portfolio_service.py tests/unit/agent/test_tool_service.py tests/unit/agent/test_tool_registry.py -q` → **14 passed in 1.58s**.
+- Local S014 targeted gate: `.\.venv\Scripts\python.exe -m pytest tests/unit/test_citation_service.py tests/unit/test_claim_validation.py tests/unit/test_claim_repository.py tests/integration/test_industry_report.py tests/unit/infrastructure/test_tdx_server_list.py tests/contract/test_no_micro_imports_in_interface.py tests/unit/agent/test_tool_service.py tests/unit/agent/test_tool_registry.py tests/unit/application/contracts/test_dtos.py tests/test_api_routers.py::TestScanRouter tests/unit/interfaces/api/test_scan_local_fallback.py tests/test_tdx_adapter.py tests/unit/layer_gates/test_no_micro_under_doge.py tests/unit/layer_gates/test_api_layer_gate.py tests/unit/layer_gates/test_composition_root_location.py -q` → **91 passed in 11.83s**.
+- Local S015 targeted gate: `.\.venv\Scripts\python.exe -m pytest tests/unit/infrastructure/test_kimi_client.py tests/performance/test_sprint_015_release_gates.py -q` → **11 passed in 2.65s**.
+- Local S015 performance gate with durations: `.\.venv\Scripts\python.exe -m pytest tests/performance/test_sprint_015_release_gates.py --durations=5 -q` → **3 passed in 1.99s**.
+- Local S015 web a11y targeted gate: `cd web && npm test -- --run src/views/ResearchAgentView.spec.ts` → **1 passed**.
+- Full local Python gate: `.\.venv\Scripts\python.exe -m pytest tests/ -q` → **833 passed, 5 skipped, 11 warnings in 63.68s**.
+- Web full gate: `npm test` → **75 passed**; `npm run build` → **passed**.
+- TypeScript SDK full gate: `npm test` → **3 passed**; `npm run build` → **passed**.
+- Stable remains forbidden: live Kimi smoke, citation quality evaluation, browser/manual SSE reconnect evidence, RAG quality benchmarking, real fundamentals/connectors, legacy TDX helper deletion, remote CI after push, and executed soak evidence remain open.
+
+Previous baseline:
 
 - P0.1 done: enqueue now persists `QUEUED` status and emits `RUN_QUEUED`; state machine covers `CREATED -> QUEUED -> RUNNING` and approval continuation `AWAITING_APPROVAL -> QUEUED`.
 - P0.2 done: `IAgentUnitOfWork` + `SQLiteAgentUnitOfWork` wrap idempotency reservation, run creation, turn append, queue append, and `RUN_CREATED`/`RUN_QUEUED` in one `BEGIN IMMEDIATE` transaction.

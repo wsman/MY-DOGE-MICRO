@@ -1,9 +1,9 @@
 # Architecture Control Manifest
 
-> **Manifest Version**: 2026-06-14
+> **Manifest Version**: 2026-06-21
 > **Owner**: lead-programmer (architecture); enforced by `/architecture-review`, `/gate-check`, `/story-readiness`, `/story-done`, and CI.
 > **Scope**: MY-DOGE-MICRO — local-first quantitative investment decision-support platform. This manifest is the project's control-plane reference: the quality gates, the BLOCKING vs ADVISORY evidence rules, the ADR lifecycle, the registry-write policy, the forbidden patterns, and the exact verification commands.
-> **How to use**: stories embed this manifest version in their header (`Control Manifest: 2026-06-14`); `/story-done` checks for staleness against this file's header. When a rule changes, bump the version date and re-review open stories.
+> **How to use**: stories embed this manifest version in their header (`Control Manifest: 2026-06-21`); `/story-done` checks for staleness against this file's header. When a rule changes, bump the version date and re-review open stories.
 
 ---
 
@@ -104,7 +104,7 @@ Proposed  ──►  Accepted  ──►  Superseded
 4. **Each ADR must record**: Title, Status, Date, Last Verified, Decision Makers, Context (Problem/Current State/Constraints/Requirements), Decision, Alternatives Considered, Consequences, ADR Dependencies, Engine/Stack Compatibility, CDD Requirements Addressed.
 5. **Run `/architecture-review` after completing a set of ADRs** — it cross-checks consistency, populates the TR registry, and produces the traceability narrative.
 
-### Current status inventory (2026-06-14)
+### Current status inventory (2026-06-21)
 
 | ADR | Status | Note |
 |---|---|---|
@@ -118,6 +118,7 @@ Proposed  ──►  Accepted  ──►  Superseded
 | 0008 Vue Web Console Architecture | **Accepted** | Build-green, reverse-documented. |
 | 0009 Cache/Metadata Port Split | **Accepted** | Port split realized; real yfinance metadata adapter is follow-on implementation work. |
 | 0010 View-Service Port Injection | **Accepted** | IMarketViewRepository and composition-root wiring are implemented and tested. |
+| 0011 Agent Runtime Levels | **Accepted** | Level 1/2/3 runtime model accepted; maturity claims remain governed by `docs/progress/runtime-maturity.yaml`. |
 
 ---
 

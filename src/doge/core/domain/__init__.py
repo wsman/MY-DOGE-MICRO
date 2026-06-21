@@ -8,6 +8,12 @@ from .agent_models import (
     EventType,
     RunStatus,
 )
+from .document_models import Document, DocumentStatus
+from .chunk_models import DocumentChunk
+from .evidence_models import EvidenceRecord
+from .page_models import DocumentPage
+from .portfolio_models import Portfolio, PortfolioHolding
+from .claim_models import CitationRecord, ClaimRecord
 
 __all__ = [
     "OHLCV",
@@ -21,4 +27,13 @@ __all__ = [
     "Citation",
     "EventType",
     "RunStatus",
+    "Document",
+    "DocumentChunk",
+    "DocumentPage",
+    "DocumentStatus",
+    "EvidenceRecord",
+    "Portfolio",
+    "PortfolioHolding",
+    "CitationRecord",
+    "ClaimRecord",
 ]

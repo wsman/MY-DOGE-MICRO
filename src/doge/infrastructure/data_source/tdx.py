@@ -78,9 +78,11 @@ class TDXDataSource(IMarketDataSource):
         self,
         max_retries: int = DEFAULT_MAX_RETRIES,
         retry_delay: float = DEFAULT_RETRY_DELAY,
+        preferred_server: str | None = None,
     ) -> None:
         self.max_retries = max_retries
         self.retry_delay = retry_delay
+        self.preferred_server = preferred_server
         # ``_client`` is the live ``TdxClient`` (or ``None`` when disconnected /
         # never connected / opentdx absent). ``_market`` remembers which server
         # family was probed so :meth:`disconnect` knows whether the US extended
@@ -105,6 +107,11 @@ class TDXDataSource(IMarketDataSource):
         """
         cfg = get_settings().tdx
         servers = list(cfg.cn_servers if market == "cn" else cfg.us_servers)
+        if self.preferred_server:
+            client = self._connect_preferred_server(market)
+            self._client = client
+            self._market = market if client is not None else None
+            return
 
         # Lazy import: opentdx is an optional [tdx] extra. find_working_server
         # itself guards the TdxClient import (micro/tdx_downloader.py:33-38),
@@ -126,6 +133,37 @@ class TDXDataSource(IMarketDataSource):
 
         self._client = client
         self._market = market if client is not None else None
+
+    def _connect_preferred_server(self, market: str) -> Any | None:
+        cfg = get_settings().tdx
+        port = cfg.cn_port if market == "cn" else cfg.us_port
+        try:
+            from opentdx.tdxClient import TdxClient  # type: ignore[import-not-found]
+        except ImportError:
+            logger.warning("opentdx unavailable; cannot connect preferred TDX server")
+            return None
+        client = TdxClient()
+        try:
+            client.quotation_client.connect(self.preferred_server, port=port, time_out=cfg.timeout)
+            client.quotation_client.login()
+            if market == "us":
+                client.ex_quotation_client.connect(self.preferred_server, port=cfg.us_port, time_out=cfg.timeout)
+                client.ex_quotation_client.login()
+            return client
+        except Exception as err:  # noqa: BLE001 - provider connection errors vary
+            logger.warning(
+                "TDX preferred-server connect failed for market=%s host=%s: %s",
+                market,
+                self.preferred_server,
+                err,
+            )
+            try:
+                client.quotation_client.disconnect()
+                if market == "us":
+                    client.ex_quotation_client.disconnect()
+            except Exception:
+                pass
+            return None
 
     def disconnect(self) -> None:
         """Tear down the underlying TDX quotation client(s).

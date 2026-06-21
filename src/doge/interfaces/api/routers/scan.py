@@ -5,14 +5,13 @@
 """
 
 import json
-import os
 import asyncio
 import threading
-import time
 import logging
+from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional
 from sse_starlette.sse import EventSourceResponse
 
 # S002-005 (TR-011 / TR-040): the interface layer MUST NOT open SQLite/DuckDB
@@ -26,7 +25,9 @@ from sse_starlette.sse import EventSourceResponse
 #   - DuckDB view materialization: ViewService.refresh_views
 #   - all paths: get_settings().db.* (never a local root derivation)
 from doge.config import get_settings
+from doge.application.contracts.request import ScanMarketRequest
 from doge.core.ports.repository import IStockRepository
+from doge.core.ports.tdx_server_list import ITDXServerList
 from doge.application import refresh_views
 from doge.interfaces.api import deps
 
@@ -50,27 +51,14 @@ router = APIRouter()
 #  服务器管理
 # ---------------------------------------------------------------------------
 
-def _load_servers():
-    """加载 TDX 服务器列表"""
-    try:
-        from src.micro.tdx_downloader import CN_SERVERS, US_SERVERS
-        return list(CN_SERVERS), list(US_SERVERS)
-    except ImportError:
-        return (
-            ["180.153.18.170", "180.153.18.171", "60.191.117.167",
-             "115.238.56.198", "218.75.126.9"],
-            ["112.74.214.43", "120.25.218.6", "43.139.173.246",
-             "159.75.90.107", "139.9.191.175"],
-        )
-
-
 @router.get("/servers")
-async def get_servers():
+async def get_servers(
+    server_list: ITDXServerList = Depends(deps.get_tdx_server_list),
+):
     """返回 CN / US 服务器列表"""
-    cn, us = _load_servers()
     return {
-        "cn": [{"host": h, "port": 7709, "latency_ms": None} for h in cn],
-        "us": [{"host": h, "port": 7727, "latency_ms": None} for h in us],
+        "cn": [server.to_dict() for server in server_list.list_servers("cn")],
+        "us": [server.to_dict() for server in server_list.list_servers("us")],
     }
 
 
@@ -79,41 +67,26 @@ class ServerTestRequest(BaseModel):
 
 
 @router.post("/servers/test")
-async def test_servers(body: ServerTestRequest):
+async def test_servers(
+    body: ServerTestRequest,
+    server_list: ITDXServerList = Depends(deps.get_tdx_server_list),
+):
     """并发测试所有服务器, 返回每个 IP 的延迟"""
     if body.market not in ("cn", "us"):
         raise HTTPException(400, "market must be 'cn' or 'us'")
 
-    cn, us = _load_servers()
-    servers = cn if body.market == "cn" else us
-    port = 7709 if body.market == "cn" else 7727
+    servers = server_list.list_servers(body.market)
+    if not servers:
+        return {"results": []}
 
     import concurrent.futures
 
-    def _test(host):
-        try:
-            from opentdx.tdxClient import TdxClient
-            client = TdxClient()
-            t0 = time.time()
-            client.quotation_client.connect(host, port=port, time_out=5)
-            client.quotation_client.login()
-            if body.market == "us":
-                client.ex_quotation_client.connect(host, port=7727, time_out=5)
-                client.ex_quotation_client.login()
-            latency = int((time.time() - t0) * 1000)
-            try:
-                client.quotation_client.disconnect()
-                if body.market == "us":
-                    client.ex_quotation_client.disconnect()
-            except Exception:
-                pass
-            return {"host": host, "ok": True, "latency_ms": latency}
-        except Exception as e:
-            return {"host": host, "ok": False, "latency_ms": None, "error": str(e)}
+    def _test(host: str):
+        return server_list.test_server(host, body.market).to_dict()
 
     results = []
     pool = concurrent.futures.ThreadPoolExecutor(max_workers=min(10, len(servers)))
-    futures = {pool.submit(_test, h): h for h in servers}
+    futures = {pool.submit(_test, server.host): server.host for server in servers}
     try:
         for future in concurrent.futures.as_completed(futures, timeout=15):
             results.append(future.result())
@@ -126,7 +99,7 @@ async def test_servers(body: ServerTestRequest):
         pool.shutdown(wait=False, cancel_futures=True)
 
     # 保持原始顺序
-    host_order = {h: i for i, h in enumerate(servers)}
+    host_order = {server.host: i for i, server in enumerate(servers)}
     results.sort(key=lambda r: host_order.get(r["host"], 999))
     return {"results": results}
 
@@ -192,58 +165,10 @@ async def start_scan(
                 storage.ensure_schema(market)
 
                 if body.use_server:
-                    # 优先走服务器下载
-                    from src.micro.tdx_downloader import (
-                        find_working_server, download_cn_kline, download_us_kline,
-                        CN_SERVERS, US_SERVERS,
-                    )
-
-                    csv_path = str(get_settings().stock_names_csv)
-
-                    if market == "cn":
-                        import pandas as pd
-                        if os.path.exists(csv_path):
-                            df = pd.read_csv(csv_path, dtype=str)
-                            tickers = df['ticker'].tolist()
-                            tickers = [t for t in tickers if '.' in t and len(t.split('.')[0]) == 6]
-                        else:
-                            tickers = []
-                        servers = CN_SERVERS
-                        download_fn = download_cn_kline
-                    else:
-                        # 美股: read distinct US tickers via the injected
-                        # IStockRepository port (S005-009). Previously this
-                        # branch called ``SQLiteConnection(db_path).execute(
-                        # "SELECT DISTINCT ticker FROM stock_prices")``
-                        # directly from the router — a raw-SQL read in the
-                        # interface layer. The port-backed call preserves the
-                        # exact same read (DuckDB attaches the US SQLite file
-                        # read-only and queries ``us.stock_prices``) while
-                        # keeping the literal ``sqlite3`` symbol out of this
-                        # module. ``[]`` is a benign "no tickers tracked" and
-                        # flows through to the no-server-scan branch below.
-                        tickers = repo.list_distinct_tickers(market)
-                        servers = US_SERVERS
-                        download_fn = download_us_kline
-
-                    if tickers and servers:
-                        # 如果指定了服务器, 直接用它
-                        if body.server:
-                            servers = [body.server]
-                            callback(2, f"using specified server {body.server}")
-                        client, host = find_working_server(servers, market)
-                        if client:
-                            callback(5, f"connected to {host}")
-                            download_fn(client, tickers, db_path, progress_cb=callback)
-                            client.quotation_client.disconnect()
-                            if market == "us":
-                                try:
-                                    client.ex_quotation_client.disconnect()
-                                except Exception:
-                                    pass
-                        else:
-                            callback(0, "no server available, trying local files...")
-                            _run_local_scan(market, body.tdx_path, db_path, callback, storage)
+                    callback(2, f"preparing {market.upper()} server scan")
+                    tickers = _load_scan_tickers(market, repo)
+                    if tickers:
+                        _run_server_scan(market, body, tickers, callback, storage)
                     else:
                         _run_local_scan(market, body.tdx_path, db_path, callback, storage)
                 else:
@@ -295,7 +220,6 @@ def _run_local_scan(market, tdx_path, db_path, callback, storage_repo):
         return
 
     from doge.application.composition import build_scan_market_use_case
-    from doge.application.contracts.request import ScanMarketRequest
 
     uc = build_scan_market_use_case(
         stock_repo=storage_repo,
@@ -317,3 +241,56 @@ def _run_local_scan(market, tdx_path, db_path, callback, storage_repo):
     except Exception as e:
         logger.exception("local scan failed")
         callback(-1, "local scan failed")
+
+
+def _load_scan_tickers(market: str, repo: IStockRepository) -> list[str]:
+    if market == "cn":
+        csv_path = Path(get_settings().stock_names_csv)
+        if not csv_path.exists():
+            return []
+        try:
+            import pandas as pd
+
+            df = pd.read_csv(csv_path, dtype=str)
+            values = df["ticker"].dropna().tolist() if "ticker" in df.columns else []
+            return [
+                str(ticker)
+                for ticker in values
+                if "." in str(ticker) and len(str(ticker).split(".")[0]) == 6
+            ]
+        except Exception:
+            logger.exception("failed to load CN ticker CSV")
+            return []
+    return repo.list_distinct_tickers(market)
+
+
+def _run_server_scan(market, body, tickers, callback, storage_repo):
+    """Run remote TDX download through the application use case."""
+    from doge.application.composition import build_scan_market_use_case, build_tdx_data_source
+
+    if body.server:
+        callback(2, f"using specified server {body.server}")
+    uc = build_scan_market_use_case(
+        stock_repo=storage_repo,
+        data_source=build_tdx_data_source(preferred_server=body.server),
+        refresh_views_callable=lambda: None,
+    )
+    request = ScanMarketRequest(
+        market=market,
+        source="tdx-server",
+        tickers=tickers,
+    )
+    try:
+        resp = uc.execute(request, progress_callback=callback)
+        if resp.success_count == 0 and body.tdx_path:
+            callback(0, "no server data available, trying local files...")
+            _run_local_scan(market, body.tdx_path, _db_path_for(market), callback, storage_repo)
+            return
+        callback(100, f"server scan complete: {resp.success_count}/{resp.total_tickers} success")
+    except Exception:
+        logger.exception("server scan failed")
+        if body.tdx_path:
+            callback(0, "server scan failed, trying local files...")
+            _run_local_scan(market, body.tdx_path, _db_path_for(market), callback, storage_repo)
+        else:
+            callback(-1, "server scan failed")

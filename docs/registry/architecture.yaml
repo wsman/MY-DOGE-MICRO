@@ -2,8 +2,7 @@
 #
 # PURPOSE: Single source of truth for cross-ADR architectural stances that all
 # ADRs must agree on. Skills check this before writing new ADRs to detect
-# conflicts at authoring time. Aggregated from the 8 ADRs
-# (docs/architecture/adr-0001..0008) and the 12 module CDDs.
+# conflicts at authoring time. Aggregated from ADR-0001..0011 and the 15 module CDDs.
 #
 # RULES:
 #   - Register a stance when it constrains how OTHER systems must be built.
@@ -21,24 +20,27 @@
 # STATUS VALUES: active | superseded_by: ADR-NNNN
 
 version: 1
-last_updated: "2026-06-12"
+last_updated: "2026-06-21"
 
 # ============================================================================
-# SYSTEMS — the 12 product modules (module-index.md canonical enumeration)
+# SYSTEMS — the 15 product modules (module-index.md canonical enumeration)
 # ============================================================================
 systems:
-  - {num: 1, slug: runtime-configuration, name: "Runtime Configuration", category: Foundation, layer: Foundation, cdd: design/cdd/runtime-configuration.md, status: "In Progress"}
-  - {num: 2, slug: market-data-storage, name: "Market Data Storage", category: Foundation, layer: Foundation, cdd: design/cdd/market-data-storage.md, status: "In Progress"}
-  - {num: 3, slug: data-sources, name: "TDX/YFinance Data Sources", category: Foundation, layer: Foundation, cdd: design/cdd/data-sources.md, status: "In Progress"}
-  - {num: 4, slug: macro-strategy-engine, name: "Macro Strategy Engine", category: Core, layer: Core, cdd: design/cdd/macro-strategy-engine.md, status: "In Progress", notes: "Owns the project's single LLM client (DeepSeekStrategist)"}
-  - {num: 5, slug: micro-momentum-scanner, name: "Micro Momentum Scanner", category: Core, layer: Core, cdd: design/cdd/micro-momentum-scanner.md, status: "In Progress", notes: "Owns canonical RSRS formula"}
-  - {num: 6, slug: market-reporting, name: "Market Reporting", category: Feature, layer: Feature, cdd: design/cdd/market-reporting.md, status: "In Progress", notes: "Pure-SQL reports; NO LLM. (Prior name 'AI Industry Analysis' was a misnomer.)"}
-  - {num: 7, slug: research-insight-knowledge-base, name: "Research Insight Knowledge Base", category: Core, layer: Core, cdd: design/cdd/research-insight-knowledge-base.md, status: "In Progress", notes: "Owns stock_notes + stock_names; soft-delete (deleted_at)"}
-  - {num: 8, slug: mcp-server, name: "MCP Server", category: Interface, layer: Interface, cdd: design/cdd/mcp-server.md, status: "In Progress", notes: "6 read-only tools; stdio primary + SSE secondary"}
-  - {num: 9, slug: fastapi-service, name: "FastAPI Service", category: Interface, layer: Interface, cdd: design/cdd/fastapi-service.md, status: "In Progress", notes: "26 product routes; 127.0.0.1:8901"}
-  - {num: 10, slug: pyqt-desktop-dashboard, name: "PyQt Desktop Dashboard", category: Presentation, layer: Presentation, cdd: design/cdd/pyqt-desktop-dashboard.md, status: "In Progress"}
-  - {num: 11, slug: vue-web-console, name: "Vue Web Console", category: Presentation, layer: Presentation, cdd: design/cdd/vue-web-console.md, status: "In Progress"}
-  - {num: 12, slug: clean-architecture-migration, name: "Clean Architecture Migration", category: Operations, layer: Operations, cdd: design/cdd/clean-architecture-migration.md, status: "In Progress"}
+  - {num: 1, slug: runtime-configuration, name: "Runtime Configuration", category: Foundation, layer: Foundation, cdd: design/cdd/runtime-configuration.md, status: "Designed"}
+  - {num: 2, slug: market-data-storage, name: "Market Data Storage", category: Foundation, layer: Foundation, cdd: design/cdd/market-data-storage.md, status: "Designed"}
+  - {num: 3, slug: data-sources, name: "TDX/YFinance Data Sources", category: Foundation, layer: Foundation, cdd: design/cdd/data-sources.md, status: "Designed"}
+  - {num: 4, slug: macro-strategy-engine, name: "Macro Strategy Engine", category: Core, layer: Core, cdd: design/cdd/macro-strategy-engine.md, status: "Designed", notes: "Owns the project's single LLM client boundary"}
+  - {num: 5, slug: micro-momentum-scanner, name: "Micro Momentum Scanner", category: Core, layer: Core, cdd: design/cdd/micro-momentum-scanner.md, status: "Designed", notes: "Owns canonical RSRS formula"}
+  - {num: 6, slug: market-reporting, name: "Market Reporting", category: Feature, layer: Feature, cdd: design/cdd/market-reporting.md, status: "Designed", notes: "Pure-SQL reports; NO LLM. (Prior name 'AI Industry Analysis' was a misnomer.)"}
+  - {num: 7, slug: research-insight-knowledge-base, name: "Research Insight Knowledge Base", category: Core, layer: Core, cdd: design/cdd/research-insight-knowledge-base.md, status: "Designed", notes: "Owns stock_notes + stock_names; soft-delete (deleted_at)"}
+  - {num: 8, slug: mcp-server, name: "MCP Server", category: Interface, layer: Interface, cdd: design/cdd/mcp-server.md, status: "Designed", notes: "6 read-only tools; stdio primary + SSE secondary"}
+  - {num: 9, slug: fastapi-service, name: "FastAPI Service", category: Interface, layer: Interface, cdd: design/cdd/fastapi-service.md, status: "In Review", notes: "51 product routes; 127.0.0.1:8901; legacy /api plus daemon /v1"}
+  - {num: 10, slug: pyqt-desktop-dashboard, name: "PyQt Desktop Dashboard", category: Presentation, layer: Presentation, cdd: design/cdd/pyqt-desktop-dashboard.md, status: "Designed"}
+  - {num: 11, slug: vue-web-console, name: "Vue Web Console", category: Presentation, layer: Presentation, cdd: design/cdd/vue-web-console.md, status: "Designed"}
+  - {num: 12, slug: clean-architecture-migration, name: "Clean Architecture Migration", category: Operations, layer: Operations, cdd: design/cdd/clean-architecture-migration.md, status: "Designed"}
+  - {num: 13, slug: research-copilot-agent-runtime, name: "Research Copilot Agent Runtime", category: Core, layer: Core, cdd: design/cdd/research-copilot-agent-runtime.md, status: "In Review"}
+  - {num: 14, slug: document-evidence-pipeline, name: "Document Evidence Pipeline", category: Core, layer: Core, cdd: design/cdd/document-evidence-pipeline.md, status: "In Review"}
+  - {num: 15, slug: sdk-daemon-client-interfaces, name: "SDK And Daemon Client Interfaces", category: Interface, layer: Interface, cdd: design/cdd/sdk-daemon-client-interfaces.md, status: "In Review"}
 
 # ============================================================================
 # STATE OWNERSHIP — authoritative owner of each shared state artifact
@@ -169,7 +171,7 @@ interfaces:
     consumers: [vue-web-console, pyqt-desktop-dashboard]
     transports: [http]
     adr: docs/architecture/adr-0007-api-surface-and-cors.md
-    signature: "26 product routes; JSON + SSE; bind 127.0.0.1:8901"
+    signature: "51 product routes; JSON + SSE; bind 127.0.0.1:8901; legacy /api plus daemon /v1"
     referenced_by:
       - docs/architecture/adr-0008-web-architecture.md
     added: "2026-06-12"
@@ -425,11 +427,11 @@ adr_index:
     date: "2026-06-11"
     path: docs/architecture/adr-0001-brownfield-clean-architecture.md
     governs: "layer rules, forbidden patterns, ports & adapters target"
-    referenced_by: [ADR-0002, ADR-0003, ADR-0004, ADR-0005, ADR-0006, ADR-0007]
+    referenced_by: [ADR-0002, ADR-0003, ADR-0004, ADR-0005, ADR-0006, ADR-0007, ADR-0009, ADR-0010, ADR-0011]
 
   - id: ADR-0002
     title: "Centralized Runtime Configuration"
-    status: Proposed
+    status: Accepted
     date: "2026-06-11"
     path: docs/architecture/adr-0002-centralized-configuration.md
     governs: "settings.py + get_settings() single source; sys_path_insert / _PROJECT_ROOT_recalculation forbidden"
@@ -437,7 +439,7 @@ adr_index:
 
   - id: ADR-0003
     title: "Storage Repository Contract (No Direct SQLite/DuckDB in Interface Layers)"
-    status: Proposed
+    status: Accepted
     date: "2026-06-11"
     path: docs/architecture/adr-0003-storage-repository-contract.md
     governs: "IStockRepository / IReportRepository ports; StorageWriteError; DOGE_RETENTION_DAYS; WAL"
@@ -445,7 +447,7 @@ adr_index:
 
   - id: ADR-0004
     title: "Data Source Adapter Contract"
-    status: Proposed
+    status: Accepted
     date: "2026-06-11"
     path: docs/architecture/adr-0004-data-source-adapter-contract.md
     governs: "IMarketDataSource port; canonical 8-col OHLCV frame; shared retry/backoff; 120d default window"
@@ -453,7 +455,7 @@ adr_index:
 
   - id: ADR-0005
     title: "LLM Client Strategy"
-    status: Proposed
+    status: Accepted
     date: "2026-06-12"
     path: docs/architecture/adr-0005-llm-client-strategy.md
     governs: "single DeepSeekStrategist via openai SDK; Optional[str] None-on-error; no committed secrets"
@@ -469,10 +471,10 @@ adr_index:
 
   - id: ADR-0007
     title: "API Surface and CORS"
-    status: Proposed
+    status: Accepted
     date: "2026-06-12"
     path: docs/architecture/adr-0007-api-surface-and-cors.md
-    governs: "26-route canonical table; 127.0.0.1:8901 bind; allow_origins=['*'] local-first; stable non-leaking error envelope (target)"
+    governs: "51-route canonical table; 127.0.0.1:8901 bind; allow_origins=['*'] loopback-first; shipped non-leaking error envelope"
     depends_on: [ADR-0001]
 
   - id: ADR-0008
@@ -482,3 +484,27 @@ adr_index:
     path: docs/architecture/adr-0008-web-architecture.md
     governs: "Vue3+Vite8+Pinia+Naive UI+lightweight-charts; manual-fetch SSE; @pretext alias (portability open question)"
     depends_on: [ADR-0007]
+
+  - id: ADR-0009
+    title: "Cache/Metadata Port Split"
+    status: Accepted
+    date: "2026-06-12"
+    path: docs/architecture/adr-0009-cache-metadata-port-split.md
+    governs: "ITickerNameCache and ITickerMetadataSource split local cache from remote metadata"
+    depends_on: [ADR-0001, ADR-0004]
+
+  - id: ADR-0010
+    title: "View-Service Port Injection"
+    status: Accepted
+    date: "2026-06-12"
+    path: docs/architecture/adr-0010-view-service-port-injection.md
+    governs: "IMarketViewRepository port injection for view-backed services"
+    depends_on: [ADR-0001, ADR-0003]
+
+  - id: ADR-0011
+    title: "Agent Runtime Levels"
+    status: Accepted
+    date: "2026-06-21"
+    path: docs/architecture/adr-0011-agent-runtime-levels.md
+    governs: "Research Copilot Level 1/2/3 runtime model; daemon and SDK maturity gates"
+    depends_on: [ADR-0001, ADR-0002, ADR-0007, ADR-0008]

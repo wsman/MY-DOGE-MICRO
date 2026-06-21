@@ -1,11 +1,8 @@
 """Layer gate: doge.interfaces.api must not import legacy or database drivers.
 
 These gates protect the API interface layer while Sprint 007 migrates the
-legacy ``src/api/`` surface onto ``doge.interfaces.api``. They are intentionally
-narrower than the final S007-008 gates: macro/scan routers may still reference
-legacy ``src.macro`` / ``src.micro`` modules because those stories (S007-005/006)
-will migrate them onto application use cases. The gates here only block the
-forbidden patterns that S007-002 explicitly addresses:
+legacy ``src/api/`` surface onto ``doge.interfaces.api``. The gates here block
+the forbidden patterns that S007-002 explicitly addresses:
 
 - direct ``sqlite3`` / ``duckdb`` imports in routers
 - importing the old ``src.api`` surface from the new canonical surface

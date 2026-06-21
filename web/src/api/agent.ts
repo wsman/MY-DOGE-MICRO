@@ -57,7 +57,7 @@ export async function createAgentRun(payload: CreateAgentRunRequest): Promise<Ag
     portfolio_id: payload.portfolio_id,
     model_policy: payload.model_policy,
   })
-  return await pollAgentRun(runId)
+  return await streamAgentRun(runId)
 }
 
 export async function fetchAgentRun(runId: string): Promise<AgentRun> {
@@ -66,19 +66,25 @@ export async function fetchAgentRun(runId: string): Promise<AgentRun> {
 
 export async function approveAgentRun(runId: string, approvalId: string, approved: boolean): Promise<AgentRun> {
   const run = await dogeClient.runs.approve(runId, approvalId, approved) as unknown as AgentRun
-  return isSettledForDisplay(run.status) ? run : await pollAgentRun(runId)
+  return isSettledForDisplay(run.status) ? run : await streamAgentRun(runId, latestEventId(run))
 }
 
-async function pollAgentRun(runId: string): Promise<AgentRun> {
-  const terminal = new Set(['awaiting_approval', 'completed', 'failed', 'cancelled'])
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    const run = await fetchAgentRun(runId)
-    if (terminal.has(run.status)) return run
-    await new Promise(resolve => setTimeout(resolve, 150))
+async function streamAgentRun(runId: string, lastEventId?: string): Promise<AgentRun> {
+  for await (const event of dogeClient.runs.stream(runId, { lastEventId, reconnect: true })) {
+    if (isSettledEvent(event.type)) break
   }
   return await fetchAgentRun(runId)
 }
 
 function isSettledForDisplay(status: string): boolean {
   return ['awaiting_approval', 'completed', 'failed', 'cancelled'].includes(status)
+}
+
+function isSettledEvent(eventType: string): boolean {
+  return ['approval_requested', 'artifact_created', 'error', 'run_cancelled'].includes(eventType)
+}
+
+function latestEventId(run: AgentRun): string | undefined {
+  const last = run.events?.[run.events.length - 1] as (AgentEvent & { sequence?: number }) | undefined
+  return last?.sequence === undefined ? undefined : String(last.sequence)
 }

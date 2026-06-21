@@ -84,6 +84,8 @@ is read via the `_env_path` / `_env_int` helpers (`settings.py:18-49`).
 | `DOGE_US_DB` | `{DOGE_DB_DIR}/market_data_us.db` | US-equity OHLCV SQLite database. |
 | `DOGE_RESEARCH_DB` | `{DOGE_DB_DIR}/research_insights.db` | Research notes + stock names SQLite database. |
 | `DOGE_AGENT_DB` | `{DOGE_DB_DIR}/agent_state.db` | Research Copilot sessions, runs, events, artifacts, approvals, documents, and daemon queue metadata. |
+| `DOGE_DOCUMENT_STORAGE_DIR` | `{DOGE_DB_DIR}/documents` | Stored payloads for real Research Copilot file uploads and CLI `/attach`. |
+| `DOGE_DOCUMENT_MAX_BYTES` | `104857600` | Maximum accepted document upload size, 100 MB by default. |
 | `DOGE_DUCKDB_PATH` | `{DOGE_DB_DIR}/market.duckdb` | DuckDB analytical file (attached read-only to the SQLite sources for cross-database views). |
 | `DOGE_VIEWS_SQL_TRACKED` | `src/doge/infrastructure/database/views.sql` | Canonical, version-controlled DuckDB view DDL (S003-005). Preferred by the refresh path over the `data/views.sql` mirror when present. |
 
@@ -161,12 +163,23 @@ the OpenAI-compatible Moonshot endpoint. If `MOONSHOT_API_KEY` is absent, the
 demo runtime falls back to a deterministic scripted model so local tests and
 the web workspace still run.
 
+Real file upload and CLI `/attach` do not require a Kimi key. When
+`MOONSHOT_API_KEY` is present, the file upload service can also call the Kimi
+Files API adapter; when it is absent, the local deterministic parser stores
+hash/MIME/size metadata and offline parsed content.
+
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `MOONSHOT_API_KEY` | unset | Secret for live Kimi calls. Keep it in the shell environment only. |
 | `KIMI_BASE_URL` | `https://api.moonshot.ai/v1` | OpenAI-compatible API base URL. |
 | `KIMI_GENERAL_MODEL` | `kimi-k2.6` | General research/planning/finalization model. |
 | `KIMI_CODE_MODEL` | `kimi-k2.7-code` | Code-sub-agent model for Python/SQL/data tasks. |
+| `KIMI_MAX_RETRIES` | `2` | Bounded retries for Kimi chat create calls on rate-limit/transient provider errors. |
+| `KIMI_RETRY_DELAY` | `1.0` | Delay in seconds between Kimi chat retries; set to `0` only for local tests. |
+
+The no-key fallback is intentional: without `MOONSHOT_API_KEY`, Research
+Copilot still runs with a scripted local model, `/v1/documents` still persists
+real file metadata, and CLI `/attach` still produces a real `document_id`.
 
 ## Start the MCP server
 
@@ -224,7 +237,8 @@ The API uses a stable error envelope — every `HTTPException` is reshaped into
 > `allow_origins=["*"]` (`src/doge/interfaces/api/main.py`) — acceptable *only* because
 > the bind address prevents remote access. Binding to `0.0.0.0` would expose
 > the API with no authentication; do not do this on a shared host.
-> CORS hardening is tracked under ADR-0007 (Proposed).
+> ADR-0007 is Accepted with this loopback-guaranteed posture. CORS hardening
+> and auth are still required before any non-loopback bind.
 
 `src/api` remains only as a deprecated compatibility redirect shim. New
 integrations and operator commands should use `doge.interfaces.api`.
@@ -286,15 +300,15 @@ The fastest end-to-end path with **no LLM key required** (pure analytics):
 2. Run the 5-minute demo to see the bundled analytical data without any
    configuration:
    ```bash
-   python src/cli.py demo
+   doge demo
    ```
 3. Start the FastAPI backend (`python -m uvicorn doge.interfaces.api.main:app --host 127.0.0.1 --port 8901`).
 4. Open the web console (`cd web && npm run dev`) and use the **Scanner** tab,
    **or** drive the query CLI directly:
    ```bash
-   python src/cli.py rsrs --market cn --top 10       # RSRS momentum ranking
-   python src/cli.py breadth --market cn --days 7    # market breadth
-   python src/cli.py anomaly --min-ratio 5.0          # volume anomalies
+   doge rsrs --market cn --top 10       # RSRS momentum ranking
+   doge breadth --market cn --days 7    # market breadth
+   doge anomaly --min-ratio 5.0          # volume anomalies
    ```
    Full command reference: see the CLI doc (Next steps below).
 

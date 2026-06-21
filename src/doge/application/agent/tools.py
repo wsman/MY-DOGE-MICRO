@@ -110,8 +110,24 @@ def build_default_tool_registry() -> ToolRegistry:
     def get_portfolio_exposure(portfolio_id: str = "portfolio-demo") -> ToolResult:
         return ToolResult("get_portfolio_exposure", data=service.get_portfolio_exposure(portfolio_id))
 
+    def portfolio_risk(portfolio_id: str = "portfolio-demo") -> ToolResult:
+        return ToolResult("portfolio_risk", data=service.portfolio_risk(portfolio_id))
+
+    def scenario_analysis(portfolio_id: str = "portfolio-demo", basis_points: float = 100.0) -> ToolResult:
+        return ToolResult("scenario_analysis", data=service.scenario_analysis(portfolio_id, basis_points))
+
     def validate_financial_claims(claim: str, ticker: str = "AAPL", market: str = "us") -> ToolResult:
         return ToolResult("validate_financial_claims", data=service.validate_financial_claims(claim, ticker, market))
+
+    def generate_industry_report(
+        industry: str = "semiconductor",
+        market: str = "us",
+        tickers: list[str] | None = None,
+    ) -> ToolResult:
+        return ToolResult(
+            "generate_industry_report",
+            data=service.generate_industry_report(industry, market, tickers),
+        )
 
     def lookup_evidence(query: str, limit: int = 5) -> ToolResult:
         return ToolResult("lookup_evidence", data=service.lookup_evidence(query, limit))
@@ -144,11 +160,26 @@ def build_default_tool_registry() -> ToolRegistry:
     registry.register(_schema("get_portfolio_exposure", "Get demo portfolio exposure.", {
         "portfolio_id": {"type": "string"},
     }), get_portfolio_exposure)
+    registry.register(_schema("portfolio_risk", "Get deterministic portfolio risk approximations.", {
+        "portfolio_id": {"type": "string"},
+    }), portfolio_risk)
+    registry.register(_schema("scenario_analysis", "Run deterministic portfolio scenario analysis.", {
+        "portfolio_id": {"type": "string"},
+        "basis_points": {"type": "number"},
+    }), scenario_analysis)
     registry.register(_schema("validate_financial_claims", "Validate a material financial claim.", {
         "claim": {"type": "string"},
         "ticker": {"type": "string"},
         "market": {"type": "string", "enum": ["cn", "us"]},
     }, ["claim", "ticker"]), validate_financial_claims)
+    registry.register(_schema("generate_industry_report", "Generate an evidence-aware industry report.", {
+        "industry": {"type": "string"},
+        "market": {"type": "string", "enum": ["cn", "us"]},
+        "tickers": {
+            "type": "array",
+            "items": {"type": "string"},
+        },
+    }), generate_industry_report)
     registry.register(_schema("lookup_evidence", "Look up source evidence snippets.", {
         "query": {"type": "string"},
         "limit": {"type": "integer", "minimum": 1, "maximum": 20},

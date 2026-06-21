@@ -28,4 +28,38 @@ describe('DogeClient', () => {
       expect.objectContaining({ method: 'POST' }),
     )
   })
+
+  it('reconnects run streams with Last-Event-ID', async () => {
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('id: 2\nevent: tool_call\ndata: {"ok": true}\n\n'))
+        controller.close()
+      },
+    })
+    const fetchMock = vi.fn()
+      .mockRejectedValueOnce(new TypeError('network dropped'))
+      .mockResolvedValueOnce({
+        ok: true,
+        body: stream,
+      })
+    vi.stubGlobal('fetch', fetchMock)
+    const client = new DogeClient()
+
+    const events = []
+    for await (const event of client.runs.stream('run-test', {
+      lastEventId: '1',
+      maxReconnects: 1,
+      backoffMs: 0,
+      sleep: async () => undefined,
+    })) {
+      events.push(event)
+    }
+
+    expect(events[0].id).toBe('2')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      '/v1/runs/run-test/stream',
+      expect.objectContaining({ headers: { 'Last-Event-ID': '1' } }),
+    )
+  })
 })
