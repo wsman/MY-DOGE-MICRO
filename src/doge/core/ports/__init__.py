@@ -22,8 +22,11 @@ from doge.core.ports.idempotency_store import IIdempotencyStore
 from doge.core.ports.llm import ILLMClient
 from doge.core.ports.market_view import IMarketViewRepository
 from doge.core.ports.metadata import ITickerMetadataSource
+from doge.core.ports.model_router import IModelRouter, RoutingDecision
+from doge.core.ports.model_gateway import IEnterpriseModelGateway
 from doge.core.ports.portfolio_repository import IPortfolioRepository
 from doge.core.ports.tdx_server_list import ITDXServerList, TDXServer
+from doge.core.ports.tool_entitlement import IToolEntitlementChecker
 from doge.core.ports.repository import (
     INoteRepository,
     IReportRepository,
@@ -56,6 +59,8 @@ __all__ = [
     "ILLMClient",
     "IMarketDataSource",
     "IMarketViewRepository",
+    "IModelRouter",
+    "IEnterpriseModelGateway",
     "INoteRepository",
     "IPortfolioRepository",
     "IReportRepository",
@@ -68,11 +73,13 @@ __all__ = [
     "IStockRepository",
     "ITdxFileScanner",
     "ITDXServerList",
+    "IToolEntitlementChecker",
     "ITickerMetadataSource",
     "ITickerNameCache",
     "IVectorStore",
     "VectorRecord",
     "VectorSearchResult",
+    "RoutingDecision",
     "TDXServer",
     "StorageWriteError",
 ]

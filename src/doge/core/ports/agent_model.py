@@ -13,6 +13,62 @@ from typing import Any, AsyncIterator, Optional
 
 
 @dataclass(frozen=True)
+class AgentUsage:
+    """Provider-neutral token, latency, and cost metadata for one model call."""
+
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+    cached_tokens: int = 0
+    model: Optional[str] = None
+    provider_request_id: Optional[str] = None
+    latency_ms: Optional[float] = None
+    cost_usd: Optional[float] = None
+
+    @classmethod
+    def from_mapping(
+        cls,
+        data: dict[str, Any] | None,
+        *,
+        model: str | None = None,
+        provider_request_id: str | None = None,
+        latency_ms: float | None = None,
+        cost_usd: float | None = None,
+    ) -> "AgentUsage":
+        payload = data or {}
+        prompt_tokens = int(payload.get("prompt_tokens") or payload.get("input_tokens") or 0)
+        completion_tokens = int(payload.get("completion_tokens") or payload.get("output_tokens") or 0)
+        total_tokens = int(payload.get("total_tokens") or prompt_tokens + completion_tokens)
+        return cls(
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            cached_tokens=int(payload.get("cached_tokens") or 0),
+            model=model or payload.get("model"),
+            provider_request_id=provider_request_id or payload.get("provider_request_id"),
+            latency_ms=latency_ms if latency_ms is not None else payload.get("latency_ms"),
+            cost_usd=cost_usd if cost_usd is not None else payload.get("cost_usd"),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        data: dict[str, Any] = {
+            "prompt_tokens": self.prompt_tokens,
+            "completion_tokens": self.completion_tokens,
+            "total_tokens": self.total_tokens,
+            "cached_tokens": self.cached_tokens,
+        }
+        if self.model:
+            data["model"] = self.model
+        if self.provider_request_id:
+            data["provider_request_id"] = self.provider_request_id
+        if self.latency_ms is not None:
+            data["latency_ms"] = self.latency_ms
+        if self.cost_usd is not None:
+            data["cost_usd"] = self.cost_usd
+        return data
+
+
+@dataclass(frozen=True)
 class AgentContentPart:
     """Provider-neutral structured content part for multimodal messages."""
 
@@ -35,6 +91,10 @@ class AgentContentPart:
     @classmethod
     def image_file_id(cls, file_id: str) -> "AgentContentPart":
         return cls(type="image", source_type="file_id", file_id=file_id)
+
+    @classmethod
+    def video_file_id(cls, file_id: str) -> "AgentContentPart":
+        return cls(type="video", source_type="file_id", file_id=file_id)
 
     @classmethod
     def file_text(cls, *, text: str, filename: str | None = None, file_id: str | None = None) -> "AgentContentPart":
@@ -117,7 +177,16 @@ class IAgentModel(ABC):
         tools: Optional[list[dict[str, Any]]] = None,
         tool_choice: Optional[str] = None,
         max_tokens: int = 16384,
+        max_completion_tokens: Optional[int] = None,
         stream: bool = True,
+        model: Optional[str] = None,
+        thinking_enabled: Optional[bool] = None,
+        response_format: Optional[dict[str, Any]] = None,
+        prompt_cache_key: Optional[str] = None,
+        safety_identifier: Optional[str] = None,
+        timeout: Optional[float] = None,
+        request_metadata: Optional[dict[str, Any]] = None,
+        extra_body: Optional[dict[str, Any]] = None,
     ) -> AsyncIterator[AgentResponse]:
         """Yield model response events for an agent turn."""
         ...

@@ -6,6 +6,7 @@ from typing import Any
 
 from doge.application.use_cases.session_use_cases import AppendTurn
 from doge.core.domain.agent_models import AgentRun
+from doge.core.domain.model_policy import ModelPolicy
 from doge.core.ports.agent_repository import ISessionRepository
 from doge.core.ports.agent_runtime import IResearchAgentRuntime
 
@@ -24,7 +25,7 @@ class ExecuteRun:
         language: str = "en",
         document_ids: list[str] | None = None,
         portfolio_id: str | None = "portfolio-demo",
-        model_policy: dict[str, Any] | None = None,
+        model_policy: dict[str, Any] | ModelPolicy | None = None,
     ) -> AgentRun:
         run = await self._runtime.create_run({
             "workflow": "investment_research",
@@ -34,7 +35,7 @@ class ExecuteRun:
             "language": language,
             "document_ids": document_ids or [],
             "portfolio_id": portfolio_id,
-            "model_policy": model_policy or {"max_tool_rounds": 8},
+            "model_policy": ModelPolicy.from_dict(model_policy or {"max_tool_rounds": 8}),
         })
         if session_id and self._append_turn is not None:
             self._append_turn.execute(session_id, question, run.run_id)

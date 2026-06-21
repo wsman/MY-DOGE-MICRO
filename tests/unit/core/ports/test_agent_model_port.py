@@ -50,6 +50,27 @@ def test_agent_message_serializes_structured_content_parts():
     ]
 
 
+def test_agent_message_serializes_video_file_id_part():
+    message = AgentMessage(
+        role="user",
+        content=[
+            AgentContentPart.text_part("Describe this clip."),
+            AgentContentPart.video_file_id("file-video-1"),
+        ],
+    )
+
+    assert message.to_api_dict()["content"] == [
+        {"type": "text", "text": "Describe this clip."},
+        {
+            "type": "video",
+            "source": {
+                "type": "file_id",
+                "file_id": "file-video-1",
+            },
+        },
+    ]
+
+
 def test_agent_response_carries_usage_and_finish_reason():
     response = AgentResponse(
         message=AgentMessage(role="assistant", content="done"),

@@ -17,7 +17,16 @@ class ScriptedAgentModel(IAgentModel):
         tools: list[dict[str, Any]] | None = None,
         tool_choice: str | None = None,
         max_tokens: int = 16384,
+        max_completion_tokens: int | None = None,
         stream: bool = True,
+        model: str | None = None,
+        thinking_enabled: bool | None = None,
+        response_format: dict[str, Any] | None = None,
+        prompt_cache_key: str | None = None,
+        safety_identifier: str | None = None,
+        timeout: float | None = None,
+        request_metadata: dict[str, Any] | None = None,
+        extra_body: dict[str, Any] | None = None,
     ) -> AsyncIterator[AgentResponse]:
         tool_results = [message for message in messages if message.role == "tool"]
         turn = len(tool_results)
@@ -61,7 +70,14 @@ class ScriptedAgentModel(IAgentModel):
             yield AgentResponse(
                 message=AgentMessage(role="assistant", content=_default_memo()),
                 finish_reason="stop",
-                usage={"total_tokens": 0},
+                usage={
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
+                    "cached_tokens": 0,
+                    "total_tokens": 0,
+                    "model": model or "scripted",
+                    "cost_usd": 0.0,
+                },
             )
 
 

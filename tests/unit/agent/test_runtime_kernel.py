@@ -3,6 +3,8 @@ import pytest
 from doge.application.agent.runtime_kernel import RuntimeKernel
 from doge.application.agent.tools import ToolRegistry, ToolResult
 from doge.core.domain.agent_models import EventType, RunStatus
+from doge.core.ports.agent_model import AgentMessage, AgentResponse
+from doge.core.ports.model_router import RoutingDecision
 from doge.infrastructure.agent.scripted_model import ScriptedAgentModel
 from doge.infrastructure.database.agent_repositories import (
     SQLiteApprovalRepository,
@@ -123,6 +125,60 @@ async def test_kernel_resolve_approval_denied_fails_run(tmp_path):
     assert all(event.event_type != EventType.ARTIFACT_CREATED for event in failed.events)
 
 
+class SearchThenFinalModel:
+    def __init__(self):
+        self.calls = []
+
+    async def chat(self, messages, **kwargs):
+        self.calls.append((messages, kwargs))
+        if len(self.calls) == 1:
+            yield AgentResponse(message=AgentMessage(role="assistant", content="search facts"))
+            return
+        assert any("Web search context" in str(message.content) for message in messages)
+        yield AgentResponse(message=AgentMessage(role="assistant", content="final memo"))
+
+
+class BackendRouter:
+    def route(self, run, policy):
+        return RoutingDecision(
+            backend="kimi_agent_sdk",
+            model="kimi-k2.6",
+            thinking_enabled=True,
+        )
+
+
+class BackendModel:
+    async def chat(self, messages, **kwargs):
+        raise AssertionError("direct model should not be called")
+
+
+class FakeBackend:
+    def __init__(self):
+        self.calls = []
+
+    async def chat(self, messages, tools=None, tool_choice=None, max_tokens=16384):
+        self.calls.append((messages, tools, tool_choice, max_tokens))
+        yield AgentResponse(message=AgentMessage(role="assistant", content="backend memo"))
+
+
+class ApprovalBackend:
+    async def chat(self, messages, tools=None, tool_choice=None, max_tokens=16384):
+        yield AgentResponse(
+            message=AgentMessage(
+                role="assistant",
+                content="",
+                tool_calls=[{
+                    "id": "appr-sdk",
+                    "type": "function",
+                    "function": {
+                        "name": "request_approval",
+                        "arguments": "{\"action\":\"publish\",\"risk_level\":\"high\"}",
+                    },
+                }],
+            )
+        )
+
+
 @pytest.mark.asyncio
 async def test_kernel_cancel_completed_run_is_idempotent(tmp_path):
     kernel = _kernel(tmp_path)
@@ -195,3 +251,95 @@ async def test_kernel_artifact_only_on_completed(tmp_path):
     assert artifact.data["numerical_consistency"] is None
     assert artifact.data["citation_precision"] is None
     assert "usage" in artifact.data
+
+
+@pytest.mark.asyncio
+async def test_kernel_runs_web_search_stage_when_policy_enabled(tmp_path):
+    db = tmp_path / "agent_state.db"
+    model = SearchThenFinalModel()
+    kernel = RuntimeKernel(
+        model=model,
+        tool_registry=ToolRegistry(),
+        run_repository=SQLiteRunRepository(db),
+        event_repository=SQLiteEventRepository(db),
+        artifact_repository=SQLiteArtifactRepository(db),
+        approval_repository=SQLiteApprovalRepository(db),
+    )
+    run = await kernel.create_run({
+        "question": "Analyze current market",
+        "model_policy": {"web_search_enabled": True},
+    })
+
+    completed = await kernel.step(run.run_id)
+
+    assert completed.artifacts[0].content == "final memo"
+    assert model.calls[0][1]["thinking_enabled"] is False
+    assert len(model.calls) == 2
+
+
+@pytest.mark.asyncio
+async def test_kernel_runs_web_search_stage_when_profile_enabled(tmp_path):
+    db = tmp_path / "agent_state.db"
+    model = SearchThenFinalModel()
+    kernel = RuntimeKernel(
+        model=model,
+        tool_registry=ToolRegistry(),
+        run_repository=SQLiteRunRepository(db),
+        event_repository=SQLiteEventRepository(db),
+        artifact_repository=SQLiteArtifactRepository(db),
+        approval_repository=SQLiteApprovalRepository(db),
+    )
+    run = await kernel.create_run({
+        "question": "Analyze current market",
+        "model_policy": {"execution_profile": "web_research"},
+    })
+
+    completed = await kernel.step(run.run_id)
+
+    assert completed.artifacts[0].content == "final memo"
+    assert model.calls[0][1]["thinking_enabled"] is False
+    assert len(model.calls) == 2
+
+
+@pytest.mark.asyncio
+async def test_kernel_routes_non_direct_backend_to_injected_backend(tmp_path):
+    db = tmp_path / "agent_state.db"
+    backend = FakeBackend()
+    kernel = RuntimeKernel(
+        model=BackendModel(),
+        tool_registry=ToolRegistry(),
+        run_repository=SQLiteRunRepository(db),
+        event_repository=SQLiteEventRepository(db),
+        artifact_repository=SQLiteArtifactRepository(db),
+        approval_repository=SQLiteApprovalRepository(db),
+        model_router=BackendRouter(),
+        agent_backends={"kimi_agent_sdk": backend},
+    )
+    run = await kernel.create_run({"question": "Automate"})
+
+    completed = await kernel.step(run.run_id)
+
+    assert completed.artifacts[0].content == "backend memo"
+    assert backend.calls
+
+
+@pytest.mark.asyncio
+async def test_kernel_routes_backend_approval_into_runtime_approval_flow(tmp_path):
+    db = tmp_path / "agent_state.db"
+    kernel = RuntimeKernel(
+        model=BackendModel(),
+        tool_registry=_registry(),
+        run_repository=SQLiteRunRepository(db),
+        event_repository=SQLiteEventRepository(db),
+        artifact_repository=SQLiteArtifactRepository(db),
+        approval_repository=SQLiteApprovalRepository(db),
+        model_router=BackendRouter(),
+        agent_backends={"kimi_agent_sdk": ApprovalBackend()},
+    )
+    run = await kernel.create_run({"question": "Automate"})
+
+    paused = await kernel.step(run.run_id)
+
+    assert paused.status == RunStatus.AWAITING_APPROVAL
+    assert paused.approvals[0].action == "publish"
+    assert any(event.event_type == EventType.APPROVAL_REQUESTED for event in paused.events)

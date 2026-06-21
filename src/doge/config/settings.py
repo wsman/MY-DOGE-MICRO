@@ -238,6 +238,15 @@ class DeepSeekConfig:
 
 
 @dataclass(frozen=True)
+class LLMConfig:
+    """Default provider selection for legacy text-only report paths."""
+
+    text_provider: str = field(
+        default_factory=lambda: os.environ.get("DOGE_TEXT_LLM_PROVIDER") or "kimi"
+    )
+
+
+@dataclass(frozen=True)
 class KimiConfig:
     """Kimi / Moonshot agent model settings."""
 
@@ -255,6 +264,20 @@ class KimiConfig:
     )
     max_retries: int = field(default_factory=lambda: _env_int("KIMI_MAX_RETRIES", 2))
     retry_delay: float = field(default_factory=lambda: _env_float("KIMI_RETRY_DELAY", 1.0))
+    max_completion_tokens: int = field(default_factory=lambda: _env_int("KIMI_MAX_COMPLETION_TOKENS", 16384))
+    timeout_seconds: float = field(default_factory=lambda: _env_float("KIMI_TIMEOUT_SECONDS", 60.0))
+    backoff_base_seconds: float = field(default_factory=lambda: _env_float("KIMI_BACKOFF_BASE_SECONDS", 1.0))
+    backoff_max_seconds: float = field(default_factory=lambda: _env_float("KIMI_BACKOFF_MAX_SECONDS", 60.0))
+    cost_tracking_enabled: bool = field(
+        default_factory=lambda: os.environ.get("KIMI_COST_TRACKING_ENABLED", "true").lower()
+        not in {"0", "false", "no", "off"}
+    )
+    prompt_cache_enabled: bool = field(
+        default_factory=lambda: os.environ.get("KIMI_PROMPT_CACHE_ENABLED", "false").lower()
+        in {"1", "true", "yes", "on"}
+    )
+    monthly_budget_usd: float = field(default_factory=lambda: _env_float("KIMI_MONTHLY_BUDGET_USD", 0.0))
+    run_budget_usd: float = field(default_factory=lambda: _env_float("KIMI_RUN_BUDGET_USD", 0.0))
 
 
 @dataclass(frozen=True)
@@ -283,6 +306,7 @@ class Settings:
     mcp: MCPConfig = field(default_factory=MCPConfig)
     network: NetworkConfig = field(default_factory=NetworkConfig)
     deepseek: DeepSeekConfig = field(default_factory=DeepSeekConfig)
+    llm: LLMConfig = field(default_factory=LLMConfig)
     kimi: KimiConfig = field(default_factory=KimiConfig)
     documents: DocumentConfig = field(default_factory=DocumentConfig)
 

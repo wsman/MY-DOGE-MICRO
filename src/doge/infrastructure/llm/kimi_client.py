@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import random
+from time import perf_counter
 from typing import Any, AsyncIterator, Awaitable, Callable, Optional
 
 from doge.config import get_settings
-from doge.core.ports.agent_model import AgentMessage, AgentResponse, IAgentModel
+from doge.core.ports.agent_model import AgentMessage, AgentResponse, AgentUsage, IAgentModel
+from doge.infrastructure.llm.cost_calculator import CostCalculator
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +61,11 @@ class KimiMessageSerializer:
                 "type": "image_url",
                 "image_url": {"url": cls._image_url(part)},
             }
+        if part.get("type") == "video":
+            return {
+                "type": "video_url",
+                "video_url": {"url": cls._image_url(part)},
+            }
         if part.get("type") in {"image_url", "video_url"}:
             return part
         return part
@@ -84,6 +92,10 @@ class KimiAgentModel(IAgentModel):
         model: Optional[str] = None,
         max_retries: int | None = None,
         retry_delay: float | None = None,
+        timeout: float | None = None,
+        backoff_base: float | None = None,
+        backoff_max: float | None = None,
+        cost_calculator: CostCalculator | None = None,
         sleep: Callable[[float], Awaitable[None]] | None = None,
     ) -> None:
         settings = get_settings().kimi
@@ -92,6 +104,10 @@ class KimiAgentModel(IAgentModel):
         self._model = model if model is not None else settings.general_model
         self._max_retries = max(0, max_retries if max_retries is not None else settings.max_retries)
         self._retry_delay = retry_delay if retry_delay is not None else settings.retry_delay
+        self._timeout = timeout if timeout is not None else settings.timeout_seconds
+        self._backoff_base = backoff_base if backoff_base is not None else settings.backoff_base_seconds
+        self._backoff_max = backoff_max if backoff_max is not None else settings.backoff_max_seconds
+        self._cost_calculator = cost_calculator or CostCalculator()
         self._sleep = sleep or asyncio.sleep
 
     async def chat(
@@ -101,7 +117,16 @@ class KimiAgentModel(IAgentModel):
         tools: Optional[list[dict[str, Any]]] = None,
         tool_choice: Optional[str] = None,
         max_tokens: int = 16384,
+        max_completion_tokens: Optional[int] = None,
         stream: bool = True,
+        model: Optional[str] = None,
+        thinking_enabled: Optional[bool] = None,
+        response_format: Optional[dict[str, Any]] = None,
+        prompt_cache_key: Optional[str] = None,
+        safety_identifier: Optional[str] = None,
+        timeout: Optional[float] = None,
+        request_metadata: Optional[dict[str, Any]] = None,
+        extra_body: Optional[dict[str, Any]] = None,
     ) -> AsyncIterator[AgentResponse]:
         """Yield Kimi chat events.
 
@@ -113,6 +138,12 @@ class KimiAgentModel(IAgentModel):
         if not self._api_key:
             logger.warning("Kimi API key not configured")
             return
+        request_model = model or self._model
+        if request_model.startswith("kimi-k2.7-code") and thinking_enabled is False:
+            raise ValueError(
+                "kimi-k2.7-code does not support thinking_enabled=False; "
+                "thinking must remain enabled or omitted"
+            )
 
         try:
             from openai import AsyncOpenAI
@@ -120,52 +151,81 @@ class KimiAgentModel(IAgentModel):
             logger.warning("openai package not installed")
             return
 
-        client = AsyncOpenAI(api_key=self._api_key, base_url=self._base_url)
+        client = AsyncOpenAI(api_key=self._api_key, base_url=self._base_url, timeout=timeout or self._timeout)
         kwargs: dict[str, Any] = {
-            "model": self._model,
+            "model": request_model,
             "messages": KimiMessageSerializer.serialize_messages(messages),
-            "max_tokens": max_tokens,
+            "max_completion_tokens": max_completion_tokens or max_tokens,
             "stream": stream,
         }
-        if not self._model.startswith("kimi-k2.7-code"):
-            kwargs["extra_body"] = {"thinking": {"type": "enabled", "keep": "all"}}
+        if response_format:
+            kwargs["response_format"] = response_format
+        if prompt_cache_key:
+            kwargs["prompt_cache_key"] = prompt_cache_key
+        if safety_identifier:
+            kwargs["safety_identifier"] = safety_identifier
+        resolved_extra_body = _build_extra_body(
+            request_model=request_model,
+            thinking_enabled=thinking_enabled,
+            extra_body=extra_body,
+        )
+        if resolved_extra_body:
+            kwargs["extra_body"] = resolved_extra_body
         if tools:
             kwargs["tools"] = tools
             kwargs["tool_choice"] = tool_choice or "auto"
 
+        started = perf_counter()
         response = await self._create_completion_with_retry(client.chat.completions, kwargs)
         if response is None:
             return
+        latency_ms = (perf_counter() - started) * 1000
 
         if stream:
             async for chunk in response:
-                if not chunk.choices:
+                choices = getattr(chunk, "choices", None) or []
+                if not choices:
                     continue
-                choice = chunk.choices[0]
-                delta = choice.delta
+                choice = choices[0]
+                delta = getattr(choice, "delta", None)
+                chunk_usage = _usage_from_obj(getattr(chunk, "usage", None) or getattr(choice, "usage", None))
                 yield AgentResponse(
                     message=AgentMessage(
                         role=getattr(delta, "role", None) or "assistant",
                         content=getattr(delta, "content", None) or "",
                         reasoning_content=getattr(delta, "reasoning_content", None),
-                        tool_calls=[tc.model_dump(exclude_none=True) for tc in (getattr(delta, "tool_calls", None) or [])],
+                        tool_calls=[_dump_tool_call(tc) for tc in (getattr(delta, "tool_calls", None) or [])],
                     ),
                     finish_reason=choice.finish_reason,
-                    raw=chunk.model_dump(exclude_none=True),
+                    usage=self._usage_payload(
+                        chunk_usage,
+                        model=getattr(chunk, "model", None) or request_model,
+                        provider_request_id=getattr(chunk, "id", None),
+                        latency_ms=latency_ms if choice.finish_reason else None,
+                        request_metadata=request_metadata,
+                    ) if chunk_usage else None,
+                    raw=_model_dump(chunk),
                 )
             return
 
         message = response.choices[0].message
+        usage = _usage_from_obj(response.usage)
         yield AgentResponse(
             message=AgentMessage(
                 role=message.role,
                 content=message.content or "",
                 reasoning_content=getattr(message, "reasoning_content", None),
-                tool_calls=[tc.model_dump(exclude_none=True) for tc in (message.tool_calls or [])],
+                tool_calls=[_dump_tool_call(tc) for tc in (message.tool_calls or [])],
             ),
             finish_reason=response.choices[0].finish_reason,
-            usage=response.usage.model_dump(exclude_none=True) if response.usage else None,
-            raw=response.model_dump(exclude_none=True),
+            usage=self._usage_payload(
+                usage,
+                model=getattr(response, "model", None) or request_model,
+                provider_request_id=getattr(response, "id", None),
+                latency_ms=latency_ms,
+                request_metadata=request_metadata,
+            ) if usage else None,
+            raw=_model_dump(response),
         )
 
     async def _create_completion_with_retry(self, completions: Any, kwargs: dict[str, Any]) -> Any | None:
@@ -182,9 +242,44 @@ class KimiAgentModel(IAgentModel):
                     self._max_retries,
                     exc,
                 )
-                if self._retry_delay > 0:
-                    await self._sleep(self._retry_delay)
+                delay = self._retry_delay if self._retry_delay is not None else self._backoff_base
+                delay = min(delay * (2 ** attempt), self._backoff_max)
+                delay = delay + random.uniform(0, delay * 0.1) if delay > 0 else 0
+                if delay > 0:
+                    await self._sleep(delay)
         return None
+
+    def _usage_payload(
+        self,
+        usage: dict[str, Any],
+        *,
+        model: str | None,
+        provider_request_id: str | None,
+        latency_ms: float | None,
+        request_metadata: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        normalized = AgentUsage.from_mapping(
+            usage,
+            model=model,
+            provider_request_id=provider_request_id,
+            latency_ms=latency_ms,
+        )
+        cost = self._cost_calculator.calculate_cost(
+            model=normalized.model,
+            prompt_tokens=normalized.prompt_tokens,
+            completion_tokens=normalized.completion_tokens,
+            cached_tokens=normalized.cached_tokens,
+        )
+        payload = AgentUsage.from_mapping(
+            normalized.to_dict(),
+            model=normalized.model,
+            provider_request_id=normalized.provider_request_id,
+            latency_ms=normalized.latency_ms,
+            cost_usd=cost,
+        ).to_dict()
+        if request_metadata:
+            payload["request_metadata"] = request_metadata
+        return payload
 
 
 def _is_retryable_kimi_error(error: BaseException) -> bool:
@@ -201,3 +296,48 @@ def _is_retryable_kimi_error(error: BaseException) -> bool:
         "5xx",
     )
     return any(token in message for token in retry_tokens)
+
+
+def _build_extra_body(
+    *,
+    request_model: str,
+    thinking_enabled: bool | None,
+    extra_body: dict[str, Any] | None,
+) -> dict[str, Any]:
+    resolved: dict[str, Any] = {}
+    is_k27 = request_model.startswith("kimi-k2.7-code")
+    if is_k27 and thinking_enabled is True:
+        resolved["thinking"] = {"type": "enabled", "keep": "all"}
+    elif not is_k27 and thinking_enabled is True:
+        resolved["thinking"] = {"type": "enabled", "keep": "all"}
+    elif not is_k27 and thinking_enabled is False:
+        resolved["thinking"] = {"type": "disabled"}
+    elif thinking_enabled is None and not is_k27:
+        resolved["thinking"] = {"type": "enabled", "keep": "all"}
+    if extra_body:
+        resolved.update(extra_body)
+    return resolved
+
+
+def _usage_from_obj(usage: Any) -> dict[str, Any]:
+    if usage is None:
+        return {}
+    if isinstance(usage, dict):
+        return dict(usage)
+    if hasattr(usage, "model_dump"):
+        return usage.model_dump(exclude_none=True)
+    return dict(getattr(usage, "__dict__", {}) or {})
+
+
+def _model_dump(obj: Any) -> dict[str, Any]:
+    if hasattr(obj, "model_dump"):
+        return obj.model_dump(exclude_none=True)
+    return dict(getattr(obj, "__dict__", {}) or {})
+
+
+def _dump_tool_call(tool_call: Any) -> dict[str, Any]:
+    if hasattr(tool_call, "model_dump"):
+        return tool_call.model_dump(exclude_none=True)
+    if isinstance(tool_call, dict):
+        return dict(tool_call)
+    return dict(getattr(tool_call, "__dict__", {}) or {})

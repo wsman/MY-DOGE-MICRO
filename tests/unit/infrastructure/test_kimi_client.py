@@ -77,6 +77,55 @@ async def test_kimi_client_omits_temperature_and_sets_thinking(monkeypatch):
     assert captured["extra_body"] == {"thinking": {"type": "enabled", "keep": "all"}}
 
 
+@pytest.mark.asyncio
+async def test_kimi_client_can_disable_thinking_per_call(monkeypatch):
+    captured = {}
+
+    class FakeCompletions:
+        async def create(self, **kwargs):
+            captured.update(kwargs)
+            message = SimpleNamespace(role="assistant", content="memo", tool_calls=[])
+            choice = SimpleNamespace(message=message, finish_reason="stop")
+            return SimpleNamespace(
+                choices=[choice],
+                usage=None,
+                model_dump=lambda exclude_none=True: {"id": "resp-1"},
+            )
+
+    class FakeAsyncOpenAI:
+        def __init__(self, **kwargs):
+            self.chat = SimpleNamespace(completions=FakeCompletions())
+
+    import openai
+
+    monkeypatch.setattr(openai, "AsyncOpenAI", FakeAsyncOpenAI)
+
+    events = [
+        event
+        async for event in KimiAgentModel(api_key="moonshot-key", model="kimi-k2.6").chat(
+            [AgentMessage(role="user", content="hi")],
+            stream=False,
+            thinking_enabled=False,
+        )
+    ]
+
+    assert events[0].message.content == "memo"
+    assert captured["extra_body"] == {"thinking": {"type": "disabled"}}
+
+
+@pytest.mark.asyncio
+async def test_kimi_client_rejects_non_thinking_k27_code():
+    with pytest.raises(ValueError, match="does not support thinking_enabled=False"):
+        _ = [
+            event
+            async for event in KimiAgentModel(api_key="moonshot-key").chat(
+                [AgentMessage(role="user", content="hi")],
+                model="kimi-k2.7-code",
+                thinking_enabled=False,
+            )
+        ]
+
+
 def test_kimi_serializer_maps_structured_image_content():
     payload = KimiMessageSerializer.serialize_messages([
         AgentMessage(
@@ -101,6 +150,31 @@ def test_kimi_serializer_maps_structured_image_content():
                 {
                     "type": "image_url",
                     "image_url": {"url": "ms://file-vision-1"},
+                },
+            ],
+        }
+    ]
+
+
+def test_kimi_serializer_maps_structured_video_content():
+    payload = KimiMessageSerializer.serialize_messages([
+        AgentMessage(
+            role="user",
+            content=[
+                AgentContentPart.text_part("Summarize the clip."),
+                AgentContentPart.video_file_id("file-video-1"),
+            ],
+        )
+    ])
+
+    assert payload == [
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "Summarize the clip."},
+                {
+                    "type": "video_url",
+                    "video_url": {"url": "ms://file-video-1"},
                 },
             ],
         }
