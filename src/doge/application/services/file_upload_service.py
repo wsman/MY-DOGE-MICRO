@@ -8,6 +8,7 @@ import shutil
 from pathlib import Path
 from typing import Protocol
 
+from doge.application.services.file_purpose_router import route_kimi_file_purpose
 from doge.core.domain.document_models import Document, DocumentStatus
 from doge.core.ports.document_repository import IDocumentRepository
 
@@ -40,7 +41,7 @@ class FileUploadService:
     DEFAULT_ALLOWED_SUFFIXES = {
         ".pdf", ".txt", ".csv", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
         ".md", ".jpeg", ".jpg", ".png", ".bmp", ".gif", ".svg", ".webp", ".tif",
-        ".tiff", ".html", ".json", ".log",
+        ".tiff", ".html", ".json", ".jsonl", ".log", ".mp4", ".mov", ".avi", ".mkv", ".webm",
     }
 
     def __init__(
@@ -80,6 +81,7 @@ class FileUploadService:
 
         storage_path = self._persist_payload(filename, file_hash, payload)
         mime_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
+        purpose = route_kimi_file_purpose(filename=filename, mime_type=mime_type)
         kimi_file_id: str | None = None
         content: str | None = None
         parser_error: str | None = None
@@ -87,14 +89,15 @@ class FileUploadService:
 
         if self._kimi_files_client is not None:
             try:
-                kimi_file_id = self._kimi_files_client.upload_file(storage_path)
-                content = self._kimi_files_client.get_file_content(kimi_file_id)
-                status = DocumentStatus.PARSED
+                kimi_file_id = self._kimi_files_client.upload_file(storage_path, purpose=purpose)
+                if purpose == "file-extract":
+                    content = self._kimi_files_client.get_file_content(kimi_file_id)
+                    status = DocumentStatus.PARSED
             except Exception as exc:  # noqa: BLE001 - provider errors become safe metadata
                 parser_error = f"kimi files upload failed: {type(exc).__name__}"
                 status = DocumentStatus.FAILED
 
-        if content is None and status is not DocumentStatus.FAILED and self._parser is not None:
+        if content is None and purpose == "file-extract" and status is not DocumentStatus.FAILED and self._parser is not None:
             try:
                 content = self._parser.parse(storage_path)
                 status = DocumentStatus.PARSED
@@ -109,6 +112,7 @@ class FileUploadService:
             size_bytes=len(payload),
             storage_path=str(storage_path),
             kimi_file_id=kimi_file_id,
+            kimi_file_purpose=purpose,
             parsing_status=status,
             parser_error=parser_error,
             content=content,
@@ -126,6 +130,7 @@ class FileUploadService:
             mime_type=mime_type,
             size_bytes=len(payload),
             parsing_status=DocumentStatus.PARSED,
+            kimi_file_purpose=route_kimi_file_purpose(filename=filename, mime_type=mime_type),
             content=content,
         )
         return self._save_and_extract(document)

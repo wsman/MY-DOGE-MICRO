@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from doge.application.services.file_upload_service import FileUploadError, FileUploadService
+from doge.application.services.file_purpose_router import route_kimi_file_purpose
 from doge.application.services.page_extraction_service import PageExtractionService
 from doge.infrastructure.database.agent_repositories import SQLiteDocumentRepository
 from doge.infrastructure.database.evidence_repository import SQLiteEvidenceRepository
@@ -11,6 +12,20 @@ from doge.infrastructure.database.evidence_repository import SQLiteEvidenceRepos
 class FakeParser:
     def parse(self, path: str | Path, *, max_chars: int = 12000) -> str:
         return Path(path).read_text(encoding="utf-8")[:max_chars]
+
+
+class FakeKimiFiles:
+    def __init__(self):
+        self.uploads = []
+        self.content_calls = []
+
+    def upload_file(self, path: Path, *, purpose: str = "file-extract") -> str:
+        self.uploads.append((Path(path).name, purpose))
+        return f"file-{purpose}"
+
+    def get_file_content(self, file_id: str) -> str:
+        self.content_calls.append(file_id)
+        return "kimi extracted"
 
 
 def test_register_path_persists_hash_mime_size_and_content(tmp_path):
@@ -33,6 +48,7 @@ def test_register_path_persists_hash_mime_size_and_content(tmp_path):
     assert document["size_bytes"] == len("alpha beta")
     assert document["parsing_status"] == "parsed"
     assert document["content"] == "alpha beta"
+    assert document["kimi_file_purpose"] == "file-extract"
     assert Path(document["storage_path"]).exists()
 
 
@@ -95,3 +111,51 @@ def test_register_text_preserves_json_compatibility(tmp_path):
     assert document["size_bytes"] == len("# memo")
     assert document["parsing_status"] == "parsed"
     assert document["content"] == "# memo"
+    assert document["kimi_file_purpose"] == "file-extract"
+
+
+def test_file_purpose_router_routes_by_type():
+    assert route_kimi_file_purpose(filename="report.pdf", mime_type="application/pdf") == "file-extract"
+    assert route_kimi_file_purpose(filename="chart.png", mime_type="image/png") == "image"
+    assert route_kimi_file_purpose(filename="clip.mp4", mime_type="video/mp4") == "video"
+    assert route_kimi_file_purpose(filename="eval.jsonl", mime_type="application/json") == "batch"
+    assert route_kimi_file_purpose(filename="data.csv", mime_type="text/csv") == "file-extract"
+
+
+def test_kimi_image_upload_does_not_request_text_content(tmp_path):
+    db = tmp_path / "agent_state.db"
+    source = tmp_path / "chart.png"
+    source.write_bytes(b"fake png")
+    kimi = FakeKimiFiles()
+    service = FileUploadService(
+        SQLiteDocumentRepository(db),
+        storage_dir=tmp_path / "documents",
+        kimi_files_client=kimi,
+    )
+
+    document = service.register_path(source)
+
+    assert document["kimi_file_id"] == "file-image"
+    assert document["kimi_file_purpose"] == "image"
+    assert document["parsing_status"] == "uploaded"
+    assert document["content"] is None
+    assert kimi.uploads[0][1] == "image"
+    assert kimi.content_calls == []
+
+
+def test_kimi_file_extract_upload_reads_text_content(tmp_path):
+    db = tmp_path / "agent_state.db"
+    source = tmp_path / "report.pdf"
+    source.write_bytes(b"%PDF fake")
+    kimi = FakeKimiFiles()
+    service = FileUploadService(
+        SQLiteDocumentRepository(db),
+        storage_dir=tmp_path / "documents",
+        kimi_files_client=kimi,
+    )
+
+    document = service.register_path(source)
+
+    assert document["kimi_file_purpose"] == "file-extract"
+    assert document["content"] == "kimi extracted"
+    assert kimi.content_calls == ["file-file-extract"]

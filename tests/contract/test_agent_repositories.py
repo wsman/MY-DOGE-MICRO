@@ -56,6 +56,7 @@ def test_document_repository_persists_file_metadata_and_hash_lookup(tmp_path):
         mime_type="application/pdf",
         size_bytes=42,
         storage_path=str(tmp_path / "report.pdf"),
+        kimi_file_purpose="file-extract",
         parsing_status=DocumentStatus.UPLOADED,
     )
 
@@ -68,5 +69,6 @@ def test_document_repository_persists_file_metadata_and_hash_lookup(tmp_path):
     assert saved["file_hash"] == "abc123"
     assert saved["mime_type"] == "application/pdf"
     assert saved["size_bytes"] == 42
+    assert saved["kimi_file_purpose"] == "file-extract"
     assert saved["parsing_status"] == "uploaded"
     assert by_hash == saved

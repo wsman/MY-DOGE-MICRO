@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+import re
 
 from doge.core.domain.claim_models import CitationRecord, ClaimRecord
 
@@ -50,6 +51,17 @@ class CitationService:
             lines.append(f"- [{index}] {citation.source}{page}: {citation.snippet}")
         return "\n".join(lines)
 
+    def citation_precision_score(self, artifact_text: str, evidence_records: list[Any]) -> float | None:
+        """Score whether cited evidence ids in an artifact map to known records."""
+
+        known = {_evidence_id(item) for item in evidence_records if _evidence_id(item)}
+        cited = set(re.findall(r"\b(?:evd|chk|page)-[A-Za-z0-9_-]+\b", artifact_text))
+        if not cited:
+            return None if not known else 0.0
+        if not known:
+            return 0.0
+        return len(cited & known) / len(cited)
+
 
 def _source_label(item: dict[str, Any]) -> str:
     document_id = item.get("document_id")
@@ -61,3 +73,13 @@ def _source_label(item: dict[str, Any]) -> str:
     if chunk_id:
         return str(chunk_id)
     return str(item.get("source") or "local evidence")
+
+
+def _evidence_id(item: Any) -> str | None:
+    if isinstance(item, dict):
+        return item.get("evidence_id") or item.get("chunk_id") or item.get("page_id")
+    return (
+        getattr(item, "evidence_id", None)
+        or getattr(item, "chunk_id", None)
+        or getattr(item, "page_id", None)
+    )

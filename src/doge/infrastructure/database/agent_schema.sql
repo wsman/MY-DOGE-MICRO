@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS documents (
     size_bytes INTEGER,
     storage_path TEXT,
     kimi_file_id TEXT,
+    kimi_file_purpose TEXT,
     parsing_status TEXT NOT NULL DEFAULT 'registered',
     parser_error TEXT,
     status TEXT NOT NULL,

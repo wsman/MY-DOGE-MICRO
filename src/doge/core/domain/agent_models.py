@@ -8,6 +8,8 @@ from enum import Enum
 from typing import Any, Optional
 from uuid import uuid4
 
+from doge.core.domain.model_policy import ModelPolicy
+
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -131,7 +133,7 @@ class AgentRun:
     language: str = "en"
     document_ids: list[str] = field(default_factory=list)
     portfolio_id: Optional[str] = None
-    model_policy: dict[str, Any] = field(default_factory=dict)
+    model_policy: ModelPolicy = field(default_factory=ModelPolicy)
     status: RunStatus = RunStatus.CREATED
     events: list[AgentEvent] = field(default_factory=list)
     artifacts: list[AgentArtifact] = field(default_factory=list)
@@ -153,7 +155,7 @@ class AgentRun:
         session_id: Optional[str] = None,
         document_ids: Optional[list[str]] = None,
         portfolio_id: Optional[str] = None,
-        model_policy: Optional[dict[str, Any]] = None,
+        model_policy: Optional[dict[str, Any] | ModelPolicy] = None,
     ) -> "AgentRun":
         return cls(
             run_id=run_id or f"run-{uuid4().hex[:12]}",
@@ -164,7 +166,7 @@ class AgentRun:
             language=language,
             document_ids=document_ids or [],
             portfolio_id=portfolio_id,
-            model_policy=model_policy or {},
+            model_policy=ModelPolicy.from_dict(model_policy),
         )
 
     def add_event(self, event_type: EventType, payload: Optional[dict[str, Any]] = None) -> AgentEvent:

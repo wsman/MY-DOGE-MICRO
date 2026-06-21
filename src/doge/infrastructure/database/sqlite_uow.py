@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from doge.config import get_settings
 from doge.core.domain.agent_models import AgentEvent, AgentRun, AgentTurn, EventType, RunStatus, utc_now
+from doge.core.domain.model_policy import ModelPolicy
 from doge.core.ports.event_publisher import IEventPublisher
 from doge.core.ports.unit_of_work import IAgentUnitOfWork
 from doge.infrastructure.database.agent_repositories import bootstrap_agent_schema
@@ -136,7 +137,7 @@ class SQLiteAgentUnitOfWork(IAgentUnitOfWork):
                 run.language,
                 _json_dumps(run.document_ids),
                 run.portfolio_id,
-                _json_dumps(run.model_policy),
+                _json_dumps(ModelPolicy.from_dict(run.model_policy).to_dict()),
                 run.status.value,
                 run.cancel_requested_at,
                 run.created_at,

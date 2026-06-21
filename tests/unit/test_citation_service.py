@@ -31,3 +31,12 @@ def test_citation_service_builds_source_citations_from_rag_results():
 
 def test_citation_service_renders_empty_markdown():
     assert CitationService().render_markdown([]) == "- No source citations available."
+
+
+def test_citation_precision_scores_real_evidence_ids():
+    score = CitationService().citation_precision_score(
+        "Claim cites evd-abc and evd-missing.",
+        [{"evidence_id": "evd-abc"}],
+    )
+
+    assert score == 0.5

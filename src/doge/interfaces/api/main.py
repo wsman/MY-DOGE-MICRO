@@ -24,6 +24,7 @@ from fastapi.responses import JSONResponse
 from doge.config import get_settings
 from doge.core.ports.repository import ISchemaBrowser
 from doge.interfaces.api import deps
+from doge.interfaces.api.middleware.tenant_context import TenantContextMiddleware
 from doge.interfaces.api.routers import scan, data, notes, macro, analysis, config, agent, documents
 from doge.interfaces.api.routers.v1 import documents as v1_documents
 from doge.interfaces.api.routers.v1 import health as v1_health
@@ -48,6 +49,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="MY-DOGE API", version="0.1.0", lifespan=lifespan)
+
+app.add_middleware(TenantContextMiddleware, local_demo=True)
 
 app.add_middleware(
     CORSMiddleware,

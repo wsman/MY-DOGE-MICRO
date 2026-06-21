@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Callable
 
 from doge.application.composition import build_research_agent_runtime
+from doge.application.services.citation_service import CitationService
+from doge.application.services.numerical_consistency_service import NumericalConsistencyService
 from doge.core.domain.agent_models import AgentEvent, AgentRun, EventType, RunStatus
 from doge.core.ports.agent_runtime import IResearchAgentRuntime
 
@@ -24,6 +26,11 @@ def run(cases_path: Path, runtime_factory: RuntimeFactory | None = None) -> dict
 async def _run_cases(cases: list[dict], runtime_factory: RuntimeFactory) -> dict:
     results = []
     tool_success_values: list[float] = []
+    numerical_values: list[float] = []
+    citation_values: list[float] = []
+    cost_values: list[float] = []
+    latency_values: list[float] = []
+    cached_ratios: list[float] = []
     artifact_count = 0
     usage_count = 0
     for case in cases:
@@ -32,6 +39,16 @@ async def _run_cases(cases: list[dict], runtime_factory: RuntimeFactory) -> dict
         metrics = result["metrics"]
         if metrics["tool_execution_success"] is not None:
             tool_success_values.append(metrics["tool_execution_success"])
+        if metrics["numerical_consistency"] is not None:
+            numerical_values.append(metrics["numerical_consistency"])
+        if metrics["citation_precision"] is not None:
+            citation_values.append(metrics["citation_precision"])
+        if metrics["cost_usd"] is not None:
+            cost_values.append(metrics["cost_usd"])
+        if metrics["latency_ms"] is not None:
+            latency_values.append(metrics["latency_ms"])
+        if metrics["cached_token_ratio"] is not None:
+            cached_ratios.append(metrics["cached_token_ratio"])
         if metrics["artifact_created"]:
             artifact_count += 1
         if metrics["usage_recorded"]:
@@ -42,12 +59,17 @@ async def _run_cases(cases: list[dict], runtime_factory: RuntimeFactory) -> dict
         "passed": sum(1 for item in results if item["passed"]),
         "results": results,
         "metrics": {
-            "numerical_consistency": None,
-            "citation_precision": None,
+            "numerical_consistency": _average(numerical_values),
+            "citation_precision": _average(citation_values),
             "tool_execution_success": _average(tool_success_values),
             "required_field_completion": artifact_count / case_count if case_count else 0.0,
             "unapproved_high_risk_publications": 0,
             "usage_cost_record_coverage": usage_count / case_count if case_count else 0.0,
+            "latency_ms": _average(latency_values),
+            "cost_usd": _average(cost_values),
+            "cached_token_ratio": _average(cached_ratios),
+            "structured_output_valid_rate": None,
+            "approval_bypass_count": 0,
         },
     }
 
@@ -115,6 +137,19 @@ def _case_metrics(events: list[AgentEvent], run: AgentRun, artifact_created: boo
     tool_execution_success = None
     if results:
         tool_execution_success = sum(1 for result in results if result.get("ok") is True) / len(results)
+    content = "\n".join(artifact.content for artifact in run.artifacts)
+    evidence_records = _evidence_records(results)
+    numerical_consistency = NumericalConsistencyService().score_artifact(content, events)
+    citation_precision = CitationService().citation_precision_score(content, evidence_records)
+    usage_payloads = [
+        event.payload.get("usage", {})
+        for event in events
+        if event.event_type == EventType.MODEL_RESPONSE and event.payload.get("usage")
+    ]
+    cost_usd = sum(float(item.get("cost_usd") or 0.0) for item in usage_payloads) if usage_payloads else None
+    latency_values = [float(item.get("latency_ms")) for item in usage_payloads if item.get("latency_ms") is not None]
+    prompt_tokens = sum(int(item.get("prompt_tokens") or 0) for item in usage_payloads)
+    cached_tokens = sum(int(item.get("cached_tokens") or 0) for item in usage_payloads)
     return {
         "completed": run.status == RunStatus.COMPLETED,
         "artifact_created": artifact_created,
@@ -123,9 +158,12 @@ def _case_metrics(events: list[AgentEvent], run: AgentRun, artifact_created: boo
             for event in events
             if event.event_type == EventType.MODEL_RESPONSE
         ),
-        "numerical_consistency": None,
-        "citation_precision": None,
+        "numerical_consistency": numerical_consistency,
+        "citation_precision": citation_precision,
         "tool_execution_success": tool_execution_success,
+        "cost_usd": cost_usd,
+        "latency_ms": _average(latency_values),
+        "cached_token_ratio": (cached_tokens / prompt_tokens) if prompt_tokens else None,
     }
 
 
@@ -137,6 +175,16 @@ def _average(values: list[float]) -> float | None:
     if not values:
         return None
     return sum(values) / len(values)
+
+
+def _evidence_records(results: list[dict]) -> list[dict]:
+    records: list[dict] = []
+    for result in results:
+        data = result.get("data", {}) if isinstance(result, dict) else {}
+        evidence = data.get("evidence") or data.get("results") or []
+        if isinstance(evidence, list):
+            records.extend(item for item in evidence if isinstance(item, dict))
+    return records
 
 
 def main() -> None:

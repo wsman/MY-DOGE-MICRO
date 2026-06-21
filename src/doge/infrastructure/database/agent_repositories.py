@@ -19,6 +19,7 @@ from doge.core.domain.agent_models import (
     RunStatus,
     utc_now,
 )
+from doge.core.domain.model_policy import ModelPolicy
 from doge.core.domain.document_models import Document, DocumentStatus
 from doge.core.ports.agent_repository import (
     IApprovalRepository,
@@ -87,6 +88,7 @@ def _migrate_documents_metadata(conn: sqlite3.Connection) -> None:
         "size_bytes": "INTEGER",
         "storage_path": "TEXT",
         "kimi_file_id": "TEXT",
+        "kimi_file_purpose": "TEXT",
         "parsing_status": "TEXT NOT NULL DEFAULT 'registered'",
         "parser_error": "TEXT",
         "updated_at": "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
@@ -218,7 +220,7 @@ class SQLiteRunRepository(_BaseAgentRepository, IRunRepository):
                     run.language,
                     json.dumps(run.document_ids, ensure_ascii=False),
                     run.portfolio_id,
-                    json.dumps(run.model_policy, ensure_ascii=False),
+                    json.dumps(_model_policy_to_dict(run.model_policy), ensure_ascii=False),
                     run.status.value,
                     run.cancel_requested_at,
                     run.created_at,
@@ -378,9 +380,9 @@ class SQLiteDocumentRepository(_BaseAgentRepository, IDocumentRepository):
                 INSERT INTO documents(
                     document_id, filename, original_filename, content,
                     file_hash, mime_type, size_bytes, storage_path, kimi_file_id,
-                    parsing_status, parser_error, status, created_at, updated_at
+                    kimi_file_purpose, parsing_status, parser_error, status, created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(document_id) DO UPDATE SET
                     filename = excluded.filename,
                     original_filename = excluded.original_filename,
@@ -390,6 +392,7 @@ class SQLiteDocumentRepository(_BaseAgentRepository, IDocumentRepository):
                     size_bytes = excluded.size_bytes,
                     storage_path = excluded.storage_path,
                     kimi_file_id = excluded.kimi_file_id,
+                    kimi_file_purpose = excluded.kimi_file_purpose,
                     parsing_status = excluded.parsing_status,
                     parser_error = excluded.parser_error,
                     status = excluded.status,
@@ -405,6 +408,7 @@ class SQLiteDocumentRepository(_BaseAgentRepository, IDocumentRepository):
                     record.get("size_bytes"),
                     record.get("storage_path"),
                     record.get("kimi_file_id"),
+                    record.get("kimi_file_purpose"),
                     record["parsing_status"],
                     record.get("parser_error"),
                     record["status"],
@@ -517,7 +521,7 @@ def _row_to_run(conn: sqlite3.Connection, row: sqlite3.Row) -> AgentRun:
         language=row["language"],
         document_ids=json.loads(row["document_ids"] or "[]"),
         portfolio_id=row["portfolio_id"],
-        model_policy=json.loads(row["model_policy"] or "{}"),
+        model_policy=ModelPolicy.from_dict(json.loads(row["model_policy"] or "{}")),
         status=RunStatus(row["status"]),
         cancel_requested_at=row["cancel_requested_at"],
         schema_version=row["schema_version"] or "1.0",
@@ -584,6 +588,10 @@ def _row_to_approval(row: sqlite3.Row) -> AgentApproval:
     )
 
 
+def _model_policy_to_dict(policy: Any) -> dict[str, Any]:
+    return ModelPolicy.from_dict(policy).to_dict()
+
+
 def _document_to_record(document: Document | dict[str, Any]) -> dict[str, Any]:
     if isinstance(document, Document):
         data = document.to_dict()
@@ -602,6 +610,7 @@ def _document_to_record(document: Document | dict[str, Any]) -> dict[str, Any]:
         "size_bytes": data.get("size_bytes") or data.get("file_size_bytes"),
         "storage_path": data.get("storage_path"),
         "kimi_file_id": data.get("kimi_file_id"),
+        "kimi_file_purpose": data.get("kimi_file_purpose"),
         "parsing_status": status.value,
         "parser_error": data.get("parser_error") or data.get("error_message"),
         "status": status.value,
@@ -621,6 +630,7 @@ def _row_to_document_dict(row: sqlite3.Row) -> dict[str, Any]:
         "parsing_status": status.value,
         "status": status.value,
         "size_bytes": data.get("size_bytes"),
+        "kimi_file_purpose": data.get("kimi_file_purpose"),
         "parser_error": data.get("parser_error"),
         "updated_at": data.get("updated_at") or data.get("created_at"),
     }

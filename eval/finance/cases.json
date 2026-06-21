@@ -1,0 +1,7 @@
+[
+  {
+    "id": "multimodal_financial_memo",
+    "question": "Analyze annual report, chart, and portfolio. Cite evidence and mark insufficient_evidence when needed.",
+    "expected": ["investment_memo", "tool_call", "no_fabrication"]
+  }
+]

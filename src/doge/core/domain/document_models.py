@@ -31,6 +31,7 @@ class Document:
     size_bytes: Optional[int] = None
     storage_path: Optional[str] = None
     kimi_file_id: Optional[str] = None
+    kimi_file_purpose: Optional[str] = None
     parsing_status: DocumentStatus = DocumentStatus.REGISTERED
     parser_error: Optional[str] = None
     content: Optional[str] = None
@@ -47,6 +48,7 @@ class Document:
         size_bytes: int | None = None,
         storage_path: str | None = None,
         kimi_file_id: str | None = None,
+        kimi_file_purpose: str | None = None,
         parsing_status: DocumentStatus = DocumentStatus.REGISTERED,
         parser_error: str | None = None,
         content: str | None = None,
@@ -61,6 +63,7 @@ class Document:
             size_bytes=size_bytes,
             storage_path=storage_path,
             kimi_file_id=kimi_file_id,
+            kimi_file_purpose=kimi_file_purpose,
             parsing_status=parsing_status,
             parser_error=parser_error,
             content=content,
@@ -79,6 +82,7 @@ class Document:
             "size_bytes": self.size_bytes,
             "storage_path": self.storage_path,
             "kimi_file_id": self.kimi_file_id,
+            "kimi_file_purpose": self.kimi_file_purpose,
             "parsing_status": self.parsing_status.value,
             "parser_error": self.parser_error,
             "content": self.content,
@@ -100,6 +104,7 @@ class Document:
             size_bytes=data.get("size_bytes"),
             storage_path=data.get("storage_path"),
             kimi_file_id=data.get("kimi_file_id"),
+            kimi_file_purpose=data.get("kimi_file_purpose"),
             parsing_status=DocumentStatus(status),
             parser_error=data.get("parser_error") or data.get("error_message"),
             content=data.get("content") or data.get("parsed_content"),
