@@ -136,6 +136,9 @@ class DocumentsResource:
     def list(self, limit: int = 100) -> list[dict[str, Any]]:
         return self._root._request("GET", "/v1/documents", params={"limit": limit})["documents"]
 
+    def get(self, document_id: str) -> dict[str, Any]:
+        return self._root._request("GET", f"/v1/documents/{document_id}")
+
 
 class AsyncDogeClient:
     def __init__(
@@ -271,3 +274,6 @@ class AsyncDocumentsResource:
 
     async def list(self, limit: int = 100) -> list[dict[str, Any]]:
         return (await self._root._request("GET", "/v1/documents", params={"limit": limit}))["documents"]
+
+    async def get(self, document_id: str) -> dict[str, Any]:
+        return await self._root._request("GET", f"/v1/documents/{document_id}")

@@ -28,6 +28,27 @@ def test_python_sdk_create_session_and_stream():
     assert events[0].id == "1"
 
 
+def test_python_sdk_session_run_sets_execution_profile():
+    seen_body = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/v1/sessions":
+            return httpx.Response(200, json={"session_id": "ses-test", "title": "Test", "turns": []})
+        if request.url.path == "/v1/sessions/ses-test/turns":
+            seen_body.update(json.loads(request.content.decode("utf-8")))
+            return httpx.Response(202, json={"status": "accepted", "run_id": "run-test"})
+        return httpx.Response(404, json={"error": {"message": "not found"}})
+
+    client = DogeClient(base_url="http://testserver", transport=httpx.MockTransport(handler))
+
+    session = client.sessions.create("Test")
+    run_id = session.run("Analyze", execution_profile="quant_code", document_ids=["doc-1"])
+
+    assert run_id == "run-test"
+    assert seen_body["model_policy"]["execution_profile"] == "quant_code"
+    assert seen_body["document_ids"] == ["doc-1"]
+
+
 def test_python_sdk_reconnect_with_last_event_id():
     seen_header = {}
 
@@ -102,3 +123,16 @@ def test_python_sdk_approve_returns_accepted_queued_run():
     run = client.runs.approve("run-test", "appr-1")
 
     assert run["status"] == "queued"
+
+
+def test_python_sdk_documents_get():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET"
+        assert request.url.path == "/v1/documents/doc-1"
+        return httpx.Response(200, json={"document_id": "doc-1"})
+
+    client = DogeClient(base_url="http://testserver", transport=httpx.MockTransport(handler))
+
+    document = client.documents.get("doc-1")
+
+    assert document["document_id"] == "doc-1"

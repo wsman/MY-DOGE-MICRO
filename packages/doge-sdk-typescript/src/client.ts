@@ -157,4 +157,16 @@ export class DocumentsResource {
   create(filename: string, content = ''): Promise<Record<string, unknown>> {
     return this.root.request('POST', '/v1/documents', { filename, content })
   }
+
+  async list(limit = 100): Promise<Record<string, unknown>[]> {
+    const payload = await this.root.request<{ documents: Record<string, unknown>[] }>(
+      'GET',
+      `/v1/documents?limit=${limit}`,
+    )
+    return payload.documents
+  }
+
+  get(documentId: string): Promise<Record<string, unknown>> {
+    return this.root.request('GET', `/v1/documents/${documentId}`)
+  }
 }
