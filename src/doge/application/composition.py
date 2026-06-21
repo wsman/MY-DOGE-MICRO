@@ -66,11 +66,13 @@ from doge.infrastructure.data_source.tdx_file_scanner import TDXFileScanner
 from doge.infrastructure.data_source.tdx_server_list import ConfigTDXServerList
 from doge.infrastructure.data_source.yfinance_metadata import YFinanceMetadataSource
 from doge.infrastructure.agent.inmemory_runtime import InMemoryResearchAgentRuntime
+from doge.infrastructure.agent.backends import KimiAgentSdkBackend
 from doge.infrastructure.agent.persisted_runtime import PersistedResearchAgentRuntime
 from doge.infrastructure.agent.scripted_model import ScriptedAgentModel
 from doge.infrastructure.documents.local_parser import LocalDocumentParser
 from doge.infrastructure.llm.deepseek_client import DeepSeekClient
 from doge.infrastructure.llm.kimi_client import KimiAgentModel
+from doge.infrastructure.llm.kimi_text_client import KimiTextClient
 from doge.infrastructure.llm.kimi_files_client import KimiFilesClient
 from doge.infrastructure.llm.embedding_client import HashingEmbeddingProvider
 from doge.infrastructure.vector.sqlite_store import SQLiteVectorStore
@@ -85,10 +87,13 @@ from doge.application.use_cases.generate_anomaly_report import GenerateAnomalyRe
 from doge.application.use_cases.generate_catalog import GenerateCatalogUseCase
 from doge.application.use_cases.populate_stock_names import PopulateStockNamesUseCase
 from doge.application.use_cases.generate_industry_report import GenerateIndustryReportUseCase
+from doge.application.use_cases.industry_analyzer import IndustryAnalyzerAgentUseCase
+from doge.application.use_cases.macro_strategist import MacroStrategistAgentUseCase
 from doge.application.use_cases.run_use_cases import ExecuteRun, ResumeRun
 from doge.application.use_cases.session_use_cases import AppendTurn, CreateSession, ListSessions, ResumeSession
 from doge.application.agent.runtime_kernel import RuntimeKernel
 from doge.application.agent.context_builder import ContextBuilder
+from doge.application.agent.model_router import ModelRouter
 from doge.application.agent.tools import build_default_tool_registry
 from doge.application.services.file_upload_service import FileUploadService
 from doge.application.services.page_extraction_service import PageExtractionService
@@ -242,7 +247,7 @@ def build_generate_macro_report_use_case(
     if view_repo is None:
         view_repo = build_view_repository()
     if llm_client is None:
-        llm_client = DeepSeekClient()
+        llm_client = build_default_text_llm_client()
     if report_repo is None:
         report_repo = build_report_repository()
     return GenerateMacroReportUseCase(view_repo, llm_client, report_repo)
@@ -251,6 +256,14 @@ def build_generate_macro_report_use_case(
 def build_kimi_agent_model() -> KimiAgentModel:
     """Build the default Kimi agent-capable model adapter."""
     return KimiAgentModel()
+
+
+def build_default_text_llm_client():
+    """Build the default text-generation client for macro/industry use cases."""
+    settings = get_settings()
+    if settings.llm.text_provider.lower() == "deepseek":
+        return DeepSeekClient()
+    return KimiTextClient()
 
 
 def build_agent_repositories(db_path=None):
@@ -286,8 +299,29 @@ def build_agent_runtime_kernel(model=None, tool_registry=None, event_publisher=N
         context_builder=ContextBuilder(
             document_repository=repos["documents"],
             evidence_repository=repos["evidence"],
+            session_repository=repos["sessions"],
+            run_repository=repos["runs"],
         ),
+        model_router=build_model_router(document_repository=repos["documents"]),
+        agent_backends=build_agent_backends(),
     )
+
+
+def build_model_router(document_repository=None) -> ModelRouter:
+    """Build the application model router."""
+    return ModelRouter(document_repository=document_repository, settings=get_settings())
+
+
+def build_agent_backends():
+    """Build optional agent runtime backends keyed by router backend id."""
+    settings = get_settings()
+    return {
+        "kimi_agent_sdk": KimiAgentSdkBackend(
+            api_key=settings.kimi.api_key,
+            base_url=settings.kimi.base_url,
+            model=settings.kimi.general_model,
+        )
+    }
 
 
 def build_research_agent_runtime(model=None, tool_registry=None) -> InMemoryResearchAgentRuntime:
@@ -309,6 +343,20 @@ def build_persisted_research_agent_runtime(model=None, tool_registry=None, event
             db_path=db_path,
         )
     )
+
+
+def build_macro_strategist_agent_use_case(runtime=None) -> MacroStrategistAgentUseCase:
+    """Build the RuntimeKernel-backed macro strategist wrapper."""
+    if runtime is None:
+        runtime = build_persisted_research_agent_runtime()
+    return MacroStrategistAgentUseCase(runtime)
+
+
+def build_industry_analyzer_agent_use_case(runtime=None) -> IndustryAnalyzerAgentUseCase:
+    """Build the RuntimeKernel-backed industry analyzer wrapper."""
+    if runtime is None:
+        runtime = build_persisted_research_agent_runtime()
+    return IndustryAnalyzerAgentUseCase(runtime)
 
 
 def build_agent_document_repository(db_path=None):
@@ -520,7 +568,7 @@ def build_generate_industry_report_use_case(
     """Build a :class:`GenerateIndustryReportUseCase` with default adapters."""
     return GenerateIndustryReportUseCase(
         ranking_service if ranking_service is not None else build_ranking_service(),
-        llm_client if llm_client is not None else DeepSeekClient(),
+        llm_client if llm_client is not None else build_default_text_llm_client(),
         stock_service=stock_service if stock_service is not None else build_stock_service(),
         rag_service=rag_service if rag_service is not None else build_rag_service(),
         report_repository=report_repository if report_repository is not None else build_report_repository(),
