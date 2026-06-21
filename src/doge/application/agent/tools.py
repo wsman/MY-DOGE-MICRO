@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from doge.application.agent.tool_service import ToolApplicationService
+from doge.core.domain.tool_policy import ToolCategory
+from doge.core.ports.tool_entitlement import IToolEntitlementChecker
 
 
 @dataclass(frozen=True)
@@ -29,18 +31,49 @@ class ToolResult:
 class ToolRegistry:
     """Small synchronous registry for deterministic finance tools."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        entitlement_checker: IToolEntitlementChecker | None = None,
+        context: Any = None,
+    ) -> None:
         self._tools: dict[str, Callable[..., ToolResult]] = {}
+        self._categories: dict[str, ToolCategory] = {}
+        self._entitlement = entitlement_checker or _DefaultEntitlementChecker()
+        self._context = context
         self.schemas: list[dict[str, Any]] = []
 
-    def register(self, schema: dict[str, Any], func: Callable[..., ToolResult]) -> None:
+    def register(
+        self,
+        schema: dict[str, Any],
+        func: Callable[..., ToolResult],
+        category: ToolCategory | str | None = None,
+    ) -> None:
         name = schema["function"]["name"]
+        resolved_category = _category(category or schema.get("x-doge-category") or ToolCategory.READ_ONLY)
+        schema["x-doge-category"] = resolved_category.value
         self.schemas.append(schema)
         self._tools[name] = func
+        self._categories[name] = resolved_category
 
-    def execute(self, name: str, arguments: str | dict[str, Any] | None = None) -> ToolResult:
+    def schemas_for_context(self, context: Any = None) -> list[dict[str, Any]]:
+        effective_context = self._context if context is None else context
+        allowed: list[dict[str, Any]] = []
+        for schema in self.schemas:
+            name = schema.get("function", {}).get("name", "")
+            category = self._categories.get(name, ToolCategory.READ_ONLY)
+            redacted = self._entitlement.redact_schema(effective_context, schema, category)
+            if redacted is not None:
+                allowed.append(redacted)
+        return allowed
+
+    def execute(self, name: str, arguments: str | dict[str, Any] | None = None, *, context: Any = None) -> ToolResult:
         if name not in self._tools:
             return ToolResult(name=name, data={}, ok=False, error="unknown tool")
+        effective_context = self._context if context is None else context
+        category = self._categories.get(name, ToolCategory.READ_ONLY)
+        if not self._entitlement.can_execute(effective_context, name, category):
+            return ToolResult(name=name, data={}, ok=False, error="tool not permitted")
         if isinstance(arguments, str):
             try:
                 kwargs = json.loads(arguments or "{}")
@@ -49,7 +82,12 @@ class ToolRegistry:
         else:
             kwargs = arguments or {}
         try:
-            return self._tools[name](**kwargs)
+            result = self._tools[name](**kwargs)
+            if self._entitlement.requires_approval(effective_context, name, category):
+                result.data.setdefault("approval_required", True)
+                result.data.setdefault("action", name)
+                result.data.setdefault("risk_level", "high")
+            return result
         except Exception as exc:  # noqa: BLE001 - tool failures become trace data
             return ToolResult(name=name, data={}, ok=False, error=str(exc))
 
@@ -59,9 +97,10 @@ class ToolRegistry:
         arguments: str | dict[str, Any] | None = None,
         *,
         timeout_seconds: float | None = None,
+        context: Any = None,
     ) -> ToolResult:
         """Execute a synchronous tool through a cancellable async boundary."""
-        call = asyncio.to_thread(self.execute, name, arguments)
+        call = asyncio.to_thread(self.execute, name, arguments, context=context)
         if timeout_seconds is None:
             return await call
         try:
@@ -70,9 +109,17 @@ class ToolRegistry:
             return ToolResult(name=name, data={}, ok=False, error="tool execution timed out")
 
 
-def _schema(name: str, description: str, properties: dict[str, Any], required: list[str] | None = None) -> dict[str, Any]:
+def _schema(
+    name: str,
+    description: str,
+    properties: dict[str, Any],
+    required: list[str] | None = None,
+    *,
+    category: ToolCategory = ToolCategory.READ_ONLY,
+) -> dict[str, Any]:
     return {
         "type": "function",
+        "x-doge-category": category.value,
         "function": {
             "name": name,
             "description": description,
@@ -135,43 +182,84 @@ def build_default_tool_registry() -> ToolRegistry:
     def request_approval(action: str, risk_level: str = "high") -> ToolResult:
         return ToolResult("request_approval", data=service.request_approval(action, risk_level))
 
+    def get_financial_statements(ticker: str, statement_type: str = "income", period: str = "annual") -> ToolResult:
+        return ToolResult(
+            "get_financial_statements",
+            data=service.get_financial_statements(ticker, statement_type, period),
+        )
+
+    def get_company_announcements(ticker: str, limit: int = 5) -> ToolResult:
+        return ToolResult("get_company_announcements", data=service.get_company_announcements(ticker, limit))
+
+    def calculate_financial_ratios(fields: dict[str, Any] | None = None) -> ToolResult:
+        return ToolResult("calculate_financial_ratios", data=service.calculate_financial_ratios(fields))
+
+    def compare_consensus_estimates(ticker: str, metric: str = "eps") -> ToolResult:
+        return ToolResult("compare_consensus_estimates", data=service.compare_consensus_estimates(ticker, metric))
+
+    def run_sql_query(sql: str, readonly: bool = True) -> ToolResult:
+        data = service.run_sql_query(sql, readonly)
+        return ToolResult("run_sql_query", data=data, ok=bool(data.get("ok", True)), error=data.get("error"))
+
+    def run_python_analysis(code: str, timeout: float = 5.0) -> ToolResult:
+        data = service.run_python_analysis(code, timeout)
+        return ToolResult("run_python_analysis", data=data, ok=bool(data.get("ok", True)), error=data.get("error"))
+
+    def screen_compliance_risk(text: str) -> ToolResult:
+        return ToolResult("screen_compliance_risk", data=service.screen_compliance_risk(text))
+
+    def publish_investment_memo(memo_id: str, distribution_list: list[str] | None = None) -> ToolResult:
+        return ToolResult(
+            "publish_investment_memo",
+            data=service.publish_investment_memo(memo_id, distribution_list),
+        )
+
+    def propose_portfolio_rebalance(
+        portfolio_id: str,
+        proposed_changes: list[dict[str, Any]] | None = None,
+    ) -> ToolResult:
+        return ToolResult(
+            "propose_portfolio_rebalance",
+            data=service.propose_portfolio_rebalance(portfolio_id, proposed_changes),
+        )
+
     registry.register(_schema("query_stock", "Query OHLCV rows for a ticker.", {
         "ticker": {"type": "string"},
         "market": {"type": "string", "enum": ["cn", "us"]},
         "days": {"type": "integer", "minimum": 1, "maximum": 500},
-    }, ["ticker"]), query_stock)
+    }, ["ticker"], category=ToolCategory.READ_ONLY), query_stock)
     registry.register(_schema("stock_overview", "Get stock overview.", {
         "ticker": {"type": "string"},
         "market": {"type": "string", "enum": ["cn", "us"]},
-    }, ["ticker"]), stock_overview)
+    }, ["ticker"], category=ToolCategory.READ_ONLY), stock_overview)
     registry.register(_schema("rsrs_ranking", "Get RSRS momentum ranking.", {
         "market": {"type": "string", "enum": ["cn", "us"]},
         "top": {"type": "integer", "minimum": 1, "maximum": 100},
-    }), rsrs_ranking)
+    }, category=ToolCategory.READ_ONLY), rsrs_ranking)
     registry.register(_schema("market_breadth", "Get market breadth rows.", {
         "market": {"type": "string", "enum": ["cn", "us"]},
         "days": {"type": "integer", "minimum": 1, "maximum": 30},
-    }), market_breadth)
+    }, category=ToolCategory.READ_ONLY), market_breadth)
     registry.register(_schema("volume_anomalies", "Get volume anomaly rows.", {
         "min_ratio": {"type": "number", "minimum": 1.0, "maximum": 1000.0},
         "top": {"type": "integer", "minimum": 1, "maximum": 100},
-    }), volume_anomalies)
-    registry.register(_schema("list_views", "List available analytical views.", {}), list_views)
+    }, category=ToolCategory.READ_ONLY), volume_anomalies)
+    registry.register(_schema("list_views", "List available analytical views.", {}, category=ToolCategory.READ_ONLY), list_views)
     registry.register(_schema("get_portfolio_exposure", "Get demo portfolio exposure.", {
         "portfolio_id": {"type": "string"},
-    }), get_portfolio_exposure)
+    }, category=ToolCategory.READ_ONLY), get_portfolio_exposure)
     registry.register(_schema("portfolio_risk", "Get deterministic portfolio risk approximations.", {
         "portfolio_id": {"type": "string"},
-    }), portfolio_risk)
+    }, category=ToolCategory.ANALYTICAL), portfolio_risk)
     registry.register(_schema("scenario_analysis", "Run deterministic portfolio scenario analysis.", {
         "portfolio_id": {"type": "string"},
         "basis_points": {"type": "number"},
-    }), scenario_analysis)
+    }, category=ToolCategory.ANALYTICAL), scenario_analysis)
     registry.register(_schema("validate_financial_claims", "Validate a material financial claim.", {
         "claim": {"type": "string"},
         "ticker": {"type": "string"},
         "market": {"type": "string", "enum": ["cn", "us"]},
-    }, ["claim", "ticker"]), validate_financial_claims)
+    }, ["claim", "ticker"], category=ToolCategory.ANALYTICAL), validate_financial_claims)
     registry.register(_schema("generate_industry_report", "Generate an evidence-aware industry report.", {
         "industry": {"type": "string"},
         "market": {"type": "string", "enum": ["cn", "us"]},
@@ -179,13 +267,67 @@ def build_default_tool_registry() -> ToolRegistry:
             "type": "array",
             "items": {"type": "string"},
         },
-    }), generate_industry_report)
+    }, category=ToolCategory.GENERATIVE), generate_industry_report)
     registry.register(_schema("lookup_evidence", "Look up source evidence snippets.", {
         "query": {"type": "string"},
         "limit": {"type": "integer", "minimum": 1, "maximum": 20},
-    }, ["query"]), lookup_evidence)
+    }, ["query"], category=ToolCategory.READ_ONLY), lookup_evidence)
     registry.register(_schema("request_approval", "Request human approval for a high-risk action.", {
         "action": {"type": "string"},
         "risk_level": {"type": "string", "enum": ["medium", "high"]},
-    }, ["action", "risk_level"]), request_approval)
+    }, ["action", "risk_level"], category=ToolCategory.HIGH_RISK), request_approval)
+    registry.register(_schema("get_financial_statements", "Get demo financial statement fields.", {
+        "ticker": {"type": "string"},
+        "statement_type": {"type": "string", "enum": ["income", "balance", "cashflow"]},
+        "period": {"type": "string", "enum": ["annual", "quarterly"]},
+    }, ["ticker"], category=ToolCategory.READ_ONLY), get_financial_statements)
+    registry.register(_schema("get_company_announcements", "Search local company announcements/notes.", {
+        "ticker": {"type": "string"},
+        "limit": {"type": "integer", "minimum": 1, "maximum": 20},
+    }, ["ticker"], category=ToolCategory.READ_ONLY), get_company_announcements)
+    registry.register(_schema("calculate_financial_ratios", "Calculate deterministic ratios from supplied fields.", {
+        "fields": {"type": "object"},
+    }, category=ToolCategory.ANALYTICAL), calculate_financial_ratios)
+    registry.register(_schema("compare_consensus_estimates", "Compare demo consensus estimates.", {
+        "ticker": {"type": "string"},
+        "metric": {"type": "string"},
+    }, ["ticker"], category=ToolCategory.READ_ONLY), compare_consensus_estimates)
+    registry.register(_schema("run_sql_query", "Run a read-only SQL query against analytical views.", {
+        "sql": {"type": "string"},
+        "readonly": {"type": "boolean"},
+    }, ["sql"], category=ToolCategory.ANALYTICAL), run_sql_query)
+    registry.register(_schema("run_python_analysis", "Run bounded demo Python analysis.", {
+        "code": {"type": "string"},
+        "timeout": {"type": "number", "minimum": 1, "maximum": 10},
+    }, ["code"], category=ToolCategory.ANALYTICAL), run_python_analysis)
+    registry.register(_schema("screen_compliance_risk", "Screen text for compliance risk phrases.", {
+        "text": {"type": "string"},
+    }, ["text"], category=ToolCategory.ANALYTICAL), screen_compliance_risk)
+    registry.register(_schema("publish_investment_memo", "Request approval to publish an investment memo.", {
+        "memo_id": {"type": "string"},
+        "distribution_list": {"type": "array", "items": {"type": "string"}},
+    }, ["memo_id"], category=ToolCategory.HIGH_RISK), publish_investment_memo)
+    registry.register(_schema("propose_portfolio_rebalance", "Request approval for a proposed rebalance.", {
+        "portfolio_id": {"type": "string"},
+        "proposed_changes": {"type": "array", "items": {"type": "object"}},
+    }, ["portfolio_id"], category=ToolCategory.HIGH_RISK), propose_portfolio_rebalance)
     return registry
+
+
+def _category(value: ToolCategory | str) -> ToolCategory:
+    if isinstance(value, ToolCategory):
+        return value
+    return ToolCategory(str(value))
+
+
+class _DefaultEntitlementChecker:
+    def can_execute(self, context: Any, tool_name: str, category: ToolCategory) -> bool:
+        return category != ToolCategory.FORBIDDEN
+
+    def requires_approval(self, context: Any, tool_name: str, category: ToolCategory) -> bool:
+        return category == ToolCategory.HIGH_RISK
+
+    def redact_schema(self, context: Any, schema: dict[str, Any], category: ToolCategory) -> dict[str, Any] | None:
+        if not self.can_execute(context, schema.get("function", {}).get("name", ""), category):
+            return None
+        return schema

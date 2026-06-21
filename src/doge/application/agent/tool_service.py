@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
+import sys
 from dataclasses import asdict, is_dataclass
 from typing import Any
 
@@ -125,6 +127,119 @@ class ToolApplicationService:
     def request_approval(self, action: str, risk_level: str = "high") -> dict[str, Any]:
         return {"approval_required": True, "action": action, "risk_level": risk_level}
 
+    def get_financial_statements(
+        self,
+        ticker: str,
+        statement_type: str = "income",
+        period: str = "annual",
+    ) -> dict[str, Any]:
+        overview = self.stock_overview(ticker, "us")
+        return {
+            "ticker": ticker,
+            "statement_type": statement_type,
+            "period": period,
+            "status": "demo_unavailable" if overview.get("status") == "unavailable" else "demo",
+            "fields": {
+                key: value
+                for key, value in overview.items()
+                if isinstance(value, (int, float, str)) and key not in {"ticker", "market"}
+            },
+        }
+
+    def get_company_announcements(self, ticker: str, limit: int = 5) -> dict[str, Any]:
+        from doge.application import composition
+
+        try:
+            rows = composition.build_note_repository().search_notes(ticker, limit=limit)
+        except Exception:
+            rows = []
+        return {"ticker": ticker, "limit": limit, "announcements": rows[:limit], "source": "local_notes"}
+
+    def calculate_financial_ratios(self, fields: dict[str, Any] | None = None) -> dict[str, Any]:
+        values = fields or {}
+        revenue = _num(values.get("revenue"))
+        net_income = _num(values.get("net_income"))
+        assets = _num(values.get("assets"))
+        equity = _num(values.get("equity"))
+        ratios: dict[str, float] = {}
+        if revenue:
+            ratios["net_margin"] = net_income / revenue
+        if assets:
+            ratios["roa"] = net_income / assets
+        if equity:
+            ratios["roe"] = net_income / equity
+        return {"ratios": ratios, "status": "calculated" if ratios else "insufficient_fields"}
+
+    def compare_consensus_estimates(self, ticker: str, metric: str = "eps") -> dict[str, Any]:
+        return {
+            "ticker": ticker,
+            "metric": metric,
+            "status": "demo_unavailable",
+            "message": "Consensus connector is not configured in this local reference implementation.",
+        }
+
+    def run_sql_query(self, sql: str, readonly: bool = True) -> dict[str, Any]:
+        if not readonly or _looks_mutating_sql(sql):
+            return {"ok": False, "error": "Only read-only SELECT/WITH queries are allowed."}
+        try:
+            from doge.application import composition
+
+            frame = composition.build_view_repository(read_only=True).execute(sql, [])
+            rows = frame.to_dict(orient="records") if hasattr(frame, "to_dict") else []
+            return {"ok": True, "rows": rows[:100], "row_count": len(rows)}
+        except Exception:
+            return {"ok": False, "error": "SQL query failed."}
+
+    def run_python_analysis(self, code: str, timeout: float = 5.0) -> dict[str, Any]:
+        if _unsafe_python(code):
+            return {"ok": False, "error": "Code uses disallowed operations in the demo sandbox."}
+        try:
+            completed = subprocess.run(
+                [sys.executable, "-I", "-c", code],
+                text=True,
+                capture_output=True,
+                timeout=max(1.0, min(float(timeout), 10.0)),
+                check=False,
+            )
+        except subprocess.TimeoutExpired:
+            return {"ok": False, "error": "Python analysis timed out."}
+        return {
+            "ok": completed.returncode == 0,
+            "stdout": completed.stdout[-4000:],
+            "stderr": completed.stderr[-2000:] if completed.returncode else "",
+            "returncode": completed.returncode,
+        }
+
+    def screen_compliance_risk(self, text: str) -> dict[str, Any]:
+        lowered = text.lower()
+        hits = [
+            word
+            for word in ("guaranteed return", "inside information", "auto trade", "无风险", "内幕")
+            if word in lowered
+        ]
+        return {"risk": "high" if hits else "low", "matches": hits}
+
+    def publish_investment_memo(self, memo_id: str, distribution_list: list[str] | None = None) -> dict[str, Any]:
+        return {
+            "approval_required": True,
+            "action": f"publish investment memo {memo_id}",
+            "risk_level": "high",
+            "distribution_list": distribution_list or [],
+        }
+
+    def propose_portfolio_rebalance(
+        self,
+        portfolio_id: str,
+        proposed_changes: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        return {
+            "approval_required": True,
+            "action": f"propose rebalance for portfolio {portfolio_id}",
+            "risk_level": "high",
+            "portfolio_id": portfolio_id,
+            "proposed_changes": proposed_changes or [],
+        }
+
 
 def _claim_matches_rows(claim: str, rows: list[dict[str, Any]]) -> bool:
     numbers = [float(item) for item in re.findall(r"\d+(?:\.\d+)?", claim)]
@@ -152,3 +267,33 @@ def _claim_matches_evidence(claim: str, evidence: list[dict[str, Any]]) -> bool:
         return False
     evidence_terms = set(re.findall(r"[\w\u4e00-\u9fff]+", texts))
     return bool(claim_terms & evidence_terms)
+
+
+def _num(value: Any) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _looks_mutating_sql(sql: str) -> bool:
+    stripped = sql.strip().lower()
+    if not (stripped.startswith("select") or stripped.startswith("with")):
+        return True
+    return bool(re.search(r"\b(insert|update|delete|drop|alter|create|attach|copy|pragma)\b", stripped))
+
+
+def _unsafe_python(code: str) -> bool:
+    lowered = code.lower()
+    blocked = (
+        "import os",
+        "import subprocess",
+        "import socket",
+        "from os",
+        "from subprocess",
+        "open(",
+        "__",
+        "eval(",
+        "exec(",
+    )
+    return any(token in lowered for token in blocked)

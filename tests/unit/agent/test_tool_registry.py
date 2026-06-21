@@ -26,7 +26,26 @@ def test_default_registry_contains_core_demo_tools():
         "generate_industry_report",
         "lookup_evidence",
         "request_approval",
-    } == names
+    }.issubset(names)
+    assert {
+        "get_financial_statements",
+        "get_company_announcements",
+        "calculate_financial_ratios",
+        "compare_consensus_estimates",
+        "run_sql_query",
+        "run_python_analysis",
+        "screen_compliance_risk",
+        "publish_investment_memo",
+        "propose_portfolio_rebalance",
+    }.issubset(names)
+
+
+def test_default_registry_marks_high_risk_tools():
+    registry = build_default_tool_registry()
+    categories = {schema["function"]["name"]: schema["x-doge-category"] for schema in registry.schemas}
+
+    assert categories["publish_investment_memo"] == "high_risk"
+    assert categories["propose_portfolio_rebalance"] == "high_risk"
 
 
 def test_portfolio_tool_returns_demo_exposure(monkeypatch):
