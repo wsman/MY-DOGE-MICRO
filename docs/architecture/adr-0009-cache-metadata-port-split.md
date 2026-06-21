@@ -32,7 +32,7 @@ differ by data source (local file vs network) and by returned shape (name
 string vs name+sector dict). This refines ADR-0001's `TickerMetadataSource`
 line and resolves OQ-2 / TR-042.
 
-## Engine Compatibility
+## Technology Compatibility
 
 | Field | Value |
 |-------|-------|

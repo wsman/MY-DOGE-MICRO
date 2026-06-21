@@ -2,7 +2,9 @@
 
 > **Module #11** — Category: **Presentation**
 > **Slug**: `vue-web-console`
-> **Status**: Reverse-documented (brownfield) — 2026-06-12; vitest smoke suite added 2026-06-12 (useFuzzySearch + useVirtualScroll + scanner store)
+> **Status**: Designed
+> **Last Verified**: 2026-06-21
+> **Notes**: Reverse-documented from brownfield Vue code; vitest smoke suite landed 2026-06-12 (useFuzzySearch + useVirtualScroll + scanner store).
 > **Depends on**: #9 `fastapi-service` (HTTP JSON + SSE), #2 `market-data-storage` (transitively, via the API)
 > **Depended on by**: (terminal Presentation surface — nothing depends on this module)
 > **Source files reverse-documented**: `web/src/{App,main}.vue?`, `web/src/router/index.ts`, `web/src/views/{registry,ScannerView,TickerView,AnalysisView,InsightsView,CnArchiveView,UsArchiveView}.{ts,vue}`, `web/src/components/{SplitPane,PanelChrome,VirtualTable,VirtualMasonry,VirtualMarkdown}.vue`, `web/src/composables/{useFuzzySearch,useVirtualScroll,useKlineChart,useSSE,useSplitTree,usePretextLayout,useTextMeasure}.ts`, `web/src/stores/{marketData,scanner}.ts`, `web/src/api/{client,config,data,scanner}.ts`, `web/src/types/{report,splitTree,stock}.ts`, `web/vite.config.ts`, `web/vitest.config.ts`, `web/tsconfig*.json`, `web/package.json`

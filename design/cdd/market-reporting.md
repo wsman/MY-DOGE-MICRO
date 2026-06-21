@@ -2,7 +2,9 @@
 
 > **Module #6** — Category: **Feature**
 > **Slug**: `market-reporting`
-> **Status**: Reverse-documented (brownfield) — 2026-06-12; BUG E tests added 2026-06-12
+> **Status**: Designed
+> **Last Verified**: 2026-06-21
+> **Notes**: Reverse-documented from brownfield reporting code; BUG E tests landed 2026-06-12.
 > **Depends on**: #1 `runtime-configuration`, #2 `market-data-storage`
 > **Depended on by**: #7 `research-insight-knowledge-base` (shares `src/ai_analysis/__init__.py` and `stock_names`/`stock_notes` tables), #9 `fastapi-service`, #10 `pyqt-desktop-dashboard`
 > **Source files reverse-documented**: `src/ai_analysis/__init__.py` (shared DB connection layer), `src/ai_analysis/market_overview.py`, `src/ai_analysis/anomaly_detection.py`, `src/ai_analysis/catalog_generator.py`, `src/ai_analysis/fetch_names.py`

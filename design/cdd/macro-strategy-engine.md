@@ -2,8 +2,10 @@
 
 > **Slug**: `macro-strategy-engine`
 > **Category**: Core
-> **Status**: Draft (reverse-documentation of brownfield code)
+> **Status**: Designed
 > **Created**: 2026-06-12
+> **Last Verified**: 2026-06-21
+> **Notes**: Brownfield reverse-documentation; provider/runtime hardening is tracked outside this CDD.
 > **Depends On**: `market-data-storage` (#2), `data-sources` (#3), `runtime-configuration` (#1)
 > **Related ADRs**: [ADR-0005](../../docs/architecture/adr-0005-llm-client-strategy.md) (LLM client strategy), [ADR-0001](../../docs/architecture/adr-0001-brownfield-clean-architecture.md) (brownfield clean architecture), [ADR-0002](../../docs/architecture/adr-0002-centralized-configuration.md) (centralized configuration), [ADR-0004](../../docs/architecture/adr-0004-data-source-adapter-contract.md) (data-source adapter contract)
 > **Source files reverse-documented**: `src/macro/config.py`, `src/macro/data_loader.py`, `src/macro/strategist.py`, `src/macro/cli.py`, `src/macro/utils.py`, `src/macro/__init__.py`
@@ -282,7 +284,7 @@ Module #4's `data_loader.calculate_rsrs` (`data_loader.py:167-193`) is a **separ
 - [ ] `data_loader.calculate_rsrs` (`data_loader.py:182-193`) reconciled with the canonical Module #5 copy — either delegate to `momentum_scanner.calculate_rsrs` or replicate its flat-variance guard (`momentum_scanner.py:64-65`) and NaN guard (`:76`). Current drift: macro copy returns `nan` on a flat/zero-variance series; canonical returns `0.0` (OPEN — BUG-class drift, section 4.3).
 
 **Docs / observability:**
-- [ ] ADR-0005 promoted from Proposed to Accepted (currently **Proposed** — verified at `adr-0005-llm-client-strategy.md:5`. Blocks stories referencing this CDD per docs/CLAUDE.md ADR lifecycle: "Never skip Accepted — stories referencing a Proposed ADR are auto-blocked." ADR-0005 is the load-bearing dependency for this LLM module's Integration Requirements, so its non-Accepted status is a real gate, not satisfied by this CDD's reference alone).
+- [x] ADR-0005 is Accepted. It remains the load-bearing dependency for this LLM module's Integration Requirements.
 - [ ] `_validate_config` `ValueError`s no longer silently swallowed into defaults — at minimum logged at WARNING (OPEN — observability gap).
 - [ ] Registry proposals in section 4.7 queued for Phase 5 entry approval.
 

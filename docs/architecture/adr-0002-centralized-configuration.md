@@ -20,7 +20,7 @@ WSMAN, python-specialist
 
 MY-DOGE-MICRO's legacy code recomputes `_PROJECT_ROOT` and inserts into `sys.path` independently in ~20 modules under `src/micro/`, `src/macro/`, `src/doge/interfaces/api/routers/`, `src/interface/`, and `src/ai_analysis/`. This ADR decides that all runtime paths, environment overrides, database locations, TDX endpoints, market constants, and MCP transport settings are owned by a single frozen-dataclass configuration module — `src/doge/config/settings.py` — exposed through the `get_settings()` lazy singleton, and that no new code may recalculate the project root or hardcode paths.
 
-## Engine Compatibility
+## Technology Compatibility
 
 | Field | Value |
 |-------|-------|

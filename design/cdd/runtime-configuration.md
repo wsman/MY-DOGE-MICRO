@@ -4,7 +4,9 @@
 > **Slug**: `runtime-configuration`
 > **Category**: Foundation
 > **Priority**: MVP
-> **Status**: In Progress (brownfield reverse-documentation)
+> **Status**: Designed
+> **Last Verified**: 2026-06-21
+> **Notes**: Brownfield reverse-documentation; implementation continues through follow-up stories.
 > **Depends On**: None
 > **Depended On By**: `market-data-storage` (#2), `data-sources` (#3), `mcp-server` (#8), `fastapi-service` (#9), `clean-architecture-migration` (#12)
 > **Source Truth**: `src/doge/config/settings.py`
@@ -137,7 +139,7 @@ The following files still compute their own `_PROJECT_ROOT` / `project_root` via
 | `src/micro/momentum_scanner.py` | `current_dir` + `project_root` recalc | `:12-13` |
 | `src/micro/industry_analyzer.py` | `current_dir`/`src_dir`/`project_root` + `sys.path.insert` | `:12-17` |
 | `src/micro/database.py` | `os.path.join(os.path.dirname(...) x3, 'data', ...)` for `research_insights.db`; `project_root` recalc | `:217, :260, :435-436` |
-| `src/api/main.py` | `_PROJECT_ROOT` + `data_dir` join | `:9, :48` |
+| legacy API shim | Historical `_PROJECT_ROOT` + `data_dir` join before canonical `doge.interfaces.api.main` adoption | archived |
 | `src/api/routers/scan.py` | `_PROJECT_ROOT` (4x dirname) + db/csv joins | `:17, :152, :162` |
 | `src/api/routers/macro.py` | `_PROJECT_ROOT` (4x dirname) + db joins x3 | `:13, :26, :42, :59` |
 | `src/api/routers/data.py` | `_PROJECT_ROOT` (4x dirname) + db-path dict | `:11, :14-16, :157` |
@@ -158,7 +160,7 @@ The following files still compute their own `_PROJECT_ROOT` / `project_root` via
 
 Three modules force `OPENBLAS_NUM_THREADS=1` / `OMP_NUM_THREADS=1` via `os.environ.setdefault(...)` at import time to prevent OOM during pandas/BLAS DataFrame conversions:
 - `src/ai_analysis/__init__.py:15-16`
-- `src/api/main.py:12-13`
+- `src/doge/interfaces/api/main.py`
 - `src/doge/infrastructure/database/duckdb.py:16-17`
 
 These are process-global side effects, not part of `Settings`. They are documented here but intentionally **not** centralized in `settings.py` (open question: should they be?).
@@ -273,7 +275,7 @@ The following constants/env-vars are proposed for later registration in `docs/re
 - **Core**: `macro-strategy-engine` (#4), `micro-momentum-scanner` (#5) — read `market.*`, `db.*`.
 - **Core**: `research-insight-knowledge-base` (#7) — reads `db.research_db`, `report_dir`.
 - **Interface**: `mcp-server` (#8) — reads `mcp.*`, `data_dir` (logging).
-- **Interface**: `fastapi-service` (#9) — intended consumer (currently legacy routers recalc their own root; migration target).
+- **Interface**: `fastapi-service` (#9) — canonical app derives project root from `get_settings()`; remaining router-level migration debt is tracked in Module #9/#12.
 - **Operations**: `clean-architecture-migration` (#12) — owns the work of routing Section 3.11 offenders through `get_settings()`.
 
 ### 6.3 Bidirectional notes (per design-docs rule)
@@ -281,7 +283,7 @@ The following constants/env-vars are proposed for later registration in `docs/re
 - `clean-architecture-migration` (#12) is the *mutual* owner of the de-duplication effort: this CDD documents the offenders; #12 executes the migration.
 
 ### 6.4 Cross-cutting process env (owned elsewhere, listed for awareness)
-- `OPENBLAS_NUM_THREADS` / `OMP_NUM_THREADS` — set by `src/ai_analysis/__init__.py:15-16`, `src/api/main.py:12-13`, `src/doge/infrastructure/database/duckdb.py:16-17`. **Not** owned by settings (open question).
+- `OPENBLAS_NUM_THREADS` / `OMP_NUM_THREADS` — set by `src/ai_analysis/__init__.py:15-16`, `src/doge/interfaces/api/main.py`, `src/doge/infrastructure/database/duckdb.py:16-17`. **Not** owned by settings (open question).
 - `DEEPSEEK_API_KEY` / `DEEPSEEK_MODEL` — owned by `src/macro/config.py:_apply_runtime_overrides` and read by `src/macro/strategist.py` + `src/interface/analysis_gui.py`. As of **S002-013**, `DEEPSEEK_API_KEY` is the PRIMARY key source (the env var wins over the JSON value), and `models_config.json` ships only the placeholder `REPLACE_WITH_DEEPSEEK_API_KEY`; if the env var is unset and the JSON value is the placeholder/empty/`None`, `MacroConfig` raises `RuntimeError` (no silent print-and-continue). The GUI no longer injects the profile `api_key` into the env (the `DEEPSEEK_API_KEY` write line was removed); the operator must export it before launch. **Not** owned by settings (the broader LLM/config consolidation into `settings.py` remains an open question — see #1).
 - `HTTP_PROXY` / `HTTPS_PROXY` — set transiently by `src/micro/industry_analyzer.py:50-51` and `src/macro/data_loader.py:56-147`. Not owned by settings.
 

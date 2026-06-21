@@ -2,7 +2,9 @@
 
 > **Module #10** — Category: **Presentation**
 > **Slug**: `pyqt-desktop-dashboard`
-> **Status**: Reverse-documented (brownfield) — 2026-06-12; BUG E smoke test added 2026-06-12
+> **Status**: Designed
+> **Last Verified**: 2026-06-21
+> **Notes**: Reverse-documented from brownfield PyQt code; BUG E smoke test landed 2026-06-12.
 > **Depends on**: #4 `macro-strategy-engine`, #5 `micro-momentum-scanner`, #6 `ai-industry-analysis`
 > **Depended on by**: (terminal Presentation surface — nothing depends on this module)
 > **Source files reverse-documented**: `src/interface/dashboard.py` (the `CommandCenter` shell + tab orchestration), `src/interface/scanner_gui.py` (scanner/macro launcher panel + QThread workers), `src/interface/db_editor.py` (the SQLite table editor), `src/interface/analysis_gui.py` (industry-analysis launcher)

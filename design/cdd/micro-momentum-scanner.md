@@ -2,7 +2,9 @@
 
 > **Module #5** — Category: **Core**
 > **Slug**: `micro-momentum-scanner`
-> **Status**: Reverse-documented (brownfield) — 2026-06-11; BUG E fixed + tests added 2026-06-11
+> **Status**: Designed
+> **Last Verified**: 2026-06-21
+> **Notes**: Reverse-documented from brownfield scanner code; BUG E fix and tests landed 2026-06-11.
 > **Depends on**: #1 `runtime-configuration`, #2 `market-data-storage`, #3 `data-sources`
 > **Depended on by**: #6 `ai-industry-analysis`, #9 `fastapi-service`, #10 `pyqt-desktop-dashboard`
 > **Source files reverse-documented**: `src/micro/momentum_scanner.py` (**owns the canonical RSRS formula at `momentum_scanner.py:47-71`**), `src/micro/market_scanner.py`, `src/micro/industry_analyzer.py`

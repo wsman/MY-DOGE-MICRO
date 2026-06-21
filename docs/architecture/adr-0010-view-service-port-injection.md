@@ -33,7 +33,7 @@ imports infrastructure and wires the `DuckDBMarketViewRepository` adapter. This
 removes a standing clean-architecture layer violation and resolves OQ-5 / TR-041
 / AC-9.
 
-## Engine Compatibility
+## Technology Compatibility
 
 | Field | Value |
 |-------|-------|

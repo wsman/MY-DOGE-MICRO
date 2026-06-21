@@ -124,7 +124,7 @@ non-loopback deployment.
 ## Earlier — CDD template history (pre-product)
 
 ### Customer Delivery Hardening
-- Enforced full strict lint across all 74 skills.
+- Enforced full strict lint across all 78 skills.
 - Repaired customer-visible Markdown errors in required workflow skills.
 - Aligned `UPGRADING.md` with the current workflow catalog and evidence paths.
 - Made `/team-release` a required Release phase step after `/release-checklist`

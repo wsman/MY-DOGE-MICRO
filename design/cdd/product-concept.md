@@ -3,7 +3,9 @@
 > **Source**: Metadata import from `D:\Users\WSMAN\Desktop\Coding Task\MY-DOGE-MICRO`
 > **Created**: 2026-06-11
 > **Last updated**: 2026-06-11
-> **Status**: In Design
+> **Status**: Designed
+> **Last Verified**: 2026-06-21
+> **Notes**: Historical metadata import retained; source-path semantics are preserved for import provenance.
 
 ## Core Identity
 

@@ -2,7 +2,9 @@
 
 > **Slug**: `research-insight-knowledge-base`
 > **Category**: Core
-> **Status**: Draft (reverse-documentation of brownfield code) — 2026-06-12
+> **Status**: Designed
+> **Last Verified**: 2026-06-21
+> **Notes**: Reverse-documented from brownfield knowledge-base code; notes repository split is captured by TR-045/TR-046.
 > **Depends On**: #2 `market-data-storage`, #6 `ai-industry-analysis`
 > **Depended on by**: #8 `mcp-server`, #9 `fastapi-service`
 > **Related ADRs**: [ADR-0001](../../docs/architecture/adr-0001-brownfield-clean-architecture.md) (brownfield clean architecture), [ADR-0003](../../docs/architecture/adr-0003-storage-repository-contract.md) (storage repository contract)

@@ -20,7 +20,7 @@ Reverse-documented from the existing implementation. Original decisions attribut
 
 The Vue Web Console (Module #11) is a single-page Vue 3 app that renders a Ghostty-style resizable split-tree of panels and consumes the FastAPI Service (Module #9) over JSON + a manual-`fetch` SSE reader. This ADR records the architectural stance that the web console is built on Vue 3.5 + Vite 8 + Pinia 3 + Naive UI 2.44 + lightweight-charts v5, uses three hand-written virtualized components (not a table/grid library), reads SSE via raw `fetch` streaming (not `EventSource`), and resolves a text-layout library (`@pretext`) from a **sibling-project checkout via an absolute path alias** rather than from npm — a portability trade-off that is the headline open risk.
 
-## Engine Compatibility
+## Technology Compatibility
 
 > This ADR template's "Engine Compatibility" section is engine/game-oriented. For a Product web module, the equivalent fields are the framework/runtime compatibility matrix.
 
@@ -37,7 +37,7 @@ The Vue Web Console (Module #11) is a single-page Vue 3 app that renders a Ghost
 
 | Field | Value |
 |-------|-------|
-| **Depends On** | [ADR-0007](adr-0007-api-surface-and-cors.md) — the web console is a client of the API surface and CORS stance ADR-0007 establishes. Must be Accepted (it is, as Proposed→tracked) for the dev-proxy + CORS-`*` flow to be sound. |
+| **Depends On** | [ADR-0007](adr-0007-api-surface-and-cors.md) — the web console is a client of the API surface and CORS stance ADR-0007 establishes. ADR-0007 is Accepted with a loopback-guaranteed posture, so the dev-proxy + CORS-`*` flow is sound only under the loopback bind. |
 | **Enables** | None (terminal Presentation module — nothing downstream). |
 | **Blocks** | None — but the `@pretext` portability open question blocks any non-original-machine / CI build until resolved. |
 | **Ordering Note** | This is the last of the per-module ADRs (0001–0008). ADR-0001 (clean architecture) does NOT directly govern this module because it owns no DB/`_PROJECT_ROOT` code — it is a pure HTTP/SSE client. |

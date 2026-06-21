@@ -14,7 +14,7 @@ Constitution Driven Development turns a Claude Code workspace into a governed
 development team:
 
 - 53 specialized agents for design, engineering, QA, release, and operations.
-- 74 slash-command skills for planning, implementation, review, and release.
+- 78 slash-command skills for planning, implementation, review, release, and MY-DOGE product queries.
 - A 7-phase workflow catalog read by `/help`, `/cdd-status`, and gate checks.
 - Templates for concepts, CDDs, ADRs, UX specs, test plans, release notes, and
   acceptance evidence.
@@ -45,6 +45,7 @@ Run `/constitute` to initialize or refresh the memory-bank skeleton. Run
 `/constitute-check` to audit T0-T3 health. Run `/cdd-status` to update
 `production/project-roadmap.md` and, when `memory_bank/` exists,
 `memory_bank/t2_execution/current_roadmap.md`.
+Use `docs/examples/project-roadmap.example.md` as the example output shape.
 
 T3 is the audit index layer. Gate decisions, review artifacts, QA validation,
 smoke/team QA sign-off, story closure, sprint/milestone snapshots, and release

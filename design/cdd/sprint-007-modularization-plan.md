@@ -3,9 +3,10 @@
 > **Slug**: `sprint-007-modularization-plan`
 > **Category**: Operations / Migration
 > **Priority**: MVP
-> **Status**: Planned
+> **Status**: Designed
 > **Governing ADRs**: ADR-0001 (layer boundaries), ADR-0010 (port injection), ADR-0009 (port naming), ADR-0004 (TDX adapter), ADR-0007 (loopback guarantee)
-> **Last Verified**: 2026-06-14
+> **Last Verified**: 2026-06-21
+> **Notes**: Historical sprint plan retained as design evidence; later sprint status files carry execution truth.
 > **Baseline**: 617 passed, 5 skipped, 0 failed, 0 error
 
 ---
@@ -789,7 +790,7 @@ python -m doge.interfaces.cli demo --market cn --top 5
 | `macro` router | `src/api/routers/macro.py` | `src/doge/interfaces/api/routers/macro.py` | Uses `GenerateMacroReportUseCase` |
 | `analysis` router | `src/api/routers/analysis.py` | `src/doge/interfaces/api/routers/analysis.py` | Already clean — path change only |
 | `config` router | `src/api/routers/config.py` | `src/doge/interfaces/api/routers/config.py` | Uses `ConfigService` |
-| `main.py` | `src/api/main.py` | `src/doge/interfaces/api/main.py` | Composition root |
+| `main.py` | legacy API main shim | `src/doge/interfaces/api/main.py` | Composition root |
 
 ### `src/cli.py` / `src/macro/cli.py` → `src/doge/interfaces/cli/`
 
@@ -905,7 +906,7 @@ S007-008 (layer gates) ◄──────────────────
 
 | # | Path | Shim Content |
 |---|------|-------------|
-| 1 | `src/api/main.py` | `from doge.interfaces.api.main import app` + `DeprecationWarning` |
+| 1 | legacy API main shim | `from doge.interfaces.api.main import app` + `DeprecationWarning` |
 | 2 | `src/api/routers/__init__.py` | Re-export from `doge.interfaces.api.routers` + `DeprecationWarning` |
 | 3 | `src/api/routers/scan.py` | `from doge.interfaces.api.routers.scan import router` + `DeprecationWarning` |
 | 4 | `src/api/routers/data.py` | `from doge.interfaces.api.routers.data import router` + `DeprecationWarning` |
@@ -958,7 +959,7 @@ The following files become **shims in Sprint 007** and are deleted in Sprint 008
 | 15 | `src/ai_analysis/fetch_names.py` | shim | `PopulateStockNamesUseCase` stable |
 | 16 | `src/ai_analysis/market_overview.py` | shim | `GenerateMarketOverviewUseCase` stable |
 | 17 | `src/ai_analysis/stock_notes.py` | shim | `ManageNotesUseCase` stable |
-| 18 | `src/api/main.py` | shim | `doge.interfaces.api.main` adopted |
+| 18 | legacy API main shim | shim | `doge.interfaces.api.main` adopted |
 | 19 | `src/api/routers/*.py` | shim | API tests retargeted |
 | 20 | `src/cli.py` | shim | `doge` console script adopted |
 | 21 | `src/interface/__init__.py` | shim | GUI shims no longer needed |

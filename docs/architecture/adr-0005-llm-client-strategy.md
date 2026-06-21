@@ -20,7 +20,7 @@ WSMAN, python-specialist
 
 MY-DOGE-MICRO's only LLM integration (`DeepSeekStrategist` in `src/macro/strategist.py`) must keep working against DeepSeek today while remaining swappable to any OpenAI-compatible provider, and must never hardcode secrets, leak the operator's API key, or crash the session when the provider is unavailable. This ADR decides that all LLM access goes through the official `openai` SDK in OpenAI-compatible mode, that DeepSeek (`deepseek-chat`) is the default provider configured via `models_config.json` + `DEEPSEEK_*` env overrides (never source code), and that provider failures degrade to a `None` sentinel with no in-strategist retry.
 
-## Engine Compatibility
+## Technology Compatibility
 
 > This is a Product project. The "Engine Compatibility" table is interpreted as the Product Stack Compatibility table per `docs/CLAUDE.md`.
 
@@ -37,7 +37,7 @@ MY-DOGE-MICRO's only LLM integration (`DeepSeekStrategist` in `src/macro/strateg
 
 | Field | Value |
 |-------|-------|
-| **Depends On** | ADR-0001 (Accepted) — defines the `cross_layer_state_write` forbidden pattern and the clean-architecture layering this client must respect; ADR-0002 (Proposed) — records that `DEEPSEEK_*` / `models_config.json` config lives outside `settings.py` today |
+| **Depends On** | ADR-0001 (Accepted) — defines the `cross_layer_state_write` forbidden pattern and the clean-architecture layering this client must respect; ADR-0002 (Accepted) — records the runtime configuration boundary while `DEEPSEEK_*` / `models_config.json` remain compatibility configuration sources today |
 | **Enables** | Module #4 CDD (`macro-strategy-engine`); future routing of LLM access through a clean-architecture `ILLMClient` port (post-migration); report persistence to a `macro_reports` table |
 | **Blocks** | New LLM-using features must route through `DeepSeekStrategist` (or its port successor) — no new ad-hoc `openai.OpenAI(...)` constructions elsewhere |
 | **Ordering Note** | This ADR documents an already-working integration; the clean-architecture port extraction is a follow-on owned by Module #12 |

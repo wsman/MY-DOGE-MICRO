@@ -2,7 +2,9 @@
 
 > **Module #2** — Category: **Foundation**
 > **Slug**: `market-data-storage`
-> **Status**: Reverse-documented (brownfield) — 2026-06-11
+> **Status**: Designed
+> **Last Verified**: 2026-06-21
+> **Notes**: Reverse-documented from brownfield storage and repository code on 2026-06-11; current storage work continues under later sprint evidence.
 > **Depends on**: #1 `runtime-configuration`
 > **Depended on by**: #3 `data-sources`, #4 `macro-strategy-engine`, #5 `micro-momentum-scanner`, #7 `research-insight-knowledge-base`, #8 `mcp-server`, #9 `fastapi-service`, #12 `clean-architecture-migration`
 > **Source files reverse-documented**: `src/micro/database.py`, `src/doge/infrastructure/database/{duckdb.py,sqlite.py,repositories.py}`, `src/doge/core/ports/repository.py`, `data/views.sql`, `src/doge/config/settings.py`
@@ -249,7 +251,7 @@ The following constants/formulas/entities should later be promoted to `docs/regi
 
 **Documents:**
 - `docs/architecture/adr-0001-brownfield-clean-architecture.md` (layer rules, forbidden patterns).
-- `docs/architecture/adr-0003-storage-repository-contract.md` (this module's contract decision; **Status: Proposed as of 2026-06-11 — not yet binding**, see Acceptance Criteria §8).
+- `docs/architecture/adr-0003-storage-repository-contract.md` (this module's contract decision; **Status: Accepted**).
 
 ## 7. Configuration Knobs
 

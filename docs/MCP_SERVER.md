@@ -466,10 +466,10 @@ curl http://127.0.0.1:8902/metrics
 
 | Skill | 命令 | 说明 |
 |-------|------|------|
-| `stock` | `python src/cli.py stock <ticker>` | 行情查询 |
-| `rsrs` | `python src/cli.py rsrs` | 动量排名 |
-| `breadth` | `python src/cli.py breadth` | 市场宽度 |
-| `anomaly` | `python src/cli.py anomaly` | 量比异动 |
+| `stock` | `doge stock <ticker>` | 行情查询 |
+| `rsrs` | `doge rsrs` | 动量排名 |
+| `breadth` | `doge breadth` | 市场宽度 |
+| `anomaly` | `doge anomaly` | 量比异动 |
 
 ## 日志与监控
 
@@ -488,13 +488,13 @@ curl http://127.0.0.1:8902/metrics
 
 ## CLI 命令行
 
-`src/cli.py` 提供 4 个子命令，功能与 MCP 工具等价，使用 `tabulate` 格式化输出：
+`doge` 提供查询子命令，功能与 MCP 工具等价，使用 `tabulate` 格式化输出。`src/cli.py` 仍作为兼容 shim 保留，但不再是推荐入口：
 
 ```bash
-python src/cli.py stock 601777 --market cn --days 5
-python src/cli.py rsrs --market cn --top 10
-python src/cli.py breadth --market cn --days 7
-python src/cli.py anomaly --min-ratio 5.0 --top 10
+doge stock 601777 --market cn --days 5
+doge rsrs --market cn --top 10
+doge breadth --market cn --days 7
+doge anomaly --min-ratio 5.0 --top 10
 ```
 
 ## Windows 已知问题

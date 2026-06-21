@@ -51,6 +51,9 @@ The memory-bank T2 mount is documented at
 reports and `/skill-improve` records live in
 `memory_bank/t3_archive/skill_testing/`.
 
+Roadmap examples live at `docs/examples/project-roadmap.example.md`. Skill flow
+examples live at `docs/examples/skill-flow-diagrams.md`.
+
 ## How to Use
 
 ### 1. Understand the Hierarchy
@@ -448,7 +451,7 @@ docs/
 .claude/
   settings.json                    -- Claude Code hooks and project settings
   agents/                          -- 53 Claude adapter agent definitions
-  skills/                          -- 74 slash command definitions (Claude adapter copy)
+  skills/                          -- 78 slash command definitions (Claude adapter copy)
   hooks/                           -- 12 hook scripts wired by settings.json
   rules/                           -- 16 path-specific rule files
   docs/quick-start.md              -- Claude adapter pointer to docs/QUICK-START.md

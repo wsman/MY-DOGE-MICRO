@@ -2,7 +2,9 @@
 
 > **Module #8** - Category: **Interface**
 > **Slug**: `mcp-server`
-> **Status**: Reverse-documented, Wave 4 updated - 2026-06-12
+> **Status**: Designed
+> **Last Verified**: 2026-06-21
+> **Notes**: Reverse-documented and Wave-4 updated on 2026-06-12.
 > **Depends on**: #1 `runtime-configuration`, #2 `market-data-storage`, #7 `research-insight-knowledge-base`
 > **Depended on by**: Claude Code / MCP clients, optional local SSE clients
 > **Source files reverse-documented**: `doge_mcp.py`, `src/doge/interfaces/mcp/server.py`, `src/doge/interfaces/mcp/tools/*.py`, `docs/MCP_SERVER.md`, `.mcp.json`, `scripts/mcp_stdio.bat`, `scripts/start_mcp_sse.{sh,bat}`

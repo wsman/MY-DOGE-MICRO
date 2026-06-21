@@ -2,8 +2,10 @@
 
 > **Slug**: `data-sources`
 > **Category**: Foundation
-> **Status**: Draft (reverse-documentation of brownfield code)
+> **Status**: Designed
 > **Created**: 2026-06-11
+> **Last Verified**: 2026-06-21
+> **Notes**: Brownfield reverse-documentation; ADR-0004 is Accepted and adapter follow-ups remain tracked separately.
 > **Depends On**: `runtime-configuration` (#1), `market-data-storage` (#2)
 > **Related ADRs**: [ADR-0001](../../docs/architecture/adr-0001-brownfield-clean-architecture.md) (brownfield clean architecture), [ADR-0004](../../docs/architecture/adr-0004-data-source-adapter-contract.md) (data-source adapter contract)
 > **Source files reverse-documented**: `src/micro/tdx_loader.py`, `src/micro/tdx_downloader.py`, `src/doge/infrastructure/data_source/tdx.py`, `src/doge/infrastructure/data_source/yfinance.py`, `src/doge/core/ports/data_source.py`
