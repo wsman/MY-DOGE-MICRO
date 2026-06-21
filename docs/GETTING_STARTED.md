@@ -176,6 +176,14 @@ hash/MIME/size metadata and offline parsed content.
 | `KIMI_CODE_MODEL` | `kimi-k2.7-code` | Code-sub-agent model for Python/SQL/data tasks. |
 | `KIMI_MAX_RETRIES` | `2` | Bounded retries for Kimi chat create calls on rate-limit/transient provider errors. |
 | `KIMI_RETRY_DELAY` | `1.0` | Delay in seconds between Kimi chat retries; set to `0` only for local tests. |
+| `KIMI_MAX_COMPLETION_TOKENS` | `16384` | Maximum generated tokens for Kimi calls; preferred over deprecated provider `max_tokens`. |
+| `KIMI_TIMEOUT_SECONDS` | `60.0` | Client timeout for Kimi chat requests. |
+| `KIMI_BACKOFF_BASE_SECONDS` | `1.0` | Initial exponential-backoff delay for retryable Kimi failures. |
+| `KIMI_BACKOFF_MAX_SECONDS` | `60.0` | Maximum retry backoff for Kimi calls. |
+| `KIMI_COST_TRACKING_ENABLED` | `true` | Enables usage/cost fields in model response metadata when provider usage is available. |
+| `KIMI_PROMPT_CACHE_ENABLED` | `false` | Enables `prompt_cache_key` for enterprise/session calls. |
+| `KIMI_MONTHLY_BUDGET_USD` | `0.0` | Operator budget metadata knob; `0.0` means no enforced monthly budget in the local demo. |
+| `KIMI_RUN_BUDGET_USD` | `0.0` | Per-run budget metadata knob; `0.0` means no enforced run budget by default. |
 
 The no-key fallback is intentional: without `MOONSHOT_API_KEY`, Research
 Copilot still runs with a scripted local model, `/v1/documents` still persists

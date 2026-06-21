@@ -19,6 +19,7 @@ operator smoke evidence.
 
 - Native local PDF page parsing is not a required dependency yet.
 - OCR is only available through Kimi Files/Vision when configured.
-- Evidence records exist, but claim/citation scoring is deferred to RAG and
-  industry-report sprints.
+- Evidence records exist, and local citation/numerical consistency scoring is
+  implemented for comparable artifacts. Live citation-quality benchmarking is
+  still open.
 - No Stable or production-ready label may be inferred from this matrix.

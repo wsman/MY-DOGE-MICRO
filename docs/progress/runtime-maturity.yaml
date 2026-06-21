@@ -313,6 +313,56 @@ sprint_015_release_quality_gates:
     blocked_by:
       - no Stable promotion authorized
 
+kimi_enterprise_financial_copilot_gates:
+  enterprise_model_gateway:
+    status: passed
+    evidence:
+      - src/doge/core/ports/model_gateway.py
+      - src/doge/infrastructure/llm/kimi_enterprise_gateway.py
+      - src/doge/infrastructure/llm/kimi_client.py
+      - tests/unit/infrastructure/test_kimi_enterprise_gateway.py
+      - tests/unit/infrastructure/test_kimi_client.py
+    blocked_by: []
+  model_router_and_budget_metadata:
+    status: passed
+    evidence:
+      - src/doge/application/agent/model_router.py
+      - src/doge/application/agent/runtime_kernel.py
+      - src/doge/infrastructure/llm/cost_calculator.py
+      - tests/unit/agent/test_model_router.py
+      - tests/unit/agent/test_runtime_kernel.py
+    blocked_by: []
+  enterprise_tool_governance:
+    status: passed
+    evidence:
+      - src/doge/core/domain/tool_policy.py
+      - src/doge/core/ports/tool_entitlement.py
+      - src/doge/application/agent/tools.py
+      - tests/unit/agent/test_tool_registry.py
+    blocked_by: []
+  tenant_context_boundary:
+    status: partial
+    evidence:
+      - src/doge/core/domain/enterprise_context.py
+      - src/doge/interfaces/api/middleware/tenant_context.py
+      - tests/unit/interfaces/test_tenant_context_middleware.py
+      - docs/security-and-data-boundaries.md
+    blocked_by:
+      - enterprise authentication and SSO are not implemented
+      - end-to-end document ACL workflow remains demo-scoped
+  multimodal_evidence_and_financial_eval:
+    status: partial
+    evidence:
+      - src/doge/application/services/multimodal_evidence_service.py
+      - src/doge/application/services/numerical_consistency_service.py
+      - src/doge/application/services/financial_eval_service.py
+      - tests/unit/test_citation_service.py
+      - tests/unit/test_numerical_consistency.py
+      - tests/eval/test_run_eval.py
+    blocked_by:
+      - live Kimi Files/Vision smoke remains environment-dependent
+      - citation-quality benchmark with real financial documents remains open
+
 level_1:
   session_persistence:
     requirement: required
@@ -328,8 +378,10 @@ level_1:
     evidence:
       - tests/cli/test_cli_session.py
       - src/doge/interfaces/cli/commands/session.py
+      - src/doge/application/agent/context_builder.py
+      - tests/unit/agent/test_context_builder.py
     blocked_by:
-      - real CLI attach/file evidence remains out of Sprint 008 scope
+      - session history cross-run context is implemented locally but not yet benchmarked for citation quality impact
   approval_resume:
     requirement: required
     status: partial
@@ -338,7 +390,7 @@ level_1:
       - tests/integration/test_daemon_worker.py
       - tests/cli/test_cli_session.py
     blocked_by:
-      - CLI approval continuation is deprecated rather than daemon-routed
+      - embedded CLI approval continuation is implemented; gateway mode still needs real daemon manual pass evidence
   offline_scripted_model:
     requirement: required
     status: passed
@@ -440,10 +492,13 @@ level_3:
     requirement: optional
     status: partial
     evidence:
+      - src/doge/infrastructure/agent/kimi_sdk_adapter.py
+      - src/doge/infrastructure/agent/backends.py
       - src/doge/infrastructure/llm/kimi_client.py
+      - tests/unit/agent/test_kimi_sdk_adapter.py
       - tests/unit/agent/test_backends.py
     blocked_by:
-      - live Kimi API verification remains environment-dependent
+      - live Kimi Agent SDK verification remains environment-dependent
 
 local_verification:
   python_full:
@@ -566,11 +621,13 @@ local_verification:
       remote_ci: "CI run 27897991661 success"
 
 remaining_stability_blockers:
-  - Real CLI /attach file registration and local page/chunk context grounding landed in Sprint 009/010; Sprint 014 adds report-level claim/citation assembly; citation-quality evaluation remains open.
+  - Real CLI /attach file registration, local page/chunk context grounding, and cross-run session history context are implemented; citation-quality evaluation remains open.
+  - Embedded CLI approval continuation is implemented; gateway-mode real daemon manual pass evidence remains open.
   - Web Research Agent create/approval helpers use v1 SSE locally; browser/manual reconnect evidence remains open.
   - SDK auto-reconnect and Python async streaming landed locally; packaging/distribution hardening remains open.
   - Local RAG foundation landed; retrieval quality benchmarking, production embeddings/vector backend, and full ACL workflow remain open.
   - Deterministic portfolio/risk/scenario tools landed; real fundamentals/announcement connectors and portfolio import workflow remain open.
   - Industry report use case and agent tool landed; real fundamentals/announcement connectors, live Kimi synthesis smoke, and legacy TDX helper deletion remain open.
   - Live Kimi Vision/File Q&A smoke remains operator-environment-dependent.
+  - KimiAgentSdkBackend has mock-covered optional dependency mapping; live Kimi Agent SDK verification remains environment-dependent.
   - S015 local performance, accessibility, Kimi retry, soak protocol, and remote CI evidence landed; executed soak evidence, screen-reader manual pass, and browser/manual reconnect evidence remain open.
