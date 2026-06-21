@@ -1,0 +1,50 @@
+{
+  "SessionStart": [
+    {
+      "command": "bash .codex/hooks/session-start.sh"
+    },
+    {
+      "command": "bash .codex/hooks/detect-gaps.sh"
+    }
+  ],
+  "SessionStop": [
+    {
+      "command": "bash .codex/hooks/session-stop.sh"
+    }
+  ],
+  "PreCompact": [
+    {
+      "command": "bash .codex/hooks/pre-compact.sh"
+    }
+  ],
+  "PostCompact": [
+    {
+      "command": "bash .codex/hooks/post-compact.sh"
+    }
+  ],
+  "PreToolUse": [
+    {
+      "matcher": "Bash",
+      "command": "bash .codex/hooks/validate-commit.sh"
+    },
+    {
+      "matcher": "Bash",
+      "command": "bash .codex/hooks/validate-push.sh"
+    }
+  ],
+  "PostToolUse": [
+    {
+      "matcher": "Write|Edit|MultiEdit",
+      "command": "bash .codex/hooks/validate-skill-change.sh"
+    },
+    {
+      "matcher": "Write|Edit|MultiEdit",
+      "command": "bash .codex/hooks/validate-assets.sh"
+    }
+  ],
+  "Notification": [
+    {
+      "command": "bash .codex/hooks/notify.sh"
+    }
+  ]
+}
