@@ -48,7 +48,6 @@ PROJECT_ROADMAP_EXAMPLE = REPO_ROOT / "docs" / "examples" / "project-roadmap.exa
 GENERATE_PHASE_CHECKLISTS = REPO_ROOT / "scripts" / "generate_phase_checklists.py"
 GENERATE_GATE_REQUIRED = REPO_ROOT / "scripts" / "generate_gate_required_sections.py"
 DOC_COMMAND_FILES = [
-    REPO_ROOT / "README.md",
     REPO_ROOT / "docs" / "START-HERE.md",
     QUICK_START,
     USER_MANUAL,
@@ -657,15 +656,6 @@ def check_customer_delivery_contract() -> list[Finding]:
         if snippet not in customer_acceptance:
             findings.append(Finding("ERROR", f"{rel(CUSTOMER_ACCEPTANCE)} omits release validation step: {snippet}"))
 
-    readme_text = (REPO_ROOT / "README.md").read_text(encoding="utf-8", errors="replace")
-    for snippet in [
-        "Latest release:",
-        "releases/tag/",
-        "Template Consistency on Ubuntu, macOS, and Windows",
-    ]:
-        if snippet not in readme_text:
-            findings.append(Finding("ERROR", f"README.md omits stable release visibility: {snippet}"))
-
     setup_requirements = (REPO_ROOT / "docs" / "reference" / "setup-requirements.md").read_text(
         encoding="utf-8",
         errors="replace",
@@ -756,7 +746,7 @@ def check_user_manual_contract() -> list[Finding]:
         "docs/START-HERE.md",
         "docs/WORKFLOW-GUIDE.md",
         "53 specialized agents",
-        "74 slash-command skills",
+        "78 slash-command skills",
         "/constitute",
         "/project-stage-detect",
         "/help",
@@ -780,7 +770,6 @@ def check_user_manual_contract() -> list[Finding]:
             findings.append(Finding("ERROR", f"{rel(USER_MANUAL)} omits user manual contract: {snippet}"))
 
     entry_docs = [
-        REPO_ROOT / "README.md",
         REPO_ROOT / "docs" / "START-HERE.md",
         QUICK_START,
         WORKFLOW_GUIDE,
@@ -820,7 +809,6 @@ def check_status_dashboard_contract() -> list[Finding]:
         findings.append(Finding("ERROR", f"missing project roadmap example: {rel(PROJECT_ROADMAP_EXAMPLE)}"))
 
     docs_to_check = [
-        REPO_ROOT / "README.md",
         REPO_ROOT / "docs" / "START-HERE.md",
         CUSTOMER_ACCEPTANCE,
         USER_MANUAL,
@@ -832,7 +820,7 @@ def check_status_dashboard_contract() -> list[Finding]:
         text = path.read_text(encoding="utf-8", errors="replace")
         if "/cdd-status" not in text:
             findings.append(Finding("ERROR", f"{rel(path)} must mention /cdd-status"))
-    for path in [REPO_ROOT / "README.md", REPO_ROOT / "docs" / "START-HERE.md", CUSTOMER_ACCEPTANCE]:
+    for path in [REPO_ROOT / "docs" / "START-HERE.md", CUSTOMER_ACCEPTANCE, QUICK_START, USER_MANUAL]:
         text = path.read_text(encoding="utf-8", errors="replace")
         if "docs/examples/project-roadmap.example.md" not in text:
             findings.append(Finding("ERROR", f"{rel(path)} must reference docs/examples/project-roadmap.example.md"))
@@ -842,7 +830,7 @@ def check_status_dashboard_contract() -> list[Finding]:
 def check_memory_bank_entrypoint_contract() -> list[Finding]:
     findings: list[Finding] = []
 
-    readme_path = REPO_ROOT / "README.md"
+    readme_path = QUICK_START
     readme_text = readme_path.read_text(encoding="utf-8", errors="replace")
     for snippet in [
         "memory_bank/",
@@ -1379,16 +1367,6 @@ def check_skill_count_contract() -> list[Finding]:
 
     checks = [
         (
-            REPO_ROOT / "README.md",
-            [
-                re.compile(r"(\d+)\s+skills"),
-                re.compile(r"skills-(\d+)"),
-                re.compile(r"\|\s*\*\*Skills\*\*\s*\|\s*(\d+)\s*\|"),
-                re.compile(r"all\s+(\d+)\s+skills"),
-                re.compile(r"skills/\s+#\s+(\d+)\s+slash commands"),
-            ],
-        ),
-        (
             QUICK_START,
             [
                 re.compile(r"skills/\s+--\s+(\d+)\s+slash command definitions"),
@@ -1467,7 +1445,6 @@ def check_skill_count_contract() -> list[Finding]:
                     )
 
     stale_count_docs = [
-        REPO_ROOT / "README.md",
         REPO_ROOT / "CHANGELOG.md",
         REPO_ROOT / "docs" / "START-HERE.md",
         QUICK_START,
@@ -1492,7 +1469,7 @@ def check_skill_count_contract() -> list[Finding]:
             if pattern.search(text):
                 findings.append(Finding("ERROR", f"{rel(path)} keeps stale skill count wording: {pattern.pattern}"))
 
-    for path in [REPO_ROOT / "README.md", SKILLS_REFERENCE]:
+    for path in [SKILLS_REFERENCE]:
         text = path.read_text(encoding="utf-8", errors="replace")
         commands = {match.group(0) for match in COMMAND_REF.finditer(text)}
         missing = sorted(known_commands - commands)
@@ -1686,7 +1663,7 @@ def check_skill_testing_memory_bank_contract() -> list[Finding]:
             if legacy_name in text:
                 findings.append(Finding("ERROR", f"{rel(path)} still references removed testing framework path"))
 
-    for doc_path in [REPO_ROOT / "README.md", USER_MANUAL, QUICK_START]:
+    for doc_path in [USER_MANUAL, QUICK_START, SKILLS_REFERENCE]:
         text = doc_path.read_text(encoding="utf-8", errors="replace")
         for snippet in [
             "skill_testing/",
@@ -1840,7 +1817,6 @@ def check_skill_user_guide_contract() -> list[Finding]:
                 break
 
     docs_to_check = [
-        REPO_ROOT / "README.md",
         USER_MANUAL,
         QUICK_START,
     ]
@@ -1869,13 +1845,6 @@ def check_template_count_contract() -> list[Finding]:
     findings: list[Finding] = []
     actual = sum(1 for path in TEMPLATES_DIR.rglob("*") if path.is_file())
     checks = [
-        (
-            REPO_ROOT / "README.md",
-            [
-                re.compile(r"\|\s*\*\*Templates\*\*\s*\|\s*(\d+)\s*\|"),
-                re.compile(r"(\d+)\s+document templates"),
-            ],
-        ),
         (
             QUICK_START,
             [

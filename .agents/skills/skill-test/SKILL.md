@@ -155,7 +155,7 @@ Recommended: Add a "Follow-Up Actions" section at the end of the skill.
 
 For `static all`, produce a summary table then list any non-compliant skills:
 ```
-=== Skill Static Check: All 74 Skills ===
+=== Skill Static Check: All 78 Skills ===
 
 Skill                  | Result       | Issues
 -----------------------|--------------|-------
@@ -382,8 +382,8 @@ For each agent in catalog's `agents:` section:
 === Skill Test Coverage Audit ===
 Date: [date]
 
-SKILLS (74 total)
-Specs written: 74 (100%) | Never static tested: 74 | Never category tested: 74
+SKILLS (78 total)
+Specs written: 78 (100%) | Never static tested: 78 | Never category tested: 78
 
 Skill                  | Cat      | Has Spec | Last Static | S.Result | Last Cat | D.Result | Priority
 -----------------------|----------|----------|-------------|----------|----------|----------|----------
@@ -403,7 +403,7 @@ technical-director     | director   | YES      | never       | —
 Top 5 Priority Gaps (skills with no spec, critical/high priority):
 (none if all specs are written)
 
-Skill coverage:  74/74 specs (100%)
+Skill coverage:  78/78 specs (100%)
 Agent coverage:  53/53 specs (100%)
 ```
 

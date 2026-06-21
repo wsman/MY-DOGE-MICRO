@@ -1,6 +1,10 @@
 # Available Skills (Slash Commands)
 
-74 slash commands organized by phase. Type `/` in Claude Code to access any of them.
+78 slash commands organized by phase. Type `/` in Claude Code to access any of them.
+
+Skill testing source material lives in `skill_testing/`. Project-specific
+skill-test evidence and improvement history belongs under
+`memory_bank/t3_archive/skill_testing`.
 
 ## Onboarding & Navigation
 
@@ -91,6 +95,15 @@
 | `/test-flakiness` | Detect non-deterministic (flaky) tests from CI run logs |
 | `/skill-test` | Validate skill files for structural compliance and behavioral correctness |
 | `/skill-improve` | Improve skill files while preserving existing Game content and adding Product parity where needed |
+
+## Product Query Skills
+
+| Command | Purpose |
+|---------|---------|
+| `/stock` | Query one ticker's recent OHLCV data and technical indicators through `doge stock` |
+| `/rsrs` | Query RSRS momentum rankings through `doge rsrs` |
+| `/breadth` | Query market breadth and participation through `doge breadth` |
+| `/anomaly` | Query unusual volume/volume-ratio rankings through `doge anomaly` |
 
 ## Production
 

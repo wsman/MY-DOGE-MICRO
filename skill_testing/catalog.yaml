@@ -372,6 +372,26 @@ registry:
       priority: low
       spec: skill_testing/specs/skills/utility/day-one-patch.md
 
+    - name: anomaly
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/anomaly.md
+
+    - name: breadth
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/breadth.md
+
+    - name: rsrs
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/rsrs.md
+
+    - name: stock
+      category: utility
+      priority: low
+      spec: skill_testing/specs/skills/utility/stock.md
+
   agents:
     - name: creative-director
       tier: director

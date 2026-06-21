@@ -26,7 +26,7 @@ skill_testing/
 
 ## Responsibilities
 
-- `catalog.yaml` is the registry for all 74 skills and 53 agents.
+- `catalog.yaml` is the registry for all 78 skills and 53 agents.
 - `quality-rubric.md` defines category-specific pass/fail expectations for
   `/skill-test category`.
 - `specs/skills/` stores one behavioral spec per slash-command skill.
