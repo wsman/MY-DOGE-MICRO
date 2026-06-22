@@ -59,6 +59,42 @@ describe('DogeClient', () => {
     )
   })
 
+  it('reads run summary resources from v1 API', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ summary: { summary_id: 'sum-1' } }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ claims: [{ claim_id: 'claim-1' }] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ citations: [{ citation_id: 'cit-1' }] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ eval: { coverage_ratio: 1 } }),
+      })
+    vi.stubGlobal('fetch', fetchMock)
+    const client = new DogeClient()
+
+    const summary = await client.runs.summary('run-test')
+    const claims = await client.runs.claims('run-test')
+    const citations = await client.runs.citations('run-test')
+    const evaluation = await client.runs.evaluation('run-test')
+
+    expect(summary.summary_id).toBe('sum-1')
+    expect(claims[0].claim_id).toBe('claim-1')
+    expect(citations[0].citation_id).toBe('cit-1')
+    expect(evaluation.coverage_ratio).toBe(1)
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/v1/runs/run-test/summary', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/v1/runs/run-test/claims', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(3, '/v1/runs/run-test/citations', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(4, '/v1/runs/run-test/eval', expect.objectContaining({ method: 'GET' }))
+  })
+
   it('reconnects run streams with Last-Event-ID', async () => {
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
@@ -160,6 +196,91 @@ describe('DogeClient', () => {
     expect(document.document_id).toBe('doc-1')
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/v1/documents?limit=100', expect.objectContaining({ method: 'GET' }))
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/v1/documents/doc-1', expect.objectContaining({ method: 'GET' }))
+  })
+
+  it('uses platform and capability resources', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ workspace_id: 'w-1' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ projects: [{ project_id: 'p-1' }] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ case_id: 'case-1', run_id: 'run-test' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ case_id: 'case-1', run_id: 'run-from-template', template_id: 'tpl-1' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ template_id: 'tpl-1' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ capabilities: [{ capability_id: 'maturity.production_ready' }] }),
+      })
+    vi.stubGlobal('fetch', fetchMock)
+    const client = new DogeClient()
+
+    const workspace = await client.platform.createWorkspace('Desk')
+    const projects = await client.platform.listProjects({ workspaceId: 'w-1', limit: 10 })
+    const link = await client.platform.linkResearchCaseRun('case-1', 'run-test')
+    const templateRun = await client.platform.createResearchCaseRunFromTemplate('case-1', 'tpl-1', {
+      question: 'Analyze NVDA',
+      modelPolicy: { max_tool_rounds: 3 },
+      inputs: { ticker: 'NVDA' },
+    })
+    const template = await client.platform.createWorkflowTemplate('stock', 'Stock')
+    const capabilities = await client.capabilities.list()
+
+    expect(workspace.workspace_id).toBe('w-1')
+    expect(projects[0].project_id).toBe('p-1')
+    expect(link.run_id).toBe('run-test')
+    expect(templateRun.run_id).toBe('run-from-template')
+    expect(template.template_id).toBe('tpl-1')
+    expect(capabilities[0].capability_id).toBe('maturity.production_ready')
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      '/v1/workspaces',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ name: 'Desk', description: '' }) }),
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/v1/projects?workspace_id=w-1&limit=10', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      '/v1/research-cases/case-1/runs',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ run_id: 'run-test', link_type: 'primary' }) }),
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      4,
+      '/v1/research-cases/case-1/runs',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          template_id: 'tpl-1',
+          question: 'Analyze NVDA',
+          model_policy: { max_tool_rounds: 3 },
+          inputs: { ticker: 'NVDA' },
+          workflow: undefined,
+          session_id: undefined,
+          market: 'us',
+          language: 'en',
+          document_ids: [],
+          portfolio_id: undefined,
+          link_type: 'primary',
+        }),
+      }),
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      5,
+      '/v1/workflow-templates',
+      expect.objectContaining({ method: 'POST' }),
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(6, '/v1/capabilities', expect.objectContaining({ method: 'GET' }))
   })
 
   it('uploads documents as multipart form data without forcing json headers', async () => {

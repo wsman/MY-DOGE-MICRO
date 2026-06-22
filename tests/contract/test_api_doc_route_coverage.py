@@ -103,9 +103,9 @@ class TestApiDocRouteCoverage:
     def test_doc_route_table_has_expected_row_count(self):
         # Arrange/Act
         doc_routes = _parse_doc_routes()
-        # Assert — canonical enumeration: 34 legacy routes + 24 v1/daemon routes.
-        assert len(doc_routes) == 58, (
-            f"docs/API.md route table should enumerate exactly 58 product "
+        # Assert — canonical enumeration: 34 legacy routes + 42 v1/daemon routes.
+        assert len(doc_routes) == 76, (
+            f"docs/API.md route table should enumerate exactly 76 product "
             f"routes, found {len(doc_routes)}: {sorted(doc_routes)}"
         )
 

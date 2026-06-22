@@ -280,3 +280,100 @@ def test_python_sdk_documents_get():
     document = client.documents.get("doc-1")
 
     assert document["document_id"] == "doc-1"
+
+
+def test_python_sdk_run_summary_platform_and_capability_resources():
+    seen = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/v1/runs/run-1/summary":
+            return httpx.Response(200, json={"summary": {"summary_id": "sum-1"}})
+        if request.url.path == "/v1/runs/run-1/claims":
+            return httpx.Response(200, json={"claims": [{"claim_id": "claim-1"}]})
+        if request.url.path == "/v1/runs/run-1/citations":
+            return httpx.Response(200, json={"citations": [{"citation_id": "cit-1"}]})
+        if request.url.path == "/v1/runs/run-1/eval":
+            return httpx.Response(200, json={"eval": {"coverage_ratio": 1.0}})
+        if request.url.path == "/v1/workspaces" and request.method == "POST":
+            seen["workspace_body"] = json.loads(request.content.decode("utf-8"))
+            return httpx.Response(201, json={"workspace_id": "w-1"})
+        if request.url.path == "/v1/projects" and request.method == "GET":
+            seen["project_query"] = dict(request.url.params)
+            return httpx.Response(200, json={"projects": [{"project_id": "p-1"}]})
+        if request.url.path == "/v1/research-cases/case-1/runs":
+            body = json.loads(request.content.decode("utf-8"))
+            if "template_id" in body:
+                seen["template_run_body"] = body
+                return httpx.Response(
+                    201,
+                    json={"case_id": "case-1", "run_id": "run-from-template", "template_id": "tpl-1"},
+                )
+            seen["case_run_body"] = body
+            return httpx.Response(201, json={"case_id": "case-1", "run_id": "run-1"})
+        if request.url.path == "/v1/workflow-templates" and request.method == "POST":
+            seen["template_body"] = json.loads(request.content.decode("utf-8"))
+            return httpx.Response(201, json={"template_id": "tpl-1"})
+        if request.url.path == "/v1/capabilities":
+            return httpx.Response(200, json={"capabilities": [{"capability_id": "maturity.production_ready"}]})
+        return httpx.Response(404, json={"error": {"message": "not found"}})
+
+    client = DogeClient(base_url="http://testserver", transport=httpx.MockTransport(handler))
+
+    assert client.runs.summary("run-1")["summary_id"] == "sum-1"
+    assert client.runs.claims("run-1")[0]["claim_id"] == "claim-1"
+    assert client.runs.citations("run-1")[0]["citation_id"] == "cit-1"
+    assert client.runs.evaluation("run-1")["coverage_ratio"] == 1.0
+    assert client.platform.create_workspace("Desk")["workspace_id"] == "w-1"
+    assert client.platform.list_projects(workspace_id="w-1", limit=10)[0]["project_id"] == "p-1"
+    assert client.platform.link_research_case_run("case-1", "run-1")["run_id"] == "run-1"
+    assert client.platform.create_research_case_run_from_template(
+        "case-1",
+        "tpl-1",
+        question="Analyze NVDA",
+        model_policy={"max_tool_rounds": 3},
+        inputs={"ticker": "NVDA"},
+    )["run_id"] == "run-from-template"
+    assert client.platform.create_workflow_template("stock", "Stock")["template_id"] == "tpl-1"
+    assert client.capabilities.list()[0]["capability_id"] == "maturity.production_ready"
+    assert seen["workspace_body"] == {"name": "Desk", "description": ""}
+    assert seen["project_query"] == {"limit": "10", "workspace_id": "w-1"}
+    assert seen["case_run_body"] == {"run_id": "run-1", "link_type": "primary"}
+    assert seen["template_run_body"]["template_id"] == "tpl-1"
+    assert seen["template_run_body"]["model_policy"] == {"max_tool_rounds": 3}
+    assert seen["template_run_body"]["inputs"] == {"ticker": "NVDA"}
+    assert seen["template_body"]["input_schema"] == {}
+
+
+@pytest.mark.asyncio
+async def test_async_python_sdk_run_summary_platform_and_capability_resources():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/v1/runs/run-1/summary":
+            return httpx.Response(200, json={"summary": {"summary_id": "sum-1"}})
+        if request.url.path == "/v1/workspaces" and request.method == "GET":
+            return httpx.Response(200, json={"workspaces": [{"workspace_id": "w-1"}]})
+        if request.url.path == "/v1/research-cases/case-1/runs" and request.method == "POST":
+            return httpx.Response(
+                201,
+                json={"case_id": "case-1", "run_id": "run-from-template", "template_id": "tpl-1"},
+            )
+        if request.url.path == "/v1/capabilities":
+            return httpx.Response(200, json={"capabilities": [{"capability_id": "provider.kimi"}]})
+        return httpx.Response(404, json={"error": {"message": "not found"}})
+
+    async with AsyncDogeClient(
+        base_url="http://testserver",
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        summary = await client.runs.summary("run-1")
+        workspaces = await client.platform.list_workspaces()
+        template_run = await client.platform.create_research_case_run_from_template(
+            "case-1",
+            "tpl-1",
+            question="Analyze NVDA",
+        )
+        capabilities = await client.capabilities.list()
+
+    assert summary["summary_id"] == "sum-1"
+    assert workspaces[0]["workspace_id"] == "w-1"
+    assert template_run["run_id"] == "run-from-template"
+    assert capabilities[0]["capability_id"] == "provider.kimi"

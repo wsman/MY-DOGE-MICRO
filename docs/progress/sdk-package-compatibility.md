@@ -66,3 +66,40 @@ Local SDK package compatibility is complete. Registry publication, package name
 ownership, changelog/version policy, and external consumer compatibility remain
 release-management decisions, not local code blockers. The approval packet is
 recorded at `docs/progress/sdk-release-approval-packet.md`.
+
+## Platform API Extension Addendum
+
+Updated: 2026-06-22
+
+The local SDK source now includes feature-flagged helpers for platformization:
+
+- Python `DogeClient` and `AsyncDogeClient`: `runs.summary`, `runs.claims`,
+  `runs.citations`, `runs.evaluation`, `platform.*`,
+  `platform.create_research_case_run_from_template`, and `capabilities.*`.
+- TypeScript `DogeClient`: matching run summary helpers plus camelCase
+  platform helpers including `createResearchCaseRunFromTemplate`, and
+  capability discovery.
+
+Verification in this session:
+
+- `.\.venv\Scripts\python.exe -m pytest tests\contract\test_python_sdk.py -q`
+  - PASS: `15 passed`.
+- `.\.venv\Scripts\python.exe -m pytest tests\contract\test_python_sdk.py tests\contract\test_api_doc_route_coverage.py -q`
+  - PASS: `22 passed`.
+- `cd packages/doge-sdk-typescript && npm test`
+  - PASS: `1 file, 13 tests`.
+- `cd packages/doge-sdk-typescript && npm run build`
+  - PASS.
+- `cd packages/doge-sdk-typescript && npm pack --dry-run --json`
+  - PASS: dry-run package contains `dist/*` and `package.json`, package size
+    `4954` bytes, unpacked size `21043` bytes, entry count `11`.
+- `.\.venv\Scripts\python.exe -m pip wheel packages\doge-sdk-python --no-deps`
+  - PASS: built `doge_sdk-0.1.0-py3-none-any.whl` after the earlier parallel
+    wheel/smoke file-lock race was rerun sequentially.
+- `.\.venv\Scripts\python.exe scripts\sdk_external_consumer_smoke.py --node-path C:\Users\Aby\AppData\Local\Temp\codex-node-v24.17.0\node-v24.17.0-win-x64 --workspace .tmp\sdk-external-consumer-smoke-platform --output-dir production\qa\evidence\sdk`
+  - PASS: Python clean-venv install/import and TypeScript clean Node ESM
+    import. Evidence updated at
+    `production/qa/evidence/sdk/sdk-external-consumer-smoke.json`.
+
+Release approval remains open until a release manager approves registry target,
+ownership, version/changelog policy, and registry-backed publication evidence.
