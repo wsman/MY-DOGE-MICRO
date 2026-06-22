@@ -173,6 +173,9 @@ last_updated: "2026-06-22"
 # scripts/validate_kimi_plan_completion_audit.py keeps the source-plan audit
 # aligned with the six-gate manifest: five controlled-open gates plus the
 # passed S017-006 gate.
+# scripts/validate_glowing_weaving_kettle_completion_audit.py keeps the
+# follow-on platformization audit aligned with the same external gate posture:
+# Track B local completion does not close Track A evidence gates.
 # scripts/preflight_plan_closure_external.py now checks manifest freshness,
 # script/output/template readiness, required external inputs, optional Agent SDK
 # readiness, handoff workspace validity, and edited draft-input readiness without
@@ -351,7 +354,7 @@ sprints:
   - id: S017
     name: "External Validation And Provider Hardening"
     plan: production/sprints/sprint-017-external-validation-and-provider-hardening.md
-    qa_plan: null
+    qa_plan: production/qa/qa-plan-sprint-017.md
     start: null
     status: planned
     source: "Sprint 016 closure transfer"

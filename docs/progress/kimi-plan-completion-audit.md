@@ -14,6 +14,41 @@ production operations evidence such as real SIEM/WORM sink sign-off.
 `production_ready` must remain `false`, and `stable_declaration` must remain
 `forbidden`.
 
+## Platformization Plan Addendum
+
+Updated: 2026-06-22
+
+The follow-on platformization plan is tracked at
+`C:\Users\Aby\.claude\plans\glowing-weaving-kettle.md`. It is a Track B product
+evolution plan, not evidence that the original external closure gates are done.
+
+Local slices started in this session:
+
+- Phase 0 governance CDDs/ADRs and TR/architecture/module-index registration.
+- Feature-flagged Run Summary / Claims / Citations / Eval v1 APIs.
+- Feature-flagged Workspace / Project / Research Case / Workflow Template /
+  Capability Registry APIs.
+- Workflow Template APIs now include case-run creation from `template_id`,
+  deterministic template policy merge into `ModelPolicy`, and association-table
+  template/run linkage.
+- Capability Registry now uses provider-split collectors for feature, provider,
+  API, maturity, and default tool metadata, with tool-schema/approval parity
+  tests. `ToolApplicationService` now also supports a provider-backed
+  execution facade behind `DOGE_FEATURE_CAPABILITY_REGISTRY`, with legacy direct
+  execution retained as the default rollback path.
+- Python and TypeScript SDK source helpers for the new APIs.
+- Feature-flagged web platform shell (`VITE_DOGE_FEATURE_PLATFORM_SHELL=1`),
+  with `/research-agent` preserved as the default compatible route when the
+  shell flag is off.
+- A dedicated status audit now exists at
+  `docs/progress/glowing-weaving-kettle-completion-audit.md` to keep Track B
+  local completion separate from Track A external closure; it is checked by
+  `scripts/validate_glowing_weaving_kettle_completion_audit.py`.
+
+This addendum does not change the external closure posture: S017-002,
+S017-003, W3-live, AUTH-prod, and S017-007 remain open until real passed or
+approved evidence replaces the current blocked/template artifacts.
+
 ## Requirement Audit
 
 | Plan Area | Current Evidence | Status |
@@ -46,7 +81,9 @@ production operations evidence such as real SIEM/WORM sink sign-off.
 | Check | Result |
 |---|---|
 | S016/S017 targeted Python regression | PASS: latest redaction-augmented cross-wave runtime/API/auth/startup-gate/SDK-redaction/tenant-partition/eval/live-smoke-gated targeted set `158 passed, 6 skipped in 31.97s`; earlier tenant partition focused set `25 passed in 7.70s`; audit-retention focused set `18 passed in 5.77s`; tenant/citation ACL supplement `28 passed in 2.90s`; larger ACL/audit set passed `192 passed, 4 skipped in 26.24s`. |
-| Web/SDK automated verification | PASS: `web npm ci`; targeted Web vitest 8 passed; full Web vitest 78 passed; Web build passed; `vue-tsc --noEmit` passed; TypeScript SDK 11 tests passed and build passed. |
+| Web/SDK automated verification | PASS: local temporary Node/npm path `C:\Users\Aby\AppData\Local\Temp\codex-node-v24.17.0\node-v24.17.0-win-x64` is usable; TypeScript SDK tests passed `13 passed`, TypeScript SDK build passed, TypeScript SDK pack dry-run passed, Web full Vitest passed `81 passed`, Web default build passed, Web platform-shell flag-on build passed, and SDK external consumer smoke updated `production/qa/evidence/sdk/sdk-external-consumer-smoke.json`. |
+| Platform shell browser smoke | PASS: `production/qa/evidence/manual/platform-shell-browser-smoke-2026-06-22.json` records a headless Chromium CDP smoke with `VITE_DOGE_FEATURE_PLATFORM_SHELL=1`; observed `#/workspaces`, Workspaces view content, platform nav, and preserved Agent entry. |
+| Phase 5 capability execution facade | PASS: provider files now cover market, portfolio, research, fundamentals, quant, compliance, and publishing tools; provider/direct schema and execution parity passed `36 passed`; runtime and enterprise ACL regression passed `33 passed`; layer gates passed `65 passed, 1 warning`. |
 | Browser walkthrough | PASS: real local API walkthrough captured upload, selected document payload, `vision_analysis`, portfolio import, run/SSE completion, approval path, timeline, and cost/eval panel. |
 | Browser citation drill-down fixture | PASS: populated citation drawer displayed source document, page, evidence id, and snippet. |
 | Research Agent doged reconnect | PASS: real local doged + Vite + Chrome smoke forced the first SSE stream to disconnect after event id `1`, reconnected with `Last-Event-ID: 1`, continued approval with `Last-Event-ID: 14`, and finished `completed` with one terminal artifact event. |

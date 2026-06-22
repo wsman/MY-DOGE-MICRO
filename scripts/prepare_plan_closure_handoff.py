@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -25,6 +26,40 @@ DEFAULT_OUTPUT_ROOT = (
     / "handoffs"
 )
 SCHEMA = "doge.plan_closure_handoff_workspace.v1"
+
+TASK_GUIDE_FOCUS = {
+    "S017-002": [
+        "Confirm the operator-approved credential and spend window before running live Kimi.",
+        "Set DOGE_LIVE_KIMI=1 and MOONSHOT_API_KEY in the environment only.",
+        "Set DOGE_LIVE_KIMI_AGENT_SDK=1 only if the Agent SDK live path is approved for this run.",
+        "Do not copy API keys, raw provider responses, or other secrets into the handoff workspace.",
+    ],
+    "S017-003": [
+        "Record provider decisions for every listed capability, license scope, fixture storage, freshness, and provenance item.",
+        "Use result=approved only when the product/operator reviewer has signed off.",
+        "Use needs_revision or rejected when any capability, license, provenance, or reviewer requirement is unresolved.",
+    ],
+    "W3-live": [
+        "Use real materials, human citation labels, approved thresholds, and live Kimi observations.",
+        "Keep live observations redacted and reference the material, label, policy, and trend-history manifests.",
+        "Replace <initials> with the approved analyst initials before running the builder.",
+    ],
+    "AUTH-prod": [
+        "Validate against operator-approved IdP/JWKS, secret-store command, SIEM/WORM sink, and remote deployment evidence.",
+        "Include data-isolation review evidence and keep redaction/security-review flags explicit.",
+        "Use failed when any production dependency or isolation check is incomplete.",
+    ],
+    "S017-006": [
+        "This gate is already passed; rerun only when replacing the accepted manual evidence.",
+        "Record the approved screen reader/browser combination, AX-tree observations, and pass/fail notes.",
+        "Use failed if any required manual accessibility observation does not pass.",
+    ],
+    "S017-007": [
+        "Record registry target, package-name ownership, version/changelog policy, and release-manager sign-off.",
+        "Use a registry-backed consumer smoke result; local-only package checks do not approve release.",
+        "Use needs_revision or rejected when registry, ownership, smoke, or sign-off evidence is incomplete.",
+    ],
+}
 
 
 def prepare_handoff_workspace(
@@ -74,6 +109,7 @@ def _prepare_task(task: dict[str, Any], *, workspace: Path, date: str) -> dict[s
     task_id = str(task["id"])
     handoff = task.get("handoff", {})
     input_dir = workspace / "inputs" / _safe_name(task_id)
+    input_dir.mkdir(parents=True, exist_ok=True)
     prepared_inputs = []
     for template in handoff.get("input_templates", []):
         source = _repo_path(template)
@@ -81,12 +117,28 @@ def _prepare_task(task: dict[str, Any], *, workspace: Path, date: str) -> dict[s
             raise ValueError(f"missing input template: {template}")
         destination = input_dir / _draft_name(source.name, date)
         destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(source, destination)
+        source_sha256 = _sha256_file(source)
+        if destination.exists():
+            prepared_sha256 = _sha256_file(destination)
+            differs_from_source_template = prepared_sha256 != source_sha256
+            action = (
+                "preserved_existing_operator_draft"
+                if differs_from_source_template
+                else "preserved_existing_template_draft"
+            )
+        else:
+            shutil.copyfile(source, destination)
+            prepared_sha256 = source_sha256
+            differs_from_source_template = False
+            action = "copied_template_for_operator_edit"
         prepared_inputs.append(
             {
                 "source_template": template,
+                "source_template_sha256": source_sha256,
                 "prepared_input": _display_path(destination),
-                "action": "copied_template_for_operator_edit",
+                "prepared_input_sha256": prepared_sha256,
+                "differs_from_source_template": differs_from_source_template,
+                "action": action,
             }
         )
 
@@ -95,7 +147,8 @@ def _prepare_task(task: dict[str, Any], *, workspace: Path, date: str) -> dict[s
         prepared_inputs=prepared_inputs,
         date=date,
     )
-    return {
+    guide_path = input_dir / "operator-input-guide.md"
+    task_payload = {
         "id": task_id,
         "title": task["title"],
         "current_status": task["current_status"],
@@ -113,7 +166,10 @@ def _prepare_task(task: dict[str, Any], *, workspace: Path, date: str) -> dict[s
         "workspace_command_plan": command_plan,
         "output_ref": handoff.get("output_ref"),
         "close_condition": handoff.get("close_condition"),
+        "operator_input_guide": _display_path(guide_path),
     }
+    guide_path.write_text(_render_operator_input_guide(task_payload), encoding="utf-8")
+    return task_payload
 
 
 def _workspace_command_plan(
@@ -255,13 +311,16 @@ def _render_readme(payload: dict[str, Any]) -> str:
                 f"- Output ref: `{task['output_ref']}`",
                 f"- Validator: `{task['validator_command']}`",
                 f"- Builder/runner: `{task['build_or_run_command']}`",
+                f"- Operator input guide: `{task['operator_input_guide']}`",
             ]
         )
         if task["prepared_inputs"]:
             lines.append("- Prepared draft inputs:")
             for prepared in task["prepared_inputs"]:
                 lines.append(
-                    f"  - `{prepared['prepared_input']}` from `{prepared['source_template']}`"
+                    f"  - `{prepared['prepared_input']}` from `{prepared['source_template']}` "
+                    f"(action: `{prepared['action']}`, "
+                    f"differs_from_source_template: `{prepared['differs_from_source_template']}`)"
                 )
         else:
             lines.append("- Prepared draft inputs: none; use the listed env/input refs.")
@@ -301,11 +360,12 @@ def _render_operator_checklist(payload: dict[str, Any]) -> str:
         "",
         "## Quick Start",
         "",
-        "1. Fill only the draft inputs for the gate you are executing.",
-        "2. Run preflight for that gate through the generated command file.",
-        "3. Run the generated builder or live runner.",
-        "4. Run the strict validator for the produced evidence.",
-        "5. Run the final strict closure gate only after all six gates have real evidence.",
+        "1. Open the gate's `operator-input-guide.md` under `inputs/<gate-id>/`.",
+        "2. Fill only the draft inputs for the gate you are executing.",
+        "3. Run preflight for that gate through the generated command file.",
+        "4. Run the generated builder or live runner.",
+        "5. Run the strict validator for the produced evidence.",
+        "6. Run the final strict closure gate only after all six gates have real evidence.",
         "",
         "Example single-gate command:",
         "",
@@ -350,6 +410,72 @@ def _render_operator_checklist(payload: dict[str, Any]) -> str:
             "- Redaction and security-review flags must be explicit `false`; missing flags do not pass preflight or strict validation.",
             "- Completed evidence belongs in the production evidence folders listed above, not inside this workspace.",
             "- The final gate must keep `production_ready: false` and `stable_declaration: forbidden` until a separate promotion review changes them.",
+        ]
+    )
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _render_operator_input_guide(task: dict[str, Any]) -> str:
+    plan = task["workspace_command_plan"]
+    resolved_output = plan.get("resolved_output_ref") or task.get("output_ref")
+    lines = [
+        f"# Operator Input Guide - {task['id']}: {task['title']}",
+        "",
+        "This guide does not close gates. It explains how to prepare real",
+        "operator inputs for one external closure gate.",
+        "",
+        "Do not place secrets, API keys, raw sensitive documents, or completed",
+        "evidence outputs in this handoff workspace.",
+        "",
+        "## Gate Contract",
+        "",
+        f"- Required result: `{', '.join(task['required_results'])}`",
+        f"- Current status: `{task['current_status']}` / `{task['current_result']}`",
+        f"- Close condition: {task['close_condition']}",
+        f"- Completed evidence belongs in: `{resolved_output}`",
+        f"- Strict validator: `{_validator_for_task(task)}`",
+        f"- Builder/runner: `{task['build_or_run_command']}`",
+        "",
+        "## Fill Before Running",
+        "",
+    ]
+    if task["prepared_inputs"]:
+        for prepared in task["prepared_inputs"]:
+            lines.append(
+                f"- Edit `{prepared['prepared_input']}` prepared from `{prepared['source_template']}` "
+                f"(action: `{prepared['action']}`, "
+                f"differs_from_source_template: `{prepared['differs_from_source_template']}`)."
+            )
+    else:
+        lines.append("- No draft input file is copied for this gate; set the required refs below.")
+    for input_ref in task["input_refs"]:
+        lines.append(f"- Required input ref: `{input_ref}`")
+    if plan["requires_operator_values"]:
+        lines.append(
+            "- Replace operator value placeholders: "
+            + ", ".join(f"`{value}`" for value in plan["requires_operator_values"])
+        )
+
+    lines.extend(["", "## Operator Focus", ""])
+    for item in TASK_GUIDE_FOCUS.get(task["id"], []):
+        lines.append(f"- {item}")
+
+    lines.extend(
+        [
+            "",
+            "## Run Order",
+            "",
+            f"1. From this workspace, run `powershell -ExecutionPolicy Bypass -File .\\operator-commands.ps1 -TaskId {task['id']}`.",
+            "2. That command first runs `preflight_plan_closure_external.py --require-external-inputs`.",
+            "3. It then runs the builder/runner and the strict validator for this gate.",
+            "4. Run the final strict closure gate only after every external gate has completed evidence.",
+            "",
+            "## Evidence Boundary",
+            "",
+            "- Templates and copied drafts are not evidence.",
+            "- Completed evidence belongs in the production evidence path above, not inside this workspace.",
+            "- `needs_revision`, `rejected`, `failed`, `blocked`, and `not_run` do not close gates.",
+            "- Keep `production_ready: false` and `stable_declaration: forbidden` until a separate promotion review changes them.",
         ]
     )
     return "\n".join(lines).rstrip() + "\n"
@@ -472,6 +598,7 @@ def _render_operator_commands(payload: dict[str, Any]) -> str:
             "    & $python scripts\\validate_plan_closure_manifest.py",
             "    & $python scripts\\validate_plan_closure_runbook.py",
             "    & $python scripts\\validate_kimi_plan_completion_audit.py",
+            "    & $python scripts\\validate_glowing_weaving_kettle_completion_audit.py",
             "    # Final strict gate: succeeds only when every external gate has real completed evidence.",
             "    & $python scripts\\validate_plan_closure_gate.py",
             "} else {",
@@ -545,6 +672,14 @@ def _repo_path(value: str) -> Path:
     return ROOT / Path(value.replace("\\", "/"))
 
 
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def _display_path(path: Path) -> str:
     try:
         return str(path.resolve().relative_to(ROOT.resolve()))
@@ -595,6 +730,7 @@ def main(argv: list[str] | None = None) -> int:
         "operator_checklist": payload["operator_checklist"],
         "tasks": len(payload["tasks"]),
         "prepared_inputs": sum(len(task["prepared_inputs"]) for task in payload["tasks"]),
+        "operator_input_guides": sum(1 for task in payload["tasks"] if task.get("operator_input_guide")),
         "does_not_close_gates": payload["does_not_close_gates"],
     }
     print(json.dumps(result, indent=2, sort_keys=True))

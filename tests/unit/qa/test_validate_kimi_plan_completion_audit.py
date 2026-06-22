@@ -104,7 +104,6 @@ def _audit_text_with_s017006_completed() -> str:
         if not line.startswith("| S017-006 | Research Agent screen-reader manual pass |")
     ]
     text = "\n".join(lines)
-    text = text.replace("6 controlled open gates", "5 controlled open gates")
     text = text.replace("S017-006 screen-reader manual pass, and ", "")
     text += (
         "\n\n## Completed External Items\n\n"

@@ -10,11 +10,12 @@ documents, or completed evidence outputs in the handoff workspace.
 
 ## Quick Start
 
-1. Fill only the draft inputs for the gate you are executing.
-2. Run preflight for that gate through the generated command file.
-3. Run the generated builder or live runner.
-4. Run the strict validator for the produced evidence.
-5. Run the final strict closure gate only after all six gates have real evidence.
+1. Open the gate's `operator-input-guide.md` under `inputs/<gate-id>/`.
+2. Fill only the draft inputs for the gate you are executing.
+3. Run preflight for that gate through the generated command file.
+4. Run the generated builder or live runner.
+5. Run the strict validator for the produced evidence.
+6. Run the final strict closure gate only after all six gates have real evidence.
 
 Example single-gate command:
 

@@ -3,6 +3,7 @@
 > Status: Proposed / External Dependency Backlog
 > Created: 2026-06-22
 > Source: Sprint 016 closure transfer
+> QA plan: `production/qa/qa-plan-sprint-017.md`
 
 ## Goal
 
@@ -80,6 +81,12 @@ auth boundary.
   synchronized with the current six-gate closure manifest, including required
   passing results, fallback evidence, completed-evidence patterns, and
   validator scripts.
+- `docs/progress/glowing-weaving-kettle-completion-audit.md`,
+  `scripts/validate_glowing_weaving_kettle_completion_audit.py`, and
+  `tests/unit/qa/test_validate_glowing_weaving_kettle_completion_audit.py`
+  keep the follow-on platformization plan separate from the external closure
+  gate: Track B may be locally implemented while Track A still reports
+  5 controlled-open gates and 1 passed gate.
 - `scripts/evidence_placeholders.py` and
   `tests/unit/qa/test_evidence_placeholders.py` prevent copied operator
   templates from becoming completed evidence while unresolved placeholders or

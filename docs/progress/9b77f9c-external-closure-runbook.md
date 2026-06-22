@@ -90,7 +90,8 @@ inputs under the handoff workspace and writes an operator README plus
 inputs, resolves output file date tokens to the handoff date, and records
 operator placeholders such as `$createdAt` or `<initials>`. The generated
 PowerShell file runs external-input preflight, then each builder/runner with
-its strict validator, then the manifest/runbook/final gate checks. Preflight
+its strict validator, then the manifest/runbook/completion-audit/final gate
+checks. Preflight
 rejects copied templates, invalid edited drafts, and edited drafts that still
 contain unresolved placeholder tokens such as `*-TEMPLATE`, `TEMPLATE_*`,
 `YYYY-MM-DD`, `$createdAt`, or `<...>`. It also rejects obvious unredacted

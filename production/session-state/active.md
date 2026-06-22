@@ -1,282 +1,155 @@
 # Active Session State
 
 > Living checkpoint. Gitignored. Read this first after any compaction/crash.
-> Branch: `main` · Date: 2026-06-21
+> Branch: `main` · Date: 2026-06-22
 
 ## Current Task
 
-**Sprint 015 — Release-quality polish and promotion review is locally implemented. Sprint 009-014 file, multimodal, evidence, Web SSE, SDK streaming, local RAG, deterministic finance, industry-report, and modular-migration foundations are locally implemented.**
+Implement and govern the platformization plan from
+`C:\Users\Aby\.claude\plans\glowing-weaving-kettle.md`.
 
-- S009 file metadata foundation landed locally: `Document` domain model, document repository port, SQLite document metadata migration, file upload application service, Kimi Files adapter boundary, multipart `/v1/documents`, and real CLI `/attach <path>`.
-- S010 evidence foundation landed locally: `DocumentPage`, `DocumentChunk`, `EvidenceRecord`, `IEvidenceRepository`, SQLite evidence repository, `PageExtractionService`, deterministic chunking, parser failure surfacing, and upload-triggered extraction.
-- Agent messages now support provider-neutral structured content; Kimi serialization maps base64 images to `data:image/...;base64,...`, uploaded vision files to `ms://<file_id>`, and file-Q&A extracted text to system messages.
-- `ContextBuilder` can include selected document chunks for `run.document_ids` within a character budget.
-- S011 streaming landed locally: Web Research Agent create/approval helper paths use v1 SSE instead of polling, TypeScript SDK `runs.stream` supports reconnect/backoff, Python sync stream reconnects `httpx` failures, and Python `AsyncDogeClient` supports async session/turn creation plus async SSE iteration.
-- S012 RAG landed locally: embedding/cache/vector ports, deterministic hashing embeddings, SQLite embedding/vector stores, `RAGService`, and `lookup_evidence` RAG-first plus notes fallback.
-- S013 deterministic finance tools landed locally: portfolio models/repository, seeded demo portfolio, portfolio exposure, risk approximations, rate-shock scenario analysis, `portfolio_risk`/`scenario_analysis` tools, and evidence-aware claim validation statuses.
-- S014 industry report/modular migration landed locally: `GenerateIndustryReportUseCase`, claim/citation models and SQLite repository, citation and claim-validation services, `generate_industry_report` agent tool, TDX server-list port/adapter, and canonical scan-router decoupling from direct legacy downloader imports.
-- S015 release-quality polish landed locally: performance smoke tests for document ingestion/RAG/concurrent enqueue, Kimi chat retry/rate-limit behavior, Research Agent accessibility semantics, Core Web Vitals local-app N/A decision, daemon soak protocol, and no-Stable promotion review.
-- New S010 evidence: `tests/unit/test_chunking_service.py`, `tests/unit/test_page_extraction.py`, `tests/unit/test_evidence_repository.py`, `tests/unit/core/ports/test_agent_model_port.py`, `tests/unit/infrastructure/test_kimi_client.py`, and `tests/integration/test_multimodal_chat.py`.
-- New S011 evidence: `web/src/__tests__/agentApi.spec.ts`, `web/src/__tests__/agentStore.spec.ts`, `packages/doge-sdk-typescript/src/__tests__/client.spec.ts`, and `tests/contract/test_python_sdk.py`.
-- New S012 evidence: `tests/unit/test_embedding_cache.py`, `tests/unit/test_vector_store.py`, `tests/integration/test_rag_retrieval.py`, `tests/unit/agent/test_tool_service.py`, and `tests/unit/agent/test_tool_registry.py`.
-- New S013 evidence: `tests/unit/test_portfolio_service.py`, `tests/unit/agent/test_tool_service.py`, and `tests/unit/agent/test_tool_registry.py`.
-- New S014 evidence: `tests/integration/test_industry_report.py`, `tests/unit/test_claim_repository.py`, `tests/unit/test_citation_service.py`, `tests/unit/test_claim_validation.py`, `tests/unit/infrastructure/test_tdx_server_list.py`, and `tests/contract/test_no_micro_imports_in_interface.py`.
-- New S015 evidence: `tests/performance/test_sprint_015_release_gates.py`, `web/src/views/ResearchAgentView.spec.ts`, `production/qa/performance-sprint-015.md`, `production/qa/accessibility-sprint-015.md`, `production/qa/soak-protocol-sprint-015.md`, and `production/releases/promotion-review-sprint-015-2026-06-21.md`.
-- Local S010 targeted gate: `.\.venv\Scripts\python.exe -m pytest tests/unit/test_file_upload_service.py tests/unit/test_chunking_service.py tests/unit/test_page_extraction.py tests/unit/test_evidence_repository.py tests/unit/core/ports/test_agent_model_port.py tests/unit/infrastructure/test_kimi_client.py tests/integration/test_multimodal_chat.py -q` → **23 passed in 2.57s**.
-- Local S011 targeted gates: Python SDK contract **5 passed in 0.21s**; TypeScript SDK targeted **3 passed**; Web agent targeted **4 passed**.
-- Local S012 targeted gate: `.\.venv\Scripts\python.exe -m pytest tests/unit/test_embedding_cache.py tests/unit/test_vector_store.py tests/integration/test_rag_retrieval.py tests/unit/agent/test_tool_service.py tests/unit/agent/test_tool_registry.py -q` → **13 passed in 1.30s**.
-- Local S013 targeted gate: `.\.venv\Scripts\python.exe -m pytest tests/unit/test_portfolio_service.py tests/unit/agent/test_tool_service.py tests/unit/agent/test_tool_registry.py -q` → **14 passed in 1.58s**.
-- Local S014 targeted gate: `.\.venv\Scripts\python.exe -m pytest tests/unit/test_citation_service.py tests/unit/test_claim_validation.py tests/unit/test_claim_repository.py tests/integration/test_industry_report.py tests/unit/infrastructure/test_tdx_server_list.py tests/contract/test_no_micro_imports_in_interface.py tests/unit/agent/test_tool_service.py tests/unit/agent/test_tool_registry.py tests/unit/application/contracts/test_dtos.py tests/test_api_routers.py::TestScanRouter tests/unit/interfaces/api/test_scan_local_fallback.py tests/test_tdx_adapter.py tests/unit/layer_gates/test_no_micro_under_doge.py tests/unit/layer_gates/test_api_layer_gate.py tests/unit/layer_gates/test_composition_root_location.py -q` → **91 passed in 11.83s**.
-- Local S015 targeted gate: `.\.venv\Scripts\python.exe -m pytest tests/unit/infrastructure/test_kimi_client.py tests/performance/test_sprint_015_release_gates.py -q` → **11 passed in 2.65s**.
-- Local S015 performance gate with durations: `.\.venv\Scripts\python.exe -m pytest tests/performance/test_sprint_015_release_gates.py --durations=5 -q` → **3 passed in 1.99s**.
-- Local S015 web a11y targeted gate: `cd web && npm test -- --run src/views/ResearchAgentView.spec.ts` → **1 passed**.
-- Full local Python gate: `.\.venv\Scripts\python.exe -m pytest tests/ -q` → **833 passed, 5 skipped, 11 warnings in 63.68s**.
-- Web full gate: `npm test` → **75 passed**; `npm run build` → **passed**.
-- TypeScript SDK full gate: `npm test` → **3 passed**; `npm run build` → **passed**.
-- Stable remains forbidden: live Kimi smoke, citation quality evaluation, browser/manual SSE reconnect evidence, screen-reader manual evidence, RAG quality benchmarking, real fundamentals/connectors, and legacy TDX helper deletion remain open. Remote CI and one-hour local daemon soak evidence have landed.
+The user approved all file writes and subagent parallel work for this task.
 
-Previous baseline:
+## Baseline Truth
 
-- P0.1 done: enqueue now persists `QUEUED` status and emits `RUN_QUEUED`; state machine covers `CREATED -> QUEUED -> RUNNING` and approval continuation `AWAITING_APPROVAL -> QUEUED`.
-- P0.2 done: `IAgentUnitOfWork` + `SQLiteAgentUnitOfWork` wrap idempotency reservation, run creation, turn append, queue append, and `RUN_CREATED`/`RUN_QUEUED` in one `BEGIN IMMEDIATE` transaction.
-- P0.3 done: v1 approval returns `202`/`queued` and resumes through the daemon worker; legacy `/api/agent` approval and CLI `/approve` are explicitly unsupported/deprecated instead of synchronously continuing.
-- P0.4 done: cancellation requests enter `CANCELLING`, active worker tasks are cancelled, and the worker finalizes `RUN_CANCELLED`/`CANCELLED` without writing later model/tool result events.
-- P0.5 done: `.github/workflows/ci.yml` added, local clean-install gates pass, and GitHub Actions run `27882493987` passed on `f4a0ed5`.
-- Stable follow-up guardrail: `docs/progress/runtime-stability-followup-plan.md` now tracks the non-runtime blockers required before any Stable declaration.
-- Runtime maturity remains: Level 1 Preview, Level 2 Alpha, Level 3 Experimental, Production Ready false.
+- Sprint 017 external validation is not fully closed.
+- Current closure-gate posture remains **5 open / 1 passed**:
+  - Passed: `S017-006` screen-reader manual evidence.
+  - Open: `S017-002`, `S017-003`, `W3-live`, `AUTH-prod`, `S017-007`.
+- Runtime maturity remains:
+  - `production_ready: false`
+  - `stable_declaration: forbidden`
+  - Level 3 SDK/platform posture: experimental.
+- Track A external evidence closure must not be diluted by Track B
+  platformization work.
 
-### Latest Verification
+## Completed In This Session
 
-- `.\.venv\Scripts\python.exe -m pytest tests/unit/agent/test_state_machine.py tests/unit/agent/test_unit_of_work.py tests/unit/agent/test_worker.py tests/unit/agent/test_runtime_kernel.py tests/unit/agent/test_inmemory_runtime.py tests/integration/test_daemon_worker.py tests/contract/test_v1_api.py tests/integration/test_agent_sse_stream.py tests/integration/test_event_bus_reconnect.py tests/contract/test_agent_router.py tests/cli/test_cli_session.py tests/contract/test_python_sdk.py tests/eval/test_run_eval.py tests/eval/test_failure_injection.py -q` → **48 passed in 15.28s**.
-- `.\.venv\Scripts\python.exe -m pytest tests/integration/test_daemon_worker.py -q` → **7 passed**; includes active slow-tool and slow-model cancellation proofs.
-- `.\.venv\Scripts\python.exe -m pytest tests/ -q` → **781 passed, 5 skipped, 11 warnings in 58.98s**.
-- Portable Node `v24.17.0` / npm `11.13.0` used for local Web/SDK gates.
-- `cd web && npm ci` → **passed** after syncing `web/package-lock.json`.
-- `cd web && npm test` → **73 passed**.
-- `cd web && npm run build` → **passed**.
-- `cd packages/doge-sdk-typescript && npm test` → **2 passed**.
-- `cd packages/doge-sdk-typescript && npm run build` → **passed**.
-- `actionlint .github/workflows/ci.yml` → **passed**.
-- YAML parse check for `docs/progress/runtime-maturity.yaml` and `.github/workflows/ci.yml` → **passed**.
-- Remote CI: `https://github.com/wsman/MY-DOGE-MICRO/actions/runs/27882493987` → **success** (`Python checks`, `TypeScript checks`).
+- Rewrote `C:\Users\Aby\.claude\plans\glowing-weaving-kettle.md` into a
+  two-track external-closure plus platformization plan.
+- Added Phase 0 platform CDDs and Proposed ADRs:
+  - `design/cdd/run-summary-citation-api.md`
+  - `design/cdd/workspace-project-research-case.md`
+  - `design/cdd/workflow-templates.md`
+  - `design/cdd/platform-shell-ui.md`
+  - `design/cdd/capability-registry.md`
+  - `docs/architecture/adr-0016-user-level-objects.md`
+  - `docs/architecture/adr-0017-run-summary-citation-api.md`
+  - `docs/architecture/adr-0018-workflow-template-system.md`
+  - `docs/architecture/adr-0019-capability-registry.md`
+  - `docs/architecture/adr-0020-platform-shell-ui.md`
+- Updated governance:
+  - `docs/architecture/tr-registry.yaml`: TR-059 through TR-070.
+  - `docs/registry/architecture.yaml`: systems #16-#20 and related stances.
+  - `design/cdd/module-index.md`: 20-module platformization index.
+  - `docs/progress/kimi-plan-completion-audit.md`: platformization addendum.
+- Implemented feature-flagged backend slices:
+  - `DOGE_FEATURE_RUN_SUMMARY_API`
+  - `DOGE_FEATURE_PLATFORM_OBJECTS`
+  - `DOGE_FEATURE_WORKFLOW_TEMPLATES`
+  - `DOGE_FEATURE_CAPABILITY_REGISTRY`
+- Added `/v1/runs/{run_id}/summary`, `/claims`, `/citations`, `/eval`.
+- Added `/v1/workspaces`, `/v1/projects`, `/v1/research-cases`,
+  `/v1/workflow-templates`, `/v1/capabilities`, and case-run linking.
+- Added template-to-run creation through `/v1/research-cases/{case_id}/runs`
+  with `template_id`, deterministic template policy merge into `ModelPolicy`,
+  `run_created` template metadata, and additive `workflow_template_runs`
+  association rows.
+- Added capability provider split and tool capability discovery sourced from
+  `ToolRegistry` metadata.
+- Added Phase 5 provider-backed `ToolApplicationService` execution facade for
+  market, portfolio, research, fundamental, quant, compliance, and publishing
+  tool groups behind `DOGE_FEATURE_CAPABILITY_REGISTRY`; default direct
+  execution remains the rollback path.
+- Added platform SQLite tables, domain models, repository port/adapter,
+  composition/dependency wiring, API docs, and contract/unit tests.
+- Added Python SDK sync/async helpers for run summary, platform objects,
+  workflow templates, and capability registry.
+- Added TypeScript SDK source helpers and tests for the same surface.
+- Added frontend platform data layer:
+  - `web/src/types/platform.ts`
+  - `web/src/api/platform.ts`
+  - `web/src/stores/platform.ts`
+  - `web/src/stores/platform.spec.ts`
+- Added feature-flagged web platform shell:
+  - `VITE_DOGE_FEATURE_PLATFORM_SHELL=1`
+  - views for workspace list/detail, project detail, case detail, template
+    center, run detail, and admin/capability registry.
+  - `/research-agent` remains the default route when the shell flag is off.
+- Verified Phase 4 using temporary local Node/npm and Chromium:
+  - TypeScript SDK tests/build/pack dry-run.
+  - Web full Vitest, default build, and platform-shell flag-on build.
+  - Browser CDP smoke evidence at
+    `production/qa/evidence/manual/platform-shell-browser-smoke-2026-06-22.json`.
 
-### Release Summary
+## Verification Snapshot
 
-| Field | Value |
-|---|---|
-| Version | **v0.2.1** |
-| Tag | annotated `e14525d` points to commit `7217821738b9d4032c8e1ba5839c7b3198638b71` |
-| Post-tag evidence | `ba883a3` (launch checklist), `3b0bc2e` (release report), `785b4e8` (active state) — tag NOT moved |
-| Branch | `cdd-adoption-2026-06-11` pushed to origin |
-| Previous release | `v0.2.0` (`ad45634`) |
-| Stage | `Release` |
-| Launch posture | **CONDITIONAL / no blockers** |
-| Deployment model | Local-first, single-operator, loopback-only |
+- Governance YAML shape: PASS, 5 files, 0 findings.
+- Plan closure gate with controlled opens:
+  - `scripts/validate_plan_closure_gate.py --allow-open`
+  - PASS result: `open`, summary 5 open / 1 passed.
+- Python SDK and route coverage:
+  - `.\.venv\Scripts\python.exe -m pytest tests\contract\test_python_sdk.py tests\contract\test_api_doc_route_coverage.py -q`
+  - PASS: `22 passed`.
+- Backend platform/run-summary targeted checks:
+  - v1/run-summary/platform contracts plus SDK/route coverage: PASS, `32 passed`.
+  - workflow-template/runtime/platform repository and run-summary/capability
+    unit checks: PASS, `24 passed`.
+  - Phase 5 capability provider/tool facade parity: PASS, `36 passed`.
+  - agent runtime and enterprise ACL regression: PASS, `33 passed`.
+  - broader targeted platform/capability/API set: PASS, `79 passed`.
+  - governance/QA set: PASS, `44 passed`.
+- TypeScript SDK:
+  - `npm test`: PASS, `13 passed`.
+  - `npm run build`: PASS.
+  - `npm pack --dry-run --json`: PASS, 11 package entries.
+- Web:
+  - `npm test`: PASS, `81 passed`.
+  - `npm run build`: PASS.
+  - `VITE_DOGE_FEATURE_PLATFORM_SHELL=1 npm run build`: PASS.
+- Flags-off/backend compatibility:
+  - PASS, `57 passed`.
+- Layer gates:
+  - PASS, `65 passed, 1 warning`.
+- Full Python unit regression:
+  - PASS, `737 passed, 2 skipped, 8 warnings`.
+- Contract/integration regression:
+  - PASS, `115 passed, 1 skipped`.
+- Eval regression:
+  - PASS, `7 passed`.
+- External closure manifest, handoff, and runbook validators:
+  - PASS; external-input preflight reports infrastructure ready but pending
+    operator inputs.
+- Dedicated plan audit:
+  - PASS; `docs/progress/glowing-weaving-kettle-completion-audit.md` is
+    checked by `scripts/validate_glowing_weaving_kettle_completion_audit.py`.
+  - Sprint 017 external-closure QA plan added:
+    `production/qa/qa-plan-sprint-017.md`.
+  - Governance/closure focused regression: PASS, `78 passed`.
+- External closure handoff hardening:
+  - `scripts/prepare_plan_closure_handoff.py --date 2026-06-22` now emits
+    six per-gate `operator-input-guide.md` files.
+  - Existing draft inputs are preserved with source/draft SHA-256 metadata:
+    `preserved_existing_template_draft` means the draft still matches its
+    template, while `preserved_existing_operator_draft` means it differs from
+    the template. Generation no longer overwrites an already-filled draft input.
+  - Handoff validator and unit tests reject missing/weak guide files, stale
+    draft hashes, and action labels that do not match file hashes.
+- Platform shell browser smoke:
+  - PASS, `#/workspaces`, Workspaces view content, platform nav, Agent entry.
+- `git diff --check`: PASS, LF/CRLF warnings only.
+- Temporary Node/npm path used:
+  `C:\Users\Aby\AppData\Local\Temp\codex-node-v24.17.0\node-v24.17.0-win-x64`.
 
-### Sign-Offs (all obtained)
+## Next Useful Work
 
-- ✅ **Producer / Product Owner** — GO
-- ✅ **QA Lead** — Approved (617/5/0 pytest, 70 vitest, demo exits 0)
-- ✅ **Release Manager** — Tag/version/artifacts aligned
-- ✅ **Security Engineer** — Secrets clean, ADR-0007 loopback guarantee enforced
-- ✅ **Technical Director** — Inferred (all ADRs Accepted, §6 gates green)
-- ✅ **Operator / Release Owner (WSMAN)** — Accepts CONDITIONAL local-first posture
+1. Re-run the closure/governance validators after the final doc updates.
+2. Keep Track A external gates open until real passed/approved evidence exists.
 
-### Artifacts
+## Do Not Forget
 
-- `production/releases/release-checklist-v0.2.1-2026-06-14.md`
-- `production/releases/launch-checklist-v0.2.1-2026-06-14.md`
-- `production/releases/release-report-v0.2.1-2026-06-14.md`
-- `CHANGELOG.md` v0.2.1 section
-
-### Deferred / Out of Scope
-
-- **ADR-0007 path 1a** auth + non-loopback CORS — remains conditionally deferred.
-- Formal a11y/Core Web Vitals audit and soak test.
-- Monitoring, alerting, crash reporting, on-call — not applicable to single-operator local product.
-- Rollback / hotfix pipeline documentation — future ops improvement.
-
-### 48-Hour Operator Observation Plan
-
-1. Pull tag, `pip install -e .`, re-run full verification suite.
-2. Smoke CLI / API / MCP surfaces.
-3. Run one end-to-end web workflow (scanner → insights → archive → ticker).
-4. Capture any regression in `production/session-logs/`; use `/hotfix` or open Sprint 007 if S1/S2.
-
-**NEXT:** No active sprint. Operator may open Sprint 007 or move to a new epic after the 48h observation window.
-
-<!-- STATUS -->
-Epic: Interview Demo — MY-DOGE Enterprise Research Copilot
-Feature: P2 Web Evidence + P3 Eval/SA Materials
-Task: implemented; pending cleanup and commit
-<!-- /STATUS -->
-
-## Latest Verification Run (2026-06-13)
-
-- `python -m pytest -q` → **514 passed, 2 skipped, 0 failed** (+6 new key-redaction regression tests; PyQt6 DLL-load fatal exception remains ADVISORY-only).
-- `pytest tests/unit/macro/test_strategist_no_key_in_logs.py -v` → **4 passed** (repr + data_loader redaction).
-- `pytest tests/cli/test_macro_cli_error_redaction.py -v` → **3 passed** (CLI error-path redaction).
-- `pytest tests/cli/test_runbook_retention_examples.py -q` → **13 passed, 1 skipped, 0 failed**.
-- `cd web && npm test` → **70 passed**.
-- `cd web && npm run build` → **green**.
-
-SSE transport test (`tests/test_transport.py::TestSseTransport::test_sse_endpoint_exists`) was failing due to a stale `.mcp_server.pid` file with 99 entries causing synchronous `wmic` subprocess calls to block the async SSE lifespan. Fixed in commit `02369b2`.
-
-## Blockers Cleared
-
-- ✅ SSE transport test stable.
-- ✅ S003-010 DeepSeek key environment verification PASS.
-- ✅ S003-002 unguided walkthrough PASS after opentdx import-guard fix.
-
-## Next Step
-
-**Sprint 003 已正式关闭为 13/13 done。**
-
-- Final close commit: `57a217a chore(sprint): S003 all 13/13 done`
-- Scanner fix + evidence commit: `5fd26ee fix(scanner): guard opentdx import ...`
-- Verification suite: 519 pytest passed / 2 skipped; web build/test green.
-
-后台进程和临时 CDP 脚本已清理。
-
-未提交工作树：
-- `production/session-logs/session-log.md`（历史审计日志，不提交）
-- `production/session-logs/compaction-log.txt`（未跟踪）
-- `production/session-state/active.md`（会话状态，本次编辑）
-
-## Orchestrator Decisions (adopted from recon recommendations)
-
-| Story | Decision |
-|---|---|
-| S002-001 RSRS sign | **zero→+1** (option A); ADR-0001 note, no new ADR |
-| S002-002 macro guards | add flat-variance + NaN guards; adopt zero→+1 |
-| S002-003 cache/metadata port | **SPLIT** → ITickerNameCache + new ITickerMetadataSource; ADR-0009 Proposed |
-| S002-004 view-service port | **INJECT-PORT** → new IMarketViewRepository + adapter + DI root; ADR-0010 Proposed |
-| S002-005 forbidden patterns | remediate 3 named sites + all sqlite3 in scan.py; route via SQLiteConnection/Settings |
-| S002-006 StorageWriteError | create class + add save_prices to IStockRepository; fix swallow in database.py + caller loops |
-| S002-007 retention | **raise to 730** (option A); MarketConfig.retention_days; fix ADR-0003 365→730 |
-| S002-008 config drift | **remove** scanner_filters from models_config.json; Settings().market single source |
-| S002-009 error envelope | global handler; **string-enum** codes (bad_request/not_found/conflict/internal_error) |
-| S002-010 SSE watchdog | 30s stall→terminal error; 0 auto-reconnect; status ref idle\|running\|error\|complete |
-| S002-011 ADR promotion | promote ADR-0002 + ADR-0005 → Accepted NOW; gate-notes for 0003/0004/0007 |
-| S002-012 @pretext | **vendor** 5 files (~3.2k LOC) into web/src/vendor/pretext/ |
-| S002-013 key→env migration | placeholder + env-primary + hard RuntimeError; drop api_key from /config; GUI requires env export |
-
-**Operator-only step:** verify `DEEPSEEK_API_KEY` is exported and `python -m macro.cli`
-runs. Forensic audit of 82 commits / 4 refs / reflog / all dangling objects confirmed
-no real DeepSeek key was ever committed to git history (`models_config.json` was
-gitignored from the initial commit). Revocation is unnecessary; only environment
-availability verification remains.
-
-## Wave 1 — COMPLETE (all 13 stories, 9 commits 61617ca→9cb71d1)
-
-Suite: **394 passed, 1 skipped, 1 xfailed**; web build green; 49 web tests; `src/doge/` grep gate clean;
-ADR-0002/0003/0005 Accepted; ADR-0004/0007/0009/0010 Proposed w/ gate-notes.
-
-Committed stories (no co-author):
-- `61617ca` S002-013 key→env (TR-015) — 15 tests; +bonus key-scrub in strategist.py
-- `fc15cb2` S002-007 retention 730 (TR-006) — 17 tests incl. BLOCKING migration
-- `e8077c9` S002-010 SSE watchdog (TR-036) — 14 web tests
-- `c6c94aa` S002-001+002 RSRS sign unify zero→+1 + macro guards (TR-016) — 51 tests
-- `d58a902` S002-003+004+006 ports split + view-service injection + StorageWriteError — 36 tests
-
-Suite: **337 passed, 1 skipped, 1 xfailed**. `src/doge/` grep gate CLEAN (no sys.path.insert).
-Key corrections found in flight: `models_config.json` is gitignored+UNTRACKED (never in git
-## Wave 2 + Wave 3 — COMPLETE (commits 785d3a7, 784ed08, d9b0e6d)
-
-**Wave 2** (785d3a7): 6 ops docs — GETTING_STARTED, API, CLI, operations-runbook, design/ux/
-seeds (README + interaction-patterns + accessibility-requirements + scanner-flow), README refresh.
-All cite shipped Wave-1 behavior. 463 tests.
-
-**Wave 3a** (784ed08): `pip install -e .` activated (doge-0.1.0; src/interface/__init__.py added).
-Batch-1 removed sys.path shims from 16 legacy modules (package-qualified imports via editable
-install; api routers kept settings-derived _PROJECT_ROOT name for test monkeypatching). Batch-4
-rewired cli.py onto the service layer (composition factories) + exit codes. 493 tests.
-
-**Wave 3b** (d9b0e6d): Batch-5 retargeted .mcp.json + all 4 launchers + test_mcp_tools/test_transport
-to the modular server (doge_mcp.py → doge.interfaces.mcp.server). Live parity probe gated it:
-caught+fixed a total-breakage bug (tool names were tool_query_stock not query_stock), migrated
-PID detection, fixed normalize_ticker + _fmt. stock_overview notes/sector block ported (parity).
-**Batch-6 (delete mcp_server.py) DEFERRED** — agent's live probe covered 2/6 tools' output parity;
-monolith retirement + test_mcp_notes_softdelete retarget deserve fresh /architecture-review.
-mcp_server.py is now unreferenced dead code (safe fallback).
-
-## Wave 4 — DONE (commit 42d3128; cleanup applied 2026-06-12)
-
-`mcp_server.py` RETIRED, `doge_mcp.py` shim removed (sole canonical MCP entrypoint), layer-gate carve-out dropped, **ADR-0009/0010 → Accepted**, docs synced. **Fresh `/gate-check` → CONCERNS** (4/4 directors CONCERNS, 0 NOT READY); user advanced `production/stage.txt`: Implementation → **Verification** with recorded risk note (commit bc3d6e2). Report: `production/gate-checks/gate-implementation-verification-2026-06-12.md`. Remaining gaps = Verification/Sprint 003 work (user-test evidence, API router DI, TDX adapter, RSRS view fix, per-view UX specs, art bible, a11y baseline) — not yet planned.
-
-**📋 Full checklist: `production/wave-4-review-readiness.md`** (tracking doc — pre-flight P1–P9,
-gate-check readiness, architecture-review readiness, deferred-items disposition, operator steps,
-fresh-session execution script). Read that file; this section is the pointer + headline.
-
-Final state (post-Wave-4): **487 pytest passed/2 skipped/6 xfailed**, web build green, 49 web tests,
-`src/` + `doge_mcp.py` sys.path gate CLEAN (0), `.mcp.json` references `mcp_server.py` ZERO times.
-Wave 4 commit `42d3128` (retire monolith + promote ADR-0009/0010 + sync docs); preceded by `3916ff9`
-(B1+B2 Batch-6 prerequisites), `4dafd97`/`52505ca` (readiness doc), `464127a` (review artifact),
-`7457735` (code-review fixes).
-
-Fresh-session gate actions (I cannot run these unbiased — I implemented the work):
-- **Session ①** `/gate-check` — phase-gate verdict + production/stage.txt advancement.
-- **Session ②** `/architecture-review` — promote ADR-0009/0010 (decisions realized, §3.1); rule on
-  Batch-6 deletion (§3.2 prerequisites B1 retarget test_mcp_notes_softdelete + B2 6-tool parity
-  test must land first); rule on the 3 known issues (§3.3); re-run adoption audit → 0/0/0.
-
-Deferred items (documented; see readiness doc §4 for full disposition):
-- Batch-6 monolith deletion (gated on B1+B2 above).
-- Full API router DI (deps.py + data/macro/analysis/main off sqlite3.connect) — §6 src/api gate
-  partially RED; API works as-is. Recommend Wave 5.
-- TDX adapter migration (tdx.py NotImplementedError → real impl) — out of Sprint scope; gates
-  ADR-0004 promotion + full tdx_downloader.py retirement. Recommend Wave 5.
-- DuckDB vw_rsrs_ranking sign-inversion — xfail-pinned; fix needs gitignored data/views.sql edit
-  + re-materialize + DDL versioning. Runbook flags it (prefer 'doge rsrs' CLI over the MCP view).
-- Operator step: verify `DEEPSEEK_API_KEY` is exported and `python -m macro.cli` works
-  (S002-013). Forensic audit confirmed no real key was ever committed to git history.
-
-## Verification Baseline (run between groups)
-
-- `python -m pytest -q` (was 218 passed + 1 skipped pre-Wave-1)
-- `cd web && npm run build` + `cd web && npm test` (was build green, vitest 32)
-- Layer grep gates (control-manifest §6): no sys.path.insert under src/doge/,
-  no sqlite3.connect/connect_duckdb in src/api routers, _PROJECT_ROOT only in settings.py.
-
-## Workflow-Agent Lessons (from prior plan, still binding)
-
-- **typescript-specialist FAILS StructuredOutput in schema workflows** (failed twice
-  before). Use general-purpose (default) agents for any web/registry/ADR authoring
-  that needs schema output. python-specialist + default agents are reliable.
-- Registry writes (entities.yaml/architecture.yaml) are BLOCKING on user approval —
-  but the baseline registries were approved last session; per-field edits within an
-  approved file for an in-flight story are part of that story's changeset (not a new
-  registry-wide approval). Surface any NEW registry entity for approval.
-- ADR lifecycle: Proposed→Accepted never skipped; only S002-011 edits ADR Status lines.
-
-## After Wave 1
-
-- Wave 2: ops docs (GETTING_STARTED/API/CLI/operations-runbook + design/ux seeds + README refresh)
-- Wave 3: MODULARIZATION batches 1/4/5/6 (recon verified: src/doge/ scaffolding complete
-  but DORMANT; live path still legacy mcp_server.py + src/cli.py + src/api routers w/ direct DB;
-  macro↔micro "cycle" is actually one-way micro→macro — plan diagram was wrong)
-- Wave 4: /gate-check + /architecture-review in FRESH sessions; adoption audit 0/0/0
-
-## Open Items / Flags
-
-- S002-010 full error.code-branching deferred until S002-009's string-enum lands.
-- S002-004 INJECT-PORT default-adapter construction must move to a composition root
-  or AC-2 (services import no infrastructure) still fails.
-- S002-013 operator must export `DEEPSEEK_API_KEY` and verify `python -m macro.cli` runs
-  before GUI/macro workflows work. No key rotation needed: forensic audit found no
-  real key in git history.
-<!-- STATUS -->
-Epic: Interview Demo — MY-DOGE Enterprise Research Copilot
-Feature: P2 Web Evidence + P3 Eval/SA Materials
-Task: implemented; pending cleanup and commit
-<!-- /STATUS -->
-
-## Session Extract — /architecture-review 2026-06-13
-
-- Verdict: CONCERNS
-- Scope: focused S003-014 review of ADR-0004 / ADR-0007 promotion or deferral eligibility
-- Requirements: no full CDD-wide TR rebuild performed; focused sprint-governance review only
-- New TR-IDs registered: None
-- CDD revision flags: None
-- Top ADR gaps: ADR-0004 TDX adapter still raises NotImplementedError; ADR-0007 CORS hardening remains deferred
-- Report: production/architecture-reviews/architecture-review-s003-014-2026-06-13.md
+- Do not mark ADR-0016 through ADR-0020 Accepted without review evidence.
+- Do not claim stable or production-ready runtime status.
+- Do not mutate existing runtime/evidence tables with nullable platform context
+  columns unless a follow-up ADR supersedes ADR-0016.
+- Preserve `/research-agent` route compatibility when working on the shell.

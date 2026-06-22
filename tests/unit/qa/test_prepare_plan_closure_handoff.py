@@ -8,6 +8,14 @@ from scripts.prepare_plan_closure_handoff import prepare_handoff_workspace
 
 ROOT = Path(__file__).resolve().parents[3]
 MANIFEST = ROOT / "production/qa/evidence/plan-closure/9b77f9c-external-closure-manifest.json"
+GATE_SLUGS = {
+    "S017-002": "s017-002",
+    "S017-003": "s017-003",
+    "W3-live": "w3-live",
+    "AUTH-prod": "auth-prod",
+    "S017-006": "s017-006",
+    "S017-007": "s017-007",
+}
 
 
 def test_prepare_plan_closure_handoff_copies_draft_inputs_without_closing_gates(tmp_path):
@@ -28,9 +36,23 @@ def test_prepare_plan_closure_handoff_copies_draft_inputs_without_closing_gates(
     assert Path(tmp_path / "handoff" / "README.md").exists()
     assert Path(tmp_path / "handoff" / "operator-checklist.md").exists()
     assert Path(tmp_path / "handoff" / "operator-commands.ps1").exists()
+    for gate_id, slug in GATE_SLUGS.items():
+        guide = tmp_path / "handoff" / "inputs" / slug / "operator-input-guide.md"
+        assert guide.exists()
+        guide_text = guide.read_text(encoding="utf-8")
+        assert gate_id in guide_text
+        assert "does not close gates" in guide_text
+        assert "Do not place secrets" in guide_text
+        assert "Completed evidence belongs in" in guide_text
+        assert "Templates and copied drafts are not evidence" in guide_text
+        assert "preflight_plan_closure_external.py --require-external-inputs" in guide_text
+        assert "operator-commands.ps1" in guide_text
 
     tasks = {task["id"]: task for task in payload["tasks"]}
     assert tasks["S017-002"]["prepared_inputs"] == []
+    assert tasks["S017-002"]["operator_input_guide"].endswith(
+        "inputs\\s017-002\\operator-input-guide.md"
+    )
     assert tasks["S017-002"]["workspace_command_plan"]["prepared_input_bindings"] == []
     assert len(tasks["W3-live"]["prepared_inputs"]) == 5
     assert len(tasks["W3-live"]["workspace_command_plan"]["prepared_input_bindings"]) == 5
@@ -57,11 +79,21 @@ def test_prepare_plan_closure_handoff_copies_draft_inputs_without_closing_gates(
     assert all("draft-2030-01-02" in path.name for path in prepared_paths)
     assert all((ROOT / path).exists() for path in prepared_paths)
     assert not any(_looks_like_completed_evidence(path.name) for path in prepared_paths)
+    prepared_items = [
+        prepared
+        for task in payload["tasks"]
+        for prepared in task["prepared_inputs"]
+    ]
+    assert all(prepared["action"] == "copied_template_for_operator_edit" for prepared in prepared_items)
+    assert all(prepared["differs_from_source_template"] is False for prepared in prepared_items)
+    assert all(len(prepared["source_template_sha256"]) == 64 for prepared in prepared_items)
+    assert all(len(prepared["prepared_input_sha256"]) == 64 for prepared in prepared_items)
 
     readme = (tmp_path / "handoff" / "README.md").read_text(encoding="utf-8")
     assert "does not close any gate" in readme
     assert payload["source_plan_check"]["sha256"] in readme
     assert "operator-commands.ps1" in readme
+    assert "operator-input-guide.md" in readme
     assert "Prepared draft inputs: none" in readme
     assert "Workspace command" in readme
     assert "Draft input bindings" in readme
@@ -73,6 +105,7 @@ def test_prepare_plan_closure_handoff_copies_draft_inputs_without_closing_gates(
     assert payload["source_plan_check"]["sha256"] in checklist
     assert "Do not place secrets" in checklist
     assert "## Quick Start" in checklist
+    assert "operator-input-guide.md" in checklist
     assert "## Task Checklist" in checklist
     assert "operator-commands.ps1" in checklist
     assert "-TaskId S017-003" in checklist
@@ -116,6 +149,7 @@ def test_prepare_plan_closure_handoff_copies_draft_inputs_without_closing_gates(
     assert "if ($TaskId -in @('all', 'S017-003'))" in operator_commands
     assert "Skipping final strict gate for single-task run" in operator_commands
     assert "validate_kimi_plan_completion_audit.py" in operator_commands
+    assert "validate_glowing_weaving_kettle_completion_audit.py" in operator_commands
     assert "validate_plan_closure_gate.py" in operator_commands
 
 
@@ -144,6 +178,34 @@ def test_prepare_plan_closure_handoff_quotes_operator_paths_with_spaces(tmp_path
     assert "--created-at \"$createdAt\"" in operator_commands
 
 
+def test_prepare_plan_closure_handoff_preserves_existing_operator_drafts(tmp_path):
+    output_dir = tmp_path / "handoff"
+    draft = output_dir / "inputs" / "s017-006" / "screen-reader-observations-draft-2030-01-02.json"
+    draft.parent.mkdir(parents=True)
+    draft.write_text('{"result": "passed", "operator": "already-filled"}\n', encoding="utf-8")
+    template_draft = output_dir / "inputs" / "s017-003" / "provider-decisions-draft-2030-01-02.json"
+    template_draft.parent.mkdir(parents=True)
+    template_draft.write_bytes(
+        (ROOT / "production/qa/evidence/provider/provider-decisions-template-2026-06-22.json").read_bytes()
+    )
+
+    payload = prepare_handoff_workspace(
+        manifest_path=MANIFEST,
+        date="2030-01-02",
+        output_dir=output_dir,
+    )
+
+    assert draft.read_text(encoding="utf-8") == '{"result": "passed", "operator": "already-filled"}\n'
+    manual_task = next(item for item in payload["tasks"] if item["id"] == "S017-006")
+    manual_input = manual_task["prepared_inputs"][0]
+    assert manual_input["action"] == "preserved_existing_operator_draft"
+    assert manual_input["differs_from_source_template"] is True
+    provider_task = next(item for item in payload["tasks"] if item["id"] == "S017-003")
+    provider_input = provider_task["prepared_inputs"][0]
+    assert provider_input["action"] == "preserved_existing_template_draft"
+    assert provider_input["differs_from_source_template"] is False
+
+
 def test_prepare_plan_closure_handoff_cli_writes_summary(tmp_path):
     script = ROOT / "scripts" / "prepare_plan_closure_handoff.py"
     output_dir = tmp_path / "operator-window"
@@ -168,6 +230,7 @@ def test_prepare_plan_closure_handoff_cli_writes_summary(tmp_path):
     summary = json.loads(result.stdout)
     assert summary["tasks"] == 6
     assert summary["prepared_inputs"] == 9
+    assert summary["operator_input_guides"] == 6
     assert summary["does_not_close_gates"] is True
     assert summary["operator_commands"].endswith("operator-commands.ps1")
     assert summary["operator_checklist"].endswith("operator-checklist.md")

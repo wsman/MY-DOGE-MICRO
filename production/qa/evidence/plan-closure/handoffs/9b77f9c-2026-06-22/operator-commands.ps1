@@ -95,6 +95,7 @@ if ($TaskId -eq 'all' -or $RunFinalGate) {
     & $python scripts\validate_plan_closure_manifest.py
     & $python scripts\validate_plan_closure_runbook.py
     & $python scripts\validate_kimi_plan_completion_audit.py
+    & $python scripts\validate_glowing_weaving_kettle_completion_audit.py
     # Final strict gate: succeeds only when every external gate has real completed evidence.
     & $python scripts\validate_plan_closure_gate.py
 } else {

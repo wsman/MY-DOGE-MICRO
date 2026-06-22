@@ -69,6 +69,30 @@ def test_validate_plan_closure_handoff_rejects_command_plan_output_inside_worksp
     assert any("resolved_output_ref must not be inside handoff workspace" in error for error in errors)
 
 
+def test_validate_plan_closure_handoff_rejects_stale_prepared_input_hash(tmp_path):
+    workspace = tmp_path / "handoff"
+    prepare_handoff_workspace(manifest_path=MANIFEST, date="2030-01-02", output_dir=workspace)
+    handoff = json.loads((workspace / "handoff.json").read_text(encoding="utf-8"))
+    handoff["tasks"][1]["prepared_inputs"][0]["prepared_input_sha256"] = "0" * 64
+    (workspace / "handoff.json").write_text(json.dumps(handoff, indent=2), encoding="utf-8")
+
+    errors = validate_workspace(workspace)
+
+    assert any("S017-003: prepared_input_sha256 does not match prepared input" in error for error in errors)
+
+
+def test_validate_plan_closure_handoff_rejects_operator_action_for_template_draft(tmp_path):
+    workspace = tmp_path / "handoff"
+    prepare_handoff_workspace(manifest_path=MANIFEST, date="2030-01-02", output_dir=workspace)
+    handoff = json.loads((workspace / "handoff.json").read_text(encoding="utf-8"))
+    handoff["tasks"][1]["prepared_inputs"][0]["action"] = "preserved_existing_operator_draft"
+    (workspace / "handoff.json").write_text(json.dumps(handoff, indent=2), encoding="utf-8")
+
+    errors = validate_workspace(workspace)
+
+    assert any("preserved_existing_operator_draft requires a draft that differs" in error for error in errors)
+
+
 def test_validate_plan_closure_handoff_rejects_missing_operator_commands(tmp_path):
     workspace = tmp_path / "handoff"
     prepare_handoff_workspace(manifest_path=MANIFEST, date="2030-01-02", output_dir=workspace)
@@ -87,6 +111,32 @@ def test_validate_plan_closure_handoff_rejects_missing_operator_checklist(tmp_pa
     errors = validate_workspace(workspace)
 
     assert any("missing operator checklist file" in error for error in errors)
+
+
+def test_validate_plan_closure_handoff_rejects_missing_operator_input_guide(tmp_path):
+    workspace = tmp_path / "handoff"
+    prepare_handoff_workspace(manifest_path=MANIFEST, date="2030-01-02", output_dir=workspace)
+    (workspace / "inputs" / "s017-003" / "operator-input-guide.md").unlink()
+
+    errors = validate_workspace(workspace)
+
+    assert any("S017-003: missing operator input guide file" in error for error in errors)
+
+
+def test_validate_plan_closure_handoff_rejects_weak_operator_input_guide(tmp_path):
+    workspace = tmp_path / "handoff"
+    prepare_handoff_workspace(manifest_path=MANIFEST, date="2030-01-02", output_dir=workspace)
+    (workspace / "inputs" / "s017-003" / "operator-input-guide.md").write_text(
+        "maybe fill a thing\n",
+        encoding="utf-8",
+    )
+
+    errors = validate_workspace(workspace)
+
+    assert any("operator input guide must state that it does not close gates" in error for error in errors)
+    assert any("operator input guide must identify completed evidence output" in error for error in errors)
+    assert any("strict external preflight" in error for error in errors)
+    assert any("operator input guide missing output ref" in error for error in errors)
 
 
 def test_validate_plan_closure_handoff_rejects_weak_operator_checklist(tmp_path):
@@ -178,6 +228,19 @@ def test_validate_plan_closure_handoff_rejects_completion_audit_after_strict_gat
     errors = validate_workspace(workspace)
 
     assert any("completion audit before the strict closure gate" in error for error in errors)
+
+
+def test_validate_plan_closure_handoff_rejects_missing_glowing_completion_audit(tmp_path):
+    workspace = tmp_path / "handoff"
+    prepare_handoff_workspace(manifest_path=MANIFEST, date="2030-01-02", output_dir=workspace)
+    commands_path = workspace / "operator-commands.ps1"
+    commands = commands_path.read_text(encoding="utf-8")
+    commands = commands.replace("    & $python scripts\\validate_glowing_weaving_kettle_completion_audit.py\n", "")
+    commands_path.write_text(commands, encoding="utf-8")
+
+    errors = validate_workspace(workspace)
+
+    assert any("glowing completion audit before the strict gate" in error for error in errors)
 
 
 def test_validate_plan_closure_handoff_cli_reports_errors(tmp_path):

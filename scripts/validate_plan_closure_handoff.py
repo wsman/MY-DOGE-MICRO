@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -23,6 +24,11 @@ COMPLETED_EVIDENCE_PREFIXES = (
     "research-agent-screen-reader-manual-",
     "sdk-release-approval-",
 )
+PREPARED_INPUT_ACTIONS = {
+    "copied_template_for_operator_edit",
+    "preserved_existing_operator_draft",
+    "preserved_existing_template_draft",
+}
 
 
 def validate_workspace(workspace: Path, *, manifest_path: Path | None = None) -> list[str]:
@@ -48,6 +54,7 @@ def validate_workspace(workspace: Path, *, manifest_path: Path | None = None) ->
 
     errors.extend(_validate_readme(workspace_dir / "README.md"))
     errors.extend(_validate_operator_checklist(payload, workspace_dir))
+    errors.extend(_validate_operator_input_guides(payload, workspace_dir))
     errors.extend(_validate_operator_commands(payload, workspace_dir))
     errors.extend(_validate_prepared_inputs(payload, manifest, workspace_dir))
     errors.extend(_validate_workspace_command_plans(payload, workspace_dir))
@@ -180,6 +187,58 @@ def _validate_operator_checklist(payload: dict[str, Any], workspace_dir: Path) -
     return errors
 
 
+def _validate_operator_input_guides(payload: dict[str, Any], workspace_dir: Path) -> list[str]:
+    errors: list[str] = []
+    for task in payload.get("tasks", []):
+        task_id = task.get("id", "<unknown>")
+        guide = task.get("operator_input_guide")
+        if not isinstance(guide, str) or not guide.strip():
+            errors.append(f"{task_id}: operator_input_guide is required")
+            continue
+        path = _resolve_path(guide)
+        if not path.exists():
+            errors.append(f"{task_id}: missing operator input guide file: {guide}")
+            continue
+        if not _is_relative_to(path.resolve(), workspace_dir.resolve()):
+            errors.append(f"{task_id}: operator input guide must stay inside workspace: {guide}")
+        text = path.read_text(encoding="utf-8")
+        required_snippets = {
+            "does not close gates": f"{task_id}: operator input guide must state that it does not close gates",
+            "Do not place secrets": f"{task_id}: operator input guide must warn against secrets",
+            "Completed evidence belongs in": f"{task_id}: operator input guide must identify completed evidence output",
+            "Templates and copied drafts are not evidence": f"{task_id}: operator input guide must reject template-as-evidence closure",
+            "preflight_plan_closure_external.py --require-external-inputs": f"{task_id}: operator input guide must mention strict external preflight",
+            "operator-commands.ps1": f"{task_id}: operator input guide must point to operator-commands.ps1",
+            "production_ready: false": f"{task_id}: operator input guide must preserve non-production posture",
+            "stable_declaration: forbidden": f"{task_id}: operator input guide must preserve stable declaration posture",
+        }
+        for snippet, message in required_snippets.items():
+            if snippet not in text:
+                errors.append(message)
+        if task_id not in text:
+            errors.append(f"{task_id}: operator input guide missing task id")
+        for result in task.get("required_results", []):
+            if str(result) not in text:
+                errors.append(f"{task_id}: operator input guide missing required result {result}")
+        plan = task.get("workspace_command_plan", {})
+        output_ref = plan.get("resolved_output_ref") or task.get("output_ref")
+        if isinstance(output_ref, str) and output_ref and output_ref not in text:
+            errors.append(f"{task_id}: operator input guide missing output ref")
+        validator = _validator_for_task(task)
+        if isinstance(validator, str) and validator and validator not in text:
+            errors.append(f"{task_id}: operator input guide missing strict validator")
+        for input_ref in task.get("input_refs", []):
+            if isinstance(input_ref, str) and input_ref and input_ref not in text:
+                errors.append(f"{task_id}: operator input guide missing input ref: {input_ref}")
+        for prepared in task.get("prepared_inputs", []):
+            if not isinstance(prepared, dict):
+                continue
+            prepared_input = prepared.get("prepared_input")
+            if isinstance(prepared_input, str) and prepared_input and prepared_input not in text:
+                errors.append(f"{task_id}: operator input guide missing prepared input: {prepared_input}")
+    return errors
+
+
 def _validate_operator_commands(payload: dict[str, Any], workspace_dir: Path) -> list[str]:
     errors: list[str] = []
     operator_commands = payload.get("operator_commands")
@@ -197,6 +256,7 @@ def _validate_operator_commands(payload: dict[str, Any], workspace_dir: Path) ->
         "--require-external-inputs": "operator commands must require external inputs",
         "validate_plan_closure_gate.py": "operator commands must include the strict closure gate",
         "validate_kimi_plan_completion_audit.py": "operator commands must validate the completion audit before the strict gate",
+        "validate_glowing_weaving_kettle_completion_audit.py": "operator commands must validate the glowing completion audit before the strict gate",
         "Do not put secrets": "operator commands must warn against secrets",
         "$repoRoot": "operator commands must define the repository root",
         "Set-Location -LiteralPath $repoRoot": "operator commands must switch to the repository root",
@@ -214,9 +274,12 @@ def _validate_operator_commands(payload: dict[str, Any], workspace_dir: Path) ->
         if snippet not in text:
             errors.append(message)
     audit_index = _first_script_index(text, "validate_kimi_plan_completion_audit.py")
+    glowing_audit_index = _first_script_index(text, "validate_glowing_weaving_kettle_completion_audit.py")
     strict_gate_index = _first_script_index(text, "validate_plan_closure_gate.py")
     if audit_index != -1 and strict_gate_index != -1 and audit_index > strict_gate_index:
         errors.append("operator commands must run completion audit before the strict closure gate")
+    if glowing_audit_index != -1 and strict_gate_index != -1 and glowing_audit_index > strict_gate_index:
+        errors.append("operator commands must run glowing completion audit before the strict closure gate")
     for task in payload.get("tasks", []):
         task_id = task.get("id", "<unknown>")
         plan = task.get("workspace_command_plan", {})
@@ -298,8 +361,18 @@ def _validate_prepared_inputs(
             target = prepared.get("prepared_input")
             if source not in manifest_templates:
                 errors.append(f"{task_id}: source_template is not listed in the current manifest: {source}")
-            if prepared.get("action") != "copied_template_for_operator_edit":
-                errors.append(f"{task_id}: prepared input action must be copied_template_for_operator_edit")
+            if prepared.get("action") not in PREPARED_INPUT_ACTIONS:
+                errors.append(
+                    f"{task_id}: prepared input action must be one of "
+                    f"{', '.join(sorted(PREPARED_INPUT_ACTIONS))}"
+                )
+            source_path = _resolve_path(str(source))
+            if not source_path.exists():
+                errors.append(f"{task_id}: missing source template for prepared input: {source}")
+            else:
+                source_sha256 = _sha256_file(source_path)
+                if prepared.get("source_template_sha256") != source_sha256:
+                    errors.append(f"{task_id}: source_template_sha256 does not match source template: {source}")
             if not isinstance(target, str) or not target.strip():
                 errors.append(f"{task_id}: prepared_input is required")
                 continue
@@ -313,6 +386,18 @@ def _validate_prepared_inputs(
                 errors.append(f"{task_id}: prepared input filename must contain -draft-: {target_path.name}")
             if _looks_like_completed_evidence(target_path.name):
                 errors.append(f"{task_id}: prepared input looks like completed evidence: {target_path.name}")
+            prepared_sha256 = _sha256_file(target_path)
+            if prepared.get("prepared_input_sha256") != prepared_sha256:
+                errors.append(f"{task_id}: prepared_input_sha256 does not match prepared input: {target}")
+            if source_path.exists():
+                differs = prepared_sha256 != _sha256_file(source_path)
+                if prepared.get("differs_from_source_template") is not differs:
+                    errors.append(f"{task_id}: differs_from_source_template does not match file hashes: {target}")
+                action = prepared.get("action")
+                if action == "preserved_existing_operator_draft" and not differs:
+                    errors.append(f"{task_id}: preserved_existing_operator_draft requires a draft that differs from the source template")
+                if action in {"copied_template_for_operator_edit", "preserved_existing_template_draft"} and differs:
+                    errors.append(f"{task_id}: {action} requires a draft that still matches the source template")
     return errors
 
 
@@ -398,6 +483,14 @@ def _resolve_path(value: str) -> Path:
     if normalized.is_absolute():
         return normalized
     return ROOT / normalized
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _is_relative_to(path: Path, parent: Path) -> bool:
