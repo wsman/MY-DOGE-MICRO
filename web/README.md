@@ -1,5 +1,24 @@
-# Vue 3 + TypeScript + Vite
+# MY-DOGE Web Console
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Vue 3 + Vite console for the local MY-DOGE API.
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## Development
+
+```powershell
+npm install
+npm run dev
+```
+
+The dev server proxies `/api`, `/v1`, and `/health` to
+`http://localhost:8901`.
+
+## Platform Shell Flag
+
+The workspace/project/case/template/admin shell is guarded by:
+
+```powershell
+$env:VITE_DOGE_FEATURE_PLATFORM_SHELL="1"
+```
+
+With the flag unset, the app defaults to `/research-agent` and keeps the
+existing Research Agent workflow available.

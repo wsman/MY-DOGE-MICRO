@@ -1,14 +1,35 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { darkTheme } from 'naive-ui'
 import {
   NConfigProvider, NMessageProvider, NButton, NSpace, NText, NTooltip,
 } from 'naive-ui'
 import { themeOverrides } from './styles/theme'
 import { useSplitTree } from './composables/useSplitTree'
+import { platformShellEnabled } from './config/features'
+import type { ViewId } from './types/splitTree'
 import SplitPane from './components/SplitPane.vue'
 
 const splitTree = useSplitTree()
+const route = useRoute()
+const router = useRouter()
+
+const routeViewMap: Record<string, ViewId> = {
+  scanner: 'scanner',
+  'cn-archive': 'cn-archive',
+  'us-archive': 'us-archive',
+  insights: 'insights',
+  analysis: 'analysis',
+  'research-agent': 'research-agent',
+  'workspace-list': 'workspace-list',
+  'workspace-detail': 'workspace-detail',
+  'project-detail': 'project-detail',
+  'case-detail': 'case-detail',
+  'template-center': 'template-center',
+  'run-detail': 'run-detail',
+  'admin-center': 'admin-center',
+}
 
 // ---------------------------------------------------------------------------
 // Layout presets
@@ -17,6 +38,21 @@ const splitTree = useSplitTree()
 function preset(p: 'single' | 'h-split' | 'v-split' | 'quad') {
   splitTree.applyPreset(p)
 }
+
+async function openRoute(path: string) {
+  await router.push(path)
+}
+
+watch(
+  () => route.name,
+  name => {
+    if (typeof name !== 'string') return
+    const viewId = routeViewMap[name]
+    const activeHandle = splitTree.activeHandle.value
+    if (viewId && activeHandle) splitTree.setView(activeHandle, viewId)
+  },
+  { immediate: true },
+)
 
 // ---------------------------------------------------------------------------
 // Keyboard shortcuts
@@ -85,6 +121,14 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
         <!-- Top toolbar -->
         <div class="toolbar">
           <n-text strong class="app-title">MY-DOGE</n-text>
+          <n-space size="small" align="center" class="primary-nav">
+            <template v-if="platformShellEnabled">
+              <n-button size="tiny" quaternary @click="openRoute('/workspaces')">Workspaces</n-button>
+              <n-button size="tiny" quaternary @click="openRoute('/templates')">Templates</n-button>
+              <n-button size="tiny" quaternary @click="openRoute('/admin')">Admin</n-button>
+            </template>
+            <n-button size="tiny" quaternary @click="openRoute('/research-agent')">Agent</n-button>
+          </n-space>
           <n-space size="small" align="center">
             <n-tooltip trigger="hover">
               <template #trigger>
@@ -175,6 +219,12 @@ a { text-decoration: none; color: inherit; }
   background: linear-gradient(135deg, var(--dgm-accent-warm), var(--dgm-accent));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+.primary-nav {
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
 }
 
 .toolbar-sep {

@@ -65,6 +65,55 @@ export const VIEW_REGISTRY: Record<ViewId, ViewRegistryEntry> = {
     loader: () => import('./ResearchAgentView.vue'),
     minWidth: 520,
   },
+  'workspace-list': {
+    id: 'workspace-list',
+    label: 'Workspaces',
+    icon: 'grid',
+    loader: () => import('./WorkspaceListView.vue'),
+    minWidth: 520,
+  },
+  'workspace-detail': {
+    id: 'workspace-detail',
+    label: 'Workspace',
+    icon: 'folder',
+    loader: () => import('./WorkspaceDetailView.vue'),
+    minWidth: 520,
+  },
+  'project-detail': {
+    id: 'project-detail',
+    label: 'Project',
+    icon: 'briefcase',
+    loader: () => import('./ProjectDetailView.vue'),
+    minWidth: 520,
+  },
+  'case-detail': {
+    id: 'case-detail',
+    label: 'Case',
+    icon: 'doc',
+    loader: () => import('./CaseDetailView.vue'),
+    minWidth: 520,
+  },
+  'template-center': {
+    id: 'template-center',
+    label: 'Templates',
+    icon: 'layers',
+    loader: () => import('./TemplateCenterView.vue'),
+    minWidth: 480,
+  },
+  'run-detail': {
+    id: 'run-detail',
+    label: 'Run Detail',
+    icon: 'line-chart',
+    loader: () => import('./RunDetailView.vue'),
+    minWidth: 560,
+  },
+  'admin-center': {
+    id: 'admin-center',
+    label: 'Admin',
+    icon: 'settings',
+    loader: () => import('./AdminCenterView.vue'),
+    minWidth: 480,
+  },
 }
 
 export const ALL_VIEW_IDS: ViewId[] = Object.keys(VIEW_REGISTRY) as ViewId[]

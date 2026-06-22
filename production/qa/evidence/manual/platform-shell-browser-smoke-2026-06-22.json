@@ -1,0 +1,42 @@
+{
+  "schema": "doge.platform_shell_browser_smoke.v1",
+  "created_at": "2026-06-22T14:20:17.158158+00:00",
+  "result": "passed",
+  "command": "VITE_DOGE_FEATURE_PLATFORM_SHELL=1 npm run dev -- --host 127.0.0.1 --port 5175 --strictPort + headless Chromium CDP smoke",
+  "environment": {
+    "node": "C:\\Users\\Aby\\AppData\\Local\\Temp\\codex-node-v24.17.0\\node-v24.17.0-win-x64\\node.exe",
+    "npm": "C:\\Users\\Aby\\AppData\\Local\\Temp\\codex-node-v24.17.0\\node-v24.17.0-win-x64\\npm.cmd",
+    "chromium": "C:\\Users\\Aby\\AppData\\Local\\ms-playwright\\chromium-1228\\chrome-win64\\chrome.exe",
+    "url": "http://127.0.0.1:5175/"
+  },
+  "observed": {
+    "href": "http://127.0.0.1:5175/#/workspaces",
+    "hash": "#/workspaces",
+    "title": "MY-DOGE",
+    "appTitle": "MY-DOGE",
+    "buttons": [
+      "Workspaces",
+      "Templates",
+      "Admin",
+      "Agent",
+      "1",
+      "Equalize",
+      "Refresh",
+      "New"
+    ],
+    "textSample": "MY-DOGE\nWorkspaces\nTemplates\nAdmin\nAgent\n1\n|\nEqualize\nWorkspaces\nPLATFORM\nWorkspaces\nRefresh\nNew\nWorkspace name\nDescription\nWORKSPACE QUEUE\nREADINESS\nTemplates\n0\nCapabilities\n0",
+    "hasWorkspacesHeading": true,
+    "hasAgentNav": true,
+    "hasPlatformNav": true
+  },
+  "checks": {
+    "loaded_platform_shell_flag_on": true,
+    "workspace_view_visible": true,
+    "platform_nav_visible": true,
+    "research_agent_entry_preserved": true
+  },
+  "non_production_posture": {
+    "production_ready_claimed": false,
+    "external_closure_claimed": false
+  }
+}
