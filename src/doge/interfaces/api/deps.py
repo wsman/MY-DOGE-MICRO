@@ -16,6 +16,7 @@ from doge.core.ports.metadata import ITickerMetadataSource
 from doge.core.ports.repository import IReportRepository, ISchemaBrowser, IStockRepository, INoteRepository
 from doge.core.ports.tdx_server_list import ITDXServerList
 from doge import application as app_composition
+from doge.infrastructure.auth import DenyAllEnterpriseAuthProvider, build_enterprise_auth_provider
 from doge.infrastructure.database.sqlite_storage import SQLiteStorageRepository
 
 _research_agent_runtime = None
@@ -26,11 +27,35 @@ _run_queue = None
 _idempotency_store = None
 _agent_unit_of_work = None
 _file_upload_service = None
+_enterprise_governance_repository = None
 
 
 def get_settings_dep() -> Settings:
     """Return the current ``Settings`` singleton."""
     return get_settings()
+
+
+def has_oidc_config(auth_config) -> bool:
+    """Return whether the configured enterprise auth mode has OIDC/JWKS inputs."""
+
+    return bool(auth_config.oidc_issuer and auth_config.oidc_audience and auth_config.oidc_jwks_url)
+
+
+def build_api_auth_provider(settings, secret_provider_factory=None):
+    """Build API enterprise auth through the sanctioned API composition site."""
+
+    if secret_provider_factory is None:
+        secret_provider_factory = app_composition.build_secret_provider
+    secret_provider = None
+    if settings.auth.mode == "enterprise" and not has_oidc_config(settings.auth):
+        secret_provider = secret_provider_factory()
+    return build_enterprise_auth_provider(settings.auth, secret_provider=secret_provider)
+
+
+def is_deny_all_enterprise_auth_provider(auth_provider) -> bool:
+    """Hide the infrastructure auth class check behind the deps boundary."""
+
+    return isinstance(auth_provider, DenyAllEnterpriseAuthProvider)
 
 
 def get_report_repository() -> IReportRepository:
@@ -107,6 +132,28 @@ def get_file_upload_service():
     if _file_upload_service is None:
         _file_upload_service = app_composition.build_file_upload_service()
     return _file_upload_service
+
+
+def get_portfolio_repository():
+    """Provide the persisted portfolio repository."""
+    return app_composition.build_portfolio_repository()
+
+
+def get_portfolio_import_service():
+    """Provide the CSV portfolio import service."""
+    from doge.application.services.portfolio_import_service import PortfolioImportService
+
+    return PortfolioImportService(get_portfolio_repository())
+
+
+def get_enterprise_governance_repository():
+    """Provide enterprise ACL and audit repository."""
+    global _enterprise_governance_repository
+    if _enterprise_governance_repository is None:
+        from doge.infrastructure.database.enterprise_governance import SQLiteEnterpriseGovernanceRepository
+
+        _enterprise_governance_repository = SQLiteEnterpriseGovernanceRepository()
+    return _enterprise_governance_repository
 
 
 def get_agent_session_repository():

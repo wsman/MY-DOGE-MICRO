@@ -1,4 +1,4 @@
-import type { DogeClient } from './client'
+import type { DogeClient } from './client.js'
 
 export interface AgentSession {
   session_id: string

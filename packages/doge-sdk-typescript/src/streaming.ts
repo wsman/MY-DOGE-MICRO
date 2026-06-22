@@ -1,4 +1,4 @@
-import type { DogeEvent } from './run'
+import type { DogeEvent } from './run.js'
 
 export async function* parseSse(stream: ReadableStream<Uint8Array>): AsyncGenerator<DogeEvent> {
   const reader = stream.getReader()

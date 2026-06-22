@@ -26,8 +26,11 @@ from doge.core.ports.repository import ISchemaBrowser
 from doge.interfaces.api import deps
 from doge.interfaces.api.middleware.tenant_context import TenantContextMiddleware
 from doge.interfaces.api.routers import scan, data, notes, macro, analysis, config, agent, documents
+from doge.interfaces.api.routers.v1 import audit as v1_audit
 from doge.interfaces.api.routers.v1 import documents as v1_documents
+from doge.interfaces.api.routers.v1 import enterprise as v1_enterprise
 from doge.interfaces.api.routers.v1 import health as v1_health
+from doge.interfaces.api.routers.v1 import portfolios as v1_portfolios
 from doge.interfaces.api.routers.v1 import runs as v1_runs
 from doge.interfaces.api.routers.v1 import sessions as v1_sessions
 from doge.interfaces.api.routers.v1 import tools as v1_tools
@@ -50,11 +53,41 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="MY-DOGE API", version="0.1.0", lifespan=lifespan)
 
-app.add_middleware(TenantContextMiddleware, local_demo=True)
+_settings = get_settings()
+
+
+def _build_api_auth_provider(settings, secret_provider_factory=None):
+    """Build API enterprise auth using the configured secret-provider boundary."""
+
+    return deps.build_api_auth_provider(settings, secret_provider_factory=secret_provider_factory)
+
+
+def _has_oidc_config(auth_config) -> bool:
+    return deps.has_oidc_config(auth_config)
+
+
+_auth_provider = _build_api_auth_provider(_settings)
+
+
+def _validate_api_auth_startup(settings, auth_provider) -> None:
+    """Fail startup when enterprise mode has no usable bearer provider."""
+
+    if settings.auth.mode != "enterprise":
+        return
+    if deps.is_deny_all_enterprise_auth_provider(auth_provider):
+        raise RuntimeError(f"enterprise auth startup failed: {auth_provider.reason}")
+
+
+_validate_api_auth_startup(_settings, _auth_provider)
+app.add_middleware(
+    TenantContextMiddleware,
+    local_demo=_settings.auth.mode == "local_demo",
+    auth_provider=_auth_provider,
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],       # 仅 localhost, 无安全风险
+    allow_origins=list(_settings.api.cors_allow_origins),
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -120,7 +153,10 @@ app.include_router(documents.router, prefix="/api/documents", tags=["documents"]
 app.include_router(v1_sessions.router, prefix="/v1", tags=["v1-sessions"])
 app.include_router(v1_runs.router, prefix="/v1", tags=["v1-runs"])
 app.include_router(v1_documents.router, prefix="/v1", tags=["v1-documents"])
+app.include_router(v1_portfolios.router, prefix="/v1", tags=["v1-portfolios"])
 app.include_router(v1_tools.router, prefix="/v1", tags=["v1-tools"])
+app.include_router(v1_audit.router, prefix="/v1", tags=["v1-audit"])
+app.include_router(v1_enterprise.router, prefix="/v1", tags=["v1-enterprise"])
 app.include_router(v1_health.router, tags=["health"])
 
 
@@ -146,18 +182,52 @@ async def stats(
 _LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
 
 
-def _resolve_bind_host() -> str:
+def _validate_api_remote_bind_startup(settings, auth_provider, host: str) -> None:
+    """Validate the promotion gate for non-loopback API binds."""
+
+    if host in _LOOPBACK_HOSTS:
+        return
+    assert settings.api.allow_remote_bind, (
+        "ADR-0007 remote-bind promotion: set DOGE_ALLOW_REMOTE_BIND=1 before "
+        "binding the API outside loopback."
+    )
+    assert settings.auth.mode == "enterprise", (
+        "ADR-0015 remote-bind promotion: non-loopback bind requires "
+        "DOGE_AUTH_MODE=enterprise."
+    )
+    assert not deps.is_deny_all_enterprise_auth_provider(auth_provider), (
+        "ADR-0015 remote-bind promotion: non-loopback bind requires a configured "
+        "enterprise auth provider."
+    )
+    assert settings.api.cors_allow_origins and "*" not in settings.api.cors_allow_origins, (
+        "ADR-0007 remote-bind promotion: non-loopback bind requires an explicit "
+        "CORS allow-list."
+    )
+    assert settings.api.tls_termination_required, (
+        "ADR-0015 remote-bind promotion: non-loopback bind requires TLS "
+        "termination acknowledgement."
+    )
+
+
+def _resolve_bind_host(settings=None, auth_provider=None) -> str:
     """Resolve the API bind host, enforcing the ADR-0007 loopback guarantee.
 
-    Returns the loopback host (``DOGE_BIND_HOST`` env, default ``127.0.0.1``).
-    Raises ``AssertionError`` for any non-loopback host so the permissive CORS
-    posture is never exposed off-loopback without hardening + auth.
+    Returns the configured host. Non-loopback binds pass only through the
+    ADR-0007/ADR-0015 promotion gate.
     """
-    host = os.environ.get("DOGE_BIND_HOST", "127.0.0.1")
-    assert host in _LOOPBACK_HOSTS, (
+    settings = settings or _settings
+    auth_provider = _auth_provider if auth_provider is None else auth_provider
+    host = os.environ.get("DOGE_BIND_HOST") or settings.api.bind_host
+    if host in _LOOPBACK_HOSTS:
+        return host
+    try:
+        _validate_api_remote_bind_startup(settings, auth_provider, host)
+    except AssertionError as exc:
+        raise AssertionError(
         "ADR-0007 loopback guarantee: non-loopback bind requires CORS allow-list "
-        "hardening + auth first (see ADR-0007 Promotion gate)."
-    )
+            "hardening + auth first (see ADR-0007 Promotion gate). "
+            f"{exc}"
+        ) from exc
     return host
 
 

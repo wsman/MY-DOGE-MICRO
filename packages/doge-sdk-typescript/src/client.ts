@@ -1,10 +1,11 @@
-import { DogeApiError, type DogeEvent } from './run'
-import { Session, type AgentSession } from './session'
-import { parseSse } from './streaming'
+import { DogeApiError, type DogeEvent } from './run.js'
+import { Session, type AgentSession } from './session.js'
+import { parseSse } from './streaming.js'
 
 interface DogeClientOptions {
   baseUrl?: string
   apiToken?: string
+  requestId?: string
 }
 
 export interface RunStreamOptions {
@@ -21,19 +22,20 @@ export class DogeClient {
   readonly documents: DocumentsResource
   private readonly baseUrl: string
   private readonly apiToken?: string
+  private readonly requestId?: string
 
   constructor(options: DogeClientOptions = {}) {
     this.baseUrl = options.baseUrl?.replace(/\/$/, '') ?? ''
     this.apiToken = options.apiToken
+    this.requestId = options.requestId
     this.sessions = new SessionsResource(this)
     this.runs = new RunsResource(this)
     this.documents = new DocumentsResource(this)
   }
 
   async request<T>(method: string, path: string, body?: unknown, extraHeaders: Record<string, string> = {}): Promise<T> {
-    const headers: Record<string, string> = { ...extraHeaders }
+    const headers = this.headers(extraHeaders)
     if (body !== undefined) headers['Content-Type'] = 'application/json'
-    if (this.apiToken) headers.Authorization = `Bearer ${this.apiToken}`
     const response = await fetch(`${this.baseUrl}${path}`, {
       method,
       headers,
@@ -47,20 +49,52 @@ export class DogeClient {
       } catch {
         message = await response.text()
       }
-      throw new DogeApiError(response.status, message)
+      throw new DogeApiError(response.status, redactMessage(message, this.apiToken))
+    }
+    return await response.json() as T
+  }
+
+  async requestForm<T>(
+    method: string,
+    path: string,
+    form: FormData,
+    extraHeaders: Record<string, string> = {},
+  ): Promise<T> {
+    const headers = this.headers(extraHeaders)
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      method,
+      headers,
+      body: form,
+    })
+    if (!response.ok) {
+      let message = response.statusText
+      try {
+        const payload = await response.json() as { error?: { message?: string }, detail?: string }
+        message = payload.error?.message ?? payload.detail ?? message
+      } catch {
+        message = await response.text()
+      }
+      throw new DogeApiError(response.status, redactMessage(message, this.apiToken))
     }
     return await response.json() as T
   }
 
   async stream(path: string, lastEventId?: string): Promise<AsyncGenerator<DogeEvent>> {
-    const headers: Record<string, string> = {}
+    const headers = this.headers()
     if (lastEventId) headers['Last-Event-ID'] = lastEventId
-    if (this.apiToken) headers.Authorization = `Bearer ${this.apiToken}`
     const response = await fetch(`${this.baseUrl}${path}`, { headers })
     if (!response.ok || !response.body) {
-      throw new DogeApiError(response.status, response.statusText)
+      const message = await responseErrorMessage(response)
+      throw new DogeApiError(response.status, redactMessage(message, this.apiToken))
     }
     return parseSse(response.body)
+  }
+
+  private headers(extraHeaders: Record<string, string> = {}): Record<string, string> {
+    const headers: Record<string, string> = { ...extraHeaders }
+    if (this.apiToken) headers.Authorization = `Bearer ${this.apiToken}`
+    if (this.requestId) headers['X-Request-ID'] = this.requestId
+    return headers
   }
 }
 
@@ -147,6 +181,32 @@ function defaultSleep(milliseconds: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, milliseconds))
 }
 
+async function responseErrorMessage(response: Response): Promise<string> {
+  let message = response.statusText
+  try {
+    const payload = await response.json() as { error?: { message?: string }, detail?: string }
+    message = payload.error?.message ?? payload.detail ?? message
+  } catch {
+    try {
+      message = await response.text()
+    } catch {
+      // Keep statusText when the body cannot be read.
+    }
+  }
+  return message
+}
+
+function redactMessage(message: string, apiToken?: string): string {
+  let redacted = message.replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/g, 'Bearer [REDACTED]')
+  redacted = redacted.replace(
+    /\b(api[_-]?key|password|secret|token|access[_-]?token|refresh[_-]?token|id[_-]?token|client[_-]?secret|moonshot_api_key|deepseek_api_key|doge_api_token)\s*([=:])\s*(['"]?)[^&\s,'"}]+/gi,
+    (_match, key, separator) => `${key}${separator}[REDACTED]`,
+  )
+  redacted = redacted.replace(/\bsk-[A-Za-z0-9._-]{6,}/g, 'sk-[REDACTED]')
+  if (apiToken) redacted = redacted.split(apiToken).join('[REDACTED]')
+  return redacted
+}
+
 export class DocumentsResource {
   private readonly root: DogeClient
 
@@ -156,6 +216,12 @@ export class DocumentsResource {
 
   create(filename: string, content = ''): Promise<Record<string, unknown>> {
     return this.root.request('POST', '/v1/documents', { filename, content })
+  }
+
+  upload(file: Blob, filename?: string): Promise<Record<string, unknown>> {
+    const form = new FormData()
+    form.append('file', file, filename ?? _blobFilename(file))
+    return this.root.requestForm('POST', '/v1/documents', form)
   }
 
   async list(limit = 100): Promise<Record<string, unknown>[]> {
@@ -169,4 +235,9 @@ export class DocumentsResource {
   get(documentId: string): Promise<Record<string, unknown>> {
     return this.root.request('GET', `/v1/documents/${documentId}`)
   }
+}
+
+function _blobFilename(file: Blob): string {
+  const maybeNamed = file as Blob & { name?: unknown }
+  return typeof maybeNamed.name === 'string' && maybeNamed.name ? maybeNamed.name : 'document'
 }

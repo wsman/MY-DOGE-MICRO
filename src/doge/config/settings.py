@@ -3,6 +3,7 @@
 Replaces every scattered `_PROJECT_ROOT`, `_DB_DIR`, `_HERE` and `sys.path` hack.
 """
 
+import json
 import os
 from pathlib import Path
 from dataclasses import dataclass, field
@@ -55,6 +56,33 @@ def _env_float(name: str, default: float) -> float:
     if not env:
         return default
     return float(env)
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    """Read a boolean env var using common operator-friendly values."""
+    env = os.environ.get(name)
+    if env is None or env == "":
+        return default
+    return env.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_csv(name: str, default: tuple[str, ...] = ()) -> tuple[str, ...]:
+    """Read a comma-separated env var as a tuple of non-empty strings."""
+    env = os.environ.get(name)
+    if not env:
+        return default
+    return tuple(item.strip() for item in env.split(",") if item.strip())
+
+
+def _env_json_tuple(name: str, default: tuple[str, ...] = ()) -> tuple[str, ...]:
+    """Read a JSON string array env var as a tuple of strings."""
+    env = os.environ.get(name)
+    if not env:
+        return default
+    value = json.loads(env)
+    if not isinstance(value, list) or not all(isinstance(item, str) and item for item in value):
+        raise ValueError(f"{name} must be a JSON array of non-empty strings")
+    return tuple(value)
 
 
 @dataclass(frozen=True)
@@ -296,6 +324,114 @@ class DocumentConfig:
 
 
 @dataclass(frozen=True)
+class AuthConfig:
+    """Enterprise authentication settings.
+
+    ``local_demo`` preserves the existing loopback/header-driven workflow.
+    ``enterprise`` fails closed unless a bearer provider is configured. The
+    static bearer fields are a local fixture path only; production OIDC/JWKS is
+    tracked in S017 and must replace it before declaring enterprise readiness.
+    """
+
+    mode: str = field(
+        default_factory=lambda: (os.environ.get("DOGE_AUTH_MODE") or "local_demo").strip().lower()
+    )
+    oidc_issuer: Optional[str] = field(default_factory=lambda: os.environ.get("DOGE_AUTH_OIDC_ISSUER") or None)
+    oidc_audience: Optional[str] = field(default_factory=lambda: os.environ.get("DOGE_AUTH_OIDC_AUDIENCE") or None)
+    oidc_jwks_url: Optional[str] = field(default_factory=lambda: os.environ.get("DOGE_AUTH_OIDC_JWKS_URL") or None)
+    oidc_algorithms: tuple[str, ...] = field(
+        default_factory=lambda: _env_csv("DOGE_AUTH_OIDC_ALGORITHMS", ("RS256",))
+    )
+    clock_skew_seconds: int = field(default_factory=lambda: _env_int("DOGE_AUTH_CLOCK_SKEW_SECONDS", 60))
+    subject_claim: str = field(default_factory=lambda: os.environ.get("DOGE_AUTH_SUBJECT_CLAIM") or "sub")
+    tenant_claim: str = field(default_factory=lambda: os.environ.get("DOGE_AUTH_TENANT_CLAIM") or "tenant_id")
+    roles_claim: str = field(default_factory=lambda: os.environ.get("DOGE_AUTH_ROLES_CLAIM") or "roles")
+    entitlements_claim: str = field(
+        default_factory=lambda: os.environ.get("DOGE_AUTH_ENTITLEMENTS_CLAIM") or "entitlements"
+    )
+    approval_authority_claim: str = field(
+        default_factory=lambda: os.environ.get("DOGE_AUTH_APPROVAL_AUTHORITY_CLAIM") or "approval_authority"
+    )
+    project_claim: str = field(default_factory=lambda: os.environ.get("DOGE_AUTH_PROJECT_CLAIM") or "project_id")
+    static_bearer_token: Optional[str] = field(
+        default_factory=lambda: os.environ.get("DOGE_AUTH_STATIC_BEARER_TOKEN") or None
+    )
+    static_subject: str = field(default_factory=lambda: os.environ.get("DOGE_AUTH_STATIC_SUBJECT") or "local-subject")
+    static_tenant_id: str = field(default_factory=lambda: os.environ.get("DOGE_AUTH_STATIC_TENANT_ID") or "local")
+    static_roles: tuple[str, ...] = field(default_factory=lambda: _env_csv("DOGE_AUTH_STATIC_ROLES", ("analyst",)))
+    static_entitlements: tuple[str, ...] = field(default_factory=lambda: _env_csv("DOGE_AUTH_STATIC_ENTITLEMENTS"))
+    static_document_acl: tuple[str, ...] = field(default_factory=lambda: _env_csv("DOGE_AUTH_STATIC_DOCUMENT_ACL"))
+    static_portfolio_permission: tuple[str, ...] = field(
+        default_factory=lambda: _env_csv("DOGE_AUTH_STATIC_PORTFOLIO_PERMISSION")
+    )
+    static_approval_authority: tuple[str, ...] = field(
+        default_factory=lambda: _env_csv("DOGE_AUTH_STATIC_APPROVAL_AUTHORITY")
+    )
+    static_data_classification: str = field(
+        default_factory=lambda: os.environ.get("DOGE_AUTH_STATIC_DATA_CLASSIFICATION") or "internal"
+    )
+    static_project_id: str = field(default_factory=lambda: os.environ.get("DOGE_AUTH_STATIC_PROJECT_ID") or "doge-dev")
+
+
+@dataclass(frozen=True)
+class APIConfig:
+    """API bind and CORS posture.
+
+    The default remains loopback-only with permissive CORS. Non-loopback bind is
+    a deliberate promotion gate and requires enterprise auth, explicit CORS
+    origins, and TLS termination acknowledgement.
+    """
+
+    bind_host: str = field(default_factory=lambda: os.environ.get("DOGE_BIND_HOST") or "127.0.0.1")
+    cors_allow_origins: tuple[str, ...] = field(
+        default_factory=lambda: _env_csv("DOGE_CORS_ALLOW_ORIGINS", ("*",))
+    )
+    allow_remote_bind: bool = field(default_factory=lambda: _env_bool("DOGE_ALLOW_REMOTE_BIND", False))
+    tls_termination_required: bool = field(
+        default_factory=lambda: _env_bool("DOGE_API_TLS_TERMINATION_REQUIRED", False)
+    )
+
+
+@dataclass(frozen=True)
+class AuditConfig:
+    """Enterprise audit retention settings.
+
+    The local SQLite implementation enforces retention per tenant through the
+    audit administration API. Production deployments still need an external
+    operational review before audit controls can be considered complete.
+    """
+
+    retention_days: int = field(default_factory=lambda: _env_int("DOGE_AUDIT_RETENTION_DAYS", 365))
+
+
+@dataclass(frozen=True)
+class SecretConfig:
+    """Secret provider selection.
+
+    ``env`` preserves local-first defaults. ``process`` is the production
+    integration boundary for an operator-managed KMS, Vault, cloud secret
+    manager, or sidecar wrapper without embedding cloud SDK dependencies in the
+    application.
+    """
+
+    provider: str = field(
+        default_factory=lambda: (os.environ.get("DOGE_SECRET_PROVIDER") or "env").strip().lower()
+    )
+    process_command: tuple[str, ...] = field(
+        default_factory=lambda: _env_json_tuple("DOGE_SECRET_PROCESS_COMMAND_JSON")
+    )
+    process_timeout_seconds: float = field(
+        default_factory=lambda: _env_float("DOGE_SECRET_PROCESS_TIMEOUT_SECONDS", 5.0)
+    )
+    allowed_names: tuple[str, ...] = field(
+        default_factory=lambda: _env_csv(
+            "DOGE_SECRET_ALLOWED_NAMES",
+            ("kimi.api_key", "deepseek.api_key", "auth.static_bearer_token"),
+        )
+    )
+
+
+@dataclass(frozen=True)
 class Settings:
     """Application settings container."""
     project_root: Path = _PROJECT_ROOT
@@ -309,6 +445,10 @@ class Settings:
     llm: LLMConfig = field(default_factory=LLMConfig)
     kimi: KimiConfig = field(default_factory=KimiConfig)
     documents: DocumentConfig = field(default_factory=DocumentConfig)
+    auth: AuthConfig = field(default_factory=AuthConfig)
+    api: APIConfig = field(default_factory=APIConfig)
+    audit: AuditConfig = field(default_factory=AuditConfig)
+    secrets: SecretConfig = field(default_factory=SecretConfig)
 
     # Derived paths
     @property
