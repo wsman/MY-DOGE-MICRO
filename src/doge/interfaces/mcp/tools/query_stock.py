@@ -1,7 +1,8 @@
 """MCP tool: query_stock — delegates through the shared tool service."""
 
-from doge.application.agent.tool_service import ToolApplicationService
-from doge.application.composition import build_note_repository, build_stock_service
+from doge.application import composition
+
+build_stock_service = composition.build_stock_service
 
 
 def normalize_ticker(ticker: str, market: str = "cn") -> str:
@@ -55,7 +56,7 @@ async def query_stock(ticker: str, market: str = "cn", days: int = 20) -> str:
     """Query stock OHLCV + indicators."""
     t = normalize_ticker(ticker, market)
     try:
-        data = ToolApplicationService(stock_service_factory=build_stock_service).query_stock(t, market, days)["rows"]
+        data = composition.build_tool_application_service().query_stock(t, market, days)["rows"]
     except Exception:
         data = []
     data = data or _demo_prices(t, market, days)
@@ -75,7 +76,7 @@ async def stock_overview(ticker: str, market: str = "cn") -> str:
     """
     t = normalize_ticker(ticker, market)
     try:
-        overview = ToolApplicationService(stock_service_factory=build_stock_service).stock_overview(t, market)
+        overview = build_stock_service().overview(t, market)
     except Exception:
         overview = {"ticker": t, "market": market, "status": "unavailable"}
     if overview.get("status") == "unavailable":
@@ -88,7 +89,7 @@ async def stock_overview(ticker: str, market: str = "cn") -> str:
     # / sector from stock_names and the soft-delete-aware note count + newest
     # notes; missing stock_names / notes degrade gracefully to None / empty.
     try:
-        ctx = build_note_repository().get_ticker_with_context(t, market)
+        ctx = composition.build_note_repository().get_ticker_with_context(t, market)
     except Exception:
         ctx = {"notes": [], "note_count_total": 0}
     name = ctx.get("name_cn")

@@ -1,4 +1,6 @@
+from doge.application.agent.tool_service import ToolApplicationService
 from doge.application.agent.tools import ToolRegistry, build_default_tool_registry
+from doge.core.domain.enterprise_context import EnterpriseContext
 
 
 def test_unknown_tool_returns_structured_error():
@@ -32,6 +34,7 @@ def test_default_registry_contains_core_demo_tools():
         "get_company_announcements",
         "calculate_financial_ratios",
         "compare_consensus_estimates",
+        "get_industry_classification",
         "run_sql_query",
         "run_python_analysis",
         "screen_compliance_risk",
@@ -48,15 +51,13 @@ def test_default_registry_marks_high_risk_tools():
     assert categories["propose_portfolio_rebalance"] == "high_risk"
 
 
-def test_portfolio_tool_returns_demo_exposure(monkeypatch):
-    from doge.application import composition
-
+def test_portfolio_tool_returns_demo_exposure():
     class FakePortfolioService:
         def get_exposure(self, portfolio_id):
             return {"portfolio_id": portfolio_id, "total_market_value": 100.0}
 
-    monkeypatch.setattr(composition, "build_portfolio_service", lambda: FakePortfolioService())
-    registry = build_default_tool_registry()
+    service = ToolApplicationService(portfolio_service_factory=lambda: FakePortfolioService())
+    registry = build_default_tool_registry(service=service)
 
     result = registry.execute("get_portfolio_exposure", {"portfolio_id": "portfolio-demo"})
 
@@ -64,9 +65,7 @@ def test_portfolio_tool_returns_demo_exposure(monkeypatch):
     assert result.data["total_market_value"] == 100.0
 
 
-def test_risk_and_scenario_tools_forward_to_services(monkeypatch):
-    from doge.application import composition
-
+def test_risk_and_scenario_tools_forward_to_services():
     class FakeRiskService:
         def portfolio_risk(self, portfolio_id):
             return {"portfolio_id": portfolio_id, "var_95_one_day_approx": 12.5}
@@ -75,9 +74,11 @@ def test_risk_and_scenario_tools_forward_to_services(monkeypatch):
         def rate_shock(self, portfolio_id, basis_points):
             return {"portfolio_id": portfolio_id, "basis_points": basis_points, "estimated_impact": -42.0}
 
-    monkeypatch.setattr(composition, "build_risk_service", lambda: FakeRiskService())
-    monkeypatch.setattr(composition, "build_scenario_service", lambda: FakeScenarioService())
-    registry = build_default_tool_registry()
+    service = ToolApplicationService(
+        risk_service_factory=lambda: FakeRiskService(),
+        scenario_service_factory=lambda: FakeScenarioService(),
+    )
+    registry = build_default_tool_registry(service=service)
 
     risk = registry.execute("portfolio_risk", {"portfolio_id": "portfolio-demo"})
     scenario = registry.execute("scenario_analysis", {"portfolio_id": "portfolio-demo", "basis_points": 50})
@@ -86,20 +87,20 @@ def test_risk_and_scenario_tools_forward_to_services(monkeypatch):
     assert scenario.data["estimated_impact"] == -42.0
 
 
-def test_lookup_evidence_returns_empty_when_library_absent(monkeypatch):
-    from doge.application import composition
-
+def test_lookup_evidence_returns_empty_when_library_absent():
     class EmptyNotes:
         def search_notes(self, query, limit=50):
             return []
 
     class EmptyRAG:
-        def search(self, query, limit=5):
+        def search(self, query, document_ids=None, limit=5):
             return {"query": query, "limit": limit, "results": []}
 
-    monkeypatch.setattr(composition, "build_rag_service", lambda: EmptyRAG())
-    monkeypatch.setattr(composition, "build_note_repository", lambda: EmptyNotes())
-    registry = build_default_tool_registry()
+    service = ToolApplicationService(
+        rag_service_factory=lambda: EmptyRAG(),
+        note_repository_factory=lambda: EmptyNotes(),
+    )
+    registry = build_default_tool_registry(service=service)
 
     result = registry.execute("lookup_evidence", {"query": "earnings quality", "limit": 1})
 
@@ -107,8 +108,45 @@ def test_lookup_evidence_returns_empty_when_library_absent(monkeypatch):
     assert result.data["results"] == []
 
 
-def test_generate_industry_report_tool_forwards_to_use_case(monkeypatch):
-    from doge.application import composition
+def test_lookup_evidence_tool_receives_enterprise_context():
+    class EmptyNotes:
+        def search_notes(self, query, limit=50):
+            return []
+
+    class ScopedRAG:
+        def __init__(self):
+            self.document_ids = None
+
+        def search(self, query, document_ids=None, limit=5):
+            self.document_ids = document_ids
+            return {
+                "query": query,
+                "limit": limit,
+                "results": [
+                    {"document_id": "doc-allowed", "chunk_id": "chk-1", "text": "allowed"},
+                    {"document_id": "doc-denied", "chunk_id": "chk-2", "text": "denied"},
+                ],
+            }
+
+    rag = ScopedRAG()
+    service = ToolApplicationService(
+        rag_service_factory=lambda: rag,
+        note_repository_factory=lambda: EmptyNotes(),
+    )
+    context = EnterpriseContext(
+        tenant_id="tenant-a",
+        user_hash="user-a",
+        document_acl=frozenset({"doc-allowed"}),
+    )
+    registry = build_default_tool_registry(service=service, context=context)
+
+    result = registry.execute("lookup_evidence", {"query": "quality", "limit": 2})
+
+    assert rag.document_ids == ["doc-allowed"]
+    assert [item["document_id"] for item in result.data["results"]] == ["doc-allowed"]
+
+
+def test_generate_industry_report_tool_forwards_to_use_case():
     from doge.application.contracts.response import IndustryReportResponse
 
     class FakeUseCase:
@@ -121,8 +159,8 @@ def test_generate_industry_report_tool_forwards_to_use_case(monkeypatch):
                 content="body",
             )
 
-    monkeypatch.setattr(composition, "build_generate_industry_report_use_case", lambda: FakeUseCase())
-    registry = build_default_tool_registry()
+    service = ToolApplicationService(industry_report_use_case_factory=lambda: FakeUseCase())
+    registry = build_default_tool_registry(service=service)
 
     result = registry.execute(
         "generate_industry_report",

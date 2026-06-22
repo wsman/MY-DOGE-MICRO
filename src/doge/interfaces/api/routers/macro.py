@@ -67,7 +67,7 @@ async def run_macro(
     body: MacroRunRequest,
     use_case: GenerateMacroReportUseCase = Depends(deps.get_generate_macro_report_use_case),
 ):
-    """启动宏观分析 (SSE)"""
+    """启动兼容宏观报告生成 (SSE); Research Copilot runs use /v1/runs."""
     from sse_starlette.sse import EventSourceResponse
 
     async def event_generator():

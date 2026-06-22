@@ -1,7 +1,7 @@
 """Unit tests for the TDX MarketDataSource adapter (S004-004 / ADR-0004).
 
 These tests MOCK both the ``opentdx`` package and the relevant
-:mod:`micro.tdx_downloader` helpers — no network, no live TDX server
+``doge.infrastructure.data_source.tdx_helpers`` helpers — no network, no live TDX server
 (test-independence rules in ``.claude/rules/test-standards.md`` and the
 forbidden "network-dependent tests without isolation" pattern in ADR-0001).
 
@@ -13,7 +13,7 @@ S004-004 spec):
 3. ``download_kline`` normalizes to the canonical 8-column frame.
 4. CN ticker -> ``(MARKET.SH/SZ/BJ, code)`` remap drives ``stock_kline``.
 5. US goods_kline path.
-6. ``count`` truncation (via ``_bars_to_df`` ``max_rows=120``).
+6. ``count`` truncation (via ``tdx_helpers.bars_to_df`` ``max_rows=120``).
 7. Empty bars -> ``None``.
 8. Transient exception -> bounded retry -> ``None`` (no raise).
 9. ``get_latest_market_date`` success + failure -> ``None``.
@@ -21,7 +21,6 @@ S004-004 spec):
     download_kline -> None, no ModuleNotFoundError.
 """
 import sys
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -74,7 +73,7 @@ def _make_bars(rows, dt_key="datetime"):
     """Build a list of TDX-shaped bar dicts (one per row).
 
     CN ``stock_kline`` returns bars keyed by ``'datetime'``; US ``goods_kline``
-    uses ``'date_time'``. ``_bars_to_df`` handles both — we control the key
+    uses ``'date_time'``. ``tdx_helpers.bars_to_df`` handles both — we control the key
     here so we can exercise each path deterministically.
     """
     bars = []
@@ -107,32 +106,26 @@ def _fake_opentdx(monkeypatch):
 
 
 @pytest.fixture
-def _patch_micro_helpers(monkeypatch):
-    """Patch the ``micro.tdx_downloader`` helpers the adapter imports lazily.
+def _patch_tdx_helpers(monkeypatch):
+    """Patch the infrastructure TDX helpers used by the adapter.
 
     Returns a dict of mocks so individual tests can configure behaviour.
     """
-    fake_mod = MagicMock()
+    from doge.infrastructure.data_source import tdx_helpers
+
     fake_find = MagicMock(return_value=(None, None))
     fake_bars_to_df = MagicMock(return_value=None)
     fake_ticker_remap = MagicMock(return_value=(None, "000000"))
     fake_latest = MagicMock(return_value=None)
-    fake_mod.find_working_server = fake_find
-    fake_mod._bars_to_df = fake_bars_to_df
-    fake_mod._ticker_to_market_code = fake_ticker_remap
-    fake_mod._get_latest_market_date = fake_latest
-    # CN_SERVERS / US_SERVERS are accessed at module top in the real module —
-    # they are not used by the adapter (it reads from settings), but we still
-    # expose them in case other test paths import the fake module.
-    fake_mod.CN_SERVERS = ["1.1.1.1"]
-    fake_mod.US_SERVERS = ["2.2.2.2"]
-    monkeypatch.setitem(sys.modules, "micro.tdx_downloader", fake_mod)
+    monkeypatch.setattr(tdx_helpers, "find_working_server", fake_find)
+    monkeypatch.setattr(tdx_helpers, "bars_to_df", fake_bars_to_df)
+    monkeypatch.setattr(tdx_helpers, "ticker_to_market_code", fake_ticker_remap)
+    monkeypatch.setattr(tdx_helpers, "get_latest_market_date", fake_latest)
     return {
-        "module": fake_mod,
         "find_working_server": fake_find,
-        "_bars_to_df": fake_bars_to_df,
-        "_ticker_to_market_code": fake_ticker_remap,
-        "_get_latest_market_date": fake_latest,
+        "bars_to_df": fake_bars_to_df,
+        "ticker_to_market_code": fake_ticker_remap,
+        "get_latest_market_date": fake_latest,
     }
 
 
@@ -146,10 +139,10 @@ def test_tdx_datasource_implements_port():
 # ---------------------------------------------------------------------------
 # 2. Connection lifecycle (TDX holds a real connection)
 # ---------------------------------------------------------------------------
-def test_connect_lifecycle_reports_connected_state(_fake_opentdx, _patch_micro_helpers, monkeypatch):
+def test_connect_lifecycle_reports_connected_state(_fake_opentdx, _patch_tdx_helpers, monkeypatch):
     # Arrange — find_working_server returns a fake client + host.
     fake_client = FakeTdxClient()
-    _patch_micro_helpers["find_working_server"].return_value = (fake_client, "1.1.1.1")
+    _patch_tdx_helpers["find_working_server"].return_value = (fake_client, "1.1.1.1")
 
     # Act / Assert — disconnected by default
     ds = TDXDataSource()
@@ -162,9 +155,9 @@ def test_connect_lifecycle_reports_connected_state(_fake_opentdx, _patch_micro_h
     fake_client.quotation_client.disconnect.assert_called_once()
 
 
-def test_connect_with_no_server_leaves_disconnected(_fake_opentdx, _patch_micro_helpers):
+def test_connect_with_no_server_leaves_disconnected(_fake_opentdx, _patch_tdx_helpers):
     # Arrange — find_working_server returns (None, None) (server probe failed).
-    _patch_micro_helpers["find_working_server"].return_value = (None, None)
+    _patch_tdx_helpers["find_working_server"].return_value = (None, None)
 
     ds = TDXDataSource()
     ds.connect("cn")
@@ -174,8 +167,8 @@ def test_connect_with_no_server_leaves_disconnected(_fake_opentdx, _patch_micro_
 # ---------------------------------------------------------------------------
 # 3. download_kline normalizes to the canonical 8-column frame
 # ---------------------------------------------------------------------------
-def test_download_kline_normalizes_canonical_columns(_fake_opentdx, _patch_micro_helpers, monkeypatch):
-    # Arrange — a live client + a real _bars_to_df that returns the canonical
+def test_download_kline_normalizes_canonical_columns(_fake_opentdx, _patch_tdx_helpers, monkeypatch):
+    # Arrange — a live client + a real bars_to_df result that returns the canonical
     # 8-column frame (mirrors the real helper's output contract).
     canonical = pd.DataFrame({
         "date": ["2026-06-09", "2026-06-10"],
@@ -187,7 +180,7 @@ def test_download_kline_normalizes_canonical_columns(_fake_opentdx, _patch_micro
         {"date": "2026-06-09", "open": 10.0, "high": 11.0, "low": 9.5, "close": 10.5, "volume": 1000},
         {"date": "2026-06-10", "open": 10.5, "high": 12.0, "low": 10.2, "close": 11.8, "volume": 2000},
     ]))
-    _patch_micro_helpers["_bars_to_df"].return_value = canonical
+    _patch_tdx_helpers["bars_to_df"].return_value = canonical
 
     ds = TDXDataSource()
     ds._client = fake_client  # bypass connect() — direct injection
@@ -201,7 +194,7 @@ def test_download_kline_normalizes_canonical_columns(_fake_opentdx, _patch_micro
     assert (df["ticker"] == "600000.SH").all()
 
 
-def test_download_kline_returns_none_when_no_client(_fake_opentdx, _patch_micro_helpers):
+def test_download_kline_returns_none_when_no_client(_fake_opentdx, _patch_tdx_helpers):
     # No connect() — _client stays None.
     ds = TDXDataSource()
     assert ds.download_kline("AAPL", "us") is None
@@ -217,13 +210,13 @@ def test_download_kline_returns_none_when_no_client(_fake_opentdx, _patch_micro_
 ])
 def test_download_kline_cn_ticker_remap_drives_stock_kline(
     ticker_suffix, expected_market_attr,
-    _fake_opentdx, _patch_micro_helpers,
+    _fake_opentdx, _patch_tdx_helpers,
 ):
-    # Arrange — _ticker_to_market_code returns the enum for the suffix under
+    # Arrange — ticker_to_market_code returns the enum for the suffix under
     # test. The real helper maps .SH -> MARKET.SH etc.
     market_enum = getattr(_fake_opentdx["MARKET"], expected_market_attr)
-    _patch_micro_helpers["_ticker_to_market_code"].return_value = (market_enum, "600000")
-    _patch_micro_helpers["_bars_to_df"].return_value = pd.DataFrame({
+    _patch_tdx_helpers["ticker_to_market_code"].return_value = (market_enum, "600000")
+    _patch_tdx_helpers["bars_to_df"].return_value = pd.DataFrame({
         "date": ["2026-06-09"],
         "open": [10.0], "high": [11.0], "low": [9.5], "close": [10.5],
         "volume": [1000], "amount": [1.0], "ticker": [f"600000{ticker_suffix}"],
@@ -246,9 +239,9 @@ def test_download_kline_cn_ticker_remap_drives_stock_kline(
 # ---------------------------------------------------------------------------
 # 5. US goods_kline path
 # ---------------------------------------------------------------------------
-def test_download_kline_us_uses_goods_kline(_fake_opentdx, _patch_micro_helpers):
-    # Arrange — _bars_to_df returns a valid canonical frame.
-    _patch_micro_helpers["_bars_to_df"].return_value = pd.DataFrame({
+def test_download_kline_us_uses_goods_kline(_fake_opentdx, _patch_tdx_helpers):
+    # Arrange — bars_to_df returns a valid canonical frame.
+    _patch_tdx_helpers["bars_to_df"].return_value = pd.DataFrame({
         "date": ["2026-06-09"],
         "open": [100.0], "high": [110.0], "low": [99.0], "close": [105.0],
         "volume": [1000], "amount": [0.0], "ticker": ["AAPL"],
@@ -271,17 +264,17 @@ def test_download_kline_us_uses_goods_kline(_fake_opentdx, _patch_micro_helpers)
 
 
 # ---------------------------------------------------------------------------
-# 6. count truncation (via _bars_to_df max_rows=120)
+# 6. count truncation (via bars_to_df max_rows=120)
 # ---------------------------------------------------------------------------
-def test_download_kline_passes_count_through_to_kline_call(_fake_opentdx, _patch_micro_helpers):
-    # Arrange — _bars_to_df returns a frame so we can assert the call args.
-    _patch_micro_helpers["_bars_to_df"].return_value = pd.DataFrame({
+def test_download_kline_passes_count_through_to_kline_call(_fake_opentdx, _patch_tdx_helpers):
+    # Arrange — bars_to_df returns a frame so we can assert the call args.
+    _patch_tdx_helpers["bars_to_df"].return_value = pd.DataFrame({
         "date": ["2026-06-09"],
         "open": [1.0], "high": [1.0], "low": [1.0], "close": [1.0],
         "volume": [1], "amount": [0.0], "ticker": ["600000.SH"],
     })
     market_enum = _fake_opentdx["MARKET"].SH
-    _patch_micro_helpers["_ticker_to_market_code"].return_value = (market_enum, "600000")
+    _patch_tdx_helpers["ticker_to_market_code"].return_value = (market_enum, "600000")
     fake_client = FakeTdxClient(stock_kline_bars=[{"datetime": pd.Timestamp("2026-06-09")}])
 
     ds = TDXDataSource()
@@ -290,14 +283,14 @@ def test_download_kline_passes_count_through_to_kline_call(_fake_opentdx, _patch
     # Act — request count=50
     ds.download_kline("600000.SH", "cn", start=10, count=50)
 
-    # Assert — count + start forwarded to stock_kline; _bars_to_df received
+    # Assert — count + start forwarded to stock_kline; bars_to_df received
     # max_rows=120 (the canonical TDX window cap).
     _mkt, _code, _period, called_start, called_count = fake_client.stock_calls[0]
     assert called_start == 10
     assert called_count == 50
-    # _bars_to_df is called as _bars_to_df(bars, ticker, max_rows=120) — the
+    # bars_to_df is called as bars_to_df(bars, ticker, max_rows=120) — the
     # max_rows is passed by keyword, so it lives in kwargs.
-    call = _patch_micro_helpers["_bars_to_df"].call_args
+    call = _patch_tdx_helpers["bars_to_df"].call_args
     _bars_arg, ticker_arg = call.args
     assert ticker_arg == "600000.SH"
     assert call.kwargs.get("max_rows") == 120
@@ -306,10 +299,10 @@ def test_download_kline_passes_count_through_to_kline_call(_fake_opentdx, _patch
 # ---------------------------------------------------------------------------
 # 7. Empty bars -> None
 # ---------------------------------------------------------------------------
-def test_download_kline_returns_none_for_empty_bars(_fake_opentdx, _patch_micro_helpers):
+def test_download_kline_returns_none_for_empty_bars(_fake_opentdx, _patch_tdx_helpers):
     # Arrange — stock_kline returns [] (empty list).
     market_enum = _fake_opentdx["MARKET"].SH
-    _patch_micro_helpers["_ticker_to_market_code"].return_value = (market_enum, "600000")
+    _patch_tdx_helpers["ticker_to_market_code"].return_value = (market_enum, "600000")
     fake_client = FakeTdxClient(stock_kline_bars=[])
 
     ds = TDXDataSource()
@@ -318,18 +311,18 @@ def test_download_kline_returns_none_for_empty_bars(_fake_opentdx, _patch_micro_
     # Act
     df = ds.download_kline("600000.SH", "cn")
 
-    # Assert — empty bars short-circuit before _bars_to_df is called
+    # Assert — empty bars short-circuit before bars_to_df is called
     assert df is None
-    _patch_micro_helpers["_bars_to_df"].assert_not_called()
+    _patch_tdx_helpers["bars_to_df"].assert_not_called()
 
 
 # ---------------------------------------------------------------------------
 # 8. Transient exception -> bounded retry -> None (no raise)
 # ---------------------------------------------------------------------------
-def test_download_kline_retries_on_error_then_returns_none(_fake_opentdx, _patch_micro_helpers):
-    # Arrange — every stock_kline call raises; _bars_to_df never reached.
+def test_download_kline_retries_on_error_then_returns_none(_fake_opentdx, _patch_tdx_helpers):
+    # Arrange — every stock_kline call raises; bars_to_df never reached.
     market_enum = _fake_opentdx["MARKET"].SH
-    _patch_micro_helpers["_ticker_to_market_code"].return_value = (market_enum, "600000")
+    _patch_tdx_helpers["ticker_to_market_code"].return_value = (market_enum, "600000")
     fake_client = FakeTdxClient(
         stock_kline_bars=[],
         stock_kline_errors=[RuntimeError("server reset")] * 3,
@@ -341,17 +334,17 @@ def test_download_kline_retries_on_error_then_returns_none(_fake_opentdx, _patch
     # Act — MUST NOT raise
     df = ds.download_kline("600000.SH", "cn")
 
-    # Assert — 3 attempts made, returns None, _bars_to_df never called
+    # Assert — 3 attempts made, returns None, bars_to_df never called
     assert df is None
     assert len(fake_client.stock_calls) == 3
-    _patch_micro_helpers["_bars_to_df"].assert_not_called()
+    _patch_tdx_helpers["bars_to_df"].assert_not_called()
 
 
-def test_download_kline_retries_then_succeeds(_fake_opentdx, _patch_micro_helpers):
+def test_download_kline_retries_then_succeeds(_fake_opentdx, _patch_tdx_helpers):
     # Arrange — first call errors, second returns bars.
     market_enum = _fake_opentdx["MARKET"].SH
-    _patch_micro_helpers["_ticker_to_market_code"].return_value = (market_enum, "600000")
-    _patch_micro_helpers["_bars_to_df"].return_value = pd.DataFrame({
+    _patch_tdx_helpers["ticker_to_market_code"].return_value = (market_enum, "600000")
+    _patch_tdx_helpers["bars_to_df"].return_value = pd.DataFrame({
         "date": ["2026-06-09"],
         "open": [1.0], "high": [1.0], "low": [1.0], "close": [1.0],
         "volume": [1], "amount": [0.0], "ticker": ["600000.SH"],
@@ -375,9 +368,9 @@ def test_download_kline_retries_then_succeeds(_fake_opentdx, _patch_micro_helper
 # ---------------------------------------------------------------------------
 # 9. get_latest_market_date
 # ---------------------------------------------------------------------------
-def test_get_latest_market_date_success(_fake_opentdx, _patch_micro_helpers):
+def test_get_latest_market_date_success(_fake_opentdx, _patch_tdx_helpers):
     # Arrange
-    _patch_micro_helpers["_get_latest_market_date"].return_value = "2026-06-10"
+    _patch_tdx_helpers["get_latest_market_date"].return_value = "2026-06-10"
     fake_client = FakeTdxClient()
 
     ds = TDXDataSource()
@@ -388,13 +381,13 @@ def test_get_latest_market_date_success(_fake_opentdx, _patch_micro_helpers):
 
     # Assert
     assert latest == "2026-06-10"
-    _patch_micro_helpers["_get_latest_market_date"].assert_called_once_with(fake_client, "cn")
+    _patch_tdx_helpers["get_latest_market_date"].assert_called_once_with(fake_client, "cn")
 
 
-def test_get_latest_market_date_returns_none_on_failure(_fake_opentdx, _patch_micro_helpers):
+def test_get_latest_market_date_returns_none_on_failure(_fake_opentdx, _patch_tdx_helpers):
     # Arrange — helper raises (offline / empty proxy index); adapter must
     # swallow and return None.
-    _patch_micro_helpers["_get_latest_market_date"].side_effect = RuntimeError("offline")
+    _patch_tdx_helpers["get_latest_market_date"].side_effect = RuntimeError("offline")
     fake_client = FakeTdxClient()
 
     ds = TDXDataSource()
@@ -404,11 +397,11 @@ def test_get_latest_market_date_returns_none_on_failure(_fake_opentdx, _patch_mi
     assert ds.get_latest_market_date("us") is None
 
 
-def test_get_latest_market_date_returns_none_when_disconnected(_fake_opentdx, _patch_micro_helpers):
+def test_get_latest_market_date_returns_none_when_disconnected(_fake_opentdx, _patch_tdx_helpers):
     # No connect() — _client is None.
     ds = TDXDataSource()
     assert ds.get_latest_market_date("cn") is None
-    _patch_micro_helpers["_get_latest_market_date"].assert_not_called()
+    _patch_tdx_helpers["get_latest_market_date"].assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -420,12 +413,12 @@ def _no_opentdx(monkeypatch):
 
     Mirrors the ``_blocking_import`` fixture in
     ``tests/unit/micro/test_scanner_opentdx_optional.py``: snapshot and remove
-    opentdx + micro modules, install a blocking import hook, then restore on
+    opentdx modules, install a blocking import hook, then restore on
     teardown.
     """
     to_remove = [
         m for m in sys.modules
-        if m == "opentdx" or m.startswith("opentdx.") or m.startswith("micro.")
+        if m == "opentdx" or m.startswith("opentdx.")
     ]
     saved = {m: sys.modules.pop(m) for m in to_remove}
 
@@ -443,7 +436,7 @@ def _no_opentdx(monkeypatch):
     for name, mod in saved.items():
         sys.modules[name] = mod
     for name in list(sys.modules):
-        if name == "opentdx" or name.startswith("opentdx.") or name.startswith("micro."):
+        if name == "opentdx" or name.startswith("opentdx."):
             if name not in saved:
                 sys.modules.pop(name, None)
 

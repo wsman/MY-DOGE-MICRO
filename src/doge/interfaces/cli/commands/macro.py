@@ -8,7 +8,7 @@ from doge.interfaces.cli.constants import EXIT_NO_DATA, MACRO_API_KEY_HINT_EN, M
 
 
 def cmd_macro(args) -> None:
-    """Generate a macro report through ``GenerateMacroReportUseCase``."""
+    """Generate a compatibility macro report through ``GenerateMacroReportUseCase``."""
     try:
         response = build_generate_macro_report_use_case().execute(
             GenerateMacroReportRequest(market=getattr(args, "market", "cn"))

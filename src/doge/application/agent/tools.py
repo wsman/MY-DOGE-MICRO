@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 from dataclasses import dataclass
 from typing import Any, Callable
@@ -82,7 +83,7 @@ class ToolRegistry:
         else:
             kwargs = arguments or {}
         try:
-            result = self._tools[name](**kwargs)
+            result = _invoke_tool(self._tools[name], kwargs, effective_context)
             if self._entitlement.requires_approval(effective_context, name, category):
                 result.data.setdefault("approval_required", True)
                 result.data.setdefault("action", name)
@@ -132,9 +133,14 @@ def _schema(
     }
 
 
-def build_default_tool_registry() -> ToolRegistry:
-    registry = ToolRegistry()
-    service = ToolApplicationService()
+def build_default_tool_registry(
+    service: ToolApplicationService | None = None,
+    *,
+    entitlement_checker: IToolEntitlementChecker | None = None,
+    context: Any = None,
+) -> ToolRegistry:
+    registry = ToolRegistry(entitlement_checker=entitlement_checker, context=context)
+    service = service or ToolApplicationService()
 
     def query_stock(ticker: str, market: str = "us", days: int = 20) -> ToolResult:
         return ToolResult("query_stock", data=service.query_stock(ticker, market, days))
@@ -163,8 +169,16 @@ def build_default_tool_registry() -> ToolRegistry:
     def scenario_analysis(portfolio_id: str = "portfolio-demo", basis_points: float = 100.0) -> ToolResult:
         return ToolResult("scenario_analysis", data=service.scenario_analysis(portfolio_id, basis_points))
 
-    def validate_financial_claims(claim: str, ticker: str = "AAPL", market: str = "us") -> ToolResult:
-        return ToolResult("validate_financial_claims", data=service.validate_financial_claims(claim, ticker, market))
+    def validate_financial_claims(
+        claim: str,
+        ticker: str = "AAPL",
+        market: str = "us",
+        context: Any = None,
+    ) -> ToolResult:
+        return ToolResult(
+            "validate_financial_claims",
+            data=service.validate_financial_claims(claim, ticker, market, context=context),
+        )
 
     def generate_industry_report(
         industry: str = "semiconductor",
@@ -176,8 +190,8 @@ def build_default_tool_registry() -> ToolRegistry:
             data=service.generate_industry_report(industry, market, tickers),
         )
 
-    def lookup_evidence(query: str, limit: int = 5) -> ToolResult:
-        return ToolResult("lookup_evidence", data=service.lookup_evidence(query, limit))
+    def lookup_evidence(query: str, limit: int = 5, context: Any = None) -> ToolResult:
+        return ToolResult("lookup_evidence", data=service.lookup_evidence(query, limit, context=context))
 
     def request_approval(action: str, risk_level: str = "high") -> ToolResult:
         return ToolResult("request_approval", data=service.request_approval(action, risk_level))
@@ -196,6 +210,9 @@ def build_default_tool_registry() -> ToolRegistry:
 
     def compare_consensus_estimates(ticker: str, metric: str = "eps") -> ToolResult:
         return ToolResult("compare_consensus_estimates", data=service.compare_consensus_estimates(ticker, metric))
+
+    def get_industry_classification(ticker: str, market: str = "us") -> ToolResult:
+        return ToolResult("get_industry_classification", data=service.get_industry_classification(ticker, market))
 
     def run_sql_query(sql: str, readonly: bool = True) -> ToolResult:
         data = service.run_sql_query(sql, readonly)
@@ -292,6 +309,10 @@ def build_default_tool_registry() -> ToolRegistry:
         "ticker": {"type": "string"},
         "metric": {"type": "string"},
     }, ["ticker"], category=ToolCategory.READ_ONLY), compare_consensus_estimates)
+    registry.register(_schema("get_industry_classification", "Resolve local industry classification metadata.", {
+        "ticker": {"type": "string"},
+        "market": {"type": "string", "enum": ["cn", "us"]},
+    }, ["ticker"], category=ToolCategory.READ_ONLY), get_industry_classification)
     registry.register(_schema("run_sql_query", "Run a read-only SQL query against analytical views.", {
         "sql": {"type": "string"},
         "readonly": {"type": "boolean"},
@@ -318,6 +339,12 @@ def _category(value: ToolCategory | str) -> ToolCategory:
     if isinstance(value, ToolCategory):
         return value
     return ToolCategory(str(value))
+
+
+def _invoke_tool(func: Callable[..., ToolResult], kwargs: dict[str, Any], context: Any) -> ToolResult:
+    if "context" in inspect.signature(func).parameters and "context" not in kwargs:
+        return func(**kwargs, context=context)
+    return func(**kwargs)
 
 
 class _DefaultEntitlementChecker:

@@ -3,6 +3,11 @@
 This use case owns the clean-architecture macro report workflow: gather
 deterministic DuckDB-view context, ask the configured text LLM for a report, and
 persist the resulting macro memo through the report repository port.
+
+Boundary: this is the compatibility Text LLM report path used by the legacy
+macro API and CLI surfaces. New Research Copilot product workflows should use
+the RuntimeKernel-backed macro strategist path instead of adding a second agent
+loop here.
 """
 
 from __future__ import annotations
@@ -15,6 +20,7 @@ from doge.application.contracts.response import MacroReportResponse
 
 
 _VALID_MARKETS = {"cn", "us"}
+RESEARCH_PATH = "compatibility_text_llm_report"
 
 
 def _records(frame) -> list[dict[str, Any]]:
@@ -64,7 +70,7 @@ def _parse_volatility(content: str) -> str:
 
 
 class GenerateMacroReportUseCase:
-    """Generate a macro strategy report via an LLM client."""
+    """Generate a compatibility macro strategy report via a text LLM client."""
 
     def __init__(
         self,

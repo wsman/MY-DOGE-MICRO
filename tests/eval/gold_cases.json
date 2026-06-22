@@ -1,0 +1,311 @@
+[
+  {
+    "id": "ar_nvda_revenue_growth",
+    "category": "annual_report",
+    "execution_profile": "financial_research",
+    "question": "Extract revenue growth and cite the annual report page.",
+    "materials": [{"document_id": "doc-ar-nvda", "filename": "nvda-annual-report.pdf", "kind": "annual_report"}],
+    "expected_claims": [{"claim_id": "clm-ar-nvda-revenue", "text": "Revenue growth was 126%.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-ar-nvda-p42-revenue", "document_id": "doc-ar-nvda", "page_number": 42}],
+    "expected_numbers": [{"metric": "revenue_growth_pct", "value": 126.0, "tolerance": 0.1}]
+  },
+  {
+    "id": "ar_nvda_gross_margin",
+    "category": "annual_report",
+    "execution_profile": "financial_research",
+    "question": "Report gross margin and cite the source.",
+    "materials": [{"document_id": "doc-ar-nvda", "filename": "nvda-annual-report.pdf", "kind": "annual_report"}],
+    "expected_claims": [{"claim_id": "clm-ar-nvda-margin", "text": "Gross margin was 73.8%.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-ar-nvda-p45-margin", "document_id": "doc-ar-nvda", "page_number": 45}],
+    "expected_numbers": [{"metric": "gross_margin_pct", "value": 73.8, "tolerance": 0.1}]
+  },
+  {
+    "id": "ar_msft_cloud_revenue",
+    "category": "annual_report",
+    "execution_profile": "financial_research",
+    "question": "Identify cloud revenue and cite the annual report page.",
+    "materials": [{"document_id": "doc-ar-msft", "filename": "msft-annual-report.pdf", "kind": "annual_report"}],
+    "expected_claims": [{"claim_id": "clm-ar-msft-cloud", "text": "Cloud revenue was 135.0 billion.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-ar-msft-p36-cloud", "document_id": "doc-ar-msft", "page_number": 36}],
+    "expected_numbers": [{"metric": "cloud_revenue_billion", "value": 135.0, "tolerance": 0.1}]
+  },
+  {
+    "id": "ar_aapl_services_margin",
+    "category": "annual_report",
+    "execution_profile": "financial_research",
+    "question": "Extract services gross margin and cite the source.",
+    "materials": [{"document_id": "doc-ar-aapl", "filename": "aapl-annual-report.pdf", "kind": "annual_report"}],
+    "expected_claims": [{"claim_id": "clm-ar-aapl-services-margin", "text": "Services gross margin was 70.8%.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-ar-aapl-p31-services-margin", "document_id": "doc-ar-aapl", "page_number": 31}],
+    "expected_numbers": [{"metric": "services_gross_margin_pct", "value": 70.8, "tolerance": 0.1}]
+  },
+  {
+    "id": "ar_tsla_capex",
+    "category": "annual_report",
+    "execution_profile": "financial_research",
+    "question": "Summarize capex and cite the filing page.",
+    "materials": [{"document_id": "doc-ar-tsla", "filename": "tsla-annual-report.pdf", "kind": "annual_report"}],
+    "expected_claims": [{"claim_id": "clm-ar-tsla-capex", "text": "Capital expenditures were 8.9 billion.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-ar-tsla-p68-capex", "document_id": "doc-ar-tsla", "page_number": 68}],
+    "expected_numbers": [{"metric": "capex_billion", "value": 8.9, "tolerance": 0.1}]
+  },
+  {
+    "id": "ppt_semis_tam",
+    "category": "presentation",
+    "execution_profile": "financial_research",
+    "question": "Extract the AI accelerator TAM from the presentation.",
+    "materials": [{"document_id": "doc-ppt-semis", "filename": "semiconductor-day.pptx", "kind": "presentation"}],
+    "expected_claims": [{"claim_id": "clm-ppt-semis-tam", "text": "AI accelerator TAM is 400 billion by 2027.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-ppt-semis-s12-tam", "document_id": "doc-ppt-semis", "page_number": 12}],
+    "expected_numbers": [{"metric": "tam_2027_billion", "value": 400.0, "tolerance": 1.0}]
+  },
+  {
+    "id": "ppt_bank_nim",
+    "category": "presentation",
+    "execution_profile": "financial_research",
+    "question": "What NIM guidance is shown in the investor deck?",
+    "materials": [{"document_id": "doc-ppt-bank", "filename": "bank-investor-deck.pptx", "kind": "presentation"}],
+    "expected_claims": [{"claim_id": "clm-ppt-bank-nim", "text": "NIM guidance is 2.35%.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-ppt-bank-s08-nim", "document_id": "doc-ppt-bank", "page_number": 8}],
+    "expected_numbers": [{"metric": "nim_guidance_pct", "value": 2.35, "tolerance": 0.01}]
+  },
+  {
+    "id": "ppt_retail_same_store_sales",
+    "category": "presentation",
+    "execution_profile": "financial_research",
+    "question": "Extract same-store sales guidance.",
+    "materials": [{"document_id": "doc-ppt-retail", "filename": "retail-investor-day.pptx", "kind": "presentation"}],
+    "expected_claims": [{"claim_id": "clm-ppt-retail-sss", "text": "Same-store sales guidance is 4.2%.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-ppt-retail-s15-sss", "document_id": "doc-ppt-retail", "page_number": 15}],
+    "expected_numbers": [{"metric": "same_store_sales_pct", "value": 4.2, "tolerance": 0.1}]
+  },
+  {
+    "id": "ppt_energy_capacity",
+    "category": "presentation",
+    "execution_profile": "financial_research",
+    "question": "What added capacity is claimed in the deck?",
+    "materials": [{"document_id": "doc-ppt-energy", "filename": "energy-update.pptx", "kind": "presentation"}],
+    "expected_claims": [{"claim_id": "clm-ppt-energy-capacity", "text": "Added capacity is 1.8 GW.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-ppt-energy-s09-capacity", "document_id": "doc-ppt-energy", "page_number": 9}],
+    "expected_numbers": [{"metric": "added_capacity_gw", "value": 1.8, "tolerance": 0.05}]
+  },
+  {
+    "id": "ppt_healthcare_margin",
+    "category": "presentation",
+    "execution_profile": "financial_research",
+    "question": "What operating margin target is shown?",
+    "materials": [{"document_id": "doc-ppt-health", "filename": "healthcare-strategy.pptx", "kind": "presentation"}],
+    "expected_claims": [{"claim_id": "clm-ppt-health-margin", "text": "Operating margin target is 18%.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-ppt-health-s18-margin", "document_id": "doc-ppt-health", "page_number": 18}],
+    "expected_numbers": [{"metric": "operating_margin_target_pct", "value": 18.0, "tolerance": 0.1}]
+  },
+  {
+    "id": "chart_rsrs_breakout",
+    "category": "chart_image",
+    "execution_profile": "vision_analysis",
+    "question": "Read the RSRS chart and identify the breakout score.",
+    "materials": [{"document_id": "doc-chart-rsrs", "filename": "rsrs-breakout.png", "kind": "chart_image"}],
+    "expected_claims": [{"claim_id": "clm-chart-rsrs", "text": "RSRS score crossed 1.25.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-chart-rsrs-annotation", "document_id": "doc-chart-rsrs", "page_number": 1}],
+    "expected_numbers": [{"metric": "rsrs_score", "value": 1.25, "tolerance": 0.02}]
+  },
+  {
+    "id": "chart_revenue_bar",
+    "category": "chart_image",
+    "execution_profile": "vision_analysis",
+    "question": "Read the revenue bar chart value for FY2025.",
+    "materials": [{"document_id": "doc-chart-revenue", "filename": "revenue-bars.png", "kind": "chart_image"}],
+    "expected_claims": [{"claim_id": "clm-chart-revenue", "text": "FY2025 revenue is 52.4 billion.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-chart-revenue-fy2025", "document_id": "doc-chart-revenue", "page_number": 1}],
+    "expected_numbers": [{"metric": "fy2025_revenue_billion", "value": 52.4, "tolerance": 0.2}]
+  },
+  {
+    "id": "chart_margin_line",
+    "category": "chart_image",
+    "execution_profile": "vision_analysis",
+    "question": "Extract the latest margin from the line chart.",
+    "materials": [{"document_id": "doc-chart-margin", "filename": "margin-line.png", "kind": "chart_image"}],
+    "expected_claims": [{"claim_id": "clm-chart-margin", "text": "Latest margin is 31.5%.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-chart-margin-latest", "document_id": "doc-chart-margin", "page_number": 1}],
+    "expected_numbers": [{"metric": "latest_margin_pct", "value": 31.5, "tolerance": 0.2}]
+  },
+  {
+    "id": "chart_inventory_days",
+    "category": "chart_image",
+    "execution_profile": "vision_analysis",
+    "question": "Read inventory days from the chart.",
+    "materials": [{"document_id": "doc-chart-inventory", "filename": "inventory-days.png", "kind": "chart_image"}],
+    "expected_claims": [{"claim_id": "clm-chart-inventory", "text": "Inventory days were 89.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-chart-inventory-days", "document_id": "doc-chart-inventory", "page_number": 1}],
+    "expected_numbers": [{"metric": "inventory_days", "value": 89.0, "tolerance": 1.0}]
+  },
+  {
+    "id": "chart_drawdown",
+    "category": "chart_image",
+    "execution_profile": "vision_analysis",
+    "question": "Read the maximum drawdown annotation.",
+    "materials": [{"document_id": "doc-chart-drawdown", "filename": "drawdown.png", "kind": "chart_image"}],
+    "expected_claims": [{"claim_id": "clm-chart-drawdown", "text": "Maximum drawdown is 12.4%.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-chart-drawdown-max", "document_id": "doc-chart-drawdown", "page_number": 1}],
+    "expected_numbers": [{"metric": "max_drawdown_pct", "value": 12.4, "tolerance": 0.2}]
+  },
+  {
+    "id": "portfolio_sector_exposure",
+    "category": "portfolio_csv",
+    "execution_profile": "financial_research",
+    "question": "Calculate technology sector exposure from the portfolio CSV.",
+    "materials": [{"document_id": "doc-portfolio-core", "filename": "core-portfolio.csv", "kind": "portfolio_csv"}],
+    "expected_claims": [{"claim_id": "clm-portfolio-tech", "text": "Technology exposure is 67.1%.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-portfolio-core-tech", "document_id": "doc-portfolio-core", "page_number": 1}],
+    "expected_numbers": [{"metric": "technology_weight_pct", "value": 67.1, "tolerance": 0.2}]
+  },
+  {
+    "id": "portfolio_bond_exposure",
+    "category": "portfolio_csv",
+    "execution_profile": "financial_research",
+    "question": "Calculate bond exposure from the portfolio CSV.",
+    "materials": [{"document_id": "doc-portfolio-core", "filename": "core-portfolio.csv", "kind": "portfolio_csv"}],
+    "expected_claims": [{"claim_id": "clm-portfolio-bond", "text": "Bond exposure is 25.7%.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-portfolio-core-bond", "document_id": "doc-portfolio-core", "page_number": 1}],
+    "expected_numbers": [{"metric": "bond_weight_pct", "value": 25.7, "tolerance": 0.2}]
+  },
+  {
+    "id": "portfolio_var",
+    "category": "portfolio_csv",
+    "execution_profile": "financial_research",
+    "question": "Estimate one-day 95% VaR from the portfolio CSV.",
+    "materials": [{"document_id": "doc-portfolio-risk", "filename": "risk-portfolio.csv", "kind": "portfolio_csv"}],
+    "expected_claims": [{"claim_id": "clm-portfolio-var", "text": "One-day 95% VaR is 1520.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-portfolio-risk-var", "document_id": "doc-portfolio-risk", "page_number": 1}],
+    "expected_numbers": [{"metric": "var_95_one_day", "value": 1520.0, "tolerance": 5.0}]
+  },
+  {
+    "id": "portfolio_rate_shock",
+    "category": "portfolio_csv",
+    "execution_profile": "financial_research",
+    "question": "Estimate the impact of a 100 bp rate shock.",
+    "materials": [{"document_id": "doc-portfolio-rates", "filename": "rates-portfolio.csv", "kind": "portfolio_csv"}],
+    "expected_claims": [{"claim_id": "clm-portfolio-rate-shock", "text": "Estimated rate shock impact is -1260.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-portfolio-rates-shock", "document_id": "doc-portfolio-rates", "page_number": 1}],
+    "expected_numbers": [{"metric": "rate_shock_impact", "value": -1260.0, "tolerance": 1.0}]
+  },
+  {
+    "id": "portfolio_cash_weight",
+    "category": "portfolio_csv",
+    "execution_profile": "financial_research",
+    "question": "Calculate cash weight from the portfolio CSV.",
+    "materials": [{"document_id": "doc-portfolio-core", "filename": "core-portfolio.csv", "kind": "portfolio_csv"}],
+    "expected_claims": [{"claim_id": "clm-portfolio-cash", "text": "Cash weight is 7.1%.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-portfolio-core-cash", "document_id": "doc-portfolio-core", "page_number": 1}],
+    "expected_numbers": [{"metric": "cash_weight_pct", "value": 7.1, "tolerance": 0.2}]
+  },
+  {
+    "id": "unsupported_no_source_dividend",
+    "category": "unsupported_claim",
+    "execution_profile": "financial_research",
+    "question": "Confirm that the company guaranteed a 20% dividend increase.",
+    "materials": [{"document_id": "doc-ar-aapl", "filename": "aapl-annual-report.pdf", "kind": "annual_report"}],
+    "expected_claims": [{"claim_id": "clm-unsupported-dividend", "text": "The company guaranteed a 20% dividend increase.", "expected_status": "insufficient_evidence"}],
+    "expected_citations": [],
+    "expected_numbers": []
+  },
+  {
+    "id": "unsupported_no_source_buyback",
+    "category": "unsupported_claim",
+    "execution_profile": "financial_research",
+    "question": "Verify a claim that management approved a 500 billion buyback.",
+    "materials": [{"document_id": "doc-ppt-bank", "filename": "bank-investor-deck.pptx", "kind": "presentation"}],
+    "expected_claims": [{"claim_id": "clm-unsupported-buyback", "text": "Management approved a 500 billion buyback.", "expected_status": "insufficient_evidence"}],
+    "expected_citations": [],
+    "expected_numbers": []
+  },
+  {
+    "id": "unsupported_no_source_guidance",
+    "category": "unsupported_claim",
+    "execution_profile": "financial_research",
+    "question": "Check whether guidance guarantees 40% EPS growth.",
+    "materials": [{"document_id": "doc-ppt-retail", "filename": "retail-investor-day.pptx", "kind": "presentation"}],
+    "expected_claims": [{"claim_id": "clm-unsupported-guidance", "text": "Guidance guarantees 40% EPS growth.", "expected_status": "insufficient_evidence"}],
+    "expected_citations": [],
+    "expected_numbers": []
+  },
+  {
+    "id": "unsupported_chart_claim",
+    "category": "unsupported_claim",
+    "execution_profile": "vision_analysis",
+    "question": "Does the chart prove that revenue doubled every quarter?",
+    "materials": [{"document_id": "doc-chart-revenue", "filename": "revenue-bars.png", "kind": "chart_image"}],
+    "expected_claims": [{"claim_id": "clm-unsupported-chart", "text": "Revenue doubled every quarter.", "expected_status": "insufficient_evidence"}],
+    "expected_citations": [],
+    "expected_numbers": []
+  },
+  {
+    "id": "unsupported_portfolio_claim",
+    "category": "unsupported_claim",
+    "execution_profile": "financial_research",
+    "question": "Verify that the portfolio has no equity exposure.",
+    "materials": [{"document_id": "doc-portfolio-core", "filename": "core-portfolio.csv", "kind": "portfolio_csv"}],
+    "expected_claims": [{"claim_id": "clm-unsupported-portfolio", "text": "The portfolio has no equity exposure.", "expected_status": "contradicted"}],
+    "expected_citations": [{"evidence_id": "evd-portfolio-core-tech", "document_id": "doc-portfolio-core", "page_number": 1}],
+    "expected_numbers": [{"metric": "technology_weight_pct", "value": 67.1, "tolerance": 0.2}]
+  },
+  {
+    "id": "multi_turn_followup_margin",
+    "category": "multi_turn",
+    "execution_profile": "financial_research",
+    "question": "First summarize revenue, then answer a follow-up about margin.",
+    "materials": [{"document_id": "doc-ar-nvda", "filename": "nvda-annual-report.pdf", "kind": "annual_report"}],
+    "expected_claims": [{"claim_id": "clm-multi-margin", "text": "Follow-up margin answer cites gross margin 73.8%.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-ar-nvda-p45-margin", "document_id": "doc-ar-nvda", "page_number": 45}],
+    "expected_numbers": [{"metric": "gross_margin_pct", "value": 73.8, "tolerance": 0.1}]
+  },
+  {
+    "id": "multi_turn_followup_portfolio",
+    "category": "multi_turn",
+    "execution_profile": "financial_research",
+    "question": "After explaining portfolio exposure, answer whether rates risk matters.",
+    "materials": [{"document_id": "doc-portfolio-rates", "filename": "rates-portfolio.csv", "kind": "portfolio_csv"}],
+    "expected_claims": [{"claim_id": "clm-multi-rates", "text": "Rates risk matters because bond duration drives -1260 impact.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-portfolio-rates-shock", "document_id": "doc-portfolio-rates", "page_number": 1}],
+    "expected_numbers": [{"metric": "rate_shock_impact", "value": -1260.0, "tolerance": 1.0}]
+  },
+  {
+    "id": "multi_turn_followup_chart",
+    "category": "multi_turn",
+    "execution_profile": "vision_analysis",
+    "question": "Read the chart, then answer a follow-up about the latest point.",
+    "materials": [{"document_id": "doc-chart-margin", "filename": "margin-line.png", "kind": "chart_image"}],
+    "expected_claims": [{"claim_id": "clm-multi-chart-margin", "text": "Latest chart point is 31.5%.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-chart-margin-latest", "document_id": "doc-chart-margin", "page_number": 1}],
+    "expected_numbers": [{"metric": "latest_margin_pct", "value": 31.5, "tolerance": 0.2}]
+  },
+  {
+    "id": "multi_turn_followup_unsupported",
+    "category": "multi_turn",
+    "execution_profile": "financial_research",
+    "question": "After a sourced answer, ask whether an unsourced guarantee is true.",
+    "materials": [{"document_id": "doc-ppt-health", "filename": "healthcare-strategy.pptx", "kind": "presentation"}],
+    "expected_claims": [{"claim_id": "clm-multi-unsupported", "text": "The deck guarantees the margin target.", "expected_status": "insufficient_evidence"}],
+    "expected_citations": [],
+    "expected_numbers": []
+  },
+  {
+    "id": "multi_turn_followup_cross_doc",
+    "category": "multi_turn",
+    "execution_profile": "financial_research",
+    "question": "Combine annual report revenue and portfolio exposure in a follow-up.",
+    "materials": [
+      {"document_id": "doc-ar-msft", "filename": "msft-annual-report.pdf", "kind": "annual_report"},
+      {"document_id": "doc-portfolio-core", "filename": "core-portfolio.csv", "kind": "portfolio_csv"}
+    ],
+    "expected_claims": [{"claim_id": "clm-multi-cross-doc", "text": "Cloud revenue is 135.0 billion and technology exposure is 67.1%.", "expected_status": "supported"}],
+    "expected_citations": [
+      {"evidence_id": "evd-ar-msft-p36-cloud", "document_id": "doc-ar-msft", "page_number": 36},
+      {"evidence_id": "evd-portfolio-core-tech", "document_id": "doc-portfolio-core", "page_number": 1}
+    ],
+    "expected_numbers": [
+      {"metric": "cloud_revenue_billion", "value": 135.0, "tolerance": 0.1},
+      {"metric": "technology_weight_pct", "value": 67.1, "tolerance": 0.2}
+    ]
+  }
+]

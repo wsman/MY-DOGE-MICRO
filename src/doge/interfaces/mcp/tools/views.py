@@ -2,12 +2,12 @@
 
 import json
 
-from doge.application.agent.tool_service import ToolApplicationService
+from doge.application import composition
 
 
 async def list_views() -> str:
     try:
-        rows = ToolApplicationService().list_views()["views"]
+        rows = composition.build_tool_application_service().list_views()["views"]
         if not rows:
             return json.dumps(_fallback_views(), indent=2, ensure_ascii=False)
         return json.dumps(rows, indent=2, ensure_ascii=False)

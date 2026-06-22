@@ -1,0 +1,2 @@
+"""Financial connector fallback adapters."""
+

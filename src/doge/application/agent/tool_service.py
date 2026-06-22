@@ -7,21 +7,99 @@ import re
 import subprocess
 import sys
 from dataclasses import asdict, is_dataclass
-from typing import Any
+from typing import Any, Callable
+
+
+ServiceFactory = Callable[[], Any]
 
 
 class ToolApplicationService:
     """Single application-layer entrypoint for deterministic research tools."""
 
-    def __init__(self, stock_service_factory=None) -> None:
+    def __init__(
+        self,
+        stock_service_factory: ServiceFactory | None = None,
+        *,
+        ranking_service_factory: ServiceFactory | None = None,
+        breadth_service_factory: ServiceFactory | None = None,
+        anomaly_service_factory: ServiceFactory | None = None,
+        view_service_factory: ServiceFactory | None = None,
+        portfolio_service_factory: ServiceFactory | None = None,
+        risk_service_factory: ServiceFactory | None = None,
+        scenario_service_factory: ServiceFactory | None = None,
+        rag_service_factory: ServiceFactory | None = None,
+        note_repository_factory: ServiceFactory | None = None,
+        industry_report_use_case_factory: ServiceFactory | None = None,
+        financial_statement_repository_factory: ServiceFactory | None = None,
+        company_announcement_repository_factory: ServiceFactory | None = None,
+        consensus_estimate_repository_factory: ServiceFactory | None = None,
+        industry_classification_source_factory: ServiceFactory | None = None,
+        view_repository_factory: ServiceFactory | None = None,
+    ) -> None:
         self._stock_service_factory = stock_service_factory
+        self._ranking_service_factory = ranking_service_factory
+        self._breadth_service_factory = breadth_service_factory
+        self._anomaly_service_factory = anomaly_service_factory
+        self._view_service_factory = view_service_factory
+        self._portfolio_service_factory = portfolio_service_factory
+        self._risk_service_factory = risk_service_factory
+        self._scenario_service_factory = scenario_service_factory
+        self._rag_service_factory = rag_service_factory
+        self._note_repository_factory = note_repository_factory
+        self._industry_report_use_case_factory = industry_report_use_case_factory
+        self._financial_statement_repository_factory = financial_statement_repository_factory
+        self._company_announcement_repository_factory = company_announcement_repository_factory
+        self._consensus_estimate_repository_factory = consensus_estimate_repository_factory
+        self._industry_classification_source_factory = industry_classification_source_factory
+        self._view_repository_factory = view_repository_factory
 
     def _stock_service(self):
-        if self._stock_service_factory is not None:
-            return self._stock_service_factory()
-        from doge.application import composition
+        return _resolve(self._stock_service_factory, "stock_service")
 
-        return composition.build_stock_service()
+    def _ranking_service(self):
+        return _resolve(self._ranking_service_factory, "ranking_service")
+
+    def _breadth_service(self):
+        return _resolve(self._breadth_service_factory, "breadth_service")
+
+    def _anomaly_service(self):
+        return _resolve(self._anomaly_service_factory, "anomaly_service")
+
+    def _view_service(self):
+        return _resolve(self._view_service_factory, "view_service")
+
+    def _portfolio_service(self):
+        return _resolve(self._portfolio_service_factory, "portfolio_service")
+
+    def _risk_service(self):
+        return _resolve(self._risk_service_factory, "risk_service")
+
+    def _scenario_service(self):
+        return _resolve(self._scenario_service_factory, "scenario_service")
+
+    def _rag_service(self):
+        return _resolve(self._rag_service_factory, "rag_service")
+
+    def _note_repository(self):
+        return _resolve(self._note_repository_factory, "note_repository")
+
+    def _industry_report_use_case(self):
+        return _resolve(self._industry_report_use_case_factory, "industry_report_use_case")
+
+    def _financial_statement_repository(self):
+        return _resolve(self._financial_statement_repository_factory, "financial_statement_repository")
+
+    def _company_announcement_repository(self):
+        return _resolve(self._company_announcement_repository_factory, "company_announcement_repository")
+
+    def _consensus_estimate_repository(self):
+        return _resolve(self._consensus_estimate_repository_factory, "consensus_estimate_repository")
+
+    def _industry_classification_source(self):
+        return _resolve(self._industry_classification_source_factory, "industry_classification_source")
+
+    def _view_repository(self):
+        return _resolve(self._view_repository_factory, "view_repository")
 
     def query_stock(self, ticker: str, market: str = "us", days: int = 20) -> dict[str, Any]:
         rows = self._stock_service().query(ticker, market, days)
@@ -32,51 +110,44 @@ class ToolApplicationService:
         return data or {"ticker": ticker, "market": market, "status": "unavailable"}
 
     def rsrs_ranking(self, market: str = "us", top: int = 20) -> dict[str, Any]:
-        from doge.application import composition
-
-        rows = composition.build_ranking_service().rsrs(market, top)
+        rows = self._ranking_service().rsrs(market, top)
         return {"market": market, "top": top, "rows": rows}
 
     def market_breadth(self, market: str = "us", days: int = 10) -> dict[str, Any]:
-        from doge.application import composition
-
-        rows = composition.build_breadth_service().breadth(market, days)
+        rows = self._breadth_service().breadth(market, days)
         return {"market": market, "days": days, "rows": rows}
 
     def volume_anomalies(self, min_ratio: float = 3.0, top: int = 20) -> dict[str, Any]:
-        from doge.application import composition
-
-        rows = composition.build_anomaly_service().anomalies(min_ratio, top)
+        rows = self._anomaly_service().anomalies(min_ratio, top)
         return {"min_ratio": min_ratio, "top": top, "rows": rows}
 
     def list_views(self) -> dict[str, Any]:
-        from doge.application import composition
-
-        payload = composition.build_view_service().list_views()
+        payload = self._view_service().list_views()
         rows = json.loads(payload)
         return {"views": rows}
 
     def get_portfolio_exposure(self, portfolio_id: str = "portfolio-demo") -> dict[str, Any]:
-        from doge.application import composition
-
-        return composition.build_portfolio_service().get_exposure(portfolio_id)
+        return self._portfolio_service().get_exposure(portfolio_id)
 
     def portfolio_risk(self, portfolio_id: str = "portfolio-demo") -> dict[str, Any]:
-        from doge.application import composition
-
-        return composition.build_risk_service().portfolio_risk(portfolio_id)
+        return self._risk_service().portfolio_risk(portfolio_id)
 
     def scenario_analysis(self, portfolio_id: str = "portfolio-demo", basis_points: float = 100.0) -> dict[str, Any]:
-        from doge.application import composition
+        return self._scenario_service().rate_shock(portfolio_id, basis_points)
 
-        return composition.build_scenario_service().rate_shock(portfolio_id, basis_points)
-
-    def validate_financial_claims(self, claim: str, ticker: str = "AAPL", market: str = "us") -> dict[str, Any]:
+    def validate_financial_claims(
+        self,
+        claim: str,
+        ticker: str = "AAPL",
+        market: str = "us",
+        *,
+        context: Any = None,
+    ) -> dict[str, Any]:
         evidence = []
         try:
-            from doge.application import composition
-
-            evidence = composition.build_rag_service().search(claim, limit=3).get("results", [])
+            document_ids = _document_scope_from_context(context)
+            evidence = self._rag_service().search(claim, document_ids=document_ids, limit=3).get("results", [])
+            evidence = _filter_results_for_context(evidence, context)
         except Exception:
             evidence = []
         rows = self._stock_service().query(ticker, market, 5)
@@ -100,10 +171,9 @@ class ToolApplicationService:
         market: str = "us",
         tickers: list[str] | None = None,
     ) -> dict[str, Any]:
-        from doge.application import composition
         from doge.application.contracts.request import GenerateIndustryReportRequest
 
-        response = composition.build_generate_industry_report_use_case().execute(
+        response = self._industry_report_use_case().execute(
             GenerateIndustryReportRequest(
                 market=market,
                 industry=industry,
@@ -112,16 +182,18 @@ class ToolApplicationService:
         )
         return asdict(response) if is_dataclass(response) else dict(response)
 
-    def lookup_evidence(self, query: str, limit: int = 5) -> dict[str, Any]:
-        from doge.application import composition
-
+    def lookup_evidence(self, query: str, limit: int = 5, *, context: Any = None) -> dict[str, Any]:
+        document_ids = _document_scope_from_context(context)
         try:
-            rag_result = composition.build_rag_service().search(query, limit=limit)
+            rag_result = self._rag_service().search(query, document_ids=document_ids, limit=limit)
+            rag_result["results"] = _filter_results_for_context(rag_result.get("results", []), context)
             if rag_result.get("results"):
                 return rag_result
         except Exception:
             pass
-        rows = composition.build_note_repository().search_notes(query, limit=limit)
+        if _is_restricted_context(context):
+            return {"query": query, "limit": limit, "source": "rag", "results": []}
+        rows = self._note_repository().search_notes(query, limit=limit)
         return {"query": query, "limit": limit, "source": "notes", "results": rows[:limit]}
 
     def request_approval(self, action: str, risk_level: str = "high") -> dict[str, Any]:
@@ -133,27 +205,10 @@ class ToolApplicationService:
         statement_type: str = "income",
         period: str = "annual",
     ) -> dict[str, Any]:
-        overview = self.stock_overview(ticker, "us")
-        return {
-            "ticker": ticker,
-            "statement_type": statement_type,
-            "period": period,
-            "status": "demo_unavailable" if overview.get("status") == "unavailable" else "demo",
-            "fields": {
-                key: value
-                for key, value in overview.items()
-                if isinstance(value, (int, float, str)) and key not in {"ticker", "market"}
-            },
-        }
+        return self._financial_statement_repository().get_statement(ticker, statement_type, period)
 
     def get_company_announcements(self, ticker: str, limit: int = 5) -> dict[str, Any]:
-        from doge.application import composition
-
-        try:
-            rows = composition.build_note_repository().search_notes(ticker, limit=limit)
-        except Exception:
-            rows = []
-        return {"ticker": ticker, "limit": limit, "announcements": rows[:limit], "source": "local_notes"}
+        return self._company_announcement_repository().list_announcements(ticker, limit)
 
     def calculate_financial_ratios(self, fields: dict[str, Any] | None = None) -> dict[str, Any]:
         values = fields or {}
@@ -171,20 +226,16 @@ class ToolApplicationService:
         return {"ratios": ratios, "status": "calculated" if ratios else "insufficient_fields"}
 
     def compare_consensus_estimates(self, ticker: str, metric: str = "eps") -> dict[str, Any]:
-        return {
-            "ticker": ticker,
-            "metric": metric,
-            "status": "demo_unavailable",
-            "message": "Consensus connector is not configured in this local reference implementation.",
-        }
+        return self._consensus_estimate_repository().compare_estimates(ticker, metric)
+
+    def get_industry_classification(self, ticker: str, market: str = "us") -> dict[str, Any]:
+        return self._industry_classification_source().classify(ticker, market)
 
     def run_sql_query(self, sql: str, readonly: bool = True) -> dict[str, Any]:
         if not readonly or _looks_mutating_sql(sql):
             return {"ok": False, "error": "Only read-only SELECT/WITH queries are allowed."}
         try:
-            from doge.application import composition
-
-            frame = composition.build_view_repository(read_only=True).execute(sql, [])
+            frame = self._view_repository().execute(sql, [])
             rows = frame.to_dict(orient="records") if hasattr(frame, "to_dict") else []
             return {"ok": True, "rows": rows[:100], "row_count": len(rows)}
         except Exception:
@@ -269,6 +320,34 @@ def _claim_matches_evidence(claim: str, evidence: list[dict[str, Any]]) -> bool:
     return bool(claim_terms & evidence_terms)
 
 
+def _document_scope_from_context(context: Any) -> list[str] | None:
+    if context is None:
+        return None
+    acl = sorted(getattr(context, "document_acl", frozenset()) or [])
+    if _is_restricted_context(context):
+        return acl
+    return acl or None
+
+
+def _filter_results_for_context(results: list[dict[str, Any]], context: Any) -> list[dict[str, Any]]:
+    if not _is_restricted_context(context):
+        return results
+    allowed = set(getattr(context, "document_acl", frozenset()) or [])
+    if not allowed:
+        return []
+    return [
+        item
+        for item in results
+        if item.get("document_id") in allowed
+    ]
+
+
+def _is_restricted_context(context: Any) -> bool:
+    if context is None:
+        return False
+    return getattr(context, "tenant_id", "local") != "local"
+
+
 def _num(value: Any) -> float:
     try:
         return float(value)
@@ -297,3 +376,9 @@ def _unsafe_python(code: str) -> bool:
         "exec(",
     )
     return any(token in lowered for token in blocked)
+
+
+def _resolve(factory: ServiceFactory | None, dependency_name: str) -> Any:
+    if factory is None:
+        raise RuntimeError(f"Tool dependency not configured: {dependency_name}")
+    return factory()

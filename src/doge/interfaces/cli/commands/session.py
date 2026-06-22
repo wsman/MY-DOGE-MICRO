@@ -6,10 +6,12 @@ import asyncio
 import json
 import sys
 import urllib.request
+from dataclasses import asdict, is_dataclass
 from typing import Any
 
 from doge.application import composition
 from doge.application.services.file_upload_service import FileUploadError
+from doge.core.security import redact_secrets
 
 
 def cmd_session(args) -> None:
@@ -257,7 +259,15 @@ def _print_last_run(run_id: str | None, *, field: str) -> None:
         print(f"{field}=0")
         return
     for item in items:
-        print(item)
+        print(json.dumps(redact_secrets(_to_cli_payload(item)), ensure_ascii=False, sort_keys=True))
+
+
+def _to_cli_payload(item: Any) -> Any:
+    if is_dataclass(item) and not isinstance(item, type):
+        return asdict(item)
+    if hasattr(item, "__dict__"):
+        return vars(item)
+    return item
 
 
 def _resolve_embedded_approval(run_id: str, approval_id: str, approved: bool):

@@ -1,4 +1,10 @@
-"""Generate a structured, evidence-aware industry report."""
+"""Generate a structured, evidence-aware industry report.
+
+Boundary: this is the compatibility report/tool workflow used by the
+`generate_industry_report` deterministic tool and local report generation. New
+top-level Research Copilot product workflows should enter through
+`IndustryAnalyzerAgentUseCase` and the shared RuntimeKernel.
+"""
 
 from __future__ import annotations
 
@@ -13,8 +19,11 @@ from doge.application.services.citation_service import CitationService
 from doge.application.services.claim_validation_service import ClaimValidationService
 
 
+RESEARCH_PATH = "compatibility_report_tool"
+
+
 class GenerateIndustryReportUseCase:
-    """Generate an industry analysis report from deterministic local inputs."""
+    """Generate a compatibility industry report from deterministic local inputs."""
 
     def __init__(
         self,

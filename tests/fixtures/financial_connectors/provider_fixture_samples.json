@@ -1,0 +1,395 @@
+{
+  "version": 1,
+  "generated_at": "2026-06-22",
+  "status": "synthetic_safe_samples",
+  "license_scope": "test_synthetic",
+  "repository_storage": "approved_synthetic_only",
+  "notes": "Synthetic provider-shaped fixtures for contract tests only. No licensed or proprietary provider data is included.",
+  "connectors": {
+    "financial_statements": {
+      "samples": [
+        {
+          "case_type": "ok",
+          "provider": "synthetic-financials",
+          "as_of": "2026-06-22",
+          "retrieved_at": "2026-06-22T00:00:00Z",
+          "source_id": "synthetic-financials-DEMO-2025",
+          "license_scope": "test_synthetic",
+          "ticker": "DEMO",
+          "currency": "USD",
+          "provider_status": "ok",
+          "period": "FY2025",
+          "revenue": 1000000,
+          "net_income": 120000,
+          "operating_cash_flow": 150000,
+          "total_assets": 2500000,
+          "total_liabilities": 900000
+        },
+        {
+          "case_type": "stale_data",
+          "provider": "synthetic-financials",
+          "as_of": "2024-12-31",
+          "retrieved_at": "2026-06-22T00:00:00Z",
+          "source_id": "synthetic-financials-DEMO-2024",
+          "license_scope": "test_synthetic",
+          "ticker": "DEMO",
+          "currency": "USD",
+          "provider_status": "stale_data",
+          "period": "FY2024",
+          "revenue": 900000,
+          "net_income": 95000,
+          "operating_cash_flow": 110000,
+          "total_assets": 2100000,
+          "total_liabilities": 820000
+        },
+        {
+          "case_type": "provider_unavailable",
+          "provider": "synthetic-financials",
+          "as_of": "2026-06-22",
+          "retrieved_at": "2026-06-22T00:00:00Z",
+          "source_id": "synthetic-financials-DEMO-unavailable",
+          "license_scope": "test_synthetic",
+          "ticker": "DEMO",
+          "currency": "USD",
+          "provider_status": "provider_unavailable",
+          "period": "FY2025",
+          "revenue": null,
+          "net_income": null,
+          "operating_cash_flow": null,
+          "total_assets": null,
+          "total_liabilities": null
+        },
+        {
+          "case_type": "entitlement_denied",
+          "provider": "synthetic-financials",
+          "as_of": "2026-06-22",
+          "retrieved_at": "2026-06-22T00:00:00Z",
+          "source_id": "synthetic-financials-DEMO-denied",
+          "license_scope": "test_synthetic",
+          "ticker": "DEMO",
+          "currency": "USD",
+          "provider_status": "entitlement_denied",
+          "period": "FY2025",
+          "revenue": null,
+          "net_income": null,
+          "operating_cash_flow": null,
+          "total_assets": null,
+          "total_liabilities": null
+        },
+        {
+          "case_type": "malformed",
+          "payload": {
+            "provider": "synthetic-financials",
+            "ticker": "DEMO",
+            "provider_status": "ok"
+          },
+          "expected_error": "missing required financial statement fields"
+        }
+      ]
+    },
+    "announcements": {
+      "samples": [
+        {
+          "case_type": "ok",
+          "provider": "synthetic-disclosures",
+          "as_of": "2026-06-22",
+          "retrieved_at": "2026-06-22T00:00:00Z",
+          "source_url": "https://example.invalid/disclosures/DEMO/1",
+          "license_scope": "test_synthetic",
+          "ticker": "DEMO",
+          "provider_status": "ok",
+          "announcement_id": "synthetic-ann-1",
+          "title": "Synthetic quarterly results notice",
+          "published_at": "2026-06-20T12:00:00Z",
+          "category": "earnings",
+          "summary": "Synthetic issuer reported stable margin and no material guidance change."
+        },
+        {
+          "case_type": "stale_data",
+          "provider": "synthetic-disclosures",
+          "as_of": "2024-12-31",
+          "retrieved_at": "2026-06-22T00:00:00Z",
+          "source_url": "https://example.invalid/disclosures/DEMO/stale",
+          "license_scope": "test_synthetic",
+          "ticker": "DEMO",
+          "provider_status": "stale_data",
+          "announcement_id": "synthetic-ann-stale",
+          "title": "Synthetic stale notice",
+          "published_at": "2024-12-15T12:00:00Z",
+          "category": "other",
+          "summary": "Synthetic stale disclosure retained only for stale-data path tests."
+        },
+        {
+          "case_type": "provider_unavailable",
+          "provider": "synthetic-disclosures",
+          "as_of": "2026-06-22",
+          "retrieved_at": "2026-06-22T00:00:00Z",
+          "source_url": "https://example.invalid/disclosures/DEMO/unavailable",
+          "license_scope": "test_synthetic",
+          "ticker": "DEMO",
+          "provider_status": "provider_unavailable",
+          "announcement_id": "synthetic-ann-unavailable",
+          "title": "",
+          "published_at": "2026-06-22T00:00:00Z",
+          "category": "unavailable",
+          "summary": "Synthetic unavailable response."
+        },
+        {
+          "case_type": "entitlement_denied",
+          "provider": "synthetic-disclosures",
+          "as_of": "2026-06-22",
+          "retrieved_at": "2026-06-22T00:00:00Z",
+          "source_url": "https://example.invalid/disclosures/DEMO/denied",
+          "license_scope": "test_synthetic",
+          "ticker": "DEMO",
+          "provider_status": "entitlement_denied",
+          "announcement_id": "synthetic-ann-denied",
+          "title": "",
+          "published_at": "2026-06-22T00:00:00Z",
+          "category": "entitlement",
+          "summary": "Synthetic entitlement denied response."
+        },
+        {
+          "case_type": "malformed",
+          "payload": {
+            "provider": "synthetic-disclosures",
+            "ticker": "DEMO",
+            "provider_status": "ok"
+          },
+          "expected_error": "missing required announcement fields"
+        }
+      ]
+    },
+    "consensus": {
+      "samples": [
+        {
+          "case_type": "ok",
+          "provider": "synthetic-consensus",
+          "as_of": "2026-06-22",
+          "retrieved_at": "2026-06-22T00:00:00Z",
+          "source_id": "synthetic-consensus-DEMO-FY2026",
+          "license_scope": "test_synthetic",
+          "ticker": "DEMO",
+          "currency": "USD",
+          "provider_status": "ok",
+          "metric": "eps",
+          "period": "FY2026",
+          "mean": 2.4,
+          "median": 2.35,
+          "low": 2.1,
+          "high": 2.7,
+          "contributors": 5
+        },
+        {
+          "case_type": "stale_data",
+          "provider": "synthetic-consensus",
+          "as_of": "2024-12-31",
+          "retrieved_at": "2026-06-22T00:00:00Z",
+          "source_id": "synthetic-consensus-DEMO-stale",
+          "license_scope": "test_synthetic",
+          "ticker": "DEMO",
+          "currency": "USD",
+          "provider_status": "stale_data",
+          "metric": "eps",
+          "period": "FY2025",
+          "mean": 2.0,
+          "median": 2.0,
+          "low": 1.8,
+          "high": 2.2,
+          "contributors": 3
+        },
+        {
+          "case_type": "provider_unavailable",
+          "provider": "synthetic-consensus",
+          "as_of": "2026-06-22",
+          "retrieved_at": "2026-06-22T00:00:00Z",
+          "source_id": "synthetic-consensus-DEMO-unavailable",
+          "license_scope": "test_synthetic",
+          "ticker": "DEMO",
+          "currency": "USD",
+          "provider_status": "provider_unavailable",
+          "metric": "eps",
+          "period": "FY2026",
+          "mean": null,
+          "median": null,
+          "low": null,
+          "high": null,
+          "contributors": 0
+        },
+        {
+          "case_type": "entitlement_denied",
+          "provider": "synthetic-consensus",
+          "as_of": "2026-06-22",
+          "retrieved_at": "2026-06-22T00:00:00Z",
+          "source_id": "synthetic-consensus-DEMO-denied",
+          "license_scope": "test_synthetic",
+          "ticker": "DEMO",
+          "currency": "USD",
+          "provider_status": "entitlement_denied",
+          "metric": "eps",
+          "period": "FY2026",
+          "mean": null,
+          "median": null,
+          "low": null,
+          "high": null,
+          "contributors": 0
+        },
+        {
+          "case_type": "malformed",
+          "payload": {
+            "provider": "synthetic-consensus",
+            "ticker": "DEMO",
+            "provider_status": "ok"
+          },
+          "expected_error": "missing required consensus fields"
+        }
+      ]
+    },
+    "industry_classification": {
+      "samples": [
+        {
+          "case_type": "ok",
+          "provider": "synthetic-taxonomy",
+          "as_of": "2026-06-22",
+          "retrieved_at": "2026-06-22T00:00:00Z",
+          "source_id": "synthetic-industry-DEMO",
+          "license_scope": "test_synthetic",
+          "ticker": "DEMO",
+          "provider_status": "ok",
+          "system": "synthetic-taxonomy-v1",
+          "level_1": "Technology",
+          "level_2": "Software",
+          "code": "45-10",
+          "name": "Software"
+        },
+        {
+          "case_type": "stale_data",
+          "provider": "synthetic-taxonomy",
+          "as_of": "2024-12-31",
+          "retrieved_at": "2026-06-22T00:00:00Z",
+          "source_id": "synthetic-industry-DEMO-stale",
+          "license_scope": "test_synthetic",
+          "ticker": "DEMO",
+          "provider_status": "stale_data",
+          "system": "synthetic-taxonomy-v0",
+          "level_1": "Information Technology",
+          "level_2": "Application Software",
+          "code": "45-10-20",
+          "name": "Application Software"
+        },
+        {
+          "case_type": "provider_unavailable",
+          "provider": "synthetic-taxonomy",
+          "as_of": "2026-06-22",
+          "retrieved_at": "2026-06-22T00:00:00Z",
+          "source_id": "synthetic-industry-DEMO-unavailable",
+          "license_scope": "test_synthetic",
+          "ticker": "DEMO",
+          "provider_status": "provider_unavailable",
+          "system": "synthetic-taxonomy-v1",
+          "level_1": "",
+          "level_2": "",
+          "code": "",
+          "name": ""
+        },
+        {
+          "case_type": "entitlement_denied",
+          "provider": "synthetic-taxonomy",
+          "as_of": "2026-06-22",
+          "retrieved_at": "2026-06-22T00:00:00Z",
+          "source_id": "synthetic-industry-DEMO-denied",
+          "license_scope": "test_synthetic",
+          "ticker": "DEMO",
+          "provider_status": "entitlement_denied",
+          "system": "synthetic-taxonomy-v1",
+          "level_1": "",
+          "level_2": "",
+          "code": "",
+          "name": ""
+        },
+        {
+          "case_type": "malformed",
+          "payload": {
+            "provider": "synthetic-taxonomy",
+            "ticker": "DEMO",
+            "provider_status": "ok"
+          },
+          "expected_error": "missing required industry classification fields"
+        }
+      ]
+    },
+    "risk_factors": {
+      "samples": [
+        {
+          "case_type": "ok",
+          "provider": "synthetic-risk",
+          "as_of": "2026-06-22",
+          "retrieved_at": "2026-06-22T00:00:00Z",
+          "source_id": "synthetic-risk-portfolio-demo",
+          "license_scope": "test_synthetic",
+          "portfolio_id": "portfolio-demo",
+          "provider_status": "ok",
+          "factor_model": "synthetic-factor-model-v1",
+          "factor": "equity_market",
+          "exposure": 1.2,
+          "beta": 1.1,
+          "volatility": 0.22
+        },
+        {
+          "case_type": "stale_data",
+          "provider": "synthetic-risk",
+          "as_of": "2024-12-31",
+          "retrieved_at": "2026-06-22T00:00:00Z",
+          "source_id": "synthetic-risk-portfolio-demo-stale",
+          "license_scope": "test_synthetic",
+          "portfolio_id": "portfolio-demo",
+          "provider_status": "stale_data",
+          "factor_model": "synthetic-factor-model-v0",
+          "factor": "equity_market",
+          "exposure": 1.0,
+          "beta": 1.0,
+          "volatility": 0.2
+        },
+        {
+          "case_type": "provider_unavailable",
+          "provider": "synthetic-risk",
+          "as_of": "2026-06-22",
+          "retrieved_at": "2026-06-22T00:00:00Z",
+          "source_id": "synthetic-risk-portfolio-demo-unavailable",
+          "license_scope": "test_synthetic",
+          "portfolio_id": "portfolio-demo",
+          "provider_status": "provider_unavailable",
+          "factor_model": "synthetic-factor-model-v1",
+          "factor": "equity_market",
+          "exposure": null,
+          "beta": null,
+          "volatility": null
+        },
+        {
+          "case_type": "entitlement_denied",
+          "provider": "synthetic-risk",
+          "as_of": "2026-06-22",
+          "retrieved_at": "2026-06-22T00:00:00Z",
+          "source_id": "synthetic-risk-portfolio-demo-denied",
+          "license_scope": "test_synthetic",
+          "portfolio_id": "portfolio-demo",
+          "provider_status": "entitlement_denied",
+          "factor_model": "synthetic-factor-model-v1",
+          "factor": "equity_market",
+          "exposure": null,
+          "beta": null,
+          "volatility": null
+        },
+        {
+          "case_type": "malformed",
+          "payload": {
+            "provider": "synthetic-risk",
+            "portfolio_id": "portfolio-demo",
+            "provider_status": "ok"
+          },
+          "expected_error": "missing required risk factor fields"
+        }
+      ]
+    }
+  }
+}

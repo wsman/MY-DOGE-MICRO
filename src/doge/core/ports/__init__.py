@@ -11,7 +11,25 @@ from doge.core.ports.agent_repository import (
 )
 from doge.core.ports.document_repository import IDocumentRepository
 from doge.core.ports.embedding import IEmbeddingCache, IEmbeddingProvider
+from doge.core.ports.enterprise_auth import (
+    AuthenticatedPrincipal,
+    EnterpriseAuthError,
+    IEnterpriseAuthProvider,
+)
+from doge.core.ports.enterprise_governance import (
+    ApprovalActorDecision,
+    EnterpriseAclGrant,
+    EnterpriseAuditEvent,
+    IEnterpriseGovernanceRepository,
+)
 from doge.core.ports.evidence_repository import IEvidenceRepository
+from doge.core.ports.financial_connectors import (
+    ICompanyAnnouncementRepository,
+    IConsensusEstimateRepository,
+    IFinancialStatementRepository,
+    IIndustryClassificationSource,
+    IRiskFactorSource,
+)
 from doge.core.ports.agent_runtime import IResearchAgentRuntime
 from doge.core.ports.cache import ITickerNameCache
 from doge.core.ports.claim_repository import IClaimRepository
@@ -35,6 +53,7 @@ from doge.core.ports.repository import (
     IStockRepository,
     StorageWriteError,
 )
+from doge.core.ports.secrets import ISecretProvider
 from doge.core.ports.unit_of_work import IAgentUnitOfWork
 from doge.core.ports.worker_queue import IRunQueue
 from doge.core.ports.vector_store import IVectorStore, VectorRecord, VectorSearchResult
@@ -49,16 +68,27 @@ __all__ = [
     "IApprovalRepository",
     "IArtifactRepository",
     "IClaimRepository",
+    "ICompanyAnnouncementRepository",
+    "IConsensusEstimateRepository",
     "IDocumentRepository",
     "IEvidenceRepository",
     "IEmbeddingCache",
     "IEmbeddingProvider",
+    "IFinancialStatementRepository",
+    "AuthenticatedPrincipal",
+    "EnterpriseAuthError",
+    "ApprovalActorDecision",
+    "EnterpriseAclGrant",
+    "EnterpriseAuditEvent",
+    "IEnterpriseAuthProvider",
+    "IEnterpriseGovernanceRepository",
     "IEventPublisher",
     "IEventRepository",
     "IIdempotencyStore",
     "ILLMClient",
     "IMarketDataSource",
     "IMarketViewRepository",
+    "IIndustryClassificationSource",
     "IModelRouter",
     "IEnterpriseModelGateway",
     "INoteRepository",
@@ -67,6 +97,8 @@ __all__ = [
     "IResearchAgentRuntime",
     "IRunQueue",
     "IRunRepository",
+    "IRiskFactorSource",
+    "ISecretProvider",
     "ISchemaBrowser",
     "ISessionRepository",
     "IStockNameRepository",

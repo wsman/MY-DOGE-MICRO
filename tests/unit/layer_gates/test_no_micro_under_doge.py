@@ -20,9 +20,6 @@ class TestNoNewMicroImportsUnderDoge:
         # save_stock_data_custom/init_db_custom helpers will be inlined or
         # replaced once the storage write path is fully canonicalized.
         "infrastructure/database/sqlite_storage.py": "legacy SQLite writer bridge (S007-008)",
-        # S007-005 deferred: TDX server-download orchestration remains in
-        # micro.tdx_downloader; the adapter only wraps connection lifecycle.
-        "infrastructure/data_source/tdx.py": "server download helper bridge (S007-008)",
     }
 
     FORBIDDEN = [

@@ -7,8 +7,11 @@ from doge.core.domain.model_policy import ModelPolicy
 from doge.core.ports.agent_runtime import IResearchAgentRuntime
 
 
+RESEARCH_PATH = "runtime_research_copilot"
+
+
 class IndustryAnalyzerAgentUseCase:
-    """Create a governed Research Copilot run for industry research."""
+    """Create a governed RuntimeKernel Research Copilot run for industry research."""
 
     def __init__(self, runtime: IResearchAgentRuntime) -> None:
         self._runtime = runtime

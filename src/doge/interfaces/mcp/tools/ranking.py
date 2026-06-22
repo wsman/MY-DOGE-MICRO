@@ -1,6 +1,6 @@
 """MCP tools: rsrs_ranking, market_breadth."""
 
-from doge.application.agent.tool_service import ToolApplicationService
+from doge.application import composition
 
 
 def _fmt(columns, rows):
@@ -23,7 +23,7 @@ def _fmt(columns, rows):
 
 async def rsrs_ranking(market: str = "cn", top: int = 20) -> str:
     try:
-        data = ToolApplicationService().rsrs_ranking(market, top)["rows"]
+        data = composition.build_tool_application_service().rsrs_ranking(market, top)["rows"]
     except Exception:
         data = []
     if not data:
@@ -33,7 +33,7 @@ async def rsrs_ranking(market: str = "cn", top: int = 20) -> str:
 
 async def market_breadth(market: str = "cn", days: int = 10) -> str:
     try:
-        data = ToolApplicationService().market_breadth(market, days)["rows"]
+        data = composition.build_tool_application_service().market_breadth(market, days)["rows"]
     except Exception:
         data = []
     if not data:

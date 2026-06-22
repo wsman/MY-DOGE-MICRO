@@ -1,0 +1,174 @@
+{
+  "version": 1,
+  "generated_at": "2026-06-22",
+  "status": "contract_only",
+  "allowed_provider_statuses": [
+    "ok",
+    "fallback",
+    "provider_unavailable",
+    "stale_data",
+    "entitlement_denied"
+  ],
+  "connectors": {
+    "financial_statements": {
+      "required_fields": [
+        "provider",
+        "as_of",
+        "retrieved_at",
+        "source_id",
+        "license_scope",
+        "ticker",
+        "currency",
+        "provider_status",
+        "period",
+        "revenue",
+        "net_income",
+        "operating_cash_flow",
+        "total_assets",
+        "total_liabilities"
+      ],
+      "sample": {
+        "provider": "fixture-provider",
+        "as_of": "2026-06-22",
+        "retrieved_at": "2026-06-22T00:00:00Z",
+        "source_id": "fixture-financials-AAPL-2025",
+        "license_scope": "test",
+        "ticker": "AAPL",
+        "currency": "USD",
+        "provider_status": "ok",
+        "period": "FY2025",
+        "revenue": 0,
+        "net_income": 0,
+        "operating_cash_flow": 0,
+        "total_assets": 0,
+        "total_liabilities": 0
+      }
+    },
+    "announcements": {
+      "required_fields": [
+        "provider",
+        "as_of",
+        "retrieved_at",
+        "source_url",
+        "license_scope",
+        "ticker",
+        "provider_status",
+        "announcement_id",
+        "title",
+        "published_at",
+        "category",
+        "summary"
+      ],
+      "sample": {
+        "provider": "fixture-provider",
+        "as_of": "2026-06-22",
+        "retrieved_at": "2026-06-22T00:00:00Z",
+        "source_url": "https://example.invalid/announcement",
+        "license_scope": "test",
+        "ticker": "AAPL",
+        "provider_status": "ok",
+        "announcement_id": "fixture-announcement-1",
+        "title": "Synthetic fixture announcement",
+        "published_at": "2026-06-22T00:00:00Z",
+        "category": "earnings",
+        "summary": "Non-sensitive synthetic announcement fixture."
+      }
+    },
+    "consensus": {
+      "required_fields": [
+        "provider",
+        "as_of",
+        "retrieved_at",
+        "source_id",
+        "license_scope",
+        "ticker",
+        "currency",
+        "provider_status",
+        "metric",
+        "period",
+        "mean",
+        "median",
+        "low",
+        "high",
+        "contributors"
+      ],
+      "sample": {
+        "provider": "fixture-provider",
+        "as_of": "2026-06-22",
+        "retrieved_at": "2026-06-22T00:00:00Z",
+        "source_id": "fixture-consensus-AAPL-2026",
+        "license_scope": "test",
+        "ticker": "AAPL",
+        "currency": "USD",
+        "provider_status": "provider_unavailable",
+        "metric": "eps",
+        "period": "FY2026",
+        "mean": null,
+        "median": null,
+        "low": null,
+        "high": null,
+        "contributors": 0
+      }
+    },
+    "industry_classification": {
+      "required_fields": [
+        "provider",
+        "as_of",
+        "retrieved_at",
+        "source_id",
+        "license_scope",
+        "ticker",
+        "provider_status",
+        "system",
+        "level_1",
+        "level_2",
+        "code",
+        "name"
+      ],
+      "sample": {
+        "provider": "fixture-provider",
+        "as_of": "2026-06-22",
+        "retrieved_at": "2026-06-22T00:00:00Z",
+        "source_id": "fixture-industry-AAPL",
+        "license_scope": "test",
+        "ticker": "AAPL",
+        "provider_status": "ok",
+        "system": "fixture-taxonomy",
+        "level_1": "Information Technology",
+        "level_2": "Consumer Electronics",
+        "code": "45202030",
+        "name": "Consumer Electronics"
+      }
+    },
+    "risk_factors": {
+      "required_fields": [
+        "provider",
+        "as_of",
+        "retrieved_at",
+        "source_id",
+        "license_scope",
+        "portfolio_id",
+        "provider_status",
+        "factor_model",
+        "factor",
+        "exposure",
+        "beta",
+        "volatility"
+      ],
+      "sample": {
+        "provider": "fixture-provider",
+        "as_of": "2026-06-22",
+        "retrieved_at": "2026-06-22T00:00:00Z",
+        "source_id": "fixture-risk-portfolio-demo",
+        "license_scope": "test",
+        "portfolio_id": "portfolio-demo",
+        "provider_status": "ok",
+        "factor_model": "fixture-factor-model",
+        "factor": "equity_market",
+        "exposure": 1.0,
+        "beta": 1.0,
+        "volatility": 0.2
+      }
+    }
+  }
+}

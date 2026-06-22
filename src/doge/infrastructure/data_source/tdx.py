@@ -1,10 +1,10 @@
-"""TDX (通达信) server data source adapter.
+"""TDX (TongDaXin) server data source adapter.
 
-Implements :class:`doge.core.ports.data_source.IMarketDataSource` by wrapping
-the helpers in :mod:`micro.tdx_downloader` (:func:`find_working_server`,
-:func:`_ticker_to_market_code`, :func:`_bars_to_df`, and
-:func:`_get_latest_market_date`). This is the ADR-0004 migration step that
-promotes the TDX adapter from a stub to a real port implementation.
+Implements :class:`doge.core.ports.data_source.IMarketDataSource` with
+infrastructure-owned helper functions for server probing, ticker remapping,
+bar normalization, and latest-market-date lookup. This is the ADR-0004
+migration step that promotes the TDX adapter from a stub to a real port
+implementation.
 
 Design notes
 ------------
@@ -24,8 +24,8 @@ Design notes
 * Servers, ports and timeout come from :func:`doge.config.get_settings` ``.tdx``
   (:class:`TDXConfig`) — never hardcoded (ADR-0001 forbidden pattern
   ``hardcoded_runtime_params_in_implementation``).
-* ``download_kline`` reuses :func:`micro.tdx_downloader._bars_to_df`, which
-  already produces the canonical 8-column frame
+* ``download_kline`` uses ``tdx_helpers.bars_to_df`` to produce the canonical
+  8-column frame
   ``["date", "open", "high", "low", "close", "volume", "amount", "ticker"]``.
 * A bounded local retry loop wraps the per-ticker fetch and **returns None on
   exhaustion** (ADR-0004 item 2 — "No raises for transient failure"). The
@@ -47,6 +47,7 @@ import pandas as pd
 from doge.config import get_settings
 from doge.core.ports.data_source import IMarketDataSource
 from doge.infrastructure.data_source._retry import fetch_with_retry
+from doge.infrastructure.data_source import tdx_helpers
 
 logger = logging.getLogger(__name__)
 
@@ -113,20 +114,8 @@ class TDXDataSource(IMarketDataSource):
             self._market = market if client is not None else None
             return
 
-        # Lazy import: opentdx is an optional [tdx] extra. find_working_server
-        # itself guards the TdxClient import (micro/tdx_downloader.py:33-38),
-        # but importing it pulls in the rest of micro.tdx_downloader which we
-        # want to defer so this module imports cleanly without opentdx.
         try:
-            from micro.tdx_downloader import find_working_server
-        except ImportError:  # pragma: no cover - defensive (micro is required)
-            logger.warning("micro.tdx_downloader unavailable; TDXDataSource cannot connect")
-            self._client = None
-            self._market = None
-            return
-
-        try:
-            client, _host = find_working_server(servers, market, timeout=cfg.timeout)
+            client, _host = tdx_helpers.find_working_server(servers, market, timeout=cfg.timeout)
         except Exception as err:  # noqa: BLE001 - server probe raises varied errors
             logger.warning("TDX connect probe failed for market=%s: %s", market, err)
             client = None
@@ -206,13 +195,12 @@ class TDXDataSource(IMarketDataSource):
 
         Args:
             ticker: Canonical ticker (e.g. ``"600000.SH"`` for CN or ``"AAPL"``
-                for US). CN tickers are remapped via
-                :func:`micro.tdx_downloader._ticker_to_market_code`.
+                for US). CN tickers are remapped via ``tdx_helpers``.
             market: ``"cn"`` or ``"us"``.
             start: Bar offset from earliest history (passed straight to
                 ``stock_kline`` / ``goods_kline``).
-            count: Max bars to fetch. ``_bars_to_df`` further caps the returned
-                frame to ``max_rows=120`` (the canonical TDX window), so callers
+            count: Max bars to fetch. ``tdx_helpers.bars_to_df`` further caps
+                the returned frame to ``max_rows=120`` (the canonical TDX window), so callers
                 requesting more than 120 rows still receive the bounded frame.
 
         Returns:
@@ -226,21 +214,10 @@ class TDXDataSource(IMarketDataSource):
             logger.warning("TDX download_kline called with no live client (ticker=%s)", ticker)
             return None
 
-        # Lazy imports — see module docstring for the rationale.
-        try:
-            from micro.tdx_downloader import (
-                _bars_to_df,
-                _ticker_to_market_code,
-            )
-        except ImportError:  # pragma: no cover - defensive (micro is required)
-            logger.warning("micro.tdx_downloader unavailable; cannot fetch TDX kline")
-            return None
-
         # Resolve the opentdx market enum lazily so this method works regardless
-        # of whether the top-level micro.tdx_downloader import succeeded with
-        # opentdx present. If opentdx is absent we degrade to None — but that
-        # case is already handled by ``client is None`` above, since
-        # connect() cannot have succeeded without opentdx.
+        # of whether opentdx is installed. If opentdx is absent we degrade to
+        # None — but that case is already handled by ``client is None`` above,
+        # since connect() cannot have succeeded without opentdx.
         try:
             from opentdx.const import EX_MARKET, PERIOD  # type: ignore[import-not-found]
         except ImportError:  # pragma: no cover - client is None when opentdx absent
@@ -253,7 +230,7 @@ class TDXDataSource(IMarketDataSource):
             market,
             start,
             count,
-            _ticker_to_market_code,
+            tdx_helpers.ticker_to_market_code,
             EX_MARKET,
             PERIOD,
         )
@@ -261,13 +238,13 @@ class TDXDataSource(IMarketDataSource):
             logger.info("TDX returned empty bars for %s (%s)", ticker, market)
             return None
 
-        df = _bars_to_df(bars, ticker, max_rows=120)
+        df = tdx_helpers.bars_to_df(bars, ticker, max_rows=120)
         if df is None or df.empty:
             return None
 
-        # Defensive column-order normalization — _bars_to_df already returns
+        # Defensive column-order normalization — bars_to_df already returns
         # the canonical 8 columns, but we re-index to guarantee the contract
-        # (and to protect against future drift in micro.tdx_downloader).
+        # (and to protect against future drift in helper behavior).
         for col in _OUTPUT_COLUMNS:
             if col not in df.columns:
                 logger.warning("TDX frame for %s missing column %s", ticker, col)
@@ -277,21 +254,15 @@ class TDXDataSource(IMarketDataSource):
     def get_latest_market_date(self, market: str) -> Optional[str]:
         """Return the most recent trading date observable via TDX.
 
-        Wraps :func:`micro.tdx_downloader._get_latest_market_date`. Returns
-        ``None`` when opentdx is absent, no connection is open, or the lookup
-        fails (offline / empty proxy index). Never raises.
+        Returns ``None`` when opentdx is absent, no connection is open, or the
+        lookup fails (offline / empty proxy index). Never raises.
         """
         client = self._client
         if client is None:
             return None
 
         try:
-            from micro.tdx_downloader import _get_latest_market_date
-        except ImportError:  # pragma: no cover - defensive
-            return None
-
-        try:
-            return _get_latest_market_date(client, market)
+            return tdx_helpers.get_latest_market_date(client, market)
         except Exception as err:  # noqa: BLE001 - lookup failures degrade to None
             logger.warning("TDX get_latest_market_date failed for %s: %s", market, err)
             return None
@@ -327,8 +298,7 @@ class TDXDataSource(IMarketDataSource):
             ticker: Canonical ticker to fetch.
             market: ``"cn"`` or ``"us"``.
             start/count: Forwarded to the kline call.
-            ticker_remap: ``micro.tdx_downloader._ticker_to_market_code``
-                (passed in for testability).
+            ticker_remap: Infrastructure helper passed in for testability.
             ex_market_enum: ``opentdx.const.EX_MARKET`` (lazy import, passed in).
             period_enum: ``opentdx.const.PERIOD`` (lazy import, passed in).
 

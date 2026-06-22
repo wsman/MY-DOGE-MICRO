@@ -22,6 +22,7 @@ from typing import Optional
 from doge.core.ports.file_scanner import ITdxFileScanner
 from doge.core.ports.market_view import IMarketViewRepository
 from doge.core.ports.metadata import ITickerMetadataSource
+from doge.core.ports.secrets import ISecretProvider
 from doge.core.ports.repository import (
     IReportRepository,
     ISchemaBrowser,
@@ -58,6 +59,7 @@ from doge.infrastructure.database.agent_repositories import (
 )
 from doge.infrastructure.database.evidence_repository import SQLiteEvidenceRepository
 from doge.infrastructure.database.embedding_cache import SQLiteEmbeddingCache
+from doge.infrastructure.database.enterprise_governance import SQLiteEnterpriseGovernanceRepository
 from doge.infrastructure.database.claim_repository import SQLiteClaimRepository
 from doge.infrastructure.database.portfolio_repository import SQLitePortfolioRepository, demo_portfolio
 from doge.infrastructure.database.sqlite_uow import SQLiteAgentUnitOfWork
@@ -70,11 +72,19 @@ from doge.infrastructure.agent.backends import KimiAgentSdkBackend
 from doge.infrastructure.agent.persisted_runtime import PersistedResearchAgentRuntime
 from doge.infrastructure.agent.scripted_model import ScriptedAgentModel
 from doge.infrastructure.documents.local_parser import LocalDocumentParser
+from doge.infrastructure.finance.local_connectors import (
+    LocalNoteAnnouncementRepository,
+    StaticIndustryClassificationSource,
+    StaticRiskFactorSource,
+    StockOverviewFinancialStatementRepository,
+    UnavailableConsensusEstimateRepository,
+)
 from doge.infrastructure.llm.deepseek_client import DeepSeekClient
 from doge.infrastructure.llm.kimi_client import KimiAgentModel
 from doge.infrastructure.llm.kimi_text_client import KimiTextClient
 from doge.infrastructure.llm.kimi_files_client import KimiFilesClient
 from doge.infrastructure.llm.embedding_client import HashingEmbeddingProvider
+from doge.infrastructure.secrets import EnvSecretProvider, ProcessSecretProvider
 from doge.infrastructure.vector.sqlite_store import SQLiteVectorStore
 
 # ── Application use cases ──
@@ -94,7 +104,8 @@ from doge.application.use_cases.session_use_cases import AppendTurn, CreateSessi
 from doge.application.agent.runtime_kernel import RuntimeKernel
 from doge.application.agent.context_builder import ContextBuilder
 from doge.application.agent.model_router import ModelRouter
-from doge.application.agent.tools import build_default_tool_registry
+from doge.application.agent.tool_service import ToolApplicationService
+from doge.application.agent.tools import build_default_tool_registry as _build_tool_registry
 from doge.application.services.file_upload_service import FileUploadService
 from doge.application.services.page_extraction_service import PageExtractionService
 from doge.application.services.rag_service import RAGService
@@ -253,17 +264,33 @@ def build_generate_macro_report_use_case(
     return GenerateMacroReportUseCase(view_repo, llm_client, report_repo)
 
 
-def build_kimi_agent_model() -> KimiAgentModel:
+def build_secret_provider() -> ISecretProvider:
+    """Build the configured secret provider."""
+    settings = get_settings()
+    provider = settings.secrets.provider
+    if provider == "env":
+        return EnvSecretProvider()
+    if provider == "process":
+        return ProcessSecretProvider(
+            command=settings.secrets.process_command,
+            timeout_seconds=settings.secrets.process_timeout_seconds,
+            allowed_names=frozenset(settings.secrets.allowed_names),
+        )
+    raise ValueError(f"Unsupported DOGE_SECRET_PROVIDER: {provider}")
+
+
+def build_kimi_agent_model(secret_provider=None) -> KimiAgentModel:
     """Build the default Kimi agent-capable model adapter."""
-    return KimiAgentModel()
+    return KimiAgentModel(secret_provider=secret_provider or build_secret_provider())
 
 
 def build_default_text_llm_client():
     """Build the default text-generation client for macro/industry use cases."""
     settings = get_settings()
+    secret_provider = build_secret_provider()
     if settings.llm.text_provider.lower() == "deepseek":
-        return DeepSeekClient()
-    return KimiTextClient()
+        return DeepSeekClient(secret_provider=secret_provider)
+    return KimiTextClient(KimiAgentModel(secret_provider=secret_provider))
 
 
 def build_agent_repositories(db_path=None):
@@ -278,14 +305,16 @@ def build_agent_repositories(db_path=None):
         "evidence": SQLiteEvidenceRepository(db_path),
         "run_queue": SQLiteRunQueue(db_path),
         "idempotency": SQLiteIdempotencyStore(db_path),
+        "governance": SQLiteEnterpriseGovernanceRepository(db_path),
     }
 
 
 def build_agent_runtime_kernel(model=None, tool_registry=None, event_publisher=None, db_path=None) -> RuntimeKernel:
     """Build the persisted agent runtime kernel."""
     repos = build_agent_repositories(db_path)
+    secret_provider = build_secret_provider()
     if model is None:
-        model = build_kimi_agent_model() if get_settings().kimi.api_key else ScriptedAgentModel()
+        model = build_kimi_agent_model(secret_provider) if secret_provider.get_secret("kimi.api_key") else ScriptedAgentModel()
     if tool_registry is None:
         tool_registry = build_default_tool_registry()
     return RuntimeKernel(
@@ -303,7 +332,8 @@ def build_agent_runtime_kernel(model=None, tool_registry=None, event_publisher=N
             run_repository=repos["runs"],
         ),
         model_router=build_model_router(document_repository=repos["documents"]),
-        agent_backends=build_agent_backends(),
+        agent_backends=build_agent_backends(secret_provider),
+        governance_repository=repos["governance"],
     )
 
 
@@ -312,22 +342,24 @@ def build_model_router(document_repository=None) -> ModelRouter:
     return ModelRouter(document_repository=document_repository, settings=get_settings())
 
 
-def build_agent_backends():
+def build_agent_backends(secret_provider=None):
     """Build optional agent runtime backends keyed by router backend id."""
     settings = get_settings()
+    secret_provider = secret_provider or build_secret_provider()
     return {
         "kimi_agent_sdk": KimiAgentSdkBackend(
-            api_key=settings.kimi.api_key,
             base_url=settings.kimi.base_url,
             model=settings.kimi.general_model,
+            secret_provider=secret_provider,
         )
     }
 
 
 def build_research_agent_runtime(model=None, tool_registry=None) -> InMemoryResearchAgentRuntime:
     """Build the in-memory research-agent runtime for the interview demo."""
+    secret_provider = build_secret_provider()
     if model is None:
-        model = build_kimi_agent_model() if get_settings().kimi.api_key else ScriptedAgentModel()
+        model = build_kimi_agent_model(secret_provider) if secret_provider.get_secret("kimi.api_key") else ScriptedAgentModel()
     if tool_registry is None:
         tool_registry = build_default_tool_registry()
     return InMemoryResearchAgentRuntime(model=model, tool_registry=tool_registry)
@@ -372,8 +404,9 @@ def build_agent_evidence_repository(db_path=None):
 def build_file_upload_service(db_path=None, kimi_files_client=None):
     """Build the default file upload service for API and CLI attach paths."""
     settings = get_settings()
-    if kimi_files_client is None and settings.kimi.api_key:
-        kimi_files_client = KimiFilesClient()
+    secret_provider = build_secret_provider()
+    if kimi_files_client is None and secret_provider.get_secret("kimi.api_key"):
+        kimi_files_client = KimiFilesClient(secret_provider=secret_provider)
     return FileUploadService(
         build_agent_document_repository(db_path),
         storage_dir=settings.documents.storage_dir,
@@ -415,16 +448,72 @@ def build_portfolio_repository(db_path=None):
     return repo
 
 
+def build_financial_statement_repository():
+    """Build the configured financial statement connector."""
+    return StockOverviewFinancialStatementRepository(build_stock_service())
+
+
+def build_company_announcement_repository():
+    """Build the configured company announcement connector."""
+    return LocalNoteAnnouncementRepository(build_note_repository())
+
+
+def build_consensus_estimate_repository():
+    """Build the configured consensus estimate connector."""
+    return UnavailableConsensusEstimateRepository()
+
+
+def build_industry_classification_source():
+    """Build the configured industry classification source."""
+    return StaticIndustryClassificationSource()
+
+
+def build_risk_factor_source():
+    """Build the configured risk factor source."""
+    return StaticRiskFactorSource()
+
+
+def build_tool_application_service(db_path=None) -> ToolApplicationService:
+    """Build the fully injected application service used by agent tools."""
+    return ToolApplicationService(
+        stock_service_factory=build_stock_service,
+        ranking_service_factory=build_ranking_service,
+        breadth_service_factory=build_breadth_service,
+        anomaly_service_factory=build_anomaly_service,
+        view_service_factory=build_view_service,
+        portfolio_service_factory=lambda: build_portfolio_service(db_path),
+        risk_service_factory=lambda: build_risk_service(db_path),
+        scenario_service_factory=lambda: build_scenario_service(db_path),
+        rag_service_factory=lambda: build_rag_service(db_path),
+        note_repository_factory=build_note_repository,
+        industry_report_use_case_factory=build_generate_industry_report_use_case,
+        financial_statement_repository_factory=build_financial_statement_repository,
+        company_announcement_repository_factory=build_company_announcement_repository,
+        consensus_estimate_repository_factory=build_consensus_estimate_repository,
+        industry_classification_source_factory=build_industry_classification_source,
+        view_repository_factory=lambda: build_view_repository(read_only=True),
+    )
+
+
+def build_default_tool_registry(entitlement_checker=None, context=None, db_path=None):
+    """Build the default tool registry with application dependencies injected."""
+    return _build_tool_registry(
+        service=build_tool_application_service(db_path),
+        entitlement_checker=entitlement_checker,
+        context=context,
+    )
+
+
 def build_portfolio_service(db_path=None):
     return PortfolioService(build_portfolio_repository(db_path))
 
 
 def build_risk_service(db_path=None):
-    return RiskService(build_portfolio_repository(db_path))
+    return RiskService(build_portfolio_repository(db_path), build_risk_factor_source())
 
 
 def build_scenario_service(db_path=None):
-    return ScenarioService(build_portfolio_repository(db_path))
+    return ScenarioService(build_portfolio_repository(db_path), build_risk_factor_source())
 
 
 def build_agent_run_queue(db_path=None):
