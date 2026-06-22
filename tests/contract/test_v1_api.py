@@ -18,6 +18,7 @@ def _reset_agent_deps(monkeypatch, tmp_path):
     deps._idempotency_store = None
     deps._agent_unit_of_work = None
     deps._file_upload_service = None
+    deps._enterprise_governance_repository = None
 
 
 def test_v1_post_turns_returns_202_with_run_id(tmp_path, monkeypatch):
@@ -110,3 +111,37 @@ def test_v1_documents_keeps_json_registration_compatibility(tmp_path, monkeypatc
     assert fetched.json()["document_id"] == "doc-json"
     assert fetched.json()["filename"] == "memo.md"
     assert fetched.json()["parsing_status"] == "parsed"
+
+
+def test_v1_portfolio_import_persists_csv_holdings(tmp_path, monkeypatch):
+    _reset_agent_deps(monkeypatch, tmp_path)
+    csv_payload = (
+        "symbol,asset_class,sector,quantity,market_value,currency\n"
+        "AAPL,equity,technology,10,2500,USD\n"
+        "TLT,bond,rates,5,900,USD\n"
+    )
+    with TestClient(app) as client:
+        response = client.post(
+            "/v1/portfolios/import",
+            data={"name": "Operator book", "portfolio_id": "portfolio-test"},
+            files={"file": ("portfolio.csv", csv_payload.encode("utf-8"), "text/csv")},
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["portfolio_id"] == "portfolio-test"
+    assert body["name"] == "Operator book"
+    assert body["total_market_value"] == 3400.0
+    assert [holding["symbol"] for holding in body["holdings"]] == ["AAPL", "TLT"]
+
+
+def test_v1_portfolio_import_rejects_invalid_csv(tmp_path, monkeypatch):
+    _reset_agent_deps(monkeypatch, tmp_path)
+    with TestClient(app) as client:
+        response = client.post(
+            "/v1/portfolios/import",
+            files={"file": ("portfolio.csv", b"symbol,market_value\nAAPL,not-a-number\n", "text/csv")},
+        )
+
+    assert response.status_code == 400
+    assert "market_value must be numeric" in response.json()["error"]["message"]

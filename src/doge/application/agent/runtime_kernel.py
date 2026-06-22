@@ -10,6 +10,7 @@ from doge.application.agent.context_builder import ContextBuilder
 from doge.application.agent.model_response_assembler import ModelResponseAssembler
 from doge.application.agent.state_machine import ensure_transition
 from doge.application.agent.tools import ToolRegistry
+from doge.application.agent.tools import ToolResult
 from doge.application.agent.web_search_stage import WebSearchStage
 from doge.application.services.citation_service import CitationService
 from doge.application.services.numerical_consistency_service import NumericalConsistencyService
@@ -21,6 +22,7 @@ from doge.core.domain.agent_models import (
     utc_now,
 )
 from doge.core.domain.execution_profile import ProfileRegistry
+from doge.core.domain.enterprise_context import EnterpriseContext
 from doge.core.domain.model_policy import ModelPolicy
 from doge.core.ports.agent_model import IAgentModel
 from doge.core.ports.agent_backend import IAgentBackend
@@ -31,6 +33,7 @@ from doge.core.ports.agent_repository import (
     IRunRepository,
 )
 from doge.core.ports.event_publisher import IEventPublisher
+from doge.core.ports.enterprise_governance import EnterpriseAuditEvent, IEnterpriseGovernanceRepository
 from doge.core.ports.model_router import IModelRouter, RoutingDecision
 
 
@@ -57,6 +60,7 @@ class RuntimeKernel:
         model_router: IModelRouter | None = None,
         web_search_stage: WebSearchStage | None = None,
         agent_backends: dict[str, IAgentBackend] | None = None,
+        governance_repository: IEnterpriseGovernanceRepository | None = None,
     ) -> None:
         self._model = model
         self._tools = tool_registry
@@ -70,6 +74,7 @@ class RuntimeKernel:
         self._model_router = model_router
         self._web_search_stage = web_search_stage
         self._agent_backends = agent_backends or {}
+        self._governance = governance_repository
 
     async def create_run(self, request: dict[str, Any]) -> AgentRun:
         run = AgentRun.create(
@@ -120,15 +125,29 @@ class RuntimeKernel:
             return await self._mark_cancelled(run)
 
         self._set_status(run, RunStatus.RUNNING)
-        events = self._events.list_for_run(run.run_id)
-        messages = self._context_builder.build(run, events)
         policy = ModelPolicy.from_dict(run.model_policy)
+        tenant_id = _tenant_id_for_policy(policy)
+        enterprise_context = _enterprise_context_from_policy(policy)
+        events = self._events.list_for_run(run.run_id, tenant_id=tenant_id)
+        messages = self._context_builder.build(run, events, enterprise_context=enterprise_context)
         profile = ProfileRegistry.get(policy.execution_profile)
         if policy.web_search_enabled or (policy.web_search_enabled is None and profile.web_search_enabled):
             stage = self._web_search_stage or WebSearchStage(self._model)
             messages = await stage.execute(messages, run.question)
         routing = self._model_router.route(run, policy) if self._model_router is not None else None
-        tool_schemas = self._tool_schemas_for(routing)
+        tool_schemas = self._tool_schemas_for(routing, enterprise_context)
+        self._audit(
+            enterprise_context,
+            "model_route",
+            "run",
+            run.run_id,
+            {
+                "backend": getattr(routing, "backend", None),
+                "model": getattr(routing, "model", None),
+                "execution_profile": policy.execution_profile,
+            },
+            request_id=_request_id(policy),
+        )
         chat_kwargs: dict[str, Any] = {
             "tools": tool_schemas,
             "tool_choice": "auto",
@@ -183,11 +202,31 @@ class RuntimeKernel:
                 arguments = function.get("arguments", "{}")
                 await self._add_event(run, EventType.TOOL_CALL, {"tool_call": call})
                 timeout = policy.tool_timeout_seconds
-                result = await self._tools.execute_async(
-                    name,
-                    arguments,
-                    timeout_seconds=float(timeout) if timeout else None,
-                )
+                if not self._can_execute_tool(enterprise_context, name, self._tool_category(name)):
+                    result = ToolResult(name=name, data={}, ok=False, error="tool not permitted")
+                    self._audit(
+                        enterprise_context,
+                        "tool_denied",
+                        "tool",
+                        name,
+                        {"run_id": run.run_id},
+                        request_id=_request_id(policy),
+                    )
+                else:
+                    self._audit(
+                        enterprise_context,
+                        "tool_execute",
+                        "tool",
+                        name,
+                        {"run_id": run.run_id},
+                        request_id=_request_id(policy),
+                    )
+                    result = await self._tools.execute_async(
+                        name,
+                        arguments,
+                        timeout_seconds=float(timeout) if timeout else None,
+                        context=enterprise_context,
+                    )
                 run = self._require_run(run_id)
                 if run.status == RunStatus.CANCELLING:
                     return await self._mark_cancelled(run)
@@ -202,7 +241,7 @@ class RuntimeKernel:
                         action=result.data.get("action", name),
                         risk_level=result.data.get("risk_level", "high"),
                     )
-                    self._approvals.save(approval)
+                    self._approvals.save(approval, tenant_id=tenant_id)
                     self._set_status(run, RunStatus.AWAITING_APPROVAL)
                     await self._add_event(run, EventType.APPROVAL_REQUESTED, {
                         "approval_id": approval.approval_id,
@@ -220,7 +259,7 @@ class RuntimeKernel:
             content=content,
             data={**self._artifact_metrics(run.run_id, content), "usage": response.usage or {}},
         )
-        self._artifacts.save(artifact)
+        self._artifacts.save(artifact, tenant_id=tenant_id)
         self._set_status(run, RunStatus.COMPLETED)
         await self._add_event(run, EventType.ARTIFACT_CREATED, {
             "artifact_id": artifact.artifact_id,
@@ -231,12 +270,13 @@ class RuntimeKernel:
 
     async def resolve_approval(self, run_id: str, approval_id: str, approved: bool) -> AgentRun:
         run = self._require_run(run_id)
-        approval = self._approvals.get(approval_id)
+        tenant_id = _tenant_id_for_policy(run.model_policy)
+        approval = self._approvals.get(approval_id, tenant_id=tenant_id)
         if approval is None or approval.run_id != run_id:
             raise KeyError(f"approval not found: {approval_id}")
         approval.status = "approved" if approved else "denied"
         approval.resolved_at = utc_now()
-        self._approvals.save(approval)
+        self._approvals.save(approval, tenant_id=tenant_id)
         await self._add_event(run, EventType.APPROVAL_RESOLVED, {
             "approval_id": approval_id,
             "approved": approved,
@@ -296,7 +336,7 @@ class RuntimeKernel:
 
     async def _add_event(self, run: AgentRun, event_type: EventType, payload: dict[str, Any]) -> AgentEvent:
         event = run.add_event(event_type, payload)
-        event = self._events.append(event)
+        event = self._events.append(event, tenant_id=_tenant_id_for_policy(run.model_policy))
         await self._publisher.publish(event)
         return event
 
@@ -310,7 +350,9 @@ class RuntimeKernel:
         return self._require_run(run_id)
 
     def _artifact_metrics(self, run_id: str, artifact_text: str = "") -> dict[str, Any]:
-        events = self._events.list_for_run(run_id)
+        run = self._runs.get(run_id)
+        tenant_id = _tenant_id_for_policy(run.model_policy) if run is not None else None
+        events = self._events.list_for_run(run_id, tenant_id=tenant_id)
         results = [event.payload.get("result", {}) for event in events if event.event_type == EventType.TOOL_RESULT]
         tool_execution_success = None
         if results:
@@ -323,19 +365,86 @@ class RuntimeKernel:
             "tool_execution_success": tool_execution_success,
         }
 
-    def _tool_schemas_for(self, routing: RoutingDecision | None) -> list[dict[str, Any]]:
+    def _tool_schemas_for(
+        self,
+        routing: RoutingDecision | None,
+        context: EnterpriseContext | None = None,
+    ) -> list[dict[str, Any]]:
         schemas = (
-            self._tools.schemas_for_context()
+            self._tools.schemas_for_context(context)
             if hasattr(self._tools, "schemas_for_context")
             else self._tools.schemas
         )
-        if routing is None or routing.tool_names is None:
+        if routing is not None and routing.tool_names is not None:
+            allowed = set(routing.tool_names)
+            schemas = [
+                schema for schema in schemas
+                if schema.get("function", {}).get("name") in allowed
+            ]
+        return self._filter_tool_schemas_by_acl(schemas, context)
+
+    def _filter_tool_schemas_by_acl(
+        self,
+        schemas: list[dict[str, Any]],
+        context: EnterpriseContext | None,
+    ) -> list[dict[str, Any]]:
+        if not _is_enterprise_context(context):
             return schemas
-        allowed = set(routing.tool_names)
         return [
             schema for schema in schemas
-            if schema.get("function", {}).get("name") in allowed
+            if self._can_execute_tool(
+                context,
+                schema.get("function", {}).get("name", ""),
+                schema.get("x-doge-category"),
+            )
         ]
+
+    def _can_execute_tool(
+        self,
+        context: EnterpriseContext | None,
+        tool_name: str,
+        category: str | None = None,
+    ) -> bool:
+        if not _is_enterprise_context(context):
+            return True
+        if "*" in context.tool_entitlement or tool_name in context.tool_entitlement:
+            return True
+        if category is not None and category in context.tool_entitlement:
+            return True
+        if self._governance is None:
+            return False
+        return self._governance.is_allowed(context, "tool", tool_name, "execute")
+
+    def _tool_category(self, tool_name: str) -> str | None:
+        categories = getattr(self._tools, "_categories", {})
+        category = categories.get(tool_name) if isinstance(categories, dict) else None
+        if category is None:
+            return None
+        return getattr(category, "value", str(category))
+
+    def _audit(
+        self,
+        context: EnterpriseContext | None,
+        event_type: str,
+        resource_type: str,
+        resource_id: str,
+        metadata: dict[str, Any] | None = None,
+        *,
+        request_id: str | None = None,
+    ) -> None:
+        if not _is_enterprise_context(context) or self._governance is None:
+            return
+        self._governance.append_audit_event(
+            EnterpriseAuditEvent(
+                tenant_id=context.tenant_id,
+                actor_hash=context.user_hash,
+                event_type=event_type,
+                resource_type=resource_type,
+                resource_id=resource_id,
+                request_id=request_id,
+                metadata=metadata or {},
+            )
+        )
 
     def _chat_stream(self, messages: list, routing: RoutingDecision | None, chat_kwargs: dict[str, Any]):
         if routing is not None and routing.backend != "direct_kimi_api":
@@ -347,6 +456,9 @@ class RuntimeKernel:
                 tools=chat_kwargs["tools"],
                 tool_choice=chat_kwargs["tool_choice"],
                 max_tokens=chat_kwargs["max_tokens"],
+                request_metadata=chat_kwargs.get("request_metadata"),
+                prompt_cache_key=chat_kwargs.get("prompt_cache_key"),
+                model=(routing.model if routing is not None else None),
             )
         return self._model.chat(messages, **self._model_chat_kwargs(chat_kwargs))
 
@@ -370,6 +482,54 @@ class RuntimeKernel:
             }
         }
         return {key: value for key, value in chat_kwargs.items() if key in accepted}
+
+
+def _enterprise_context_from_policy(policy: ModelPolicy) -> EnterpriseContext:
+    extra = policy.extra
+    return EnterpriseContext(
+        tenant_id=policy.tenant_id or _string_value(extra.get("tenant_id"), "local"),
+        user_hash=policy.user_hash or _string_value(extra.get("user_hash"), "local-user"),
+        role=_string_value(extra.get("role"), "analyst"),
+        document_acl=frozenset(_string_set(extra.get("document_acl"))),
+        tool_entitlement=frozenset(_string_set(extra.get("tool_entitlement"))),
+        portfolio_permission=frozenset(_string_set(extra.get("portfolio_permission"))),
+        data_classification=_string_value(extra.get("data_classification"), "internal"),
+        approval_authority=frozenset(_string_set(extra.get("approval_authority"))),
+        project_id=_string_value(extra.get("project_id"), "doge-dev"),
+    )
+
+
+def _request_id(policy: ModelPolicy) -> str | None:
+    value = policy.extra.get("request_id")
+    if value is None or value == "":
+        return None
+    return str(value)
+
+
+def _tenant_id_for_policy(policy: ModelPolicy | dict[str, Any]) -> str | None:
+    normalized = ModelPolicy.from_dict(policy)
+    tenant_id = normalized.tenant_id or normalized.extra.get("tenant_id")
+    return str(tenant_id) if tenant_id else None
+
+
+def _is_enterprise_context(context: EnterpriseContext | None) -> bool:
+    return context is not None and context.tenant_id != "local"
+
+
+def _string_set(value: Any) -> set[str]:
+    if value is None:
+        return set()
+    if isinstance(value, str):
+        return {item.strip() for item in value.split(",") if item.strip()}
+    if isinstance(value, (list, tuple, set, frozenset)):
+        return {str(item) for item in value if item is not None and str(item) != ""}
+    return {str(value)}
+
+
+def _string_value(value: Any, default: str) -> str:
+    if value is None or value == "":
+        return default
+    return str(value)
 
 
 def _routing_payload(routing: RoutingDecision | None) -> dict[str, Any]:

@@ -3,6 +3,7 @@ import pytest
 from doge.application.agent.runtime_kernel import RuntimeKernel
 from doge.application.agent.tools import ToolRegistry, ToolResult
 from doge.core.domain.agent_models import EventType, RunStatus
+from doge.core.ports.enterprise_governance import EnterpriseAclGrant
 from doge.core.ports.agent_model import AgentMessage, AgentResponse
 from doge.core.ports.model_router import RoutingDecision
 from doge.infrastructure.agent.scripted_model import ScriptedAgentModel
@@ -12,6 +13,7 @@ from doge.infrastructure.database.agent_repositories import (
     SQLiteEventRepository,
     SQLiteRunRepository,
 )
+from doge.infrastructure.database.enterprise_governance import SQLiteEnterpriseGovernanceRepository
 
 
 def _schema(name: str):
@@ -156,13 +158,31 @@ class FakeBackend:
     def __init__(self):
         self.calls = []
 
-    async def chat(self, messages, tools=None, tool_choice=None, max_tokens=16384):
-        self.calls.append((messages, tools, tool_choice, max_tokens))
+    async def chat(
+        self,
+        messages,
+        tools=None,
+        tool_choice=None,
+        max_tokens=16384,
+        request_metadata=None,
+        prompt_cache_key=None,
+        model=None,
+    ):
+        self.calls.append((messages, tools, tool_choice, max_tokens, request_metadata, prompt_cache_key, model))
         yield AgentResponse(message=AgentMessage(role="assistant", content="backend memo"))
 
 
 class ApprovalBackend:
-    async def chat(self, messages, tools=None, tool_choice=None, max_tokens=16384):
+    async def chat(
+        self,
+        messages,
+        tools=None,
+        tool_choice=None,
+        max_tokens=16384,
+        request_metadata=None,
+        prompt_cache_key=None,
+        model=None,
+    ):
         yield AgentResponse(
             message=AgentMessage(
                 role="assistant",
@@ -173,6 +193,33 @@ class ApprovalBackend:
                     "function": {
                         "name": "request_approval",
                         "arguments": "{\"action\":\"publish\",\"risk_level\":\"high\"}",
+                    },
+                }],
+            )
+        )
+
+
+class ToolSchemaCaptureModel:
+    def __init__(self):
+        self.tools = None
+
+    async def chat(self, messages, **kwargs):
+        self.tools = kwargs.get("tools")
+        yield AgentResponse(message=AgentMessage(role="assistant", content="done"))
+
+
+class StockToolCallModel:
+    async def chat(self, messages, **kwargs):
+        yield AgentResponse(
+            message=AgentMessage(
+                role="assistant",
+                content="",
+                tool_calls=[{
+                    "id": "tool-1",
+                    "type": "function",
+                    "function": {
+                        "name": "stock_overview",
+                        "arguments": "{\"ticker\":\"AAPL\",\"market\":\"us\"}",
                     },
                 }],
             )
@@ -343,3 +390,102 @@ async def test_kernel_routes_backend_approval_into_runtime_approval_flow(tmp_pat
     assert paused.status == RunStatus.AWAITING_APPROVAL
     assert paused.approvals[0].action == "publish"
     assert any(event.event_type == EventType.APPROVAL_REQUESTED for event in paused.events)
+
+
+@pytest.mark.asyncio
+async def test_kernel_filters_enterprise_tool_schemas_by_persistent_acl(tmp_path):
+    db = tmp_path / "agent_state.db"
+    governance = SQLiteEnterpriseGovernanceRepository(db)
+    governance.grant(_tool_grant("stock_overview"))
+    model = ToolSchemaCaptureModel()
+    kernel = RuntimeKernel(
+        model=model,
+        tool_registry=_registry(),
+        run_repository=SQLiteRunRepository(db),
+        event_repository=SQLiteEventRepository(db),
+        artifact_repository=SQLiteArtifactRepository(db),
+        approval_repository=SQLiteApprovalRepository(db),
+        governance_repository=governance,
+    )
+    run = await kernel.create_run({
+        "question": "Analyze AAPL",
+        "model_policy": _enterprise_policy(),
+    })
+
+    await kernel.step(run.run_id)
+
+    assert [schema["function"]["name"] for schema in model.tools] == ["stock_overview"]
+    assert "model_route" in [event.event_type for event in governance.list_audit_events("tenant-a")]
+
+
+@pytest.mark.asyncio
+async def test_kernel_denies_enterprise_tool_call_without_persistent_acl(tmp_path):
+    db = tmp_path / "agent_state.db"
+    governance = SQLiteEnterpriseGovernanceRepository(db)
+    kernel = RuntimeKernel(
+        model=StockToolCallModel(),
+        tool_registry=_registry(),
+        run_repository=SQLiteRunRepository(db),
+        event_repository=SQLiteEventRepository(db),
+        artifact_repository=SQLiteArtifactRepository(db),
+        approval_repository=SQLiteApprovalRepository(db),
+        governance_repository=governance,
+    )
+    run = await kernel.create_run({
+        "question": "Analyze AAPL",
+        "model_policy": _enterprise_policy(),
+    })
+
+    stepped = await kernel.step(run.run_id)
+
+    tool_results = [event for event in stepped.events if event.event_type == EventType.TOOL_RESULT]
+    assert tool_results[-1].payload["result"]["ok"] is False
+    assert tool_results[-1].payload["result"]["error"] == "tool not permitted"
+    assert "tool_denied" in [event.event_type for event in governance.list_audit_events("tenant-a")]
+
+
+@pytest.mark.asyncio
+async def test_kernel_allows_enterprise_tool_call_with_persistent_acl(tmp_path):
+    db = tmp_path / "agent_state.db"
+    governance = SQLiteEnterpriseGovernanceRepository(db)
+    governance.grant(_tool_grant("stock_overview"))
+    kernel = RuntimeKernel(
+        model=StockToolCallModel(),
+        tool_registry=_registry(),
+        run_repository=SQLiteRunRepository(db),
+        event_repository=SQLiteEventRepository(db),
+        artifact_repository=SQLiteArtifactRepository(db),
+        approval_repository=SQLiteApprovalRepository(db),
+        governance_repository=governance,
+    )
+    run = await kernel.create_run({
+        "question": "Analyze AAPL",
+        "model_policy": _enterprise_policy(),
+    })
+
+    stepped = await kernel.step(run.run_id)
+
+    tool_results = [event for event in stepped.events if event.event_type == EventType.TOOL_RESULT]
+    assert tool_results[-1].payload["result"]["ok"] is True
+    assert tool_results[-1].payload["result"]["data"]["ticker"] == "AAPL"
+    assert "tool_execute" in [event.event_type for event in governance.list_audit_events("tenant-a")]
+
+
+def _enterprise_policy() -> dict:
+    return {
+        "tenant_id": "tenant-a",
+        "user_hash": "user-a",
+        "role": "analyst",
+        "request_id": "req-runtime",
+    }
+
+
+def _tool_grant(tool_name: str) -> EnterpriseAclGrant:
+    return EnterpriseAclGrant(
+        tenant_id="tenant-a",
+        subject_hash="user-a",
+        resource_type="tool",
+        resource_id=tool_name,
+        permission="execute",
+        provenance="test",
+    )

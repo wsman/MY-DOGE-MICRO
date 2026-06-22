@@ -20,17 +20,18 @@ class SQLitePortfolioRepository(IPortfolioRepository):
     def _connect(self):
         return self._connection.connect()
 
-    def save(self, portfolio: Portfolio) -> None:
+    def save(self, portfolio: Portfolio, tenant_id: str | None = None) -> None:
         with self._connect() as conn:
             conn.execute(
                 """
-                INSERT INTO portfolios(portfolio_id, name, updated_at)
-                VALUES (?, ?, CURRENT_TIMESTAMP)
+                INSERT INTO portfolios(portfolio_id, tenant_id, name, updated_at)
+                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
                 ON CONFLICT(portfolio_id) DO UPDATE SET
+                    tenant_id = excluded.tenant_id,
                     name = excluded.name,
                     updated_at = excluded.updated_at
                 """,
-                (portfolio.portfolio_id, portfolio.name),
+                (portfolio.portfolio_id, tenant_id, portfolio.name),
             )
             conn.execute("DELETE FROM portfolio_holdings WHERE portfolio_id = ?", (portfolio.portfolio_id,))
             for holding in portfolio.holdings:
@@ -53,12 +54,14 @@ class SQLitePortfolioRepository(IPortfolioRepository):
                 )
             conn.commit()
 
-    def get(self, portfolio_id: str) -> Portfolio | None:
+    def get(self, portfolio_id: str, tenant_id: str | None = None) -> Portfolio | None:
+        sql = "SELECT * FROM portfolios WHERE portfolio_id = ?"
+        params: tuple[str, ...] = (portfolio_id,)
+        if tenant_id is not None:
+            sql += " AND tenant_id = ?"
+            params = (portfolio_id, tenant_id)
         with self._connect() as conn:
-            row = conn.execute(
-                "SELECT * FROM portfolios WHERE portfolio_id = ?",
-                (portfolio_id,),
-            ).fetchone()
+            row = conn.execute(sql, params).fetchone()
             if row is None:
                 return None
             holdings = [

@@ -63,18 +63,18 @@ class FileUploadService:
         self._kimi_files_client = kimi_files_client
         self._extraction_service = extraction_service
 
-    def register_path(self, path: str | Path) -> dict:
+    def register_path(self, path: str | Path, *, tenant_id: str | None = None) -> dict:
         source = Path(path).expanduser().resolve()
         if not source.exists() or not source.is_file():
             raise FileUploadError(f"file not found: {source}")
         self._validate_file(source.name, source.stat().st_size)
         payload = source.read_bytes()
-        return self.register_bytes(filename=source.name, payload=payload)
+        return self.register_bytes(filename=source.name, payload=payload, tenant_id=tenant_id)
 
-    def register_bytes(self, *, filename: str, payload: bytes) -> dict:
+    def register_bytes(self, *, filename: str, payload: bytes, tenant_id: str | None = None) -> dict:
         self._validate_file(filename, len(payload))
         file_hash = hashlib.sha256(payload).hexdigest()
-        existing = self._repository.get_by_hash(file_hash)
+        existing = self._repository.get_by_hash(file_hash, tenant_id=tenant_id)
         if existing is not None:
             self._extract(existing)
             return existing
@@ -117,9 +117,16 @@ class FileUploadService:
             parser_error=parser_error,
             content=content,
         )
-        return self._save_and_extract(document)
+        return self._save_and_extract(document, tenant_id=tenant_id)
 
-    def register_text(self, *, filename: str, content: str, document_id: str | None = None) -> dict:
+    def register_text(
+        self,
+        *,
+        filename: str,
+        content: str,
+        document_id: str | None = None,
+        tenant_id: str | None = None,
+    ) -> dict:
         payload = content.encode("utf-8")
         file_hash = hashlib.sha256(payload).hexdigest()
         mime_type = mimetypes.guess_type(filename)[0] or "text/plain"
@@ -133,7 +140,7 @@ class FileUploadService:
             kimi_file_purpose=route_kimi_file_purpose(filename=filename, mime_type=mime_type),
             content=content,
         )
-        return self._save_and_extract(document)
+        return self._save_and_extract(document, tenant_id=tenant_id)
 
     def _validate_file(self, filename: str, size_bytes: int) -> None:
         if not filename:
@@ -157,9 +164,12 @@ class FileUploadService:
             shutil.move(str(tmp), str(destination))
         return destination
 
-    def _save_and_extract(self, document: Document) -> dict:
-        self._repository.save(document)
-        saved = self._repository.get(document.document_id)
+    def _save_and_extract(self, document: Document, *, tenant_id: str | None = None) -> dict:
+        record = document.to_dict()
+        if tenant_id is not None:
+            record["tenant_id"] = tenant_id
+        self._repository.save(record)
+        saved = self._repository.get(document.document_id, tenant_id=tenant_id)
         result = saved if saved is not None else document.to_dict()
         self._extract(result)
         return result

@@ -17,9 +17,10 @@ class CitationService:
         evidence_results: list[dict[str, Any]],
         *,
         limit: int = 3,
+        context: Any = None,
     ) -> list[CitationRecord]:
         citations: list[CitationRecord] = []
-        for item in evidence_results[:limit]:
+        for item in _filter_evidence_for_context(evidence_results, context)[:limit]:
             snippet = str(item.get("text") or item.get("support_snippet") or "")[:500]
             if not snippet:
                 continue
@@ -73,6 +74,15 @@ def _source_label(item: dict[str, Any]) -> str:
     if chunk_id:
         return str(chunk_id)
     return str(item.get("source") or "local evidence")
+
+
+def _filter_evidence_for_context(evidence_results: list[dict[str, Any]], context: Any) -> list[dict[str, Any]]:
+    if context is None or getattr(context, "tenant_id", "local") == "local":
+        return evidence_results
+    allowed = set(getattr(context, "document_acl", frozenset()) or [])
+    if not allowed:
+        return []
+    return [item for item in evidence_results if item.get("document_id") in allowed]
 
 
 def _evidence_id(item: Any) -> str | None:

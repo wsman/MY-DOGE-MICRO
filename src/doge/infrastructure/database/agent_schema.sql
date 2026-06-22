@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 
 CREATE TABLE IF NOT EXISTS sessions (
     session_id TEXT PRIMARY KEY,
+    tenant_id TEXT,
     title TEXT NOT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
@@ -13,6 +14,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE TABLE IF NOT EXISTS turns (
     turn_id TEXT PRIMARY KEY,
     session_id TEXT NOT NULL,
+    tenant_id TEXT,
     user_message TEXT NOT NULL,
     run_id TEXT,
     created_at TEXT NOT NULL
@@ -20,6 +22,7 @@ CREATE TABLE IF NOT EXISTS turns (
 
 CREATE TABLE IF NOT EXISTS runs (
     run_id TEXT PRIMARY KEY,
+    tenant_id TEXT,
     session_id TEXT,
     workflow TEXT NOT NULL,
     question TEXT NOT NULL,
@@ -37,6 +40,7 @@ CREATE TABLE IF NOT EXISTS runs (
 
 CREATE TABLE IF NOT EXISTS events (
     event_id TEXT PRIMARY KEY,
+    tenant_id TEXT,
     run_id TEXT NOT NULL,
     event_type TEXT NOT NULL,
     payload TEXT NOT NULL,
@@ -48,6 +52,7 @@ CREATE TABLE IF NOT EXISTS events (
 
 CREATE TABLE IF NOT EXISTS artifacts (
     artifact_id TEXT PRIMARY KEY,
+    tenant_id TEXT,
     run_id TEXT NOT NULL,
     kind TEXT NOT NULL,
     title TEXT NOT NULL,
@@ -58,6 +63,7 @@ CREATE TABLE IF NOT EXISTS artifacts (
 
 CREATE TABLE IF NOT EXISTS approvals (
     approval_id TEXT PRIMARY KEY,
+    tenant_id TEXT,
     run_id TEXT NOT NULL,
     action TEXT NOT NULL,
     risk_level TEXT NOT NULL,
@@ -68,6 +74,7 @@ CREATE TABLE IF NOT EXISTS approvals (
 
 CREATE TABLE IF NOT EXISTS documents (
     document_id TEXT PRIMARY KEY,
+    tenant_id TEXT,
     filename TEXT NOT NULL,
     original_filename TEXT,
     content TEXT,
@@ -86,6 +93,7 @@ CREATE TABLE IF NOT EXISTS documents (
 
 CREATE TABLE IF NOT EXISTS document_pages (
     page_id TEXT PRIMARY KEY,
+    tenant_id TEXT,
     document_id TEXT NOT NULL,
     page_number INTEGER NOT NULL,
     text TEXT NOT NULL DEFAULT '',
@@ -98,6 +106,7 @@ CREATE TABLE IF NOT EXISTS document_pages (
 
 CREATE TABLE IF NOT EXISTS document_chunks (
     chunk_id TEXT PRIMARY KEY,
+    tenant_id TEXT,
     document_id TEXT NOT NULL,
     page_id TEXT NOT NULL,
     page_number INTEGER NOT NULL,
@@ -110,6 +119,7 @@ CREATE TABLE IF NOT EXISTS document_chunks (
 
 CREATE TABLE IF NOT EXISTS evidence_records (
     evidence_id TEXT PRIMARY KEY,
+    tenant_id TEXT,
     run_id TEXT,
     document_id TEXT NOT NULL,
     page_id TEXT NOT NULL,
@@ -138,6 +148,7 @@ CREATE TABLE IF NOT EXISTS vector_entries (
 
 CREATE TABLE IF NOT EXISTS portfolios (
     portfolio_id TEXT PRIMARY KEY,
+    tenant_id TEXT,
     name TEXT NOT NULL,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -191,4 +202,40 @@ CREATE TABLE IF NOT EXISTS idempotency_keys (
     run_id TEXT NOT NULL,
     created_at TEXT NOT NULL,
     PRIMARY KEY(key, scope)
+);
+
+CREATE TABLE IF NOT EXISTS enterprise_acl_grants (
+    tenant_id TEXT NOT NULL,
+    subject_hash TEXT NOT NULL,
+    resource_type TEXT NOT NULL,
+    resource_id TEXT NOT NULL,
+    permission TEXT NOT NULL,
+    provenance TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(tenant_id, subject_hash, resource_type, resource_id, permission)
+);
+
+CREATE TABLE IF NOT EXISTS enterprise_audit_events (
+    audit_id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    actor_hash TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    resource_type TEXT NOT NULL,
+    resource_id TEXT NOT NULL,
+    request_id TEXT,
+    metadata TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS approval_actor_decisions (
+    approval_id TEXT NOT NULL,
+    run_id TEXT NOT NULL,
+    tenant_id TEXT NOT NULL,
+    actor_hash TEXT NOT NULL,
+    request_id TEXT,
+    authority_source TEXT NOT NULL,
+    decision TEXT NOT NULL,
+    metadata TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(approval_id, tenant_id, actor_hash, created_at)
 );

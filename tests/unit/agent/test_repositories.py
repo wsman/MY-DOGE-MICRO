@@ -1,9 +1,14 @@
+import sqlite3
+
 from doge.core.domain.agent_models import AgentRun, AgentSession, EventType
 from doge.infrastructure.database.agent_repositories import (
+    SQLiteApprovalRepository,
     SQLiteArtifactRepository,
+    SQLiteDocumentRepository,
     SQLiteEventRepository,
     SQLiteRunRepository,
     SQLiteSessionRepository,
+    bootstrap_agent_schema,
 )
 
 
@@ -60,3 +65,193 @@ def test_sqlite_session_repository_roundtrip(tmp_path):
 
     assert loaded is not None
     assert loaded.title == "Demo"
+
+
+def test_sqlite_runtime_repositories_filter_by_tenant(tmp_path):
+    db = tmp_path / "agent_state.db"
+    sessions = SQLiteSessionRepository(db)
+    runs = SQLiteRunRepository(db)
+    events = SQLiteEventRepository(db)
+    artifacts = SQLiteArtifactRepository(db)
+    approvals = SQLiteApprovalRepository(db)
+
+    session_a = AgentSession.create("Tenant A", tenant_id="tenant-a")
+    session_b = AgentSession.create("Tenant B", tenant_id="tenant-b")
+    sessions.save(session_a)
+    sessions.save(session_b)
+    run_a = AgentRun.create(
+        workflow="investment_research",
+        question="a",
+        session_id=session_a.session_id,
+        model_policy={"tenant_id": "tenant-a"},
+    )
+    run_b = AgentRun.create(
+        workflow="investment_research",
+        question="b",
+        session_id=session_b.session_id,
+        model_policy={"tenant_id": "tenant-b"},
+    )
+    runs.save(run_a)
+    runs.save(run_b)
+    event_a = run_a.add_event(EventType.RUN_CREATED, {"tenant": "a"})
+    event_b = run_b.add_event(EventType.RUN_CREATED, {"tenant": "b"})
+    events.append(event_a)
+    events.append(event_b)
+    artifact_a = run_a.add_artifact("memo", "A", "tenant a")
+    artifact_b = run_b.add_artifact("memo", "B", "tenant b")
+    artifacts.save(artifact_a)
+    artifacts.save(artifact_b)
+    approval_a = run_a.add_approval("publish", "high")
+    approval_b = run_b.add_approval("publish", "high")
+    approvals.save(approval_a)
+    approvals.save(approval_b)
+
+    assert sessions.get(session_a.session_id, tenant_id="tenant-a") is not None
+    assert sessions.get(session_b.session_id, tenant_id="tenant-a") is None
+    assert [item.session_id for item in sessions.list_recent(tenant_id="tenant-a")] == [session_a.session_id]
+    assert runs.get(run_a.run_id, tenant_id="tenant-a") is not None
+    assert runs.get(run_b.run_id, tenant_id="tenant-a") is None
+    assert [item.run_id for item in runs.list_by_session(session_a.session_id, tenant_id="tenant-a")] == [run_a.run_id]
+    assert runs.list_by_session(session_b.session_id, tenant_id="tenant-a") == []
+    assert [item.payload["tenant"] for item in events.list_for_run(run_a.run_id, tenant_id="tenant-a")] == ["a"]
+    assert events.list_for_run(run_b.run_id, tenant_id="tenant-a") == []
+    assert [item.artifact_id for item in artifacts.list_for_run(run_a.run_id, tenant_id="tenant-a")] == [
+        artifact_a.artifact_id
+    ]
+    assert artifacts.list_for_run(run_b.run_id, tenant_id="tenant-a") == []
+    assert approvals.get(approval_a.approval_id, tenant_id="tenant-a") is not None
+    assert approvals.get(approval_b.approval_id, tenant_id="tenant-a") is None
+    assert [item.approval_id for item in approvals.list_for_run(run_a.run_id, tenant_id="tenant-a")] == [
+        approval_a.approval_id
+    ]
+
+
+def test_bootstrap_adds_tenant_columns_to_legacy_agent_tables(tmp_path):
+    db = tmp_path / "legacy_agent_state.db"
+    with sqlite3.connect(db) as conn:
+        conn.executescript(
+            """
+            CREATE TABLE sessions (
+                session_id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+            CREATE TABLE turns (
+                turn_id TEXT PRIMARY KEY,
+                session_id TEXT NOT NULL,
+                user_message TEXT NOT NULL,
+                run_id TEXT,
+                created_at TEXT NOT NULL
+            );
+            CREATE TABLE runs (
+                run_id TEXT PRIMARY KEY,
+                session_id TEXT,
+                workflow TEXT NOT NULL,
+                question TEXT NOT NULL,
+                market TEXT DEFAULT 'us',
+                language TEXT DEFAULT 'en',
+                document_ids TEXT,
+                portfolio_id TEXT,
+                model_policy TEXT,
+                status TEXT NOT NULL,
+                cancel_requested_at TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                schema_version TEXT DEFAULT '1.0'
+            );
+            CREATE TABLE events (
+                event_id TEXT PRIMARY KEY,
+                run_id TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                payload TEXT NOT NULL,
+                sequence INTEGER NOT NULL,
+                schema_version TEXT DEFAULT '1.0',
+                created_at TEXT NOT NULL,
+                UNIQUE(run_id, sequence)
+            );
+            CREATE TABLE artifacts (
+                artifact_id TEXT PRIMARY KEY,
+                run_id TEXT NOT NULL,
+                kind TEXT NOT NULL,
+                title TEXT NOT NULL,
+                content TEXT NOT NULL,
+                data TEXT,
+                created_at TEXT NOT NULL
+            );
+            CREATE TABLE approvals (
+                approval_id TEXT PRIMARY KEY,
+                run_id TEXT NOT NULL,
+                action TEXT NOT NULL,
+                risk_level TEXT NOT NULL,
+                status TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                resolved_at TEXT
+            );
+            CREATE TABLE document_pages (
+                page_id TEXT PRIMARY KEY,
+                document_id TEXT NOT NULL,
+                page_number INTEGER NOT NULL,
+                text TEXT NOT NULL DEFAULT '',
+                image_metadata TEXT,
+                source_hash TEXT,
+                parser_error TEXT,
+                created_at TEXT NOT NULL,
+                UNIQUE(document_id, page_number)
+            );
+            CREATE TABLE document_chunks (
+                chunk_id TEXT PRIMARY KEY,
+                document_id TEXT NOT NULL,
+                page_id TEXT NOT NULL,
+                page_number INTEGER NOT NULL,
+                text TEXT NOT NULL,
+                start_char INTEGER NOT NULL,
+                end_char INTEGER NOT NULL,
+                source_hash TEXT,
+                created_at TEXT NOT NULL
+            );
+            CREATE TABLE evidence_records (
+                evidence_id TEXT PRIMARY KEY,
+                run_id TEXT,
+                document_id TEXT NOT NULL,
+                page_id TEXT NOT NULL,
+                chunk_id TEXT NOT NULL,
+                page_number INTEGER NOT NULL,
+                claim TEXT NOT NULL DEFAULT '',
+                support_snippet TEXT NOT NULL,
+                relevance_score REAL,
+                metadata TEXT,
+                created_at TEXT NOT NULL
+            );
+            """
+        )
+
+    bootstrap_agent_schema(db)
+
+    with sqlite3.connect(db) as conn:
+        for table in (
+            "sessions",
+            "turns",
+            "runs",
+            "events",
+            "artifacts",
+            "approvals",
+            "documents",
+            "document_pages",
+            "document_chunks",
+            "evidence_records",
+            "portfolios",
+        ):
+            columns = {row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+            assert "tenant_id" in columns
+
+
+def test_sqlite_document_repository_filters_by_tenant(tmp_path):
+    db = tmp_path / "agent_state.db"
+    repo = SQLiteDocumentRepository(db)
+    repo.save({"document_id": "doc-a", "tenant_id": "tenant-a", "filename": "a.txt", "content": "alpha"})
+    repo.save({"document_id": "doc-b", "tenant_id": "tenant-b", "filename": "b.txt", "content": "beta"})
+
+    assert repo.get("doc-a", tenant_id="tenant-a") is not None
+    assert repo.get("doc-b", tenant_id="tenant-a") is None
+    assert [row["document_id"] for row in repo.list_recent(tenant_id="tenant-a")] == ["doc-a"]

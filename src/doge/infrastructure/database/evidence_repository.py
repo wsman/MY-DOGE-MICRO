@@ -25,16 +25,18 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
     def _connect(self):
         return self._connection.connect()
 
-    def save_page(self, page: DocumentPage) -> None:
+    def save_page(self, page: DocumentPage, tenant_id: str | None = None) -> None:
         with self._connect() as conn:
+            effective_tenant_id = tenant_id if tenant_id is not None else _tenant_id_for_document(conn, page.document_id)
             conn.execute(
                 """
                 INSERT INTO document_pages(
-                    page_id, document_id, page_number, text, image_metadata,
+                    page_id, tenant_id, document_id, page_number, text, image_metadata,
                     source_hash, parser_error, created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(document_id, page_number) DO UPDATE SET
+                    tenant_id = excluded.tenant_id,
                     page_id = excluded.page_id,
                     text = excluded.text,
                     image_metadata = excluded.image_metadata,
@@ -43,6 +45,7 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
                 """,
                 (
                     page.page_id,
+                    effective_tenant_id,
                     page.document_id,
                     page.page_number,
                     page.text,
@@ -54,28 +57,29 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
             )
             conn.commit()
 
-    def list_pages(self, document_id: str) -> list[DocumentPage]:
+    def list_pages(self, document_id: str, tenant_id: str | None = None) -> list[DocumentPage]:
+        sql = "SELECT * FROM document_pages WHERE document_id = ?"
+        params: tuple[object, ...] = (document_id,)
+        if tenant_id is not None:
+            sql += " AND tenant_id = ?"
+            params = (document_id, tenant_id)
+        sql += " ORDER BY page_number ASC"
         with self._connect() as conn:
-            rows = conn.execute(
-                """
-                SELECT * FROM document_pages
-                WHERE document_id = ?
-                ORDER BY page_number ASC
-                """,
-                (document_id,),
-            ).fetchall()
+            rows = conn.execute(sql, params).fetchall()
             return [DocumentPage.from_mapping(dict(row)) for row in rows]
 
-    def save_chunk(self, chunk: DocumentChunk) -> None:
+    def save_chunk(self, chunk: DocumentChunk, tenant_id: str | None = None) -> None:
         with self._connect() as conn:
+            effective_tenant_id = tenant_id if tenant_id is not None else _tenant_id_for_document(conn, chunk.document_id)
             conn.execute(
                 """
                 INSERT INTO document_chunks(
-                    chunk_id, document_id, page_id, page_number, text,
+                    chunk_id, tenant_id, document_id, page_id, page_number, text,
                     start_char, end_char, source_hash, created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(chunk_id) DO UPDATE SET
+                    tenant_id = excluded.tenant_id,
                     document_id = excluded.document_id,
                     page_id = excluded.page_id,
                     page_number = excluded.page_number,
@@ -86,6 +90,7 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
                 """,
                 (
                     chunk.chunk_id,
+                    effective_tenant_id,
                     chunk.document_id,
                     chunk.page_id,
                     chunk.page_number,
@@ -98,32 +103,49 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
             )
             conn.commit()
 
-    def list_chunks(self, document_ids: list[str] | None = None, limit: int = 20) -> list[DocumentChunk]:
+    def list_chunks(
+        self,
+        document_ids: list[str] | None = None,
+        limit: int = 20,
+        tenant_id: str | None = None,
+    ) -> list[DocumentChunk]:
         if document_ids == []:
             return []
         sql = "SELECT * FROM document_chunks"
         params: list[object] = []
+        where: list[str] = []
         if document_ids:
             placeholders = ", ".join("?" for _ in document_ids)
-            sql += f" WHERE document_id IN ({placeholders})"
+            where.append(f"document_id IN ({placeholders})")
             params.extend(document_ids)
+        if tenant_id is not None:
+            where.append("tenant_id = ?")
+            params.append(tenant_id)
+        if where:
+            sql += " WHERE " + " AND ".join(where)
         sql += " ORDER BY document_id ASC, page_number ASC, start_char ASC LIMIT ?"
         params.append(limit)
         with self._connect() as conn:
             rows = conn.execute(sql, params).fetchall()
             return [DocumentChunk.from_mapping(dict(row)) for row in rows]
 
-    def save_evidence(self, evidence: EvidenceRecord) -> None:
+    def save_evidence(self, evidence: EvidenceRecord, tenant_id: str | None = None) -> None:
         with self._connect() as conn:
+            effective_tenant_id = (
+                tenant_id
+                if tenant_id is not None
+                else _tenant_id_for_run(conn, evidence.run_id) or _tenant_id_for_document(conn, evidence.document_id)
+            )
             conn.execute(
                 """
                 INSERT INTO evidence_records(
-                    evidence_id, run_id, document_id, page_id, chunk_id,
+                    evidence_id, tenant_id, run_id, document_id, page_id, chunk_id,
                     page_number, claim, support_snippet, relevance_score,
                     metadata, created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(evidence_id) DO UPDATE SET
+                    tenant_id = excluded.tenant_id,
                     run_id = excluded.run_id,
                     document_id = excluded.document_id,
                     page_id = excluded.page_id,
@@ -136,6 +158,7 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
                 """,
                 (
                     evidence.evidence_id,
+                    effective_tenant_id,
                     evidence.run_id,
                     evidence.document_id,
                     evidence.page_id,
@@ -150,12 +173,14 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
             )
             conn.commit()
 
-    def get_evidence(self, evidence_id: str) -> EvidenceRecord | None:
+    def get_evidence(self, evidence_id: str, tenant_id: str | None = None) -> EvidenceRecord | None:
+        sql = "SELECT * FROM evidence_records WHERE evidence_id = ?"
+        params: tuple[object, ...] = (evidence_id,)
+        if tenant_id is not None:
+            sql += " AND tenant_id = ?"
+            params = (evidence_id, tenant_id)
         with self._connect() as conn:
-            row = conn.execute(
-                "SELECT * FROM evidence_records WHERE evidence_id = ?",
-                (evidence_id,),
-            ).fetchone()
+            row = conn.execute(sql, params).fetchone()
             return EvidenceRecord.from_mapping(dict(row)) if row else None
 
     def list_evidence(
@@ -164,6 +189,7 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
         run_id: str | None = None,
         document_id: str | None = None,
         limit: int = 20,
+        tenant_id: str | None = None,
     ) -> list[EvidenceRecord]:
         where: list[str] = []
         params: list[object] = []
@@ -173,6 +199,9 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
         if document_id:
             where.append("document_id = ?")
             params.append(document_id)
+        if tenant_id is not None:
+            where.append("tenant_id = ?")
+            params.append(tenant_id)
         sql = "SELECT * FROM evidence_records"
         if where:
             sql += " WHERE " + " AND ".join(where)
@@ -181,3 +210,15 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
         with self._connect() as conn:
             rows = conn.execute(sql, params).fetchall()
             return [EvidenceRecord.from_mapping(dict(row)) for row in rows]
+
+
+def _tenant_id_for_document(conn, document_id: str) -> str | None:
+    row = conn.execute("SELECT tenant_id FROM documents WHERE document_id = ?", (document_id,)).fetchone()
+    return row["tenant_id"] if row and row["tenant_id"] else None
+
+
+def _tenant_id_for_run(conn, run_id: str | None) -> str | None:
+    if not run_id:
+        return None
+    row = conn.execute("SELECT tenant_id FROM runs WHERE run_id = ?", (run_id,)).fetchone()
+    return row["tenant_id"] if row and row["tenant_id"] else None

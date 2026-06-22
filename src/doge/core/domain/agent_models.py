@@ -86,6 +86,7 @@ class AgentTurn:
     session_id: str
     user_message: str
     run_id: Optional[str] = None
+    tenant_id: Optional[str] = None
     created_at: str = field(default_factory=utc_now)
 
     @classmethod
@@ -95,12 +96,14 @@ class AgentTurn:
         session_id: str,
         user_message: str,
         run_id: Optional[str] = None,
+        tenant_id: Optional[str] = None,
     ) -> "AgentTurn":
         return cls(
             turn_id=f"turn-{uuid4().hex[:12]}",
             session_id=session_id,
             user_message=user_message,
             run_id=run_id,
+            tenant_id=tenant_id,
         )
 
 
@@ -108,16 +111,18 @@ class AgentTurn:
 class AgentSession:
     session_id: str
     title: str
+    tenant_id: Optional[str] = None
     created_at: str = field(default_factory=utc_now)
     updated_at: str = field(default_factory=utc_now)
     turns: list[AgentTurn] = field(default_factory=list)
 
     @classmethod
-    def create(cls, title: str = "Research session") -> "AgentSession":
+    def create(cls, title: str = "Research session", *, tenant_id: Optional[str] = None) -> "AgentSession":
         now = utc_now()
         return cls(
             session_id=f"ses-{uuid4().hex[:12]}",
             title=title,
+            tenant_id=tenant_id,
             created_at=now,
             updated_at=now,
         )

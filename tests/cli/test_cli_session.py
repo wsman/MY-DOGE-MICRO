@@ -4,6 +4,7 @@ import os
 from types import SimpleNamespace
 
 from doge.config import reset_settings
+from doge.core.domain.agent_models import AgentArtifact, AgentEvent, EventType
 from doge.interfaces.cli.main import main
 from doge.interfaces.cli.commands import session as session_command
 
@@ -178,3 +179,50 @@ def test_cli_attach_registers_real_file_and_passes_document_id(tmp_path, monkeyp
     assert "status=parsed" in out
     assert captured["document_ids"][0].startswith("doc-")
     assert document_dir.exists()
+
+
+def test_cli_trace_and_artifact_output_redacts_sensitive_payloads(monkeypatch, capsys):
+    run = SimpleNamespace(
+        events=[
+            AgentEvent(
+                event_id="evt-1",
+                run_id="run-cli",
+                event_type=EventType.ERROR,
+                payload={
+                    "message": "Authorization: Bearer trace-secret MOONSHOT_API_KEY=moonshot-secret",
+                    "api_key": "sk-trace-secret",
+                },
+            )
+        ],
+        artifacts=[
+            AgentArtifact(
+                artifact_id="art-1",
+                kind="trace",
+                title="Debug",
+                content="client_secret=client-secret",
+                run_id="run-cli",
+                data={"access_token": "access-secret"},
+            )
+        ],
+    )
+
+    class FakeResumeRun:
+        def execute(self, run_id):
+            assert run_id == "run-cli"
+            return run
+
+    monkeypatch.setattr(session_command.composition, "build_resume_run_use_case", lambda: FakeResumeRun())
+
+    session_command._print_last_run("run-cli", field="events")
+    session_command._print_last_run("run-cli", field="artifacts")
+
+    out = capsys.readouterr().out
+    assert "trace-secret" not in out
+    assert "moonshot-secret" not in out
+    assert "sk-trace-secret" not in out
+    assert "client-secret" not in out
+    assert "access-secret" not in out
+    assert "Bearer [REDACTED]" in out
+    assert "MOONSHOT_API_KEY=<redacted>" in out
+    assert "\"api_key\": \"<redacted>\"" in out
+    assert "\"access_token\": \"<redacted>\"" in out

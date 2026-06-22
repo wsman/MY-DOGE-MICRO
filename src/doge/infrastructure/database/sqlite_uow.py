@@ -69,14 +69,23 @@ class SQLiteAgentUnitOfWork(IAgentUnitOfWork):
                     portfolio_id=portfolio_id,
                     model_policy=model_policy or {"max_tool_rounds": 8},
                 )
+                tenant_id = _tenant_id_from_policy(run.model_policy)
                 created_event = run.add_event(EventType.RUN_CREATED, {"question": run.question, "workflow": run.workflow})
                 run.status = RunStatus.QUEUED
                 run.updated_at = utc_now()
                 queued_event = run.add_event(EventType.RUN_QUEUED, {"reason": "new_turn"})
-                self._insert_run(conn, run)
-                self._insert_turn(conn, AgentTurn.create(session_id=session_id, user_message=message, run_id=run.run_id))
-                self._insert_event(conn, created_event)
-                self._insert_event(conn, queued_event)
+                self._insert_run(conn, run, tenant_id=tenant_id)
+                self._insert_turn(
+                    conn,
+                    AgentTurn.create(
+                        session_id=session_id,
+                        user_message=message,
+                        run_id=run.run_id,
+                        tenant_id=tenant_id,
+                    ),
+                )
+                self._insert_event(conn, created_event, tenant_id=tenant_id)
+                self._insert_event(conn, queued_event, tenant_id=tenant_id)
                 self._insert_queue_status(conn, run.run_id, "queued")
                 self._touch_session(conn, session_id)
                 conn.commit()
@@ -118,18 +127,19 @@ class SQLiteAgentUnitOfWork(IAgentUnitOfWork):
         )
         return None
 
-    def _insert_run(self, conn: sqlite3.Connection, run: AgentRun) -> None:
+    def _insert_run(self, conn: sqlite3.Connection, run: AgentRun, *, tenant_id: str | None = None) -> None:
         conn.execute(
             """
             INSERT INTO runs(
-                run_id, session_id, workflow, question, market, language,
+                run_id, tenant_id, session_id, workflow, question, market, language,
                 document_ids, portfolio_id, model_policy, status,
                 cancel_requested_at, created_at, updated_at, schema_version
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 run.run_id,
+                tenant_id,
                 run.session_id,
                 run.workflow,
                 run.question,
@@ -149,20 +159,21 @@ class SQLiteAgentUnitOfWork(IAgentUnitOfWork):
     def _insert_turn(self, conn: sqlite3.Connection, turn: AgentTurn) -> None:
         conn.execute(
             """
-            INSERT INTO turns(turn_id, session_id, user_message, run_id, created_at)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO turns(turn_id, session_id, tenant_id, user_message, run_id, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (turn.turn_id, turn.session_id, turn.user_message, turn.run_id, turn.created_at),
+            (turn.turn_id, turn.session_id, turn.tenant_id, turn.user_message, turn.run_id, turn.created_at),
         )
 
-    def _insert_event(self, conn: sqlite3.Connection, event: AgentEvent) -> None:
+    def _insert_event(self, conn: sqlite3.Connection, event: AgentEvent, *, tenant_id: str | None = None) -> None:
         conn.execute(
             """
-            INSERT INTO events(event_id, run_id, event_type, payload, sequence, schema_version, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO events(event_id, tenant_id, run_id, event_type, payload, sequence, schema_version, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 event.event_id,
+                tenant_id,
                 event.run_id,
                 event.event_type.value,
                 _json_dumps(event.payload),
@@ -189,3 +200,9 @@ def _json_dumps(value: Any) -> str:
     import json
 
     return json.dumps(value, ensure_ascii=False)
+
+
+def _tenant_id_from_policy(policy: Any) -> str | None:
+    normalized = ModelPolicy.from_dict(policy)
+    tenant_id = normalized.tenant_id or normalized.extra.get("tenant_id")
+    return str(tenant_id) if tenant_id else None

@@ -46,6 +46,7 @@ def bootstrap_agent_schema(db_path: Path | str | None = None) -> None:
         conn.executescript(sql)
         _migrate_idempotency_key_scope(conn)
         _migrate_documents_metadata(conn)
+        _migrate_tenant_partition_columns(conn)
         conn.execute(
             "INSERT OR IGNORE INTO schema_migrations(name, applied_at) VALUES (?, ?)",
             ("agent_schema_v1", utc_now()),
@@ -114,6 +115,25 @@ def _migrate_documents_metadata(conn: sqlite3.Connection) -> None:
     )
 
 
+def _migrate_tenant_partition_columns(conn: sqlite3.Connection) -> None:
+    for table in (
+        "sessions",
+        "turns",
+        "runs",
+        "events",
+        "artifacts",
+        "approvals",
+        "documents",
+        "document_pages",
+        "document_chunks",
+        "evidence_records",
+        "portfolios",
+    ):
+        columns = {row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+        if "tenant_id" not in columns:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN tenant_id TEXT")
+
+
 class _BaseAgentRepository:
     def __init__(self, db_path: Path | str | None = None) -> None:
         self._db_path = Path(db_path) if db_path is not None else get_settings().db.agent_db
@@ -125,42 +145,62 @@ class _BaseAgentRepository:
 
 
 class SQLiteSessionRepository(_BaseAgentRepository, ISessionRepository):
-    def save(self, session: AgentSession) -> None:
+    def save(self, session: AgentSession, tenant_id: str | None = None) -> None:
+        effective_tenant_id = tenant_id if tenant_id is not None else session.tenant_id
         with self._connect() as conn:
             conn.execute(
                 """
-                INSERT INTO sessions(session_id, title, created_at, updated_at)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO sessions(session_id, tenant_id, title, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?)
                 ON CONFLICT(session_id) DO UPDATE SET
+                    tenant_id = excluded.tenant_id,
                     title = excluded.title,
                     updated_at = excluded.updated_at
                 """,
-                (session.session_id, session.title, session.created_at, session.updated_at),
+                (session.session_id, effective_tenant_id, session.title, session.created_at, session.updated_at),
             )
             conn.execute("DELETE FROM turns WHERE session_id = ?", (session.session_id,))
             for turn in session.turns:
+                turn_tenant_id = turn.tenant_id if turn.tenant_id is not None else effective_tenant_id
                 conn.execute(
                     """
-                    INSERT INTO turns(turn_id, session_id, user_message, run_id, created_at)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO turns(turn_id, session_id, tenant_id, user_message, run_id, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
                     """,
-                    (turn.turn_id, turn.session_id, turn.user_message, turn.run_id, turn.created_at),
+                    (
+                        turn.turn_id,
+                        turn.session_id,
+                        turn_tenant_id,
+                        turn.user_message,
+                        turn.run_id,
+                        turn.created_at,
+                    ),
                 )
             conn.commit()
 
-    def get(self, session_id: str) -> AgentSession | None:
+    def get(self, session_id: str, tenant_id: str | None = None) -> AgentSession | None:
+        sql = "SELECT * FROM sessions WHERE session_id = ?"
+        params: tuple[Any, ...] = (session_id,)
+        if tenant_id is not None:
+            sql += " AND tenant_id = ?"
+            params = (session_id, tenant_id)
         with self._connect() as conn:
-            row = conn.execute("SELECT * FROM sessions WHERE session_id = ?", (session_id,)).fetchone()
+            row = conn.execute(sql, params).fetchone()
             if row is None:
                 return None
             return self._row_to_session(conn, row)
 
-    def list_recent(self, limit: int = 20) -> list[AgentSession]:
+    def list_recent(self, limit: int = 20, tenant_id: str | None = None) -> list[AgentSession]:
+        sql = "SELECT * FROM sessions"
+        params: tuple[Any, ...]
+        if tenant_id is not None:
+            sql += " WHERE tenant_id = ?"
+            params = (tenant_id, limit)
+        else:
+            params = (limit,)
+        sql += " ORDER BY updated_at DESC LIMIT ?"
         with self._connect() as conn:
-            rows = conn.execute(
-                "SELECT * FROM sessions ORDER BY updated_at DESC LIMIT ?",
-                (limit,),
-            ).fetchall()
+            rows = conn.execute(sql, params).fetchall()
             return [self._row_to_session(conn, row) for row in rows]
 
     def _row_to_session(self, conn: sqlite3.Connection, row: sqlite3.Row) -> AgentSession:
@@ -170,6 +210,7 @@ class SQLiteSessionRepository(_BaseAgentRepository, ISessionRepository):
                 session_id=item["session_id"],
                 user_message=item["user_message"],
                 run_id=item["run_id"],
+                tenant_id=_row_value(item, "tenant_id"),
                 created_at=item["created_at"],
             )
             for item in conn.execute(
@@ -180,6 +221,7 @@ class SQLiteSessionRepository(_BaseAgentRepository, ISessionRepository):
         return AgentSession(
             session_id=row["session_id"],
             title=row["title"],
+            tenant_id=_row_value(row, "tenant_id"),
             created_at=row["created_at"],
             updated_at=row["updated_at"],
             turns=turns,
@@ -187,17 +229,19 @@ class SQLiteSessionRepository(_BaseAgentRepository, ISessionRepository):
 
 
 class SQLiteRunRepository(_BaseAgentRepository, IRunRepository):
-    def save(self, run: AgentRun) -> None:
+    def save(self, run: AgentRun, tenant_id: str | None = None) -> None:
+        effective_tenant_id = tenant_id if tenant_id is not None else _tenant_id_from_run(run)
         with self._connect() as conn:
             conn.execute(
                 """
                 INSERT INTO runs(
-                    run_id, session_id, workflow, question, market, language,
+                    run_id, tenant_id, session_id, workflow, question, market, language,
                     document_ids, portfolio_id, model_policy, status,
                     cancel_requested_at, created_at, updated_at, schema_version
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(run_id) DO UPDATE SET
+                    tenant_id = excluded.tenant_id,
                     session_id = excluded.session_id,
                     workflow = excluded.workflow,
                     question = excluded.question,
@@ -213,6 +257,7 @@ class SQLiteRunRepository(_BaseAgentRepository, IRunRepository):
                 """,
                 (
                     run.run_id,
+                    effective_tenant_id,
                     run.session_id,
                     run.workflow,
                     run.question,
@@ -230,33 +275,47 @@ class SQLiteRunRepository(_BaseAgentRepository, IRunRepository):
             )
             conn.commit()
 
-    def get(self, run_id: str) -> AgentRun | None:
+    def get(self, run_id: str, tenant_id: str | None = None) -> AgentRun | None:
+        sql = "SELECT * FROM runs WHERE run_id = ?"
+        params: tuple[Any, ...] = (run_id,)
+        if tenant_id is not None:
+            sql += " AND tenant_id = ?"
+            params = (run_id, tenant_id)
         with self._connect() as conn:
-            row = conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
+            row = conn.execute(sql, params).fetchone()
             if row is None:
                 return None
             return _row_to_run(conn, row)
 
-    def list_by_session(self, session_id: str) -> list[AgentRun]:
+    def list_by_session(self, session_id: str, tenant_id: str | None = None) -> list[AgentRun]:
+        sql = "SELECT * FROM runs WHERE session_id = ?"
+        params: tuple[Any, ...] = (session_id,)
+        if tenant_id is not None:
+            sql += " AND tenant_id = ?"
+            params = (session_id, tenant_id)
+        sql += " ORDER BY created_at ASC"
         with self._connect() as conn:
-            rows = conn.execute(
-                "SELECT * FROM runs WHERE session_id = ? ORDER BY created_at ASC",
-                (session_id,),
-            ).fetchall()
+            rows = conn.execute(sql, params).fetchall()
             return [_row_to_run(conn, row) for row in rows]
 
-    def list_recent(self, limit: int = 20) -> list[AgentRun]:
+    def list_recent(self, limit: int = 20, tenant_id: str | None = None) -> list[AgentRun]:
+        sql = "SELECT * FROM runs"
+        params: tuple[Any, ...]
+        if tenant_id is not None:
+            sql += " WHERE tenant_id = ?"
+            params = (tenant_id, limit)
+        else:
+            params = (limit,)
+        sql += " ORDER BY updated_at DESC LIMIT ?"
         with self._connect() as conn:
-            rows = conn.execute(
-                "SELECT * FROM runs ORDER BY updated_at DESC LIMIT ?",
-                (limit,),
-            ).fetchall()
+            rows = conn.execute(sql, params).fetchall()
             return [_row_to_run(conn, row) for row in rows]
 
 
 class SQLiteEventRepository(_BaseAgentRepository, IEventRepository):
-    def append(self, event: AgentEvent) -> AgentEvent:
+    def append(self, event: AgentEvent, tenant_id: str | None = None) -> AgentEvent:
         with self._connect() as conn:
+            effective_tenant_id = tenant_id if tenant_id is not None else _tenant_id_for_run(conn, event.run_id)
             if event.sequence <= 0:
                 row = conn.execute(
                     "SELECT COALESCE(MAX(sequence), 0) + 1 AS next_sequence FROM events WHERE run_id = ?",
@@ -266,12 +325,13 @@ class SQLiteEventRepository(_BaseAgentRepository, IEventRepository):
             conn.execute(
                 """
                 INSERT OR REPLACE INTO events(
-                    event_id, run_id, event_type, payload, sequence, schema_version, created_at
+                    event_id, tenant_id, run_id, event_type, payload, sequence, schema_version, created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     event.event_id,
+                    effective_tenant_id,
                     event.run_id,
                     event.event_type.value,
                     json.dumps(event.payload, ensure_ascii=False),
@@ -283,27 +343,31 @@ class SQLiteEventRepository(_BaseAgentRepository, IEventRepository):
             conn.commit()
         return event
 
-    def list_for_run(self, run_id: str, after_sequence: int = 0) -> list[AgentEvent]:
-        with self._connect() as conn:
-            rows = conn.execute(
-                """
+    def list_for_run(self, run_id: str, after_sequence: int = 0, tenant_id: str | None = None) -> list[AgentEvent]:
+        sql = """
                 SELECT * FROM events
                 WHERE run_id = ? AND sequence > ?
-                ORDER BY sequence ASC
-                """,
-                (run_id, after_sequence),
-            ).fetchall()
+                """
+        params: tuple[Any, ...] = (run_id, after_sequence)
+        if tenant_id is not None:
+            sql += " AND tenant_id = ?"
+            params = (run_id, after_sequence, tenant_id)
+        sql += " ORDER BY sequence ASC"
+        with self._connect() as conn:
+            rows = conn.execute(sql, params).fetchall()
             return [_row_to_event(row) for row in rows]
 
 
 class SQLiteArtifactRepository(_BaseAgentRepository, IArtifactRepository):
-    def save(self, artifact: AgentArtifact) -> None:
+    def save(self, artifact: AgentArtifact, tenant_id: str | None = None) -> None:
         with self._connect() as conn:
+            effective_tenant_id = tenant_id if tenant_id is not None else _tenant_id_for_run(conn, artifact.run_id)
             conn.execute(
                 """
-                INSERT INTO artifacts(artifact_id, run_id, kind, title, content, data, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO artifacts(artifact_id, tenant_id, run_id, kind, title, content, data, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(artifact_id) DO UPDATE SET
+                    tenant_id = excluded.tenant_id,
                     run_id = excluded.run_id,
                     kind = excluded.kind,
                     title = excluded.title,
@@ -312,6 +376,7 @@ class SQLiteArtifactRepository(_BaseAgentRepository, IArtifactRepository):
                 """,
                 (
                     artifact.artifact_id,
+                    effective_tenant_id,
                     artifact.run_id,
                     artifact.kind,
                     artifact.title,
@@ -322,23 +387,28 @@ class SQLiteArtifactRepository(_BaseAgentRepository, IArtifactRepository):
             )
             conn.commit()
 
-    def list_for_run(self, run_id: str) -> list[AgentArtifact]:
+    def list_for_run(self, run_id: str, tenant_id: str | None = None) -> list[AgentArtifact]:
+        sql = "SELECT * FROM artifacts WHERE run_id = ?"
+        params: tuple[Any, ...] = (run_id,)
+        if tenant_id is not None:
+            sql += " AND tenant_id = ?"
+            params = (run_id, tenant_id)
+        sql += " ORDER BY created_at ASC"
         with self._connect() as conn:
-            rows = conn.execute(
-                "SELECT * FROM artifacts WHERE run_id = ? ORDER BY created_at ASC",
-                (run_id,),
-            ).fetchall()
+            rows = conn.execute(sql, params).fetchall()
             return [_row_to_artifact(row) for row in rows]
 
 
 class SQLiteApprovalRepository(_BaseAgentRepository, IApprovalRepository):
-    def save(self, approval: AgentApproval) -> None:
+    def save(self, approval: AgentApproval, tenant_id: str | None = None) -> None:
         with self._connect() as conn:
+            effective_tenant_id = tenant_id if tenant_id is not None else _tenant_id_for_run(conn, approval.run_id)
             conn.execute(
                 """
-                INSERT INTO approvals(approval_id, run_id, action, risk_level, status, created_at, resolved_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO approvals(approval_id, tenant_id, run_id, action, risk_level, status, created_at, resolved_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(approval_id) DO UPDATE SET
+                    tenant_id = excluded.tenant_id,
                     run_id = excluded.run_id,
                     action = excluded.action,
                     risk_level = excluded.risk_level,
@@ -347,6 +417,7 @@ class SQLiteApprovalRepository(_BaseAgentRepository, IApprovalRepository):
                 """,
                 (
                     approval.approval_id,
+                    effective_tenant_id,
                     approval.run_id,
                     approval.action,
                     approval.risk_level,
@@ -357,17 +428,25 @@ class SQLiteApprovalRepository(_BaseAgentRepository, IApprovalRepository):
             )
             conn.commit()
 
-    def get(self, approval_id: str) -> AgentApproval | None:
+    def get(self, approval_id: str, tenant_id: str | None = None) -> AgentApproval | None:
+        sql = "SELECT * FROM approvals WHERE approval_id = ?"
+        params: tuple[Any, ...] = (approval_id,)
+        if tenant_id is not None:
+            sql += " AND tenant_id = ?"
+            params = (approval_id, tenant_id)
         with self._connect() as conn:
-            row = conn.execute("SELECT * FROM approvals WHERE approval_id = ?", (approval_id,)).fetchone()
+            row = conn.execute(sql, params).fetchone()
             return _row_to_approval(row) if row else None
 
-    def list_for_run(self, run_id: str) -> list[AgentApproval]:
+    def list_for_run(self, run_id: str, tenant_id: str | None = None) -> list[AgentApproval]:
+        sql = "SELECT * FROM approvals WHERE run_id = ?"
+        params: tuple[Any, ...] = (run_id,)
+        if tenant_id is not None:
+            sql += " AND tenant_id = ?"
+            params = (run_id, tenant_id)
+        sql += " ORDER BY created_at ASC"
         with self._connect() as conn:
-            rows = conn.execute(
-                "SELECT * FROM approvals WHERE run_id = ? ORDER BY created_at ASC",
-                (run_id,),
-            ).fetchall()
+            rows = conn.execute(sql, params).fetchall()
             return [_row_to_approval(row) for row in rows]
 
 
@@ -378,12 +457,13 @@ class SQLiteDocumentRepository(_BaseAgentRepository, IDocumentRepository):
             conn.execute(
                 """
                 INSERT INTO documents(
-                    document_id, filename, original_filename, content,
+                    document_id, tenant_id, filename, original_filename, content,
                     file_hash, mime_type, size_bytes, storage_path, kimi_file_id,
                     kimi_file_purpose, parsing_status, parser_error, status, created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(document_id) DO UPDATE SET
+                    tenant_id = excluded.tenant_id,
                     filename = excluded.filename,
                     original_filename = excluded.original_filename,
                     content = excluded.content,
@@ -400,6 +480,7 @@ class SQLiteDocumentRepository(_BaseAgentRepository, IDocumentRepository):
                 """,
                 (
                     record["document_id"],
+                    record.get("tenant_id"),
                     record["filename"],
                     record["original_filename"],
                     record.get("content"),
@@ -418,25 +499,38 @@ class SQLiteDocumentRepository(_BaseAgentRepository, IDocumentRepository):
             )
             conn.commit()
 
-    def get(self, document_id: str) -> dict[str, Any] | None:
+    def get(self, document_id: str, tenant_id: str | None = None) -> dict[str, Any] | None:
+        sql = "SELECT * FROM documents WHERE document_id = ?"
+        params: tuple[Any, ...] = (document_id,)
+        if tenant_id is not None:
+            sql += " AND tenant_id = ?"
+            params = (document_id, tenant_id)
         with self._connect() as conn:
-            row = conn.execute("SELECT * FROM documents WHERE document_id = ?", (document_id,)).fetchone()
+            row = conn.execute(sql, params).fetchone()
             return _row_to_document_dict(row) if row else None
 
-    def get_by_hash(self, file_hash: str) -> dict[str, Any] | None:
+    def get_by_hash(self, file_hash: str, tenant_id: str | None = None) -> dict[str, Any] | None:
+        sql = "SELECT * FROM documents WHERE file_hash = ?"
+        params: tuple[Any, ...] = (file_hash,)
+        if tenant_id is not None:
+            sql += " AND tenant_id = ?"
+            params = (file_hash, tenant_id)
+        sql += " ORDER BY created_at DESC LIMIT 1"
         with self._connect() as conn:
-            row = conn.execute(
-                "SELECT * FROM documents WHERE file_hash = ? ORDER BY created_at DESC LIMIT 1",
-                (file_hash,),
-            ).fetchone()
+            row = conn.execute(sql, params).fetchone()
             return _row_to_document_dict(row) if row else None
 
-    def list_recent(self, limit: int = 100) -> list[dict[str, Any]]:
+    def list_recent(self, limit: int = 100, tenant_id: str | None = None) -> list[dict[str, Any]]:
+        sql = "SELECT * FROM documents"
+        params: tuple[Any, ...]
+        if tenant_id is not None:
+            sql += " WHERE tenant_id = ?"
+            params = (tenant_id, limit)
+        else:
+            params = (limit,)
+        sql += " ORDER BY created_at DESC LIMIT ?"
         with self._connect() as conn:
-            rows = conn.execute(
-                "SELECT * FROM documents ORDER BY created_at DESC LIMIT ?",
-                (limit,),
-            ).fetchall()
+            rows = conn.execute(sql, params).fetchall()
             return [_row_to_document_dict(row) for row in rows]
 
 
@@ -512,6 +606,7 @@ class SQLiteIdempotencyStore(_BaseAgentRepository, IIdempotencyStore):
 
 
 def _row_to_run(conn: sqlite3.Connection, row: sqlite3.Row) -> AgentRun:
+    tenant_id = _row_value(row, "tenant_id")
     run = AgentRun(
         run_id=row["run_id"],
         workflow=row["workflow"],
@@ -528,28 +623,57 @@ def _row_to_run(conn: sqlite3.Connection, row: sqlite3.Row) -> AgentRun:
         created_at=row["created_at"],
         updated_at=row["updated_at"],
     )
+    child_clause = "run_id = ?"
+    child_params: tuple[Any, ...] = (run.run_id,)
+    if tenant_id is not None:
+        child_clause += " AND tenant_id = ?"
+        child_params = (run.run_id, tenant_id)
     run.events = [
         _row_to_event(item)
         for item in conn.execute(
-            "SELECT * FROM events WHERE run_id = ? ORDER BY sequence ASC",
-            (run.run_id,),
+            f"SELECT * FROM events WHERE {child_clause} ORDER BY sequence ASC",
+            child_params,
         ).fetchall()
     ]
     run.artifacts = [
         _row_to_artifact(item)
         for item in conn.execute(
-            "SELECT * FROM artifacts WHERE run_id = ? ORDER BY created_at ASC",
-            (run.run_id,),
+            f"SELECT * FROM artifacts WHERE {child_clause} ORDER BY created_at ASC",
+            child_params,
         ).fetchall()
     ]
     run.approvals = [
         _row_to_approval(item)
         for item in conn.execute(
-            "SELECT * FROM approvals WHERE run_id = ? ORDER BY created_at ASC",
-            (run.run_id,),
+            f"SELECT * FROM approvals WHERE {child_clause} ORDER BY created_at ASC",
+            child_params,
         ).fetchall()
     ]
     return run
+
+
+def _row_value(row: sqlite3.Row, key: str) -> Any:
+    return row[key] if key in row.keys() else None
+
+
+def _tenant_id_from_run(run: AgentRun) -> str | None:
+    policy = ModelPolicy.from_dict(run.model_policy)
+    tenant_id = policy.tenant_id or policy.extra.get("tenant_id")
+    return str(tenant_id) if tenant_id else None
+
+
+def _tenant_id_for_run(conn: sqlite3.Connection, run_id: str) -> str | None:
+    row = conn.execute("SELECT tenant_id, model_policy FROM runs WHERE run_id = ?", (run_id,)).fetchone()
+    if row is None:
+        return None
+    tenant_id = _row_value(row, "tenant_id")
+    if tenant_id:
+        return str(tenant_id)
+    try:
+        policy = ModelPolicy.from_dict(json.loads(row["model_policy"] or "{}"))
+    except Exception:
+        return None
+    return policy.tenant_id or policy.extra.get("tenant_id")
 
 
 def _row_to_event(row: sqlite3.Row) -> AgentEvent:
@@ -602,6 +726,7 @@ def _document_to_record(document: Document | dict[str, Any]) -> dict[str, Any]:
     filename = data.get("original_filename") or data.get("filename") or data["document_id"]
     return {
         "document_id": data["document_id"],
+        "tenant_id": data.get("tenant_id"),
         "filename": data.get("filename") or filename,
         "original_filename": filename,
         "content": data.get("content") or data.get("parsed_content"),

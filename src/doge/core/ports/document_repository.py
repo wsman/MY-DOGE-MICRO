@@ -15,13 +15,13 @@ class IDocumentRepository(ABC):
         ...
 
     @abstractmethod
-    def get(self, document_id: str) -> dict | None:
+    def get(self, document_id: str, tenant_id: str | None = None) -> dict | None:
         ...
 
     @abstractmethod
-    def get_by_hash(self, file_hash: str) -> dict | None:
+    def get_by_hash(self, file_hash: str, tenant_id: str | None = None) -> dict | None:
         ...
 
     @abstractmethod
-    def list_recent(self, limit: int = 100) -> list[dict]:
+    def list_recent(self, limit: int = 100, tenant_id: str | None = None) -> list[dict]:
         ...

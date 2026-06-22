@@ -95,14 +95,15 @@ class PageExtractionService:
         self._parser_max_chars = parser_max_chars
 
     def extract(self, document: Document | dict) -> ExtractionResult:
+        tenant_id = document.get("tenant_id") if isinstance(document, dict) else None
         doc = document if isinstance(document, Document) else Document.from_mapping(document)
         pages, errors = self._extract_pages(doc)
         chunks = self._chunking.chunk_pages(pages)
         if self._evidence_repository is not None:
             for page in pages:
-                self._evidence_repository.save_page(page)
+                self._evidence_repository.save_page(page, tenant_id=tenant_id)
             for chunk in chunks:
-                self._evidence_repository.save_chunk(chunk)
+                self._evidence_repository.save_chunk(chunk, tenant_id=tenant_id)
         return ExtractionResult(
             document_id=doc.document_id,
             pages=pages,
