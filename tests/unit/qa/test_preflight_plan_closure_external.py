@@ -225,6 +225,66 @@ def test_preflight_plan_closure_external_rejects_incomplete_sdk_release_details(
     assert any("python: approved draft requires decision_status=approved" in error for error in check["content_errors"])
 
 
+def test_preflight_plan_closure_external_rejects_incomplete_enterprise_observation_details(tmp_path, monkeypatch):
+    monkeypatch.delenv("DOGE_LIVE_KIMI", raising=False)
+    monkeypatch.delenv("MOONSHOT_API_KEY", raising=False)
+    workspace = tmp_path / "handoff"
+    handoff = prepare_handoff_workspace(manifest_path=MANIFEST, date="2030-01-02", output_dir=workspace)
+    _mark_task_draft_inputs_filled(handoff, "AUTH-prod")
+    task = next(task for task in handoff["tasks"] if task["id"] == "AUTH-prod")
+    draft = ROOT / Path(task["prepared_inputs"][0]["prepared_input"])
+    payload = json.loads(draft.read_text(encoding="utf-8"))
+    payload["checks"].pop("siem_worm_export")
+    payload["checks"]["live_idp_jwks"]["status"] = "blocked"
+    payload["checks"]["live_idp_jwks"]["evidence_ref"] = "operator-secure-store://replace/live_idp_jwks"
+    payload["redaction_review"]["contains_raw_subjects"] = True
+    draft.write_text(json.dumps(payload), encoding="utf-8")
+
+    payload = build_preflight(
+        manifest_path=MANIFEST,
+        handoff_workspace=workspace,
+        require_external_inputs=True,
+        task_ids={"AUTH-prod"},
+    )
+
+    assert payload["result"] == "failed"
+    check = payload["tasks"][0]["input_refs"][0]
+    assert any("missing checks: siem_worm_export" in error for error in check["content_errors"])
+    assert any("live_idp_jwks: passed draft requires status=passed" in error for error in check["content_errors"])
+    assert any("live_idp_jwks.evidence_ref must be filled and not pending/template text" in error for error in check["content_errors"])
+    assert any("redaction_review.contains_raw_subjects must be false" in error for error in check["content_errors"])
+
+
+def test_preflight_plan_closure_external_rejects_incomplete_screen_reader_observation_details(tmp_path, monkeypatch):
+    monkeypatch.delenv("DOGE_LIVE_KIMI", raising=False)
+    monkeypatch.delenv("MOONSHOT_API_KEY", raising=False)
+    workspace = tmp_path / "handoff"
+    handoff = prepare_handoff_workspace(manifest_path=MANIFEST, date="2030-01-02", output_dir=workspace)
+    _mark_task_draft_inputs_filled(handoff, "S017-006")
+    task = next(task for task in handoff["tasks"] if task["id"] == "S017-006")
+    draft = ROOT / Path(task["prepared_inputs"][0]["prepared_input"])
+    payload = json.loads(draft.read_text(encoding="utf-8"))
+    payload["environment"]["screen_reader_version"] = ""
+    payload["checks"].pop("sr_no_keyboard_trap")
+    payload["checks"]["sr_keyboard_primary_controls"]["status"] = "failed"
+    payload["redaction_review"]["contains_sensitive_documents"] = True
+    draft.write_text(json.dumps(payload), encoding="utf-8")
+
+    payload = build_preflight(
+        manifest_path=MANIFEST,
+        handoff_workspace=workspace,
+        require_external_inputs=True,
+        task_ids={"S017-006"},
+    )
+
+    assert payload["result"] == "failed"
+    check = payload["tasks"][0]["input_refs"][0]
+    assert any("environment.screen_reader_version must be filled" in error for error in check["content_errors"])
+    assert any("missing checks: sr_no_keyboard_trap" in error for error in check["content_errors"])
+    assert any("sr_keyboard_primary_controls: passed draft requires status=passed" in error for error in check["content_errors"])
+    assert any("passed draft must not contain sensitive documents" in error for error in check["content_errors"])
+
+
 def test_preflight_plan_closure_external_rejects_incomplete_analyst_observation_set(tmp_path, monkeypatch):
     monkeypatch.delenv("DOGE_LIVE_KIMI", raising=False)
     monkeypatch.delenv("MOONSHOT_API_KEY", raising=False)

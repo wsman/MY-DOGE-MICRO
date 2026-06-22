@@ -102,7 +102,11 @@ approved provider, license scope, fixture storage, freshness, and provenance
 fields needed by the provider approval builder/validator. For `S017-007`, it
 checks Python and TypeScript package decisions, registry-backed consumer smoke,
 and release security-review fields before the SDK release builder is allowed to
-produce completed evidence.
+produce completed evidence. For `AUTH-prod`, it checks all five enterprise
+production validation observations, passed statuses, evidence refs, issue
+references where needed, and clean redaction flags. For `S017-006`, it checks
+the required screen-reader environment fields, six manual observation checks,
+notes, issue references where needed, and non-sensitive evidence posture.
 Prepared
 input paths and resolved evidence output paths are single-quoted for
 PowerShell so operator workspaces with spaces in their paths remain usable. The

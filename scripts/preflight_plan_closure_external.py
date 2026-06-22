@@ -569,7 +569,11 @@ def _require_filled_value(value: Any, field: str, errors: list[str]) -> None:
         errors.append(f"{field} must be filled")
         return
     normalized = value.strip().lower()
-    if normalized in UNFILLED_MARKERS or normalized.startswith("replace this template"):
+    if (
+        normalized in UNFILLED_MARKERS
+        or normalized.startswith("replace this template")
+        or normalized.startswith("operator-secure-store://replace")
+    ):
         errors.append(f"{field} must be filled and not pending/template text")
 
 
@@ -588,10 +592,87 @@ def _observation_errors(payload: dict[str, Any], *, required_results: list[str],
     if require_environment and not isinstance(payload.get("environment"), dict):
         errors.append("environment is required")
     checks = payload.get("checks")
-    if not isinstance(checks, dict) or not checks:
+    if not ((isinstance(checks, dict) and checks) or (isinstance(checks, list) and checks)):
         errors.append("checks must be a non-empty object")
     if require_environment and not _non_empty_string(payload.get("summary")):
         errors.append("summary is required")
+    return errors
+
+
+def _enterprise_production_observation_errors(payload: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    result = payload.get("result")
+    checks, map_errors = _keyed_items(
+        payload.get("checks"),
+        item_key="id",
+        expected_keys=ENTERPRISE_PRODUCTION_CHECK_IDS,
+        collection_key="checks",
+    )
+    errors.extend(map_errors)
+    for check_id, item in sorted(checks.items()):
+        status = item.get("status")
+        if status not in OBSERVATION_STATUSES:
+            errors.append(f"{check_id}: status must be one of {', '.join(sorted(OBSERVATION_STATUSES))}")
+        if result == "passed" and status != "passed":
+            errors.append(f"{check_id}: passed draft requires status=passed")
+        if result in {"passed", "failed"} and status in {"passed", "failed", "blocked"}:
+            _require_filled_value(item.get("evidence_ref"), f"{check_id}.evidence_ref", errors)
+        if result == "failed" and status in {"failed", "blocked"} and not _non_empty_string(item.get("issue_ref")):
+            errors.append(f"{check_id}: failed/blocked draft requires issue_ref")
+
+    if result == "failed" and not payload.get("issue_refs"):
+        errors.append("failed draft requires issue_refs")
+
+    redaction = payload.get("redaction_review")
+    if not isinstance(redaction, dict):
+        errors.append("redaction_review must be an object")
+        return errors
+    for key in ["contains_credentials", "contains_raw_subjects", "contains_proprietary_customer_data"]:
+        if redaction.get(key) is True:
+            errors.append(f"redaction_review.{key} must be false")
+    return errors
+
+
+def _screen_reader_observation_errors(payload: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    result = payload.get("result")
+    environment = payload.get("environment")
+    if isinstance(environment, dict):
+        for key in SCREEN_READER_ENVIRONMENT_FIELDS:
+            _require_filled_value(environment.get(key), f"environment.{key}", errors)
+
+    checks, map_errors = _keyed_items(
+        payload.get("checks"),
+        item_key="id",
+        expected_keys=SCREEN_READER_CHECK_IDS,
+        collection_key="checks",
+    )
+    errors.extend(map_errors)
+    for check_id, item in sorted(checks.items()):
+        status = item.get("status")
+        if status not in OBSERVATION_STATUSES:
+            errors.append(f"{check_id}: status must be one of {', '.join(sorted(OBSERVATION_STATUSES))}")
+        if result == "passed" and status != "passed":
+            errors.append(f"{check_id}: passed draft requires status=passed")
+        if result == "failed" and status in {"failed", "blocked"} and not _non_empty_string(item.get("issue_ref")):
+            errors.append(f"{check_id}: failed/blocked draft requires issue_ref")
+        if result in {"passed", "failed"}:
+            _require_filled_value(item.get("notes"), f"{check_id}.notes", errors)
+
+    issues = payload.get("issues")
+    if result == "failed" and not issues:
+        errors.append("failed draft requires at least one issue reference")
+    if issues is not None and not isinstance(issues, list):
+        errors.append("issues must be a list when present")
+
+    redaction = payload.get("redaction_review")
+    if not isinstance(redaction, dict):
+        errors.append("redaction_review must be an object")
+        return errors
+    if redaction.get("contains_secrets") is True:
+        errors.append("redaction_review.contains_secrets must be false")
+    if result == "passed" and redaction.get("contains_sensitive_documents") is True:
+        errors.append("passed draft must not contain sensitive documents")
     return errors
 
 

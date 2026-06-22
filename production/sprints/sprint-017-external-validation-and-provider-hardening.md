@@ -66,7 +66,7 @@ auth boundary.
 | Web build/typecheck | PASS: `npm run build`. |
 | TypeScript SDK | PASS: 1 file, 11 tests under Vitest `4.1.9`; `npm run build` passed. |
 | Cross-wave Python regression | PASS: `176 passed, 4 skipped in 21.74s`; live Kimi tests skipped without credentials. |
-| External closure validator suite | PASS: `142 passed in 8.04s`; completed external evidence and edited handoff drafts now reject unresolved template placeholders such as `*-TEMPLATE`, `TEMPLATE_*`, `YYYY-MM-DD`, `$createdAt`, and `<...>` tokens, obvious unredacted credential-shaped values, incomplete S017-003 provider approval details, and incomplete S017-007 SDK release/security-review details. |
+| External closure validator suite | PASS: `144 passed in 9.22s`; completed external evidence and edited handoff drafts now reject unresolved template placeholders such as `*-TEMPLATE`, `TEMPLATE_*`, `YYYY-MM-DD`, `$createdAt`, and `<...>` tokens, obvious unredacted credential-shaped values, incomplete S017-003 provider approval details, incomplete AUTH-prod enterprise production observations, incomplete S017-006 screen-reader observations, and incomplete S017-007 SDK release/security-review details. |
 | Closure gate posture | `scripts/validate_plan_closure_gate.py --allow-open` reports 6 controlled open gates; strict mode exits `1` until those external gates have real passed/approved evidence. |
 | External handoff workspace | PASS: `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22` prepared and validated; 6 tasks, 9 draft inputs, `operator-commands.ps1`, and `operator-checklist.md` are staged, but copied templates remain blocked until edited with real operator evidence. |
 
@@ -99,6 +99,12 @@ auth boundary.
   five connector capabilities plus approval/license/storage/freshness/provenance
   fields, and SDK drafts must cover Python/TypeScript package decisions,
   registry-backed consumer smoke, and release security-review fields.
+- `scripts/preflight_plan_closure_external.py` also validates AUTH-prod and
+  S017-006 observation drafts before builders run: enterprise production drafts
+  must cover the five required production validation checks with passed status,
+  evidence refs, and clean redaction flags; screen-reader drafts must cover the
+  required environment fields, six manual checks, and non-sensitive evidence
+  posture.
 - `scripts/validate_plan_closure_gate.py` and
   `tests/unit/qa/test_validate_plan_closure_gate.py` aggregate the remaining
   external evidence gates for the 9b77f9c source plan. Current output is
