@@ -32,6 +32,17 @@ SECRET_VALUE_PATTERNS = [
     re.compile(r"Bearer\s+[A-Za-z0-9._~+/=-]+", re.I),
     re.compile(r"\bsk-[A-Za-z0-9._-]{6,}\b", re.I),
 ]
+ALLOWED_USAGE_KEYS = {
+    "reported",
+    "reason",
+    "model",
+    "prompt_tokens",
+    "completion_tokens",
+    "total_tokens",
+    "cached_tokens",
+    "cost_usd",
+    "latency_ms",
+}
 
 
 def validate(payload: dict[str, Any], *, allow_blocked: bool = False) -> list[str]:
@@ -125,6 +136,8 @@ def _validate_scenario(scenario: dict[str, Any], errors: list[str]) -> None:
         latency = scenario.get("latency_ms")
         if status == "passed" and not isinstance(latency, (int, float)):
             errors.append(f"{name}: latency_ms is required for passed scenario")
+        if status == "passed":
+            _validate_usage_summary(name, scenario.get("usage"), errors)
     if name == "files_upload":
         file_info = _dict(scenario.get("file"))
         file_id_hash = file_info.get("file_id_hash")
@@ -136,6 +149,25 @@ def _validate_scenario(scenario: dict[str, Any], errors: list[str]) -> None:
             errors.append("files_upload: raw file_id must not be recorded")
     if name == "agent_sdk_optional" and status == "skipped" and not scenario.get("reason"):
         errors.append("agent_sdk_optional: skipped scenario requires reason")
+
+
+def _validate_usage_summary(name: Any, usage: Any, errors: list[str]) -> None:
+    if not isinstance(usage, dict):
+        errors.append(f"{name}: usage summary is required for passed scenario")
+        return
+    unexpected = set(usage) - ALLOWED_USAGE_KEYS
+    if unexpected:
+        errors.append(f"{name}: usage summary has unexpected keys: {', '.join(sorted(unexpected))}")
+    if not isinstance(usage.get("reported"), bool):
+        errors.append(f"{name}: usage.reported must be true or false")
+    if usage.get("reported") is False and not isinstance(usage.get("reason"), str):
+        errors.append(f"{name}: usage.reason is required when usage.reported=false")
+    for key in ["prompt_tokens", "completion_tokens", "total_tokens", "cached_tokens"]:
+        if key in usage and not isinstance(usage[key], int):
+            errors.append(f"{name}: usage.{key} must be an integer")
+    for key in ["cost_usd", "latency_ms"]:
+        if key in usage and not isinstance(usage[key], (int, float)):
+            errors.append(f"{name}: usage.{key} must be numeric")
 
 
 def _dict(value: Any) -> dict[str, Any]:

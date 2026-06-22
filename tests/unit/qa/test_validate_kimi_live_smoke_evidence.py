@@ -36,7 +36,12 @@ def _passed() -> dict:
                     "event_count": 1,
                     "response_chars": 17,
                     "finish_reasons": ["stop"],
-                    "usage": {"prompt_tokens": 10, "completion_tokens": 6, "total_tokens": 16},
+                    "usage": {
+                        "reported": True,
+                        "prompt_tokens": 10,
+                        "completion_tokens": 6,
+                        "total_tokens": 16,
+                    },
                 },
                 {
                     "name": "files_upload",
@@ -44,6 +49,7 @@ def _passed() -> dict:
                     "profile": "document_extract",
                     "model": "kimi-k2.6",
                     "latency_ms": 210.0,
+                    "usage": {"reported": False, "reason": "files_upload_metadata_only"},
                     "file": {
                         "type": "text/plain",
                         "purpose": "file-extract",
@@ -61,7 +67,7 @@ def _passed() -> dict:
                     "event_count": 1,
                     "response_chars": 12,
                     "finish_reasons": ["stop"],
-                    "usage": {},
+                    "usage": {"reported": False, "reason": "provider_usage_not_reported"},
                 },
                 {
                     "name": "agent_sdk_optional",
@@ -125,6 +131,28 @@ def test_files_upload_pass_requires_cleanup_confirmation():
     errors = validate(payload)
 
     assert any("files_upload: file.deleted must be true" in error for error in errors)
+
+
+def test_passed_required_scenario_requires_usage_summary():
+    payload = _passed()
+    for scenario in payload["scenarios"]:
+        if scenario["name"] == "text_k26":
+            scenario.pop("usage")
+
+    errors = validate(payload)
+
+    assert any("text_k26: usage summary is required" in error for error in errors)
+
+
+def test_usage_summary_rejects_unexpected_provider_payload_keys():
+    payload = _passed()
+    for scenario in payload["scenarios"]:
+        if scenario["name"] == "vision_base64":
+            scenario["usage"]["raw_provider_payload"] = {"id": "provider-debug"}
+
+    errors = validate(payload)
+
+    assert any("vision_base64: usage summary has unexpected keys" in error for error in errors)
 
 
 def test_secret_like_values_are_rejected_without_false_positive_for_present_flags():

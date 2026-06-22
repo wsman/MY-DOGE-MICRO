@@ -61,14 +61,14 @@ def _release_manager(decisions: dict[str, Any]) -> dict[str, str]:
 
 
 def _security_review(decisions: dict[str, Any]) -> dict[str, bool]:
-    review = decisions.get("security_review", {})
+    review = decisions.get("security_review")
     if not isinstance(review, dict):
-        raise ValueError("security_review must be an object when provided")
+        raise ValueError("security_review is required")
     return {
-        "no_credentials_in_package_config": bool(review.get("no_credentials_in_package_config", False)),
-        "typescript_sources_excluded_from_tarball": bool(review.get("typescript_sources_excluded_from_tarball", False)),
-        "redaction_behavior_documented": bool(review.get("redaction_behavior_documented", False)),
-        "contains_credentials": bool(review.get("contains_credentials", False)),
+        "no_credentials_in_package_config": _required_bool(review, "no_credentials_in_package_config"),
+        "typescript_sources_excluded_from_tarball": _required_bool(review, "typescript_sources_excluded_from_tarball"),
+        "redaction_behavior_documented": _required_bool(review, "redaction_behavior_documented"),
+        "contains_credentials": _required_bool(review, "contains_credentials"),
     }
 
 
@@ -118,6 +118,13 @@ def _required_string(payload: dict[str, Any], key: str) -> str:
     value = payload.get(key)
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{key} is required")
+    return value
+
+
+def _required_bool(payload: dict[str, Any], key: str) -> bool:
+    value = payload.get(key)
+    if not isinstance(value, bool):
+        raise ValueError(f"security_review.{key} must be an explicit boolean")
     return value
 
 

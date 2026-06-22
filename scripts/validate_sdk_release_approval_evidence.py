@@ -91,8 +91,8 @@ def validate(payload: dict[str, Any], *, allow_template: bool = False) -> list[s
         errors.append(f"{result} evidence requires issue_refs")
 
     security = _dict(payload.get("security_review"))
-    if security.get("contains_credentials") is True:
-        errors.append("security_review.contains_credentials must be false")
+    if result in {"approved", "needs_revision", "rejected"}:
+        _require_false(security.get("contains_credentials"), "security_review.contains_credentials", errors)
     if _contains_secret(payload):
         errors.append("evidence appears to contain a bearer token, provider key, or credential")
 
@@ -161,6 +161,11 @@ def _dict(value: Any) -> dict[str, Any]:
 def _require_non_empty(value: Any, field: str, errors: list[str]) -> None:
     if not isinstance(value, str) or not value.strip():
         errors.append(f"{field} is required")
+
+
+def _require_false(value: Any, field: str, errors: list[str]) -> None:
+    if value is not False:
+        errors.append(f"{field} must be false")
 
 
 def _require_timestamp(value: Any, field: str, errors: list[str]) -> None:

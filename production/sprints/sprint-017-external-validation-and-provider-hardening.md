@@ -16,7 +16,7 @@ auth boundary.
 | ID | Task | Owner | Acceptance Criteria |
 |----|------|-------|---------------------|
 | S017-001 | Browser and Node/Web verification | qa-lead + typescript-specialist | Done: automated verification passed with temporary Node v24.17.0/npm 11.13.0; browser evidence covers upload, document select, profile select, portfolio import, run/SSE completion, approval path, citation drill-down fixture, cost/eval panel, browser-runtime SDK SSE reconnect/replay, and real doged Research Agent reconnect through approval completion. |
-| S017-002 | Live Kimi smoke execution | operator + python-specialist | `scripts/run_kimi_live_smoke.py` and `tests/live/test_kimi_live_smoke.py` run with `DOGE_LIVE_KIMI=1` and `MOONSHOT_API_KEY`; `scripts/validate_kimi_live_smoke_evidence.py` validates evidence for text, Files, Vision, optional Agent SDK status, true live env gates, redacted file id hash, and Files cleanup without secrets. |
+| S017-002 | Live Kimi smoke execution | operator + python-specialist | `scripts/run_kimi_live_smoke.py` and `tests/live/test_kimi_live_smoke.py` run with `DOGE_LIVE_KIMI=1` and `MOONSHOT_API_KEY`; `scripts/validate_kimi_live_smoke_evidence.py` validates evidence for text, Files, Vision, optional Agent SDK status, true live env gates, per-required-scenario usage summary, redacted file id hash, and Files cleanup without secrets. |
 | S017-003 | Financial provider fixture approval | product owner + python-specialist | Provider choices and license scope are approved; safe provider-shaped fixtures matching `tests/fixtures/financial_connectors/provider_fixture_contract.json` are available. Status: review; approval packet exists at `docs/progress/financial-provider-approval-packet.md`; synthetic safe samples exist at `tests/fixtures/financial_connectors/provider_fixture_samples.json`. |
 | S017-004 | Enterprise auth boundary and implementation plan | security-engineer | Done: implementation choices are recorded in `docs/progress/enterprise-auth-implementation-plan.md`; AuthConfig/provider/startup gate/middleware, JWT fixture validation, tenant metadata for documents/portfolios/sessions/runs/events/artifacts/approvals/evidence, ACL/audit persistence, admin ACL APIs, runtime tool ACL, audit export/retention, audit export integrity handoff headers, SecretProvider env/process rollout, production secret-store process bridge selection, remote-bind promotion gate, SDK bearer/request-id plus API/SSE error redaction, audit export redaction, CLI trace/artifact redaction paths, real doged static-bearer loopback smoke, real doged local-JWKS loopback smoke, real doged process-secret loopback smoke, and real doged remote-bind gate smoke have tests/evidence. |
 
@@ -66,7 +66,7 @@ auth boundary.
 | Web build/typecheck | PASS: `npm run build`. |
 | TypeScript SDK | PASS: 1 file, 11 tests under Vitest `4.1.9`; `npm run build` passed. |
 | Cross-wave Python regression | PASS: `176 passed, 4 skipped in 21.74s`; live Kimi tests skipped without credentials. |
-| External closure validator suite | PASS pending rerun after live Kimi evidence hardening; completed external evidence and edited handoff drafts now reject unresolved template placeholders such as `*-TEMPLATE`, `TEMPLATE_*`, `YYYY-MM-DD`, `$createdAt`, and `<...>` tokens, obvious unredacted credential-shaped values, incomplete S017-002 live Kimi env/file-cleanup evidence, incomplete S017-003 provider approval details, incomplete AUTH-prod enterprise production observations, incomplete S017-006 screen-reader observations, and incomplete S017-007 SDK release/security-review details. |
+| External closure validator suite | PASS: `170 passed in 10.24s`; completed external evidence, edited handoff drafts, and builder inputs now reject unresolved template placeholders such as `*-TEMPLATE`, `TEMPLATE_*`, `YYYY-MM-DD`, `$createdAt`, and `<...>` tokens, obvious unredacted credential-shaped values, missing explicit false redaction/security-review flags, stale source-plan fingerprints, incomplete S017-002 live Kimi env/usage-summary/file-cleanup evidence, incomplete S017-003 provider approval details, incomplete W3-live per-case observation and trend-history details, incomplete AUTH-prod enterprise production observations, incomplete S017-006 screen-reader timestamps/observations, and incomplete S017-007 SDK release/security-review details. |
 | Closure gate posture | `scripts/validate_plan_closure_gate.py --allow-open` reports 6 controlled open gates; strict mode exits `1` until those external gates have real passed/approved evidence. |
 | External handoff workspace | PASS: `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22` prepared and validated; 6 tasks, 9 draft inputs, `operator-commands.ps1`, and `operator-checklist.md` are staged, but copied templates remain blocked until edited with real operator evidence. |
 
@@ -93,7 +93,16 @@ auth boundary.
 - `scripts/preflight_plan_closure_external.py` validates W3-live draft
   completeness against `tests/eval/gold_cases.json`: live observations must
   cover every case id, material `case_count` must match, and label counts must
-  meet the gold set citation/numerical/insufficient-evidence counts.
+  meet the gold set citation/numerical/insufficient-evidence counts. Each
+  live observation case must also be scoreable, with retrieved/cited evidence
+  id arrays, numeric expected metric values, usage cost/latency, and no raw
+  run/session ids. Trend-history JSONL rows must carry redacted run-id hashes,
+  financial/vision profiles, gold-set case count, and numeric quality/cost/
+  latency metrics. `scripts/build_analyst_benchmark_evidence.py` reuses the
+  same local trend-history validation before it writes W3-live evidence, and
+  `scripts/validate_analyst_benchmark_evidence.py` repeats that check for local
+  trend-history refs in completed evidence, so bypassing preflight or the
+  builder still fails closed.
 - `scripts/preflight_plan_closure_external.py` also validates S017-003 and
   S017-007 decision drafts before builders run: provider drafts must cover all
   five connector capabilities plus approval/license/storage/freshness/provenance
@@ -102,7 +111,7 @@ auth boundary.
 - `scripts/preflight_plan_closure_external.py` also validates AUTH-prod and
   S017-006 observation drafts before builders run: enterprise production drafts
   must cover the five required production validation checks with passed status,
-  evidence refs, and clean redaction flags; screen-reader drafts must cover the
+  evidence refs, and explicit false redaction flags; screen-reader drafts must cover the
   required environment fields, six manual checks, and non-sensitive evidence
   posture.
 - `scripts/validate_plan_closure_gate.py` and
@@ -124,9 +133,11 @@ auth boundary.
   `production/qa/evidence/plan-closure/9b77f9c-external-closure-manifest.json`
   with all remaining tasks, required results, validator commands, next actions,
   blockers, builder/runner handoff commands, input template refs, input refs,
-  output refs, close conditions, and the current non-production posture.
+  output refs, close conditions, source plan SHA-256/size metadata, and the
+  current non-production posture.
 - `scripts/validate_plan_closure_manifest.py` checks that the generated
-  manifest still matches the current closure gate output, so stale task lists
+  manifest still matches the current closure gate output and source-plan
+  fingerprint, so stale task lists, stale gate metadata, or stale plan hashes
   cannot be handed off as current execution state.
 - `scripts/preflight_plan_closure_external.py` gives the operator a single
   preflight JSON for the external window: manifest freshness, allow-open gate
@@ -140,7 +151,8 @@ auth boundary.
   dated operator workspace under
   `production/qa/evidence/plan-closure/handoffs/` with copied `*-draft-*`
   input files, a README, `handoff.json`, `operator-checklist.md`,
-  `operator-commands.ps1`, and a per-task `workspace_command_plan` that binds draft inputs into the builder
+  `operator-commands.ps1`, source plan SHA-256 display, and a per-task
+  `workspace_command_plan` that binds draft inputs into the builder
   command while keeping completed evidence outputs in the production evidence
   folders. The generated operator command list runs external-input preflight,
   each builder/runner, each strict validator, manifest/runbook/audit validators,
@@ -165,12 +177,14 @@ auth boundary.
   reports `pending_external_inputs` while the copied draft inputs still match
   their templates.
 - `scripts/validate_plan_closure_handoff.py` validates a prepared handoff
-  workspace against the current manifest and rejects stale task metadata,
-  missing/out-of-workspace draft inputs, missing non-closing/secrets warnings,
-  missing or weakened operator checklist/command lists, missing repo-root self-location,
-  missing Python interpreter guard, missing task-selection wiring, command
-  plans that write completed evidence into the workspace, or
-  completed-evidence-looking files inside the workspace.
+  workspace against the current manifest and rejects stale source-plan
+  fingerprints, stale task metadata, missing/out-of-workspace draft inputs,
+  missing non-closing/secrets warnings, missing or weakened operator
+  checklist/command lists including absent explicit false redaction/security-
+  review guardrails, missing repo-root self-location, missing Python
+  interpreter guard, missing task-selection wiring, command plans that write
+  completed evidence into the workspace, or completed-evidence-looking files
+  inside the workspace.
 - `docs/progress/enterprise-auth-implementation-plan.md` records the S017-004
   OIDC/JWT, token library, ACL, audit actor, secret provider, SDK decisions,
   and current partial implementation status.
@@ -226,7 +240,9 @@ auth boundary.
   runner/test/validator set. Current evidence is blocked, not a live pass.
   Strict completed evidence must record the live env gates as true, store only
   the redacted `sha256:<prefix>` Files id hash, and confirm provider file
-  cleanup.
+  cleanup. The runner captures each required scenario independently, so a
+  provider/account/network failure keeps any partial scenario results and
+  records only redacted scenario errors.
 - `scripts/build_analyst_benchmark_evidence.py` converts redacted W3-live
   observations plus approved thresholds into validator-ready analyst benchmark
   evidence. It supports both passed and failed results; failed evidence still

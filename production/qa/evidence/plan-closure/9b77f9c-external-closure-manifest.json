@@ -16,10 +16,16 @@
       "total": 6
     }
   },
-  "generated_at": "2026-06-22T02:55:43.116630+00:00",
+  "generated_at": "2026-06-22T05:34:22.728584+00:00",
   "operator_rule": "Complete each task to its required_results, run its validator_command without allow-template/allow-blocked flags, then run scripts/validate_plan_closure_gate.py without --allow-open.",
   "schema": "doge.plan_closure_execution_manifest.v1",
   "source_plan": "C:\\Users\\Aby\\.claude\\plans\\9b77f9c-kimi-twinkly-map.md",
+  "source_plan_check": {
+    "bytes": 14285,
+    "exists": true,
+    "path": "C:\\Users\\Aby\\.claude\\plans\\9b77f9c-kimi-twinkly-map.md",
+    "sha256": "d905770819a571c925b7e105ea524fb8c59f9109af031255ae6122bc25e1cfbf"
+  },
   "tasks": [
     {
       "can_close_now": false,

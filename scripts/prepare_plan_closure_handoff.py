@@ -46,6 +46,7 @@ def prepare_handoff_workspace(
         "schema": SCHEMA,
         "source_manifest": _display_path(manifest_path),
         "source_plan": manifest.get("source_plan"),
+        "source_plan_check": manifest.get("source_plan_check"),
         "prepared_at": datetime.now(timezone.utc).isoformat(),
         "workspace_root": _display_path(workspace),
         "date": date,
@@ -227,6 +228,7 @@ def _render_readme(payload: dict[str, Any]) -> str:
         f"Prepared: {payload['prepared_at']}",
         f"Date token: {payload['date']}",
         f"Source manifest: `{payload['source_manifest']}`",
+        f"Source plan SHA-256: `{_source_plan_sha(payload)}`",
         f"Operator command list: `{payload['operator_commands']}`",
         "",
         "This workspace does not close any gate. It only copies operator input",
@@ -291,6 +293,7 @@ def _render_operator_checklist(payload: dict[str, Any]) -> str:
         "",
         f"Workspace: `{workspace}`",
         f"Command file: `{command_file}`",
+        f"Source plan SHA-256: `{_source_plan_sha(payload)}`",
         "",
         "This checklist does not close gates. It is a short execution index for",
         "real operator evidence. Do not place secrets, API keys, raw sensitive",
@@ -344,11 +347,20 @@ def _render_operator_checklist(payload: dict[str, Any]) -> str:
             "",
             "- Templates and copied drafts are not evidence.",
             "- `needs_revision`, `rejected`, `failed`, `blocked`, and `not_run` do not close gates.",
+            "- Redaction and security-review flags must be explicit `false`; missing flags do not pass preflight or strict validation.",
             "- Completed evidence belongs in the production evidence folders listed above, not inside this workspace.",
             "- The final gate must keep `production_ready: false` and `stable_declaration: forbidden` until a separate promotion review changes them.",
         ]
     )
     return "\n".join(lines).rstrip() + "\n"
+
+
+def _source_plan_sha(payload: dict[str, Any]) -> str:
+    check = payload.get("source_plan_check")
+    if not isinstance(check, dict):
+        return "unavailable"
+    value = check.get("sha256")
+    return value if isinstance(value, str) and value else "unavailable"
 
 
 def _checklist_fill_items(task: dict[str, Any]) -> list[str]:

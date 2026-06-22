@@ -62,26 +62,30 @@ def test_enterprise_production_observation_template_builds_failed_evidence():
     assert _has_placeholder_error(validate_enterprise(payload), "AUTH-PROD-TEMPLATE")
 
 
-def test_analyst_benchmark_input_templates_build_failed_evidence():
-    payload = build_analyst_benchmark(
-        gold_cases_path=ROOT / "tests/eval/gold_cases.json",
-        observations_path=ROOT / "production/qa/evidence/eval/live-kimi-observations-template-2026-06-22.json",
-        thresholds_path=ROOT / "production/qa/evidence/eval/approved-thresholds-template-2026-06-22.json",
-        material_manifest_ref="production/qa/evidence/eval/material-manifest-template-2026-06-22.json",
-        label_manifest_ref="production/qa/evidence/eval/label-manifest-template-2026-06-22.json",
-        label_policy_ref="docs/progress/financial-eval-gold-set.md",
-        live_observation_ref="production/qa/evidence/eval/live-kimi-observations-template-2026-06-22.json",
-        trend_history_ref="production/qa/evidence/eval/trend-history-template-2026-06-22.jsonl",
-        analyst_role="research-qa-analyst",
-        analyst_initials="QA",
-        reviewed_at="2026-06-22T06:00:00Z",
-        created_at="2026-06-22T06:01:00Z",
-        issue_refs=["W3-LIVE-TEMPLATE"],
-    )
+def test_analyst_benchmark_input_templates_do_not_build_evidence():
+    try:
+        build_analyst_benchmark(
+            gold_cases_path=ROOT / "tests/eval/gold_cases.json",
+            observations_path=ROOT / "production/qa/evidence/eval/live-kimi-observations-template-2026-06-22.json",
+            thresholds_path=ROOT / "production/qa/evidence/eval/approved-thresholds-template-2026-06-22.json",
+            material_manifest_ref="production/qa/evidence/eval/material-manifest-template-2026-06-22.json",
+            label_manifest_ref="production/qa/evidence/eval/label-manifest-template-2026-06-22.json",
+            label_policy_ref="docs/progress/financial-eval-gold-set.md",
+            live_observation_ref="production/qa/evidence/eval/live-kimi-observations-template-2026-06-22.json",
+            trend_history_ref="production/qa/evidence/eval/trend-history-template-2026-06-22.jsonl",
+            analyst_role="research-qa-analyst",
+            analyst_initials="QA",
+            reviewed_at="2026-06-22T06:00:00Z",
+            created_at="2026-06-22T06:01:00Z",
+            issue_refs=["W3-LIVE-TEMPLATE"],
+        )
+    except ValueError as exc:
+        message = str(exc)
+    else:
+        raise AssertionError("expected analyst benchmark templates to fail closed")
 
-    assert payload["result"] == "failed"
-    assert payload["issue_refs"] == ["W3-LIVE-TEMPLATE"]
-    assert _has_placeholder_error(validate_analyst_benchmark(payload), "W3-LIVE-TEMPLATE")
+    assert "trend history ref is invalid" in message
+    assert "JSONL draft must not contain only template rows" in message
 
 
 def test_manifest_handoff_input_templates_exist_and_are_json_or_jsonl():

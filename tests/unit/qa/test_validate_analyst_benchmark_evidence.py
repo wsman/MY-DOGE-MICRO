@@ -94,6 +94,15 @@ def test_passed_analyst_benchmark_evidence_validates():
     assert validate(_passed()) == []
 
 
+def test_passed_benchmark_validates_local_trend_history(tmp_path):
+    payload = _passed()
+    trend_history = tmp_path / "trend-history.jsonl"
+    _write_trend_history(trend_history, case_count=payload["materials"]["total_cases"])
+    payload["results"]["trend_history_ref"] = str(trend_history)
+
+    assert validate(payload) == []
+
+
 def test_passed_benchmark_requires_material_category_coverage():
     payload = _passed()
     payload["materials"]["chart_image_cases"] = 0
@@ -150,6 +159,33 @@ def test_secret_like_values_are_rejected():
     assert any("appears to contain" in error for error in errors)
 
 
+def test_local_trend_history_ref_must_be_scoreable_and_redacted(tmp_path):
+    payload = _passed()
+    trend_history = tmp_path / "trend-history.jsonl"
+    trend_history.write_text(
+        json.dumps(
+            {
+                "status": "passed",
+                "observed_at": "2026-06-22T09:00:00Z",
+                "run_id": "raw-run-id",
+                "profiles": ["financial_research"],
+                "case_count": payload["materials"]["total_cases"] - 1,
+                "metrics": {"retrieval_recall": 1.0},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    payload["results"]["trend_history_ref"] = str(trend_history)
+
+    errors = validate(payload)
+
+    assert any("results.trend_history_ref invalid: line 1: run_id must not be recorded" in error for error in errors)
+    assert any("results.trend_history_ref invalid: line 1: profiles must include financial_research and vision_analysis" in error for error in errors)
+    assert any("results.trend_history_ref invalid: line 1: case_count must match" in error for error in errors)
+    assert any("results.trend_history_ref invalid: line 1: metrics.citation_precision must be numeric" in error for error in errors)
+
+
 def test_cli_allows_template_only_with_flag():
     script = ROOT / "scripts" / "validate_analyst_benchmark_evidence.py"
     denied = subprocess.run(
@@ -169,3 +205,28 @@ def test_cli_allows_template_only_with_flag():
     assert "not_run evidence" in denied.stdout
     assert allowed.returncode == 0
     assert json.loads(allowed.stdout)["passed"] is True
+
+
+def _write_trend_history(path: Path, *, case_count: int) -> None:
+    path.write_text(
+        json.dumps(
+            {
+                "status": "passed",
+                "observed_at": "2026-06-22T09:00:00Z",
+                "benchmark_run_id_hash": "sha256:validator-test",
+                "profiles": ["financial_research", "vision_analysis"],
+                "case_count": case_count,
+                "metrics": {
+                    "retrieval_recall": 0.9,
+                    "retrieval_precision": 0.8,
+                    "citation_precision": 0.94,
+                    "numerical_consistency": 0.98,
+                    "usage_cost_record_coverage": 1.0,
+                    "latency_p95_ms": 12000,
+                    "cost_usd_p95": 0.9,
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )

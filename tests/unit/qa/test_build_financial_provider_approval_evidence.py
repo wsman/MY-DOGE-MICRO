@@ -49,6 +49,16 @@ def test_build_rejects_missing_capability_decision(tmp_path):
         build_evidence(decisions_path=decisions)
 
 
+def test_build_rejects_missing_provider_redaction_flag(tmp_path):
+    decisions = tmp_path / "provider-decisions.json"
+    payload = _decision_payload(result="approved")
+    payload["redaction_review"].pop("contains_credentials")
+    decisions.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="redaction_review.contains_credentials must be an explicit boolean"):
+        build_evidence(decisions_path=decisions)
+
+
 def test_build_provider_approval_cli_writes_valid_output(tmp_path):
     decisions = tmp_path / "provider-decisions.json"
     output = tmp_path / "financial-provider-approval-2026-06-22.json"

@@ -27,6 +27,16 @@ def test_plan_closure_manifest_rejects_stale_task_list():
     assert any("missing tasks: S017-007" in error for error in errors)
 
 
+def test_plan_closure_manifest_rejects_stale_source_plan_hash():
+    payload = build_manifest(generated_at="2026-06-22T00:00:00+00:00")
+    payload["source_plan_check"]["sha256"] = "0" * 64
+
+    errors = validate(payload)
+
+    assert any("manifest does not match current closure gate" in error for error in errors)
+    assert any("mismatch: source_plan_check" in error for error in errors)
+
+
 def test_plan_closure_manifest_cli_default_path():
     script = ROOT / "scripts" / "validate_plan_closure_manifest.py"
     result = subprocess.run(

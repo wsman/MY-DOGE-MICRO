@@ -68,6 +68,19 @@ def test_build_rejects_missing_evidence_ref(tmp_path):
         build_evidence(observations_path=observations)
 
 
+def test_build_rejects_missing_enterprise_redaction_flag(tmp_path):
+    observations = tmp_path / "enterprise-production-observations.json"
+    payload = _observation_payload(result="passed")
+    payload["redaction_review"].pop("contains_proprietary_customer_data")
+    observations.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        ValueError,
+        match="redaction_review.contains_proprietary_customer_data must be an explicit boolean",
+    ):
+        build_evidence(observations_path=observations)
+
+
 def test_build_enterprise_production_cli_writes_valid_output(tmp_path):
     observations = tmp_path / "enterprise-production-observations.json"
     output = tmp_path / "enterprise-production-validation-2026-06-22.json"

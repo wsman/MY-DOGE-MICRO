@@ -125,6 +125,10 @@ def test_kimi_live_smoke_readiness_is_review_not_done():
     sprint_plan = _read("production/sprints/sprint-017-external-validation-and-provider-hardening.md")
     maturity = _read("docs/progress/runtime-maturity.yaml")
     audit = _read("docs/progress/kimi-plan-completion-audit.md")
+    live_test = _read("tests/live/test_kimi_live_smoke.py")
+    live_runner = _read("scripts/run_kimi_live_smoke.py")
+    live_validator = _read("scripts/validate_kimi_live_smoke_evidence.py")
+    live_validator_test = _read("tests/unit/qa/test_validate_kimi_live_smoke_evidence.py")
     evidence = json.loads(_read("production/qa/evidence/live/kimi-live-smoke-2026-06-22.json"))
 
     body = re.search(r"- id: S017-002(?P<body>.*?)(?=\n\n      - id: S017-003)", sprint, re.S).group("body")
@@ -138,7 +142,20 @@ def test_kimi_live_smoke_readiness_is_review_not_done():
     for text in [sprint_plan, maturity, audit]:
         assert "scripts/run_kimi_live_smoke.py" in text
         assert "scripts/validate_kimi_live_smoke_evidence.py" in text
+        assert "Files cleanup" in text or "file-cleanup" in text or "cleanup confirmation" in text
     assert "validates only with `--allow-blocked`" in sprint_plan
+    assert "S017_KIMI_TEXT_OK" in live_test
+    assert "S017_AGENT_SDK_OK" in live_test
+    assert "S016_" not in live_test
+    assert "_capture_scenario" in live_runner
+    assert "[REDACTED_FILE_ID]" in live_runner
+    assert "[REDACTED_API_KEY]" in live_runner
+    assert "evidence requires environment" in live_validator
+    assert "files_upload: file.deleted must be true" in live_validator
+    assert "usage summary is required for passed scenario" in live_validator
+    assert "usage.reported must be true or false" in live_validator
+    assert "test_passed_required_scenario_requires_usage_summary" in live_validator_test
+    assert "test_usage_summary_rejects_unexpected_provider_payload_keys" in live_validator_test
 
 
 def test_kimi_plan_completion_audit_preserves_non_production_posture():
@@ -222,10 +239,15 @@ def test_plan_closure_gate_aggregates_remaining_external_evidence():
     placeholder_helper = _read("scripts/evidence_placeholders.py")
     redaction_helper = _read("scripts/evidence_redaction.py")
     analyst_builder = _read("scripts/build_analyst_benchmark_evidence.py")
+    analyst_validator = _read("scripts/validate_analyst_benchmark_evidence.py")
     enterprise_builder = _read("scripts/build_enterprise_production_validation_evidence.py")
+    enterprise_validator = _read("scripts/validate_enterprise_production_validation_evidence.py")
     provider_builder = _read("scripts/build_financial_provider_approval_evidence.py")
+    provider_validator = _read("scripts/validate_financial_provider_approval_evidence.py")
     sdk_builder = _read("scripts/build_sdk_release_approval_evidence.py")
+    sdk_validator = _read("scripts/validate_sdk_release_approval_evidence.py")
     screen_reader_builder = _read("scripts/build_screen_reader_evidence.py")
+    screen_reader_validator = _read("scripts/validate_screen_reader_evidence.py")
     gate_test = _read("tests/unit/qa/test_validate_plan_closure_gate.py")
     runbook_test = _read("tests/unit/qa/test_validate_plan_closure_runbook.py")
     manifest_test = _read("tests/unit/qa/test_export_plan_closure_manifest.py")
@@ -239,10 +261,15 @@ def test_plan_closure_gate_aggregates_remaining_external_evidence():
     redaction_test = _read("tests/unit/qa/test_evidence_redaction.py")
     input_template_test = _read("tests/unit/qa/test_plan_closure_input_templates.py")
     analyst_builder_test = _read("tests/unit/qa/test_build_analyst_benchmark_evidence.py")
+    analyst_validator_test = _read("tests/unit/qa/test_validate_analyst_benchmark_evidence.py")
     enterprise_builder_test = _read("tests/unit/qa/test_build_enterprise_production_validation_evidence.py")
+    enterprise_validator_test = _read("tests/unit/qa/test_validate_enterprise_production_validation_evidence.py")
     provider_builder_test = _read("tests/unit/qa/test_build_financial_provider_approval_evidence.py")
+    provider_validator_test = _read("tests/unit/qa/test_validate_financial_provider_approval_evidence.py")
     sdk_builder_test = _read("tests/unit/qa/test_build_sdk_release_approval_evidence.py")
+    sdk_validator_test = _read("tests/unit/qa/test_validate_sdk_release_approval_evidence.py")
     screen_reader_builder_test = _read("tests/unit/qa/test_build_screen_reader_evidence.py")
+    screen_reader_validator_test = _read("tests/unit/qa/test_validate_screen_reader_evidence.py")
     manifest = json.loads(_read("production/qa/evidence/plan-closure/9b77f9c-external-closure-manifest.json"))
 
     for text in [maturity, audit, sprint_plan, sprint]:
@@ -275,6 +302,7 @@ def test_plan_closure_gate_aggregates_remaining_external_evidence():
     assert "evidence_redaction.py" in sprint_plan
     assert "evidence_placeholders.py" in audit
     assert "workspace_command_plan" in maturity
+    assert "source_plan_check" in maturity
     assert "passing_results" in maturity
     assert "strict mode" in sprint_plan
     assert "passing_results" in sprint_plan
@@ -285,6 +313,8 @@ def test_plan_closure_gate_aggregates_remaining_external_evidence():
     assert "strict_command" in sprint_plan
     assert "completed-evidence filename patterns" in sprint_plan
     assert "builder/runner handoff commands" in sprint_plan
+    assert "source-plan fingerprints" in sprint_plan
+    assert "source plan SHA-256" in sprint_plan
     assert "operator-commands.ps1" in sprint_plan
     assert "input template refs" in sprint_plan
     assert "Required Result" in runbook
@@ -301,6 +331,8 @@ def test_plan_closure_gate_aggregates_remaining_external_evidence():
     assert "build_screen_reader_evidence.py" in runbook
     assert "build_sdk_release_approval_evidence.py" in runbook
     assert "stale handoff files" in runbook
+    assert "source_plan_check" in runbook
+    assert "source-plan fingerprint" in runbook
     assert "builder/runner handoff metadata" in runbook
     assert "input template references" in runbook
 
@@ -336,12 +368,16 @@ def test_plan_closure_gate_aggregates_remaining_external_evidence():
     assert "test_plan_closure_runbook_matches_gate_manifest" in runbook_test
     assert "build_manifest" in manifest_exporter
     assert "doge.plan_closure_execution_manifest.v1" in manifest_exporter
+    assert "source_plan_check" in manifest_exporter
+    assert "hashlib.sha256" in manifest_exporter
     assert "HANDOFFS" in manifest_exporter
     assert "build_or_run_command" in manifest_exporter
     assert "close_condition" in manifest_exporter
     assert "input_templates" in manifest_exporter
     assert "build_manifest" in manifest_validator
     assert "manifest does not match current closure gate" in manifest_validator
+    assert "source_plan_check" in manifest_validator
+    assert "mismatch:" in manifest_validator
     assert "validate_all(allow_open=True)" in audit_validator
     assert "test_kimi_plan_completion_audit_matches_closure_gate" in audit_validator_test
     assert "doge.plan_closure_external_preflight.v1" in external_preflight
@@ -360,6 +396,13 @@ def test_plan_closure_gate_aggregates_remaining_external_evidence():
     assert "draft input" in external_preflight
     assert "GOLD_CASES_PATH" in external_preflight
     assert "_live_observation_case_errors" in external_preflight
+    assert "_live_observation_detail_errors" in external_preflight
+    assert "validate_trend_history_jsonl" in external_preflight
+    assert "validate_trend_history_jsonl" in analyst_builder
+    assert "validate_trend_history_jsonl" in analyst_validator
+    assert "_validate_local_trend_history_ref" in analyst_builder
+    assert "_validate_local_trend_history_ref" in analyst_validator
+    assert "run_id" in external_preflight
     assert "PROVIDER_APPROVAL_FIELDS" in external_preflight
     assert "SDK_SECURITY_APPROVAL_FIELDS" in external_preflight
     assert "ENTERPRISE_PRODUCTION_CHECK_IDS" in external_preflight
@@ -368,15 +411,24 @@ def test_plan_closure_gate_aggregates_remaining_external_evidence():
     assert "_sdk_release_decision_errors" in external_preflight
     assert "_enterprise_production_observation_errors" in external_preflight
     assert "_screen_reader_observation_errors" in external_preflight
+    assert "_require_false(redaction.get(\"contains_credentials\")" in external_preflight
+    assert "_require_false(security.get(\"contains_credentials\")" in external_preflight
+    assert "_require_false(redaction.get(key), f\"redaction_review.{key}\"" in external_preflight
+    assert "_require_false(redaction.get(\"contains_secrets\")" in external_preflight
     assert "edited drafts that still" in runbook
     assert "credential-shaped values" in runbook
     assert "approved provider, license scope, fixture storage, freshness, and provenance" in runbook
     assert "registry-backed consumer smoke" in runbook
     assert "five enterprise" in runbook
     assert "six manual observation checks" in runbook
+    assert "retrieved and cited" in runbook
+    assert "evidence id arrays" in runbook
+    assert "usage cost/latency" in runbook
+    assert "trend-history JSONL" in runbook
     assert "gold_cases.json" in runbook
     assert "prepare_handoff_workspace" in handoff_preparer
     assert "doge.plan_closure_handoff_workspace.v1" in handoff_preparer
+    assert "Source plan SHA-256" in handoff_preparer
     assert "does_not_close_gates" in handoff_preparer
     assert "validate_kimi_plan_completion_audit.py" in handoff_preparer
     assert "copied_template_for_operator_edit" in handoff_preparer
@@ -394,6 +446,7 @@ def test_plan_closure_gate_aggregates_remaining_external_evidence():
     assert "$RunFinalGate" in handoff_preparer
     assert "writes_completed_evidence_to_workspace" in handoff_preparer
     assert "validate_workspace" in handoff_validator
+    assert "source_plan_check does not match manifest" in handoff_validator
     assert "completed-evidence-looking file" in handoff_validator
     assert "does_not_close_gates must be true" in handoff_validator
     assert "resolved_output_ref must not be inside handoff workspace" in handoff_validator
@@ -407,31 +460,57 @@ def test_plan_closure_gate_aggregates_remaining_external_evidence():
     assert "operator commands must switch to the repository root" in handoff_validator
     assert "operator commands must define the Python interpreter path" in handoff_validator
     assert "operator commands must support task-scoped execution" in handoff_validator
+    assert "Redaction and security-review flags must be explicit `false`" in handoff_preparer
+    assert "operator checklist must require explicit false redaction/security-review flags" in handoff_validator
     assert "score_observations" in analyst_builder
     assert "Enterprise production validation failed" in enterprise_builder
     assert "provider approval result is" in provider_builder
     assert "SDK release approval result is" in sdk_builder
     assert "compact operator observations" in screen_reader_builder
+    assert '_required_bool(review, "contains_credentials")' in provider_builder
+    assert '_required_bool(review, "contains_credentials")' in sdk_builder
+    assert "REQUIRED_REDACTION_FLAGS" in enterprise_builder
+    assert "contains_proprietary_customer_data" in enterprise_builder
+    assert "REQUIRED_REDACTION_FLAGS" in screen_reader_builder
+    assert "contains_sensitive_documents" in screen_reader_builder
+    assert "_require_timestamp(payload.get(\"created_at\"), \"created_at\", errors)" in screen_reader_validator
+    assert "_require_false(redaction.get(\"contains_credentials\")" in provider_validator
+    assert "_require_false(security.get(\"contains_credentials\")" in sdk_validator
+    assert "_require_false(redaction.get(key), f\"redaction_review.{key}\"" in enterprise_validator
+    assert "_require_false(redaction.get(\"contains_secrets\")" in screen_reader_validator
+    assert "redaction_review.contains_sensitive_documents" in screen_reader_validator
     assert "failed evidence" in sprint_plan
     assert "failed evidence" in sprint_plan
     assert "issue references" in sprint_plan
     assert "test_build_plan_closure_manifest_from_gate_output" in manifest_test
     assert "test_plan_closure_manifest_matches_current_gate" in manifest_validator_test
+    assert "test_plan_closure_manifest_rejects_stale_source_plan_hash" in manifest_validator_test
     assert "test_preflight_plan_closure_external_reports_pending_external_inputs" in external_preflight_test
     assert "test_preflight_plan_closure_external_accepts_filled_handoff_workspace" in external_preflight_test
     assert "test_preflight_plan_closure_external_can_check_one_task" in external_preflight_test
     assert "test_preflight_plan_closure_external_rejects_invalid_filled_draft" in external_preflight_test
     assert "test_preflight_plan_closure_external_rejects_residual_template_placeholder" in external_preflight_test
     assert "test_preflight_plan_closure_external_rejects_incomplete_provider_decision_details" in external_preflight_test
+    assert "test_preflight_plan_closure_external_rejects_missing_provider_redaction_flags" in external_preflight_test
     assert "test_preflight_plan_closure_external_rejects_incomplete_sdk_release_details" in external_preflight_test
+    assert "test_preflight_plan_closure_external_rejects_missing_sdk_redaction_flags" in external_preflight_test
     assert "test_preflight_plan_closure_external_rejects_incomplete_enterprise_observation_details" in external_preflight_test
+    assert "test_preflight_plan_closure_external_rejects_missing_enterprise_redaction_flags" in external_preflight_test
     assert "test_preflight_plan_closure_external_rejects_incomplete_screen_reader_observation_details" in external_preflight_test
+    assert "test_preflight_plan_closure_external_rejects_missing_screen_reader_redaction_flags" in external_preflight_test
     assert "test_preflight_plan_closure_external_rejects_incomplete_analyst_observation_set" in external_preflight_test
+    assert "test_preflight_plan_closure_external_rejects_incomplete_analyst_observation_details" in external_preflight_test
+    assert "test_preflight_plan_closure_external_rejects_incomplete_trend_history_details" in external_preflight_test
+    assert "test_build_analyst_benchmark_evidence_rejects_invalid_trend_history" in analyst_builder_test
+    assert "test_local_trend_history_ref_must_be_scoreable_and_redacted" in analyst_validator_test
     assert "test_prepare_plan_closure_handoff_copies_draft_inputs_without_closing_gates" in handoff_test
     assert "test_prepare_plan_closure_handoff_quotes_operator_paths_with_spaces" in handoff_test
     assert "operator-commands.ps1" in handoff_test
     assert "operator-checklist.md" in handoff_test
+    assert "Redaction and security-review flags must be explicit `false`" in handoff_test
+    assert "source_plan_check" in handoff_test
     assert "test_validate_plan_closure_handoff_accepts_fresh_workspace" in handoff_validator_test
+    assert "test_validate_plan_closure_handoff_rejects_stale_source_plan_check" in handoff_validator_test
     assert "test_validate_plan_closure_handoff_rejects_command_plan_output_inside_workspace" in handoff_validator_test
     assert "test_validate_plan_closure_handoff_rejects_missing_operator_checklist" in handoff_validator_test
     assert "test_validate_plan_closure_handoff_rejects_weak_operator_checklist" in handoff_validator_test
@@ -455,10 +534,21 @@ def test_plan_closure_gate_aggregates_remaining_external_evidence():
     assert "unresolved placeholder" in input_template_test
     assert "test_build_passed_analyst_benchmark_evidence" in analyst_builder_test
     assert "test_build_passed_enterprise_production_evidence" in enterprise_builder_test
+    assert "test_build_rejects_missing_enterprise_redaction_flag" in enterprise_builder_test
+    assert "test_completed_evidence_requires_explicit_redaction_flags" in enterprise_validator_test
     assert "test_build_approved_provider_approval_evidence" in provider_builder_test
+    assert "test_build_rejects_missing_provider_redaction_flag" in provider_builder_test
+    assert "test_completed_evidence_requires_explicit_redaction_flags" in provider_validator_test
     assert "test_build_passed_screen_reader_evidence" in screen_reader_builder_test
+    assert "test_build_rejects_missing_screen_reader_redaction_flag" in screen_reader_builder_test
+    assert "test_completed_evidence_requires_created_at" in screen_reader_validator_test
+    assert "test_completed_evidence_requires_explicit_redaction_flags" in screen_reader_validator_test
     assert "test_build_approved_sdk_release_evidence" in sdk_builder_test
+    assert "test_build_rejects_missing_sdk_security_flag" in sdk_builder_test
+    assert "test_completed_release_requires_explicit_credential_redaction_flag" in sdk_validator_test
     assert manifest["schema"] == "doge.plan_closure_execution_manifest.v1"
+    assert manifest["source_plan_check"]["exists"] is True
+    assert len(manifest["source_plan_check"]["sha256"]) == 64
     assert manifest["closure_gate"]["summary"]["open"] == 6
     assert len(manifest["tasks"]) == 6
     assert all(item["can_close_now"] is False for item in manifest["tasks"])

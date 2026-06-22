@@ -9,6 +9,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import tempfile
 from time import perf_counter
 from typing import Any, Awaitable, Callable
@@ -22,6 +23,12 @@ from doge.infrastructure.llm.kimi_files_client import KimiFilesClient
 
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE_NAME = "kimi-live-smoke-2026-06-22"
+SCENARIO_PROFILES = {
+    "text_k26": "financial_research",
+    "files_upload": "document_extract",
+    "vision_base64": "vision_analysis",
+    "agent_sdk_optional": "agent_automation",
+}
 TINY_PNG_BASE64 = (
     "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAGUlEQVR4nGP8z8AARLJgwiM3"
     "LqkEAC8iAhE7A52jAAAAAElFTkSuQmCC"
@@ -146,6 +153,7 @@ def _scenario_files() -> dict[str, Any]:
         },
         "latency_ms": round(latency_ms, 2),
         "metadata_keys": sorted(str(key) for key in info.keys()) if isinstance(info, dict) else [],
+        "usage": {"reported": False, "reason": "files_upload_metadata_only"},
     }
 
 
@@ -183,8 +191,10 @@ def _usage_summary(events: list[AgentResponse]) -> dict[str, Any]:
                 "cost_usd",
                 "latency_ms",
             }
-            return {key: value for key, value in event.usage.items() if key in allowed}
-    return {}
+            summary = {key: value for key, value in event.usage.items() if key in allowed}
+            summary["reported"] = True
+            return summary
+    return {"reported": False, "reason": "provider_usage_not_reported"}
 
 
 def _redact_id(value: str) -> str:
@@ -194,13 +204,34 @@ def _redact_id(value: str) -> str:
 
 async def _run_live_scenarios(include_agent_sdk: bool = True) -> list[dict[str, Any]]:
     results = [
-        await _scenario_text(),
-        _scenario_files(),
-        await _scenario_vision(),
+        await _capture_scenario("text_k26", _scenario_text),
+        await _capture_scenario("files_upload", _scenario_files),
+        await _capture_scenario("vision_base64", _scenario_vision),
     ]
     if include_agent_sdk:
-        results.append(await _scenario_agent_sdk())
+        results.append(await _capture_scenario("agent_sdk_optional", _scenario_agent_sdk))
     return results
+
+
+async def _capture_scenario(
+    name: str,
+    runner: Callable[[], dict[str, Any] | Awaitable[dict[str, Any]]],
+) -> dict[str, Any]:
+    started = perf_counter()
+    try:
+        result = runner()
+        if asyncio.iscoroutine(result):
+            result = await result
+        return result
+    except Exception as exc:  # noqa: BLE001 - live provider failures vary by account/network
+        return {
+            "name": name,
+            "status": "failed",
+            "profile": SCENARIO_PROFILES.get(name, ""),
+            "model": os.environ.get("KIMI_GENERAL_MODEL") or "kimi-k2.6",
+            "latency_ms": round((perf_counter() - started) * 1000, 2),
+            "error": _safe_error(exc),
+        }
 
 
 def _preflight() -> list[str]:
@@ -324,6 +355,9 @@ def _safe_error(exc: BaseException) -> str:
     secret = os.environ.get("MOONSHOT_API_KEY")
     if secret:
         message = message.replace(secret, "[REDACTED]")
+    message = re.sub(r"Bearer\s+[A-Za-z0-9._~+/=-]+", "Bearer [REDACTED]", message, flags=re.I)
+    message = re.sub(r"\bsk-[A-Za-z0-9._-]{6,}\b", "[REDACTED_API_KEY]", message, flags=re.I)
+    message = re.sub(r"\bfile-[A-Za-z0-9_-]{8,}\b", "[REDACTED_FILE_ID]", message)
     return message
 
 

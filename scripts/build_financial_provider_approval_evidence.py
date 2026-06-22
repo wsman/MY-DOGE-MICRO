@@ -61,13 +61,13 @@ def _operator(decisions: dict[str, Any]) -> dict[str, str]:
 
 
 def _redaction_review(decisions: dict[str, Any], result: str) -> dict[str, bool]:
-    review = decisions.get("redaction_review", {})
+    review = decisions.get("redaction_review")
     if not isinstance(review, dict):
-        raise ValueError("redaction_review must be an object when provided")
+        raise ValueError("redaction_review is required")
     return {
-        "contains_credentials": bool(review.get("contains_credentials", False)),
-        "contains_proprietary_data": bool(review.get("contains_proprietary_data", False)),
-        "repository_storage_approved": bool(review.get("repository_storage_approved", result == "approved")),
+        "contains_credentials": _required_bool(review, "contains_credentials"),
+        "contains_proprietary_data": _required_bool(review, "contains_proprietary_data"),
+        "repository_storage_approved": _required_bool(review, "repository_storage_approved"),
     }
 
 
@@ -117,6 +117,13 @@ def _required_string(payload: dict[str, Any], key: str) -> str:
     value = payload.get(key)
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{key} is required")
+    return value
+
+
+def _required_bool(payload: dict[str, Any], key: str) -> bool:
+    value = payload.get(key)
+    if not isinstance(value, bool):
+        raise ValueError(f"redaction_review.{key} must be an explicit boolean")
     return value
 
 

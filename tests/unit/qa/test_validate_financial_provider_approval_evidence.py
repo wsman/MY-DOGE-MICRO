@@ -65,6 +65,15 @@ def test_approved_evidence_requires_repository_storage_approval():
     assert any("repository_storage_approved=true" in error for error in errors)
 
 
+def test_completed_evidence_requires_explicit_redaction_flags():
+    payload = _approved()
+    payload["redaction_review"].pop("contains_credentials")
+
+    errors = validate(payload)
+
+    assert any("redaction_review.contains_credentials must be false" in error for error in errors)
+
+
 def test_contract_paths_are_checked():
     payload = _approved()
     payload["contract"]["synthetic_samples"] = "tests/fixtures/financial_connectors/missing.json"

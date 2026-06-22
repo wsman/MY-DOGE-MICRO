@@ -30,6 +30,18 @@ def test_validate_plan_closure_handoff_rejects_stale_task_metadata(tmp_path):
     assert any("S017-002: build_or_run_command does not match manifest" in error for error in errors)
 
 
+def test_validate_plan_closure_handoff_rejects_stale_source_plan_check(tmp_path):
+    workspace = tmp_path / "handoff"
+    prepare_handoff_workspace(manifest_path=MANIFEST, date="2030-01-02", output_dir=workspace)
+    handoff = json.loads((workspace / "handoff.json").read_text(encoding="utf-8"))
+    handoff["source_plan_check"]["sha256"] = "0" * 64
+    (workspace / "handoff.json").write_text(json.dumps(handoff, indent=2), encoding="utf-8")
+
+    errors = validate_workspace(workspace)
+
+    assert any("source_plan_check does not match manifest" in error for error in errors)
+
+
 def test_validate_plan_closure_handoff_rejects_completed_evidence_in_workspace(tmp_path):
     workspace = tmp_path / "handoff"
     prepare_handoff_workspace(manifest_path=MANIFEST, date="2030-01-02", output_dir=workspace)
@@ -87,6 +99,7 @@ def test_validate_plan_closure_handoff_rejects_weak_operator_checklist(tmp_path)
     assert any("does not close gates" in error for error in errors)
     assert any("quick start" in error for error in errors)
     assert any("template-as-evidence" in error for error in errors)
+    assert any("explicit false redaction/security-review flags" in error for error in errors)
     assert any("operator checklist missing task id" in error for error in errors)
 
 

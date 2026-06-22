@@ -80,6 +80,8 @@ def _validate_against_manifest(payload: dict[str, Any], manifest: dict[str, Any]
         return errors
     if payload.get("source_plan") != manifest.get("source_plan"):
         errors.append("source_plan does not match manifest")
+    if payload.get("source_plan_check") != manifest.get("source_plan_check"):
+        errors.append("source_plan_check does not match manifest")
     if payload.get("closure_gate") != manifest.get("closure_gate"):
         errors.append("closure_gate snapshot does not match manifest")
 
@@ -152,6 +154,9 @@ def _validate_operator_checklist(payload: dict[str, Any], workspace_dir: Path) -
         "-TaskId": "operator checklist must document task-scoped execution",
         "-RunFinalGate": "operator checklist must document final-gate execution",
         "Templates and copied drafts are not evidence": "operator checklist must reject template-as-evidence closure",
+        "Redaction and security-review flags must be explicit `false`": (
+            "operator checklist must require explicit false redaction/security-review flags"
+        ),
         "production_ready: false": "operator checklist must preserve non-production posture",
         "stable_declaration: forbidden": "operator checklist must preserve stable declaration posture",
     }

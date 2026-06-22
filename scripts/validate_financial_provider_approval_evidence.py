@@ -96,10 +96,9 @@ def validate(payload: dict[str, Any], *, allow_template: bool = False) -> list[s
             errors.append(f"{result} evidence requires issue_refs")
 
     redaction = _dict(payload.get("redaction_review"))
-    if redaction.get("contains_credentials") is True:
-        errors.append("redaction_review.contains_credentials must be false")
-    if redaction.get("contains_proprietary_data") is True and result == "approved":
-        errors.append("approved evidence must not contain proprietary data")
+    if result in {"approved", "needs_revision", "rejected"}:
+        _require_false(redaction.get("contains_credentials"), "redaction_review.contains_credentials", errors)
+        _require_false(redaction.get("contains_proprietary_data"), "redaction_review.contains_proprietary_data", errors)
     if _contains_secret(payload):
         errors.append("evidence appears to contain a bearer token, provider key, or credential")
 
@@ -200,6 +199,11 @@ def _dict(value: Any) -> dict[str, Any]:
 def _require_non_empty(value: Any, field: str, errors: list[str]) -> None:
     if not isinstance(value, str) or not value.strip():
         errors.append(f"{field} is required")
+
+
+def _require_false(value: Any, field: str, errors: list[str]) -> None:
+    if value is not False:
+        errors.append(f"{field} must be false")
 
 
 def _require_timestamp(value: Any, field: str, errors: list[str]) -> None:

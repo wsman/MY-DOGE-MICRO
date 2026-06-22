@@ -7,6 +7,10 @@ Generated: 2026-06-22
 This runbook closes the remaining external evidence gates for
 `C:\Users\Aby\.claude\plans\9b77f9c-kimi-twinkly-map.md`.
 
+The execution manifest records `source_plan_check` SHA-256/size metadata for
+that source plan. If the source plan changes, rerun manifest export and prepare
+a fresh handoff workspace before collecting external evidence.
+
 It does not make the product production-ready by itself. Keep
 `production_ready: false` and `stable_declaration: forbidden` until the strict
 closure gate passes without `--allow-open` and a separate promotion review is
@@ -74,8 +78,8 @@ Default handoff workspace:
 
 Run the manifest validator after each export. It rejects stale handoff files
 whose task list, strict commands, builder/runner handoff metadata, input
-template references, current blockers, or non-production posture no longer
-match the current closure gate.
+template references, current blockers, source-plan fingerprint, or
+non-production posture no longer match the current closure gate.
 
 The manifest handoff entries point to compact input templates for the external
 operator window. `scripts/prepare_plan_closure_handoff.py` copies the relevant
@@ -96,7 +100,16 @@ secret value, so template residue or accidental credential leakage is caught
 before a builder writes completed evidence. For `W3-live`, preflight also
 checks that live observations cover every `tests/eval/gold_cases.json` case id,
 that the material manifest `case_count` matches the gold set, and that label
-counts meet the gold set citation/numerical/insufficient-evidence counts.
+counts meet the gold set citation/numerical/insufficient-evidence counts. It
+also checks that each live observation case is scoreable: retrieved and cited
+evidence id arrays, numeric expected metric values, usage cost/latency, and no
+raw run/session ids. The W3-live trend-history JSONL draft is also checked row
+by row for `passed`/`failed` status, ISO timestamp, `sha256:` run-id hash,
+financial/vision profiles, gold-set case count, and numeric quality/cost/latency
+metrics. The W3-live builder and strict evidence validator reuse the same local
+trend-history checks before writing or accepting completed benchmark evidence;
+external `operator-secure-store://...` references remain accepted as controlled
+operator evidence references.
 For `S017-003`, preflight checks all five provider capabilities and the
 approved provider, license scope, fixture storage, freshness, and provenance
 fields needed by the provider approval builder/validator. For `S017-007`, it
@@ -104,9 +117,10 @@ checks Python and TypeScript package decisions, registry-backed consumer smoke,
 and release security-review fields before the SDK release builder is allowed to
 produce completed evidence. For `AUTH-prod`, it checks all five enterprise
 production validation observations, passed statuses, evidence refs, issue
-references where needed, and clean redaction flags. For `S017-006`, it checks
-the required screen-reader environment fields, six manual observation checks,
-notes, issue references where needed, and non-sensitive evidence posture.
+references where needed, and explicit false redaction flags. For `S017-006`,
+it checks the six manual observation checks, required screen-reader environment
+fields, notes, issue references where needed, and explicit false
+secret/sensitive-document redaction flags.
 Prepared
 input paths and resolved evidence output paths are single-quoted for
 PowerShell so operator workspaces with spaces in their paths remain usable. The
@@ -126,12 +140,13 @@ validator or use the generated operator command list.
 
 Run `scripts/validate_plan_closure_handoff.py` after preparing the workspace
 and again before the operator window. It rejects handoffs whose task metadata no
-longer matches the manifest, whose README or operator command list lacks the
-non-closing/secrets warning, whose draft inputs are missing or outside the
-workspace, whose command list omits external-input preflight or the final
-strict gate, whose command list does not define and check `$python`, or whose
-task-selection wiring is missing. It also rejects workspace command plans that
-write completed evidence into the handoff workspace or contain
+longer matches the manifest, whose `source_plan_check` is stale, whose README
+or operator command list lacks the non-closing/secrets warning, whose draft
+inputs are missing or outside the workspace, whose command list omits external-
+input preflight or the final strict gate, whose command list does not define and
+check `$python`, or whose task-selection wiring is missing. It also rejects
+workspace command plans that write completed evidence into the handoff workspace
+or contain
 completed-evidence-looking files.
 
 Treat the manifest `input_templates` list as the authoritative input template
@@ -233,8 +248,9 @@ include issue references, and failed evidence does not close `AUTH-prod`.
 5. Screen-reader manual pass:
 
 Follow `production/qa/screen-reader-manual-protocol-s017.md` with NVDA,
-Narrator, or VoiceOver. Save a non-template evidence JSON and run the strict
-validator.
+Narrator, or VoiceOver. Save a non-template evidence JSON with `created_at`,
+`executed_at`, operator/environment fields, six manual checks, issue refs where
+needed, and redaction review, then run the strict validator.
 
 If the operator provides a compact observation JSON, build the evidence with:
 

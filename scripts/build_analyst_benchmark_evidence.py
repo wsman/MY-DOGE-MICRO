@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.validate_analyst_benchmark_evidence import validate
+from scripts.analyst_trend_history import validate_trend_history_jsonl
 from tests.eval.gold_eval import load_gold_cases, score_observations, summarize_gold_set
 
 
@@ -51,6 +52,7 @@ def build_evidence(
     summary = summarize_gold_set(cases)
     observations = _load_observations(observations_path)
     thresholds = _load_thresholds(thresholds_path)
+    _validate_local_trend_history_ref(trend_history_ref, expected_case_count=len(cases))
     score = score_observations(cases, observations)
     metrics = score["metrics"]
     results = _results_from_score(score, trend_history_ref)
@@ -133,6 +135,24 @@ def _load_thresholds(path: Path) -> dict[str, float]:
             raise ValueError(f"thresholds.{key} must be numeric")
         thresholds[key] = float(value)
     return thresholds
+
+
+def _validate_local_trend_history_ref(trend_history_ref: str, *, expected_case_count: int) -> None:
+    path = _local_ref_path(trend_history_ref)
+    if path is None:
+        return
+    if not path.exists():
+        raise ValueError(f"trend history ref not found: {trend_history_ref}")
+    errors = validate_trend_history_jsonl(path, expected_case_count=expected_case_count)
+    if errors:
+        raise ValueError("trend history ref is invalid: " + "; ".join(errors))
+
+
+def _local_ref_path(value: str) -> Path | None:
+    if "://" in value:
+        return None
+    path = Path(value)
+    return path if path.is_absolute() else ROOT / path
 
 
 def _materials_from_cases(cases: list[dict[str, Any]], material_manifest_ref: str) -> dict[str, Any]:

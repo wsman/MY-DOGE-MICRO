@@ -30,6 +30,7 @@ REQUIRED_ENVIRONMENT = {
     "screen_reader_version",
     "web_url",
 }
+REQUIRED_REDACTION_FLAGS = {"contains_secrets", "contains_sensitive_documents"}
 
 
 def build_evidence(
@@ -141,12 +142,12 @@ def _check_map(raw_checks: Any) -> dict[str, dict[str, Any]]:
 
 
 def _redaction_review(template_value: Any, observations: dict[str, Any]) -> dict[str, Any]:
-    review = dict(template_value) if isinstance(template_value, dict) else {}
     update = observations.get("redaction_review")
-    if update is None:
-        return review
     if not isinstance(update, dict):
-        raise ValueError("redaction_review must be an object when provided")
+        raise ValueError("redaction_review is required")
+    for key in sorted(REQUIRED_REDACTION_FLAGS):
+        _required_bool(update, key)
+    review = dict(template_value) if isinstance(template_value, dict) else {}
     review.update(update)
     return review
 
@@ -155,6 +156,13 @@ def _required_string(payload: dict[str, Any], key: str) -> str:
     value = payload.get(key)
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{key} is required")
+    return value
+
+
+def _required_bool(payload: dict[str, Any], key: str) -> bool:
+    value = payload.get(key)
+    if not isinstance(value, bool):
+        raise ValueError(f"redaction_review.{key} must be an explicit boolean")
     return value
 
 

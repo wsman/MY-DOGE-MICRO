@@ -57,6 +57,19 @@ def test_build_rejects_not_run_result(tmp_path):
         build_evidence(observations_path=observations)
 
 
+def test_build_rejects_missing_screen_reader_redaction_flag(tmp_path):
+    observations = tmp_path / "screen-reader-observations.json"
+    payload = _observation_payload(result="passed")
+    payload["redaction_review"].pop("contains_sensitive_documents")
+    observations.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        ValueError,
+        match="redaction_review.contains_sensitive_documents must be an explicit boolean",
+    ):
+        build_evidence(observations_path=observations)
+
+
 def test_build_screen_reader_cli_writes_valid_output(tmp_path):
     observations = tmp_path / "screen-reader-observations.json"
     output = tmp_path / "research-agent-screen-reader-manual-2026-06-22.json"

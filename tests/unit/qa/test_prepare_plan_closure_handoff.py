@@ -19,6 +19,8 @@ def test_prepare_plan_closure_handoff_copies_draft_inputs_without_closing_gates(
 
     assert payload["schema"] == "doge.plan_closure_handoff_workspace.v1"
     assert payload["does_not_close_gates"] is True
+    assert payload["source_plan_check"]["exists"] is True
+    assert len(payload["source_plan_check"]["sha256"]) == 64
     assert len(payload["tasks"]) == 6
     assert payload["closure_gate"]["summary"]["open"] == 6
     assert Path(tmp_path / "handoff" / "handoff.json").exists()
@@ -57,6 +59,7 @@ def test_prepare_plan_closure_handoff_copies_draft_inputs_without_closing_gates(
 
     readme = (tmp_path / "handoff" / "README.md").read_text(encoding="utf-8")
     assert "does not close any gate" in readme
+    assert payload["source_plan_check"]["sha256"] in readme
     assert "operator-commands.ps1" in readme
     assert "Prepared draft inputs: none" in readme
     assert "Workspace command" in readme
@@ -66,6 +69,7 @@ def test_prepare_plan_closure_handoff_copies_draft_inputs_without_closing_gates(
 
     checklist = (tmp_path / "handoff" / "operator-checklist.md").read_text(encoding="utf-8")
     assert "does not close gates" in checklist
+    assert payload["source_plan_check"]["sha256"] in checklist
     assert "Do not place secrets" in checklist
     assert "## Quick Start" in checklist
     assert "## Task Checklist" in checklist
@@ -73,6 +77,7 @@ def test_prepare_plan_closure_handoff_copies_draft_inputs_without_closing_gates(
     assert "-TaskId S017-003" in checklist
     assert "-RunFinalGate" in checklist
     assert "Templates and copied drafts are not evidence" in checklist
+    assert "Redaction and security-review flags must be explicit `false`" in checklist
     assert "production_ready: false" in checklist
     assert "stable_declaration: forbidden" in checklist
     assert "provider-decisions-draft-2030-01-02.json" in checklist

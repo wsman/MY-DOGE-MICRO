@@ -49,6 +49,16 @@ def test_build_rejects_missing_language_decision(tmp_path):
         build_evidence(decisions_path=decisions)
 
 
+def test_build_rejects_missing_sdk_security_flag(tmp_path):
+    decisions = tmp_path / "sdk-release-decisions.json"
+    payload = _decision_payload(result="approved")
+    payload["security_review"].pop("contains_credentials")
+    decisions.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="security_review.contains_credentials must be an explicit boolean"):
+        build_evidence(decisions_path=decisions)
+
+
 def test_build_sdk_release_cli_writes_valid_output(tmp_path):
     decisions = tmp_path / "sdk-release-decisions.json"
     output = tmp_path / "sdk-release-approval-2026-06-22.json"

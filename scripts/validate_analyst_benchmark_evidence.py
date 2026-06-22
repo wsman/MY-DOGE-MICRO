@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from scripts.analyst_trend_history import validate_trend_history_jsonl
 from scripts.evidence_placeholders import placeholder_errors
 from scripts.evidence_redaction import secret_leak_errors
 
@@ -84,7 +85,13 @@ def validate(payload: dict[str, Any], *, allow_template: bool = False) -> list[s
         _validate_completed_labels(labels, errors)
         _validate_completed_observations(observations, errors)
         _validate_completed_thresholds(thresholds, errors)
-        _validate_completed_results(thresholds, results, errors, enforce_thresholds=result == "passed")
+        _validate_completed_results(
+            thresholds,
+            results,
+            errors,
+            enforce_thresholds=result == "passed",
+            expected_case_count=materials.get("total_cases") if isinstance(materials.get("total_cases"), int) else None,
+        )
 
     if result == "failed" and not payload.get("issue_refs"):
         errors.append("failed evidence requires issue_refs")
@@ -185,6 +192,7 @@ def _validate_completed_results(
     errors: list[str],
     *,
     enforce_thresholds: bool,
+    expected_case_count: int | None,
 ) -> None:
     for key in METRIC_KEYS:
         value = results.get(key)
@@ -219,7 +227,33 @@ def _validate_completed_results(
             and result_value > threshold_value
         ):
             errors.append(f"results.{result_key} exceeds threshold {threshold_key}")
-    _require_non_empty(results.get("trend_history_ref"), "results.trend_history_ref", errors)
+    trend_history_ref = results.get("trend_history_ref")
+    _require_non_empty(trend_history_ref, "results.trend_history_ref", errors)
+    if isinstance(trend_history_ref, str) and trend_history_ref.strip():
+        _validate_local_trend_history_ref(trend_history_ref, expected_case_count=expected_case_count, errors=errors)
+
+
+def _validate_local_trend_history_ref(
+    trend_history_ref: str,
+    *,
+    expected_case_count: int | None,
+    errors: list[str],
+) -> None:
+    path = _local_ref_path(trend_history_ref)
+    if path is None:
+        return
+    if not path.exists():
+        errors.append(f"results.trend_history_ref not found: {trend_history_ref}")
+        return
+    for error in validate_trend_history_jsonl(path, expected_case_count=expected_case_count):
+        errors.append(f"results.trend_history_ref invalid: {error}")
+
+
+def _local_ref_path(value: str) -> Path | None:
+    if "://" in value:
+        return None
+    path = Path(value)
+    return path if path.is_absolute() else ROOT / path
 
 
 def _dict(value: Any) -> dict[str, Any]:

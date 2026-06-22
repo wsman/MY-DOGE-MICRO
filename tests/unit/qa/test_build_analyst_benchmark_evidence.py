@@ -14,8 +14,10 @@ GOLD_CASES = ROOT / "tests" / "eval" / "gold_cases.json"
 def test_build_passed_analyst_benchmark_evidence(tmp_path):
     observations = tmp_path / "observations.json"
     thresholds = tmp_path / "thresholds.json"
+    trend_history = tmp_path / "trend-history.jsonl"
     _write_perfect_observations(observations)
     _write_thresholds(thresholds)
+    _write_trend_history(trend_history)
 
     payload = build_evidence(
         gold_cases_path=GOLD_CASES,
@@ -25,7 +27,7 @@ def test_build_passed_analyst_benchmark_evidence(tmp_path):
         label_manifest_ref="production/qa/evidence/eval/label-manifest-approved.json",
         label_policy_ref="docs/progress/financial-eval-gold-set.md",
         live_observation_ref="production/qa/evidence/eval/live-kimi-observations-redacted.json",
-        trend_history_ref="production/qa/evidence/eval/trend-history.jsonl",
+        trend_history_ref=str(trend_history),
         analyst_role="research-qa-analyst",
         analyst_initials="QA",
         reviewed_at="2026-06-22T01:00:00Z",
@@ -46,8 +48,10 @@ def test_build_passed_analyst_benchmark_evidence(tmp_path):
 def test_build_failed_analyst_benchmark_evidence_validates_with_issue_ref(tmp_path):
     observations = tmp_path / "observations.json"
     thresholds = tmp_path / "thresholds.json"
+    trend_history = tmp_path / "trend-history.jsonl"
     _write_perfect_observations(observations)
     _write_thresholds(thresholds, latency_p95_ms_max=1.0)
+    _write_trend_history(trend_history)
 
     payload = build_evidence(
         gold_cases_path=GOLD_CASES,
@@ -57,7 +61,7 @@ def test_build_failed_analyst_benchmark_evidence_validates_with_issue_ref(tmp_pa
         label_manifest_ref="production/qa/evidence/eval/label-manifest-approved.json",
         label_policy_ref="docs/progress/financial-eval-gold-set.md",
         live_observation_ref="production/qa/evidence/eval/live-kimi-observations-redacted.json",
-        trend_history_ref="production/qa/evidence/eval/trend-history.jsonl",
+        trend_history_ref=str(trend_history),
         analyst_role="research-qa-analyst",
         analyst_initials="QA",
         reviewed_at="2026-06-22T01:00:00Z",
@@ -73,9 +77,11 @@ def test_build_failed_analyst_benchmark_evidence_validates_with_issue_ref(tmp_pa
 def test_build_analyst_benchmark_evidence_cli_writes_valid_output(tmp_path):
     observations = tmp_path / "observations.json"
     thresholds = tmp_path / "thresholds.json"
+    trend_history = tmp_path / "trend-history.jsonl"
     output = tmp_path / "analyst-benchmark-2026-06-22.json"
     _write_perfect_observations(observations)
     _write_thresholds(thresholds)
+    _write_trend_history(trend_history)
     script = ROOT / "scripts" / "build_analyst_benchmark_evidence.py"
 
     result = subprocess.run(
@@ -97,7 +103,7 @@ def test_build_analyst_benchmark_evidence_cli_writes_valid_output(tmp_path):
             "--live-observation-ref",
             "production/qa/evidence/eval/live-kimi-observations-redacted.json",
             "--trend-history-ref",
-            "production/qa/evidence/eval/trend-history.jsonl",
+            str(trend_history),
             "--analyst-role",
             "research-qa-analyst",
             "--analyst-initials",
@@ -120,6 +126,52 @@ def test_build_analyst_benchmark_evidence_cli_writes_valid_output(tmp_path):
     assert validate(payload) == []
 
 
+def test_build_analyst_benchmark_evidence_rejects_invalid_trend_history(tmp_path):
+    observations = tmp_path / "observations.json"
+    thresholds = tmp_path / "thresholds.json"
+    trend_history = tmp_path / "trend-history.jsonl"
+    _write_perfect_observations(observations)
+    _write_thresholds(thresholds)
+    trend_history.write_text(
+        json.dumps(
+            {
+                "status": "template",
+                "observed_at": "not-a-date",
+                "run_id": "raw-run-id",
+                "profiles": ["financial_research"],
+                "case_count": len(_gold_cases()) - 1,
+                "metrics": {"retrieval_recall": 1.0},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    try:
+        build_evidence(
+            gold_cases_path=GOLD_CASES,
+            observations_path=observations,
+            thresholds_path=thresholds,
+            material_manifest_ref="production/qa/evidence/eval/material-manifest-approved.json",
+            label_manifest_ref="production/qa/evidence/eval/label-manifest-approved.json",
+            label_policy_ref="docs/progress/financial-eval-gold-set.md",
+            live_observation_ref="production/qa/evidence/eval/live-kimi-observations-redacted.json",
+            trend_history_ref=str(trend_history),
+            analyst_role="research-qa-analyst",
+            analyst_initials="QA",
+            reviewed_at="2026-06-22T01:00:00Z",
+            created_at="2026-06-22T01:01:00Z",
+        )
+    except ValueError as exc:
+        message = str(exc)
+    else:
+        raise AssertionError("expected invalid trend history to fail")
+
+    assert "trend history ref is invalid" in message
+    assert "run_id must not be recorded" in message
+    assert "metrics.citation_precision must be numeric" in message
+
+
 def _write_perfect_observations(path: Path) -> None:
     cases = json.loads(GOLD_CASES.read_text(encoding="utf-8"))
     observations = {}
@@ -133,6 +185,35 @@ def _write_perfect_observations(path: Path) -> None:
             "usage": {"cost_usd": 0.01, "latency_ms": 1000},
         }
     path.write_text(json.dumps({"observations": observations}, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def _write_trend_history(path: Path) -> None:
+    path.write_text(
+        json.dumps(
+            {
+                "status": "passed",
+                "observed_at": "2026-06-22T01:00:00Z",
+                "benchmark_run_id_hash": "sha256:unit-test",
+                "profiles": ["financial_research", "vision_analysis"],
+                "case_count": len(_gold_cases()),
+                "metrics": {
+                    "retrieval_recall": 1.0,
+                    "retrieval_precision": 1.0,
+                    "citation_precision": 1.0,
+                    "numerical_consistency": 1.0,
+                    "usage_cost_record_coverage": 1.0,
+                    "latency_p95_ms": 1000.0,
+                    "cost_usd_p95": 0.01,
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _gold_cases() -> list[dict]:
+    return json.loads(GOLD_CASES.read_text(encoding="utf-8"))
 
 
 def _write_thresholds(

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
 import sys
@@ -129,6 +130,7 @@ def build_manifest(*, generated_at: str | None = None) -> dict[str, Any]:
     return {
         "schema": "doge.plan_closure_execution_manifest.v1",
         "source_plan": gate["source_plan"],
+        "source_plan_check": _source_plan_check(gate["source_plan"]),
         "generated_at": generated_at or datetime.now(timezone.utc).isoformat(),
         "closure_gate": {
             "result": gate["result"],
@@ -159,6 +161,24 @@ def _task_from_gate(item: dict[str, Any]) -> dict[str, Any]:
         "current_blockers": item["strict_errors"],
         "can_close_now": item["status"] == "passed",
         "handoff": HANDOFFS[item["id"]],
+    }
+
+
+def _source_plan_check(source_plan: str) -> dict[str, Any]:
+    path = Path(source_plan)
+    if not path.exists():
+        return {
+            "path": source_plan,
+            "exists": False,
+            "sha256": None,
+            "bytes": None,
+        }
+    content = path.read_bytes()
+    return {
+        "path": source_plan,
+        "exists": True,
+        "sha256": hashlib.sha256(content).hexdigest(),
+        "bytes": len(content),
     }
 
 

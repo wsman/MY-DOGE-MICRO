@@ -50,6 +50,15 @@ def test_completed_passed_evidence_validates():
     assert validate(_completed()) == []
 
 
+def test_completed_evidence_requires_created_at():
+    payload = _completed()
+    payload.pop("created_at")
+
+    errors = validate(payload)
+
+    assert any("created_at is required" in error for error in errors)
+
+
 def test_passed_evidence_rejects_failed_check():
     payload = _completed()
     payload["checks"][0]["status"] = "failed"
@@ -67,6 +76,15 @@ def test_failed_evidence_requires_issue_reference():
 
     assert any("requires issue_ref" in error for error in errors)
     assert any("requires at least one issue reference" in error for error in errors)
+
+
+def test_completed_evidence_requires_explicit_redaction_flags():
+    payload = _completed()
+    payload["redaction_review"].pop("contains_sensitive_documents")
+
+    errors = validate(payload)
+
+    assert any("redaction_review.contains_sensitive_documents must be false" in error for error in errors)
 
 
 def test_secret_like_values_are_rejected():

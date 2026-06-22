@@ -197,6 +197,30 @@ def test_preflight_plan_closure_external_rejects_incomplete_provider_decision_de
     assert any("announcements.license_scope must be filled and not pending/template text" in error for error in check["content_errors"])
 
 
+def test_preflight_plan_closure_external_rejects_missing_provider_redaction_flags(tmp_path, monkeypatch):
+    monkeypatch.delenv("DOGE_LIVE_KIMI", raising=False)
+    monkeypatch.delenv("MOONSHOT_API_KEY", raising=False)
+    workspace = tmp_path / "handoff"
+    handoff = prepare_handoff_workspace(manifest_path=MANIFEST, date="2030-01-02", output_dir=workspace)
+    _mark_task_draft_inputs_filled(handoff, "S017-003")
+    provider_task = next(task for task in handoff["tasks"] if task["id"] == "S017-003")
+    provider_draft = ROOT / Path(provider_task["prepared_inputs"][0]["prepared_input"])
+    payload = json.loads(provider_draft.read_text(encoding="utf-8"))
+    payload["redaction_review"].pop("contains_proprietary_data")
+    provider_draft.write_text(json.dumps(payload), encoding="utf-8")
+
+    payload = build_preflight(
+        manifest_path=MANIFEST,
+        handoff_workspace=workspace,
+        require_external_inputs=True,
+        task_ids={"S017-003"},
+    )
+
+    assert payload["result"] == "failed"
+    check = payload["tasks"][0]["input_refs"][0]
+    assert any("redaction_review.contains_proprietary_data must be false" in error for error in check["content_errors"])
+
+
 def test_preflight_plan_closure_external_rejects_incomplete_sdk_release_details(tmp_path, monkeypatch):
     monkeypatch.delenv("DOGE_LIVE_KIMI", raising=False)
     monkeypatch.delenv("MOONSHOT_API_KEY", raising=False)
@@ -223,6 +247,30 @@ def test_preflight_plan_closure_external_rejects_incomplete_sdk_release_details(
     assert any("approved draft requires security_review.redaction_behavior_documented=true" in error for error in check["content_errors"])
     assert any("typescript.registry_consumer_smoke must be filled and not pending/template text" in error for error in check["content_errors"])
     assert any("python: approved draft requires decision_status=approved" in error for error in check["content_errors"])
+
+
+def test_preflight_plan_closure_external_rejects_missing_sdk_redaction_flags(tmp_path, monkeypatch):
+    monkeypatch.delenv("DOGE_LIVE_KIMI", raising=False)
+    monkeypatch.delenv("MOONSHOT_API_KEY", raising=False)
+    workspace = tmp_path / "handoff"
+    handoff = prepare_handoff_workspace(manifest_path=MANIFEST, date="2030-01-02", output_dir=workspace)
+    _mark_task_draft_inputs_filled(handoff, "S017-007")
+    sdk_task = next(task for task in handoff["tasks"] if task["id"] == "S017-007")
+    sdk_draft = ROOT / Path(sdk_task["prepared_inputs"][0]["prepared_input"])
+    payload = json.loads(sdk_draft.read_text(encoding="utf-8"))
+    payload["security_review"].pop("contains_credentials")
+    sdk_draft.write_text(json.dumps(payload), encoding="utf-8")
+
+    payload = build_preflight(
+        manifest_path=MANIFEST,
+        handoff_workspace=workspace,
+        require_external_inputs=True,
+        task_ids={"S017-007"},
+    )
+
+    assert payload["result"] == "failed"
+    check = payload["tasks"][0]["input_refs"][0]
+    assert any("security_review.contains_credentials must be false" in error for error in check["content_errors"])
 
 
 def test_preflight_plan_closure_external_rejects_incomplete_enterprise_observation_details(tmp_path, monkeypatch):
@@ -255,6 +303,30 @@ def test_preflight_plan_closure_external_rejects_incomplete_enterprise_observati
     assert any("redaction_review.contains_raw_subjects must be false" in error for error in check["content_errors"])
 
 
+def test_preflight_plan_closure_external_rejects_missing_enterprise_redaction_flags(tmp_path, monkeypatch):
+    monkeypatch.delenv("DOGE_LIVE_KIMI", raising=False)
+    monkeypatch.delenv("MOONSHOT_API_KEY", raising=False)
+    workspace = tmp_path / "handoff"
+    handoff = prepare_handoff_workspace(manifest_path=MANIFEST, date="2030-01-02", output_dir=workspace)
+    _mark_task_draft_inputs_filled(handoff, "AUTH-prod")
+    task = next(task for task in handoff["tasks"] if task["id"] == "AUTH-prod")
+    draft = ROOT / Path(task["prepared_inputs"][0]["prepared_input"])
+    payload = json.loads(draft.read_text(encoding="utf-8"))
+    payload["redaction_review"].pop("contains_credentials")
+    draft.write_text(json.dumps(payload), encoding="utf-8")
+
+    payload = build_preflight(
+        manifest_path=MANIFEST,
+        handoff_workspace=workspace,
+        require_external_inputs=True,
+        task_ids={"AUTH-prod"},
+    )
+
+    assert payload["result"] == "failed"
+    check = payload["tasks"][0]["input_refs"][0]
+    assert any("redaction_review.contains_credentials must be false" in error for error in check["content_errors"])
+
+
 def test_preflight_plan_closure_external_rejects_incomplete_screen_reader_observation_details(tmp_path, monkeypatch):
     monkeypatch.delenv("DOGE_LIVE_KIMI", raising=False)
     monkeypatch.delenv("MOONSHOT_API_KEY", raising=False)
@@ -282,7 +354,31 @@ def test_preflight_plan_closure_external_rejects_incomplete_screen_reader_observ
     assert any("environment.screen_reader_version must be filled" in error for error in check["content_errors"])
     assert any("missing checks: sr_no_keyboard_trap" in error for error in check["content_errors"])
     assert any("sr_keyboard_primary_controls: passed draft requires status=passed" in error for error in check["content_errors"])
-    assert any("passed draft must not contain sensitive documents" in error for error in check["content_errors"])
+    assert any("redaction_review.contains_sensitive_documents must be false" in error for error in check["content_errors"])
+
+
+def test_preflight_plan_closure_external_rejects_missing_screen_reader_redaction_flags(tmp_path, monkeypatch):
+    monkeypatch.delenv("DOGE_LIVE_KIMI", raising=False)
+    monkeypatch.delenv("MOONSHOT_API_KEY", raising=False)
+    workspace = tmp_path / "handoff"
+    handoff = prepare_handoff_workspace(manifest_path=MANIFEST, date="2030-01-02", output_dir=workspace)
+    _mark_task_draft_inputs_filled(handoff, "S017-006")
+    task = next(task for task in handoff["tasks"] if task["id"] == "S017-006")
+    draft = ROOT / Path(task["prepared_inputs"][0]["prepared_input"])
+    payload = json.loads(draft.read_text(encoding="utf-8"))
+    payload["redaction_review"].pop("contains_secrets")
+    draft.write_text(json.dumps(payload), encoding="utf-8")
+
+    payload = build_preflight(
+        manifest_path=MANIFEST,
+        handoff_workspace=workspace,
+        require_external_inputs=True,
+        task_ids={"S017-006"},
+    )
+
+    assert payload["result"] == "failed"
+    check = payload["tasks"][0]["input_refs"][0]
+    assert any("redaction_review.contains_secrets must be false" in error for error in check["content_errors"])
 
 
 def test_preflight_plan_closure_external_rejects_incomplete_analyst_observation_set(tmp_path, monkeypatch):
@@ -318,6 +414,105 @@ def test_preflight_plan_closure_external_rejects_incomplete_analyst_observation_
         for check in checks
         for error in check["content_errors"]
     )
+
+
+def test_preflight_plan_closure_external_rejects_incomplete_analyst_observation_details(tmp_path, monkeypatch):
+    monkeypatch.delenv("DOGE_LIVE_KIMI", raising=False)
+    monkeypatch.delenv("MOONSHOT_API_KEY", raising=False)
+    workspace = tmp_path / "handoff"
+    handoff = prepare_handoff_workspace(manifest_path=MANIFEST, date="2030-01-02", output_dir=workspace)
+    _mark_task_draft_inputs_filled(handoff, "W3-live")
+    task = next(task for task in handoff["tasks"] if task["id"] == "W3-live")
+    observation_input = next(
+        item
+        for item in task["prepared_inputs"]
+        if Path(item["source_template"]).name.startswith("live-kimi-observations-")
+    )
+    observation_path = ROOT / Path(observation_input["prepared_input"])
+    payload = json.loads(observation_path.read_text(encoding="utf-8"))
+    target_case = next(case for case in _gold_cases() if case.get("expected_numbers") and case.get("expected_citations"))
+    case_id = target_case["id"]
+    payload["observations"][case_id]["cited_evidence_ids"] = "not-a-list"
+    payload["observations"][case_id]["numbers"].pop(target_case["expected_numbers"][0]["metric"])
+    payload["observations"][case_id]["usage"] = {"cost_usd": 0.01}
+    payload["observations"][case_id]["run_id"] = "raw-run-id"
+    observation_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    payload = build_preflight(
+        manifest_path=MANIFEST,
+        handoff_workspace=workspace,
+        require_external_inputs=True,
+        task_ids={"W3-live"},
+    )
+
+    assert payload["result"] == "failed"
+    checks = [check for task in payload["tasks"] for check in task["input_refs"]]
+    assert any(
+        f"observations.{case_id}.cited_evidence_ids must be a list of strings" in error
+        for check in checks
+        for error in check["content_errors"]
+    )
+    assert any(
+        f"observations.{case_id}.numbers.{target_case['expected_numbers'][0]['metric']} must be numeric" in error
+        for check in checks
+        for error in check["content_errors"]
+    )
+    assert any(
+        f"observations.{case_id}.usage.latency_ms must be a positive number" in error
+        for check in checks
+        for error in check["content_errors"]
+    )
+    assert any(
+        f"observations.{case_id}.run_id must not be recorded" in error
+        for check in checks
+        for error in check["content_errors"]
+    )
+
+
+def test_preflight_plan_closure_external_rejects_incomplete_trend_history_details(tmp_path, monkeypatch):
+    monkeypatch.delenv("DOGE_LIVE_KIMI", raising=False)
+    monkeypatch.delenv("MOONSHOT_API_KEY", raising=False)
+    workspace = tmp_path / "handoff"
+    handoff = prepare_handoff_workspace(manifest_path=MANIFEST, date="2030-01-02", output_dir=workspace)
+    _mark_task_draft_inputs_filled(handoff, "W3-live")
+    task = next(task for task in handoff["tasks"] if task["id"] == "W3-live")
+    trend_input = next(
+        item
+        for item in task["prepared_inputs"]
+        if Path(item["source_template"]).name.startswith("trend-history-")
+    )
+    trend_path = ROOT / Path(trend_input["prepared_input"])
+    trend_path.write_text(
+        json.dumps(
+            {
+                "status": "approved",
+                "observed_at": "not-a-date",
+                "run_id": "raw-run-id",
+                "profiles": ["financial_research"],
+                "case_count": len(_gold_cases()) - 1,
+                "metrics": {"retrieval_recall": 1.0},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    payload = build_preflight(
+        manifest_path=MANIFEST,
+        handoff_workspace=workspace,
+        require_external_inputs=True,
+        task_ids={"W3-live"},
+    )
+
+    assert payload["result"] == "failed"
+    checks = [check for task in payload["tasks"] for check in task["input_refs"]]
+    assert any("line 1: status must be passed or failed" in error for check in checks for error in check["content_errors"])
+    assert any("line 1: observed_at must be ISO-8601" in error for check in checks for error in check["content_errors"])
+    assert any("line 1: benchmark_run_id_hash must be a sha256: redacted hash" in error for check in checks for error in check["content_errors"])
+    assert any("line 1: run_id must not be recorded" in error for check in checks for error in check["content_errors"])
+    assert any("line 1: profiles must include financial_research and vision_analysis" in error for check in checks for error in check["content_errors"])
+    assert any("line 1: case_count must match gold case count" in error for check in checks for error in check["content_errors"])
+    assert any("line 1: metrics.citation_precision must be numeric" in error for check in checks for error in check["content_errors"])
 
 
 def test_preflight_plan_closure_external_rejects_unknown_task_id():
@@ -493,7 +688,28 @@ def _write_valid_draft(prepared: dict) -> None:
         )
         return
     if template_name.startswith("trend-history-"):
-        path.write_text('{"status":"approved","run_id":"preflight-test"}\n', encoding="utf-8")
+        path.write_text(
+            json.dumps(
+                {
+                    "status": "passed",
+                    "observed_at": "2030-01-02T00:00:00Z",
+                    "benchmark_run_id_hash": "sha256:preflight",
+                    "profiles": ["financial_research", "vision_analysis"],
+                    "case_count": len(_gold_cases()),
+                    "metrics": {
+                        "retrieval_recall": 1.0,
+                        "retrieval_precision": 1.0,
+                        "citation_precision": 1.0,
+                        "numerical_consistency": 1.0,
+                        "usage_cost_record_coverage": 1.0,
+                        "latency_p95_ms": 1000.0,
+                        "cost_usd_p95": 0.01,
+                    },
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
         return
     path.write_text(json.dumps({"status": "operator-filled"}), encoding="utf-8")
 

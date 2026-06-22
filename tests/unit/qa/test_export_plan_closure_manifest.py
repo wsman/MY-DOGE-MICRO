@@ -14,6 +14,10 @@ def test_build_plan_closure_manifest_from_gate_output():
 
     assert manifest["schema"] == "doge.plan_closure_execution_manifest.v1"
     assert manifest["generated_at"] == "2026-06-22T00:00:00+00:00"
+    assert manifest["source_plan_check"]["path"] == manifest["source_plan"]
+    assert manifest["source_plan_check"]["exists"] is True
+    assert len(manifest["source_plan_check"]["sha256"]) == 64
+    assert manifest["source_plan_check"]["bytes"] > 0
     assert manifest["closure_gate"]["result"] == "open"
     assert manifest["closure_gate"]["acceptable_with_open_items"] is True
     assert manifest["closure_gate"]["summary"] == {

@@ -37,7 +37,7 @@ def validate(payload: dict[str, Any]) -> list[str]:
 
 def _manifest_differences(payload: dict[str, Any], expected: dict[str, Any]) -> list[str]:
     errors: list[str] = []
-    for key in ["source_plan", "closure_gate", "operator_rule"]:
+    for key in ["source_plan", "source_plan_check", "closure_gate", "operator_rule"]:
         if payload.get(key) != expected.get(key):
             errors.append(f"mismatch: {key}")
     payload_tasks = payload.get("tasks")

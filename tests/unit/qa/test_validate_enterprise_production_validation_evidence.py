@@ -63,6 +63,15 @@ def test_failed_or_blocked_check_requires_issue_ref_when_result_failed():
     assert any("failed evidence requires issue_refs" in error for error in errors)
 
 
+def test_completed_evidence_requires_explicit_redaction_flags():
+    payload = _passed()
+    payload["redaction_review"].pop("contains_raw_subjects")
+
+    errors = validate(payload)
+
+    assert any("redaction_review.contains_raw_subjects must be false" in error for error in errors)
+
+
 def test_local_evidence_paths_are_checked():
     payload = _passed()
     payload["local_evidence"]["local_jwks_smoke"] = "production/qa/evidence/manual/missing.json"

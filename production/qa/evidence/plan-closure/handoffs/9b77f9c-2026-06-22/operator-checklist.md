@@ -2,6 +2,7 @@
 
 Workspace: `production\qa\evidence\plan-closure\handoffs\9b77f9c-2026-06-22`
 Command file: `production\qa\evidence\plan-closure\handoffs\9b77f9c-2026-06-22\operator-commands.ps1`
+Source plan SHA-256: `d905770819a571c925b7e105ea524fb8c59f9109af031255ae6122bc25e1cfbf`
 
 This checklist does not close gates. It is a short execution index for
 real operator evidence. Do not place secrets, API keys, raw sensitive
@@ -42,5 +43,6 @@ powershell -ExecutionPolicy Bypass -File production\qa\evidence\plan-closure\han
 
 - Templates and copied drafts are not evidence.
 - `needs_revision`, `rejected`, `failed`, `blocked`, and `not_run` do not close gates.
+- Redaction and security-review flags must be explicit `false`; missing flags do not pass preflight or strict validation.
 - Completed evidence belongs in the production evidence folders listed above, not inside this workspace.
 - The final gate must keep `production_ready: false` and `stable_declaration: forbidden` until a separate promotion review changes them.

@@ -38,6 +38,7 @@ def validate(payload: dict[str, Any], *, allow_template: bool = False) -> list[s
         errors.append(f"schema must be {SCHEMA}")
     if payload.get("story_id") != "S017-006":
         errors.append("story_id must be S017-006")
+    _require_timestamp(payload.get("created_at"), "created_at", errors)
 
     result = payload.get("result")
     if result not in {"passed", "failed", "not_run"}:
@@ -89,8 +90,13 @@ def validate(payload: dict[str, Any], *, allow_template: bool = False) -> list[s
         errors.append("issues must be a list when present")
 
     redaction = _dict(payload.get("redaction_review"))
-    if redaction.get("contains_secrets") is True:
-        errors.append("redaction_review.contains_secrets must be false")
+    if result in {"passed", "failed"}:
+        _require_false(redaction.get("contains_secrets"), "redaction_review.contains_secrets", errors)
+        _require_false(
+            redaction.get("contains_sensitive_documents"),
+            "redaction_review.contains_sensitive_documents",
+            errors,
+        )
     if _contains_secret(payload):
         errors.append("evidence appears to contain a bearer token, provider key, or key-value secret")
 
@@ -104,6 +110,11 @@ def _dict(value: Any) -> dict[str, Any]:
 def _require_non_empty(value: Any, field: str, errors: list[str]) -> None:
     if not isinstance(value, str) or not value.strip():
         errors.append(f"{field} is required")
+
+
+def _require_false(value: Any, field: str, errors: list[str]) -> None:
+    if value is not False:
+        errors.append(f"{field} must be false")
 
 
 def _require_timestamp(value: Any, field: str, errors: list[str]) -> None:

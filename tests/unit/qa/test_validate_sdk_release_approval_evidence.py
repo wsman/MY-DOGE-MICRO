@@ -72,6 +72,15 @@ def test_approved_release_requires_security_review():
     assert any("redaction_behavior_documented=true" in error for error in errors)
 
 
+def test_completed_release_requires_explicit_credential_redaction_flag():
+    payload = _approved()
+    payload["security_review"].pop("contains_credentials")
+
+    errors = validate(payload)
+
+    assert any("security_review.contains_credentials must be false" in error for error in errors)
+
+
 def test_local_evidence_paths_are_checked():
     payload = _approved()
     payload["local_evidence"]["external_consumer_smoke"] = "production/qa/evidence/sdk/missing.json"

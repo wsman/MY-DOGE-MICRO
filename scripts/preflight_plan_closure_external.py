@@ -14,6 +14,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.export_plan_closure_manifest import DEFAULT_OUTPUT
+from scripts.analyst_trend_history import validate_trend_history_jsonl
 from scripts.evidence_placeholders import placeholder_errors
 from scripts.evidence_redaction import secret_leak_errors
 from scripts.validate_plan_closure_gate import validate_all
@@ -341,6 +342,13 @@ def _workspace_draft_input_check(
 def _draft_content_errors(draft_path: Path, source_path: Path, *, required_results: list[str]) -> list[str]:
     name = source_path.name
     if draft_path.suffix == ".jsonl":
+        if name.startswith("trend-history-"):
+            expected_case_count = _gold_case_summary().get("case_count")
+            return validate_trend_history_jsonl(
+                draft_path,
+                expected_case_count=expected_case_count if isinstance(expected_case_count, int) else None,
+                subject="draft input",
+            )
         return _jsonl_content_errors(draft_path)
     if draft_path.suffix != ".json":
         return []
@@ -481,10 +489,8 @@ def _provider_decision_errors(payload: dict[str, Any], *, result: Any) -> list[s
     if not isinstance(redaction, dict):
         errors.append("redaction_review must be an object")
         return errors
-    if redaction.get("contains_credentials") is True:
-        errors.append("redaction_review.contains_credentials must be false")
-    if result == "approved" and redaction.get("contains_proprietary_data") is True:
-        errors.append("approved draft must not contain proprietary data")
+    _require_false(redaction.get("contains_credentials"), "redaction_review.contains_credentials", errors)
+    _require_false(redaction.get("contains_proprietary_data"), "redaction_review.contains_proprietary_data", errors)
     if result == "approved" and redaction.get("repository_storage_approved") is not True:
         errors.append("approved draft requires redaction_review.repository_storage_approved=true")
     return errors
@@ -514,8 +520,7 @@ def _sdk_release_decision_errors(payload: dict[str, Any], *, result: Any) -> lis
     if not isinstance(security, dict):
         errors.append("security_review must be an object")
         return errors
-    if security.get("contains_credentials") is True:
-        errors.append("security_review.contains_credentials must be false")
+    _require_false(security.get("contains_credentials"), "security_review.contains_credentials", errors)
     if result == "approved":
         for key in SDK_SECURITY_APPROVAL_FIELDS:
             if security.get(key) is not True:
@@ -577,6 +582,11 @@ def _require_filled_value(value: Any, field: str, errors: list[str]) -> None:
         errors.append(f"{field} must be filled and not pending/template text")
 
 
+def _require_false(value: Any, field: str, errors: list[str]) -> None:
+    if value is not False:
+        errors.append(f"{field} must be false")
+
+
 def _observation_errors(payload: dict[str, Any], *, required_results: list[str], require_environment: bool) -> list[str]:
     errors: list[str] = []
     result = payload.get("result")
@@ -628,8 +638,7 @@ def _enterprise_production_observation_errors(payload: dict[str, Any]) -> list[s
         errors.append("redaction_review must be an object")
         return errors
     for key in ["contains_credentials", "contains_raw_subjects", "contains_proprietary_customer_data"]:
-        if redaction.get(key) is True:
-            errors.append(f"redaction_review.{key} must be false")
+        _require_false(redaction.get(key), f"redaction_review.{key}", errors)
     return errors
 
 
@@ -669,10 +678,12 @@ def _screen_reader_observation_errors(payload: dict[str, Any]) -> list[str]:
     if not isinstance(redaction, dict):
         errors.append("redaction_review must be an object")
         return errors
-    if redaction.get("contains_secrets") is True:
-        errors.append("redaction_review.contains_secrets must be false")
-    if result == "passed" and redaction.get("contains_sensitive_documents") is True:
-        errors.append("passed draft must not contain sensitive documents")
+    _require_false(redaction.get("contains_secrets"), "redaction_review.contains_secrets", errors)
+    _require_false(
+        redaction.get("contains_sensitive_documents"),
+        "redaction_review.contains_sensitive_documents",
+        errors,
+    )
     return errors
 
 
@@ -704,6 +715,9 @@ def _live_observation_case_errors(observations: dict[str, Any]) -> list[str]:
     expected_ids = summary.get("case_ids")
     if not isinstance(expected_ids, set):
         return ["gold case ids are unavailable"]
+    case_requirements = summary.get("case_requirements")
+    if not isinstance(case_requirements, dict):
+        return ["gold case requirements are unavailable"]
     observed_ids = set(observations)
     missing = sorted(expected_ids - observed_ids)
     unexpected = sorted(observed_ids - expected_ids)
@@ -713,9 +727,61 @@ def _live_observation_case_errors(observations: dict[str, Any]) -> list[str]:
     if unexpected:
         errors.append(f"observations include unknown case ids: {', '.join(unexpected[:5])}" + ("..." if len(unexpected) > 5 else ""))
     for case_id, value in observations.items():
-        if case_id in expected_ids and not isinstance(value, dict):
+        if case_id not in expected_ids:
+            continue
+        if not isinstance(value, dict):
             errors.append(f"observations.{case_id} must be an object")
+            continue
+        requirements = case_requirements.get(case_id, {})
+        expected_evidence_ids = requirements.get("expected_evidence_ids", set())
+        expected_number_metrics = requirements.get("expected_number_metrics", set())
+        errors.extend(_live_observation_detail_errors(case_id, value, expected_evidence_ids, expected_number_metrics))
     return errors
+
+
+def _live_observation_detail_errors(
+    case_id: str,
+    observation: dict[str, Any],
+    expected_evidence_ids: set[str],
+    expected_number_metrics: set[str],
+) -> list[str]:
+    errors: list[str] = []
+    retrieved = observation.get("retrieved_evidence_ids")
+    cited = observation.get("cited_evidence_ids")
+    numbers = observation.get("numbers")
+    usage = observation.get("usage")
+    if not _string_list_value(retrieved):
+        errors.append(f"observations.{case_id}.retrieved_evidence_ids must be a list of strings")
+    if expected_evidence_ids and not retrieved:
+        errors.append(f"observations.{case_id}.retrieved_evidence_ids must include retrieval output")
+    if not _string_list_value(cited):
+        errors.append(f"observations.{case_id}.cited_evidence_ids must be a list of strings")
+    if expected_evidence_ids and not cited:
+        errors.append(f"observations.{case_id}.cited_evidence_ids must include citation output")
+    if not isinstance(numbers, dict):
+        errors.append(f"observations.{case_id}.numbers must be an object")
+    else:
+        for metric in sorted(expected_number_metrics):
+            value = numbers.get(metric)
+            if not isinstance(value, (int, float)):
+                errors.append(f"observations.{case_id}.numbers.{metric} must be numeric")
+    if not isinstance(usage, dict):
+        errors.append(f"observations.{case_id}.usage must be an object")
+    else:
+        cost = usage.get("cost_usd")
+        latency = usage.get("latency_ms")
+        if not isinstance(cost, (int, float)) or cost < 0:
+            errors.append(f"observations.{case_id}.usage.cost_usd must be a non-negative number")
+        if not isinstance(latency, (int, float)) or latency <= 0:
+            errors.append(f"observations.{case_id}.usage.latency_ms must be a positive number")
+    for raw_key in ["run_id", "raw_run_id", "session_id", "raw_session_id"]:
+        if raw_key in observation:
+            errors.append(f"observations.{case_id}.{raw_key} must not be recorded")
+    return errors
+
+
+def _string_list_value(value: Any) -> bool:
+    return isinstance(value, list) and all(isinstance(item, str) and item.strip() for item in value)
 
 
 def _gold_case_summary() -> dict[str, Any]:
@@ -732,9 +798,26 @@ def _gold_case_summary() -> dict[str, Any]:
         for case in cases
         if isinstance(case, dict) and isinstance(case.get("id"), str)
     }
+    case_requirements = {
+        str(case["id"]): {
+            "expected_evidence_ids": {
+                str(citation["evidence_id"])
+                for citation in case.get("expected_citations", [])
+                if isinstance(citation, dict) and isinstance(citation.get("evidence_id"), str)
+            },
+            "expected_number_metrics": {
+                str(number["metric"])
+                for number in case.get("expected_numbers", [])
+                if isinstance(number, dict) and isinstance(number.get("metric"), str)
+            },
+        }
+        for case in cases
+        if isinstance(case, dict) and isinstance(case.get("id"), str)
+    }
     return {
         "case_count": len(case_ids),
         "case_ids": case_ids,
+        "case_requirements": case_requirements,
         "human_citation_labels": sum(
             len(case.get("expected_citations", []))
             for case in cases
