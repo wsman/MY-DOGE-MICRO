@@ -39,5 +39,8 @@ Sprint 011 moves Research Agent client continuation from polling toward v1 SSE.
 
 - Clean stream completion is treated as complete; reconnect is for network or
   stream exceptions.
-- Browser/manual reconnect evidence is still pending.
+- Browser-runtime TypeScript SDK reconnect/replay evidence exists at
+  `production/qa/evidence/manual/browser-sdk-sse-reconnect-2026-06-22.md`.
+- Full Research Agent browser/manual reconnect evidence against a running
+  daemon is still pending.
 - Remote CI is still pending for this sprint.

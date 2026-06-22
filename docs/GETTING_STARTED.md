@@ -189,6 +189,18 @@ The no-key fallback is intentional: without `MOONSHOT_API_KEY`, Research
 Copilot still runs with a scripted local model, `/v1/documents` still persists
 real file metadata, and CLI `/attach` still produces a real `document_id`.
 
+### Enterprise auth and audit variables
+
+Enterprise mode remains a controlled validation path, not a production-ready
+default. These knobs are documented here because `settings.py` reads them and
+the docs-consistency gate treats that file as the configuration source of
+truth.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DOGE_AUTH_CLOCK_SKEW_SECONDS` | `60` | Allowed JWT clock skew for OIDC/JWKS enterprise auth validation. |
+| `DOGE_AUDIT_RETENTION_DAYS` | `365` | Default tenant audit retention window used by `/v1/audit/events/retention`. |
+
 ## Start the MCP server
 
 The MCP server has two transports. Both start scripts auto-detect a project

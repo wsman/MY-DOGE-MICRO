@@ -1,6 +1,6 @@
 # Architecture Traceability
 
-> **Manifest Version**: 2026-06-21
+> **Manifest Version**: 2026-06-22
 > **Reviewer**: Release follow-up documentation governance
 > **Scope**: ADR-0001..ADR-0011, 15 module CDDs, module index, `tr-registry.yaml`, runtime maturity registry, and current FastAPI/CLI/daemon/document surfaces
 > **Stage note**: `production/stage.txt` is **Release**. Runtime maturity remains gated by `docs/progress/runtime-maturity.yaml` and `production_ready: false`.
@@ -15,7 +15,7 @@ Architecture traceability is current enough for Release follow-up governance:
 - The module index now covers 15 modules, including Research Copilot Agent
   Runtime, Document Evidence Pipeline, and SDK And Daemon Client Interfaces.
 - FastAPI documentation and CDD coverage reflect the canonical
-  `doge.interfaces.api.main` application and 51 product routes.
+  `doge.interfaces.api.main` application and 58 product routes.
 - Runtime maturity labels remain separate from release stage. Release-stage
   governance does not imply runtime production readiness.
 
@@ -71,7 +71,7 @@ Remaining concerns are follow-up work, not traceability blockers:
 
 ## 4. Current Controls And Evidence
 
-- **API route coverage**: `docs/API.md` enumerates 51 product routes and
+- **API route coverage**: `docs/API.md` enumerates 58 product routes and
   `tests/contract/test_api_doc_route_coverage.py` asserts docs-vs-live parity.
 - **CLI entrypoint**: `docs/CLI.md` promotes `doge ...`; legacy `python
   src/cli.py ...` remains a compatibility shim.

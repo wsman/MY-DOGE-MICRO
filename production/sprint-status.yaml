@@ -21,7 +21,7 @@
 # READ BY: /sprint-status, /story-readiness, /story-done, CI sprint-gate jobs.
 
 version: 1
-last_updated: "2026-06-21"
+last_updated: "2026-06-22"
 # 2026-06-12 (Wave 4 cleanup): Sprint 002 implementation complete. All 13
 # stories shipped: S002-001..013 done. ADR governance — ADR-0002/0003/0005
 # Accepted in S002; ADR-0009/0010 Accepted by Wave 4 review. ADR-0004/0007
@@ -98,15 +98,346 @@ last_updated: "2026-06-21"
 # deferred.
 # 2026-06-21 (Sprint 015 opened/closed locally): release-quality polish and
 # promotion review landed locally. Performance smoke, Kimi retry/fallback,
-# Research Agent a11y semantics, soak protocol, and promotion review completed;
-# remote CI after push and executed soak evidence remain deferred.
+# Research Agent a11y semantics, soak protocol, soak runner, and promotion
+# review completed; remote CI after push remained deferred until later evidence.
 # 2026-06-21 (Release follow-up documentation governance): product docs,
 # CDD/module index, ADR traceability, TR registry, memory_bank skeleton,
 # adapter assets, and 78-skill catalog synchronized. This is documentation and
 # governance control-plane work only; runtime maturity remains governed by
 # docs/progress/runtime-maturity.yaml and production_ready stays false.
+# 2026-06-21 (Sprint 016 opened): Kimi Research Copilot closure started from
+# 9b77f9c review plan. Web research loop, connector boundaries, gold eval,
+# architecture cleanup, Kimi Agent SDK semantic adapter, enterprise identity
+# design, and governance sync landed locally. Node/browser/live Kimi/real
+# connector evidence remains deferred.
+# 2026-06-22 (Sprint 016 closure): S016 closed for local implementation and
+# governance scope. Browser/Node, live Kimi, real provider fixtures, and
+# enterprise auth implementation are transferred to proposed S017 external
+# validation and provider hardening.
+# 2026-06-22 (S017 planning progress): Enterprise auth implementation choices
+# selected in docs/progress/enterprise-auth-implementation-plan.md. Financial
+# provider approval packet is ready for review; synthetic safe provider-shaped
+# fixtures exist, while product/operator approval and provider/license scope
+# remain external dependencies.
+# 2026-06-22 (S017-001 closure): Temporary Node v24.17.0/npm 11.13.0 found
+# outside PATH. Web npm ci, targeted/full vitest, build, vue-tsc, TypeScript
+# SDK test/build, browser walkthrough, approval path, and citation drill-down
+# fixture passed. S017-001 done.
+# 2026-06-22 (S017-004 boundary progress): AuthConfig, enterprise auth port,
+# static local bearer provider, fail-closed provider behavior, API startup
+# hard-fail for unconfigured enterprise auth, bearer middleware path, JWT/OIDC
+# local fixture validation, trusted principal context mapping, tenant metadata for
+# documents, portfolios, sessions, runs, events, artifacts, approvals, and evidence,
+# persistent ACL/audit repositories, document/portfolio/tool-list/approval API
+# enforcement, RAG/citation context filtering, approval actor recording, and SDK
+# bearer/request-id pass-through with API/SSE error redaction landed with tests.
+# Runtime tool ACL enforcement, model/tool audit events, and tenant-scoped
+# audit export with integrity handoff headers, tenant-scoped audit retention
+# purge, and tenant-scoped admin ACL grant/list/revoke API also landed with
+# tests. Local SecretProvider port/env/process adapter rollout, production
+# secret-store process bridge selection, and audit SIEM/WORM handoff packet also
+# landed. Real doged local-JWKS, process-secret, and remote-bind gate loopback
+# smokes also landed. Live IdP/JWKS smoke
+# against an operator-approved provider, production secret command smoke, SDK registry
+# publication/release approval, production SIEM/WORM sink integration/operator
+# sign-off, and live remote-bind deployment smoke remain open.
+# 2026-06-22 (S017-002 readiness): Live Kimi smoke runner, redacted blocked
+# evidence, and evidence validator landed. The story is ready for operator
+# execution/review, but real text/Files/Vision/Agent SDK smoke remains blocked
+# on DOGE_LIVE_KIMI=1, MOONSHOT_API_KEY, live spend/network, and optional SDK
+# installation.
+# 2026-06-22 (S017-003 readiness): Financial provider approval evidence
+# template and validator landed. S017-003 remains review, not done; real
+# product/operator approval, provider/license scope, and approved provider-
+# derived fixture storage remain external dependencies.
+# 2026-06-22 (S017-007 readiness): SDK release approval evidence template and
+# validator landed. S017-007 remains review, not done; registry target, package
+# name ownership, version/changelog policy, registry-backed consumer smoke, and
+# release-manager approval remain external dependencies.
+# 2026-06-22 (enterprise production validation readiness): Unified enterprise
+# production validation template and validator landed for live IdP/JWKS,
+# production secret-store command, SIEM/WORM export, live remote-bind deployment,
+# and production data-isolation review. These remain external production gates.
+# 2026-06-22 (9b77f9c plan closure gate): scripts/validate_plan_closure_gate.py
+# aggregates the remaining external evidence gates. It reports result=open with
+# 6 controlled open items under --allow-open, while strict mode remains nonzero
+# until all external evidence is completed. The gate emits per-item next_action
+# strict_command, and passing_results fields, prefers non-template completed
+# evidence before template fallbacks, and is paired with
+# docs/progress/9b77f9c-external-closure-runbook.md plus
+# scripts/validate_plan_closure_runbook.py. scripts/export_plan_closure_manifest.py
+# writes production/qa/evidence/plan-closure/9b77f9c-external-closure-manifest.json,
+# the machine-readable 6-task external execution checklist, and
+# scripts/validate_plan_closure_manifest.py rejects stale manifest handoffs.
+# scripts/validate_kimi_plan_completion_audit.py keeps the source-plan audit
+# aligned with the same six controlled-open closure gates.
+# scripts/preflight_plan_closure_external.py now checks manifest freshness,
+# script/output/template readiness, required external inputs, optional Agent SDK
+# readiness, handoff workspace validity, and edited draft-input readiness without
+# printing secrets.
+# scripts/prepare_plan_closure_handoff.py prepares dated draft operator input
+# workspaces, operator-commands.ps1, and workspace_command_plan entries from
+# the manifest without creating completed evidence; generated commands
+# single-quote prepared input and resolved output paths for PowerShell and
+# switch to $repoRoot before running repo-relative commands; $python is defined
+# from the repo venv and checked before invocation; -TaskId supports split
+# operator windows and passes --task-id through to preflight. Preflight also
+# sanity-checks edited JSON/JSONL draft content before marking inputs ready.
+# scripts/validate_plan_closure_handoff.py rejects stale/unsafe handoff
+# workspaces, including missing or weakened command lists, before an operator
+# window.
+# 2026-06-22 (external handoff prepared): Prepared and validated
+# production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22 with 6 tasks,
+# 9 draft inputs, operator-commands.ps1, and operator-checklist.md. Preflight
+# correctly remains pending_external_inputs until copied drafts are edited with
+# real operator evidence and live env vars are set.
+# 2026-06-22 (web dependency audit closure): Web lockfile refreshed and Vitest
+# upgraded to 4.1.9. npm audit and npm audit --omit=dev both report 0
+# vulnerabilities; Web 78-test suite, Web build, TypeScript SDK 11-test suite,
+# and SDK build remain green.
 
 sprints:
+  - id: S016
+    name: "Kimi Research Copilot Closure"
+    plan: production/sprints/sprint-016-kimi-research-copilot-closure.md
+    qa_plan: null
+    start: "2026-06-21"
+    status: done
+    source: "C:\\Users\\Aby\\.claude\\plans\\9b77f9c-kimi-twinkly-map.md"
+    goal: >-
+      Close the highest-priority Kimi financial Research Copilot gaps by
+      aligning the web research workspace, adding financial connector
+      boundaries, establishing eval gold cases, removing architecture smells,
+      documenting enterprise identity, and synchronizing governance.
+    exit_criteria:
+      - "Python backend, connector, eval, runtime, and SDK adapter targeted tests pass."
+      - "Web upload/document/profile/portfolio/citation/cost surfaces are implemented."
+      - "Enterprise auth has ADR/CDD/TR coverage before implementation starts."
+      - "Runtime maturity and module/sprint governance reflect current code."
+      - "Node/web, browser/manual, live Kimi, and real connector evidence are explicitly deferred if unavailable."
+    stories:
+      - id: S016-001
+        title: "Web Research business loop"
+        epic: ep-web-research
+        tr: null
+        source: "9b77f9c review priority: web business loop"
+        priority: HIGH
+        effort: M
+        owner: typescript-specialist
+        status: done
+        blocking_gate: true
+        note: "Upload, document selector, execution profile, portfolio import, citation drill-down, and cost/eval panels landed. S017-001 later completed Node/Web/TypeScript SDK verification and browser/manual evidence."
+
+      - id: S016-002
+        title: "Financial connector boundaries"
+        epic: ep-financial-connectors
+        tr: null
+        source: "9b77f9c review priority: real financial data adapter boundary"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Ports and local placeholder adapters for fundamentals, announcements, consensus, industry classification, and risk factors landed; real provider credentials/fixtures remain deferred."
+
+      - id: S016-003
+        title: "Financial eval gold set"
+        epic: ep-eval
+        tr: null
+        source: "9b77f9c review priority: real financial eval foundation"
+        priority: HIGH
+        effort: M
+        owner: qa-lead
+        status: done
+        blocking_gate: true
+        note: "30-case gold set, evaluator, tests, and QA evidence landed for annual reports, presentations, chart images, portfolio CSV, unsupported claims, and multi-turn cases."
+
+      - id: S016-004
+        title: "Architecture dependency cleanup"
+        epic: ep-architecture-debt
+        tr: null
+        source: "9b77f9c review priority: eliminate service locator and legacy helper coupling"
+        priority: HIGH
+        effort: M
+        owner: lead-programmer
+        status: done
+        blocking_gate: false
+        note: "ToolApplicationService service locator removed; TDX helpers moved into infrastructure-owned module; layer gates updated."
+
+      - id: S016-005
+        title: "Research path boundary labels"
+        epic: ep-research-runtime
+        tr: null
+        source: "9b77f9c review priority: clarify Text LLM vs Runtime paths"
+        priority: MED
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Macro/industry compatibility paths and runtime research-copilot paths now expose explicit RESEARCH_PATH constants and call-graph docs."
+
+      - id: S016-006
+        title: "Kimi Agent SDK semantic adapter"
+        epic: ep-kimi
+        tr: null
+        source: "9b77f9c review priority: richer SDK adapter semantics"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "Adapter now passes structured messages/tools/metadata and preserves approvals, tool call IDs, reasoning, usage, and finish reason; live SDK smoke remains deferred."
+
+      - id: S016-007
+        title: "Enterprise identity design coverage"
+        epic: ep-governance-security
+        tr: null
+        source: "9b77f9c review priority: enterprise auth closure"
+        priority: HIGH
+        effort: M
+        owner: security-engineer
+        status: done
+        blocking_gate: true
+        note: "ADR-0015 plus TR-055/TR-056/TR-057/TR-058 cover OIDC/JWT, tenant ACL, approval actor, audit actor, and secrets handling; implementation remains open."
+
+      - id: S016-008
+        title: "Governance synchronization"
+        epic: ep-governance
+        tr: null
+        source: "9b77f9c review priority: sync module index, sprint status, maturity gates"
+        priority: HIGH
+        effort: S
+        owner: lead-programmer
+        status: done
+        blocking_gate: false
+        note: "Module index, runtime maturity, architecture registry, sprint status, and progress docs now include S016/model routing/tool governance/enterprise context/Agent SDK closure."
+
+      - id: S016-009
+        title: "Browser and Node/Web verification"
+        epic: ep-release-quality
+        tr: null
+        source: "deferred evidence from S016"
+        priority: HIGH
+        effort: S
+        owner: qa-lead
+        status: done
+        blocking_gate: true
+        note: "Closed for S016 by transfer to S017-001. S017-001 later completed Web npm install/tests/build, TypeScript SDK tests/build, and browser evidence for upload, document selection, execution profile, portfolio import, approval, citation drill-down, and cost/eval display."
+
+      - id: S016-010
+        title: "Live Kimi and real connector verification"
+        epic: ep-release-quality
+        tr: null
+        source: "deferred evidence from S016"
+        priority: HIGH
+        effort: M
+        owner: operator
+        status: done
+        blocking_gate: true
+        note: "Closed for S016 by transfer to S017-002/S017-003. Requires controlled provider credentials/spend for Kimi Files/Vision/Agent SDK and real fundamentals/announcement/consensus/risk-factor connectors."
+
+  - id: S017
+    name: "External Validation And Provider Hardening"
+    plan: production/sprints/sprint-017-external-validation-and-provider-hardening.md
+    qa_plan: null
+    start: null
+    status: planned
+    source: "Sprint 016 closure transfer"
+    goal: >-
+      Execute browser/Web verification, live Kimi smoke, real provider fixture
+      approval, and enterprise auth implementation planning/boundary work that require
+      external tools, credentials, or operator windows.
+    exit_criteria:
+      - "Node/npm web and TypeScript SDK tests/build pass in an operator environment."
+      - "Browser manual evidence exists for the Research Agent business loop."
+      - "Live Kimi smoke evidence exists for text, Files, Vision, and optional Agent SDK."
+      - "Provider fixture/license scope is approved before real adapter implementation."
+      - "Enterprise auth implementation choices and the first fail-closed middleware boundary are in place before OIDC/JWKS coding."
+    stories:
+      - id: S017-001
+        title: "Browser and Node/Web verification"
+        epic: ep-release-quality
+        tr: null
+        source: "Transferred from S016-009"
+        priority: HIGH
+        effort: S
+        owner: qa-lead
+        status: done
+        blocking_gate: true
+        note: "Automated Node/Web/TypeScript SDK verification, browser walkthrough, browser-runtime SDK SSE reconnect/replay, and real doged Research Agent reconnect through approval completion passed. Evidence: production/qa/evidence/manual/research-agent-browser-walkthrough-2026-06-22.md, production/qa/evidence/manual/browser-sdk-sse-reconnect-2026-06-22.md, and production/qa/evidence/manual/research-agent-doged-reconnect-2026-06-22.md."
+
+      - id: S017-002
+        title: "Live Kimi smoke execution"
+        epic: ep-kimi
+        tr: null
+        source: "Transferred from S016-010"
+        priority: HIGH
+        effort: S
+        owner: operator
+        status: review
+        blocking_gate: true
+        note: "Runner and validator exist at scripts/run_kimi_live_smoke.py and scripts/validate_kimi_live_smoke_evidence.py. Current redacted evidence at production/qa/evidence/live/kimi-live-smoke-2026-06-22.json records result=blocked because DOGE_LIVE_KIMI=1 and MOONSHOT_API_KEY are unavailable. Ready for operator execution, not done."
+
+      - id: S017-003
+        title: "Financial provider fixture approval"
+        epic: ep-financial-connectors
+        tr: null
+        source: "Transferred from S016-010"
+        priority: HIGH
+        effort: M
+        owner: product-owner
+        status: review
+        blocking_gate: true
+        note: "Approval packet exists at docs/progress/financial-provider-approval-packet.md. Synthetic safe provider-shaped fixtures exist at tests/fixtures/financial_connectors/provider_fixture_samples.json. Approval template and validator exist at production/qa/evidence/provider/financial-provider-approval-template-2026-06-22.json and scripts/validate_financial_provider_approval_evidence.py; the template validates only with --allow-template. Product/operator approval, provider/license scope, and any real provider-derived fixtures are still pending."
+
+      - id: S017-004
+        title: "Enterprise auth implementation plan and boundary"
+        epic: ep-governance-security
+        tr: null
+        source: "Transferred from S016 enterprise identity design"
+        priority: HIGH
+        effort: M
+        owner: security-engineer
+        status: done
+        blocking_gate: true
+        note: "Implementation choices recorded in docs/progress/enterprise-auth-implementation-plan.md. AuthConfig, enterprise auth port, static local bearer provider, JWT/OIDC local fixture validation, fail-closed behavior, API startup hard-fail for unconfigured enterprise auth, bearer middleware path, trusted principal context mapping, tenant metadata for documents, portfolios, sessions, runs, events, artifacts, approvals, and evidence, persistent ACL/audit repositories, document/portfolio/session/run/tool-list/approval API enforcement, tenant-scoped admin ACL grant/list/revoke API, trusted run policy injection, runtime tool ACL enforcement, runtime model/tool audit events, tenant-scoped audit listing/export/retention, audit export integrity handoff headers, local SecretProvider port/env/process adapter rollout, production secret-store process bridge selection, remote-bind promotion gate tests, RAG/citation context filtering, approval actor recording, SDK bearer/request-id pass-through with API/SSE error redaction, audit export redaction, CLI trace/artifact redaction, local operational audit review, audit SIEM/WORM handoff packet, local SDK package compatibility, real doged enterprise static-bearer loopback smoke, real doged local-JWKS loopback smoke, real doged process-secret loopback smoke, real doged remote-bind gate smoke, SDK release approval packet/template/validator, and enterprise production validation template/builder/validator including scripts/build_enterprise_production_validation_evidence.py landed with tests; live IdP/JWKS smoke against an operator-approved provider, production secret command smoke/rotation evidence, SDK registry publication/release approval, production SIEM/WORM sink integration/operator sign-off, live remote-bind deployment smoke, and production data-isolation review in an operator-approved environment remain open."
+
+      - id: S017-005
+        title: "One-hour daemon soak execution"
+        epic: ep-release-quality
+        tr: null
+        source: "Sprint 017 follow-up"
+        priority: HIGH
+        effort: M
+        owner: qa-lead
+        status: done
+        blocking_gate: true
+        note: "One-hour local loopback daemon soak executed under production/qa/evidence/soak/daemon-soak-run-20260622T044433. Runner JSON records 3602.76s, 653 iterations, 0 failures; soak-summary.md records real listener RSS growth below threshold and 0 API tracebacks/errors. tests/unit/qa/test_daemon_soak_script.py verifies JSON evidence generation and checkpoint options."
+
+      - id: S017-006
+        title: "Research Agent screen-reader manual pass"
+        epic: ep-release-quality
+        tr: null
+        source: "Sprint 017 follow-up"
+        priority: MED
+        effort: S
+        owner: accessibility-specialist
+        status: review
+        blocking_gate: true
+        note: "S015 accessibility implementation, component tests, Chrome accessibility-tree smoke evidence, and S017 manual protocol/template/builder/validator exist, including scripts/build_screen_reader_evidence.py. Ready for operator execution, not done; manual screen-reader evidence remains pending."
+
+      - id: S017-007
+        title: "SDK registry publication approval"
+        epic: ep-sdk-daemon-client-interfaces
+        tr: null
+        source: "Sprint 017 follow-up"
+        priority: HIGH
+        effort: S
+        owner: release-manager
+        status: review
+        blocking_gate: true
+        note: "SDK release approval packet exists at docs/progress/sdk-release-approval-packet.md. Python wheel, TypeScript npm pack dry-run, and local external-consumer artifact smoke passed with evidence at production/qa/evidence/sdk/sdk-external-consumer-smoke.json. Release approval template and validator exist at production/qa/evidence/sdk/sdk-release-approval-template-2026-06-22.json and scripts/validate_sdk_release_approval_evidence.py; the template validates only with --allow-template. Registry target, package name ownership, version/changelog policy, registry-backed consumer smoke, and release-manager approval remain pending."
+
   - id: S015
     name: "Polish, Performance, And Promotion Review"
     plan: production/sprints/sprint-015-polish-performance-promotion-review.md
@@ -229,9 +560,9 @@ sprints:
         priority: HIGH
         effort: M
         owner: qa-lead
-        status: deferred
+        status: done
         blocking_gate: true
-        note: "Protocol exists; execution deferred to operator window."
+        note: "Closed by S017-005 evidence: production/qa/evidence/soak/daemon-soak-run-20260622T044433/daemon-soak-20260621T204434Z.json and soak-summary.md."
 
   - id: S014
     name: "Industry Report And Modular Migration"
@@ -663,7 +994,7 @@ sprints:
         owner: operator
         status: deferred
         blocking_gate: false
-        note: "Requires running daemon+web and manually interrupting/reconnecting stream; automated tests cover helper/SDK behavior."
+        note: "Automated real doged + ResearchAgentView reconnect evidence landed at production/qa/evidence/manual/research-agent-doged-reconnect-2026-06-22.md; true manual operator interruption remains deferred."
 
   - id: S010
     name: "Kimi Vision And Evidence Foundation"
@@ -1800,29 +2131,34 @@ sprints:
         blocking_gate: false
         note: "docs/GETTING_STARTED.md 5-Minute Demo section; docs/CLI.md demo subcommand; tests/cli/test_cli_arg_parsing.py parser mirror updated."
 
-# Rollup counts for the active sprint (S015).
+# Rollup counts for the active sprint (S017).
 rollup:
-  sprint: S015
-  total_stories: 9
+  sprint: S017
+  total_stories: 7
   by_status:
     todo: 0
     in_progress: 0
     blocked: 0
-    review: 0
-    done: 7
-    deferred: 2
+    review: 4
+    done: 3
+    deferred: 0
   by_priority:
-    HIGH: 7
-    MED: 2
+    HIGH: 6
+    MED: 1
     LOW: 0
   by_epic:
-    ep-release-quality: 4
+    ep-financial-connectors: 1
     ep-kimi: 1
-    ep-ux-polish: 2
-    ep-governance: 2
+    ep-governance-security: 1
+    ep-release-quality: 3
+    ep-sdk-daemon-client-interfaces: 1
   blocking_gated_stories:
-    - S015-008
-    - S015-009
+    - S017-002
+    - S017-003
+    - S017-006
+    - S017-007
   top_priority_stories:
-    - S015-008
-    - S015-009
+    - S017-002
+    - S017-003
+    - S017-006
+    - S017-007

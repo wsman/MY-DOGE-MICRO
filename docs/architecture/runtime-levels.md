@@ -27,5 +27,7 @@ A level's maturity label can only be promoted when every required gate in
 
 Sprint 015 added local release-quality evidence for performance, Kimi retry,
 Research Agent accessibility, and soak readiness. The review verdict is no
-Stable promotion: remote CI after push, executed soak evidence, live Kimi smoke,
-browser/manual reconnect evidence, and citation-quality evaluation remain open.
+Stable promotion. Remote CI and one-hour local daemon soak evidence later
+landed, but live Kimi smoke, browser/manual reconnect evidence,
+screen-reader manual evidence, citation-quality evaluation, and production data
+gates remain open.

@@ -3,8 +3,8 @@
 > **Status**: In Review
 > **Created**: 2026-06-21
 > **Last Verified**: 2026-06-21
-> **Governing ADRs**: ADR-0011, ADR-0001, ADR-0002, ADR-0007
-> **Traceability**: TR-047, TR-048, TR-049, TR-054
+> **Governing ADRs**: ADR-0011, ADR-0012, ADR-0013, ADR-0015, ADR-0001, ADR-0002, ADR-0007
+> **Traceability**: TR-047, TR-048, TR-049, TR-054, TR-056
 
 ---
 
@@ -40,6 +40,12 @@ restart.
 Legacy `/api/agent/*` routes remain a compatibility/demo surface. The canonical
 daemon contract is `/v1/*` for new clients.
 
+Enterprise deployments must not create runs from untrusted tenant headers. In
+ADR-0015 enterprise mode, the FastAPI auth boundary creates a trusted
+`EnterpriseContext`; the runtime records that context with run/session metadata,
+passes safe hashes into model routing metadata, filters tool schemas by
+entitlement, and persists approval decisions with the actor hash and tenant.
+
 ## Data Model
 
 State is persisted in local SQLite:
@@ -49,6 +55,8 @@ State is persisted in local SQLite:
 - events: append-only run event log and SSE replay source.
 - artifacts: generated outputs with type and source metadata.
 - approvals: pending/resolved approvals with decision history.
+- enterprise context: tenant ID, user hash, role/entitlements, request ID, and
+  approval actor metadata, derived from trusted auth in enterprise mode.
 
 ## Edge Cases
 
@@ -58,6 +66,10 @@ State is persisted in local SQLite:
 - SSE clients may reconnect with `Last-Event-ID` and must not lose persisted
   events.
 - Cancellation is best-effort and must leave a durable terminal status.
+- Approval resume in enterprise mode must reject decisions from a principal that
+  lacks approval authority for the run tenant/resource.
+- Model/tool traces must store hashed actor identifiers and request IDs, not raw
+  tokens, emails, customer account IDs, or API keys.
 
 ## Dependencies
 
@@ -74,6 +86,8 @@ State is persisted in local SQLite:
 - `DOGE_BIND_HOST` remains loopback-only by default.
 - Provider keys such as `MOONSHOT_API_KEY` are optional and must never be
   required for no-network tests.
+- Enterprise auth configuration is owned by ADR-0015. Runtime code consumes
+  trusted context; it must not validate JWTs itself.
 
 ## Integration Requirements
 
@@ -82,6 +96,8 @@ State is persisted in local SQLite:
   contract roles.
 - Tests may use fake providers and in-memory/demo adapters, but production code
   paths must keep the persistence boundary explicit.
+- Tool visibility, high-risk approval, model routing metadata, and audit events
+  must use the same trusted `EnterpriseContext` once enterprise mode is enabled.
 
 ## UI Requirements
 
@@ -98,6 +114,8 @@ experimental capability; it must not imply production readiness while
       approval resume.
 - [ ] TR-054 blocks README/release/CDD maturity promotion while runtime gates
       remain incomplete.
+- [ ] TR-056 covers trusted `EnterpriseContext` propagation, tool entitlement,
+      approval actor persistence, and safe model metadata in enterprise mode.
 - [ ] Level claims in docs match `docs/progress/runtime-maturity.yaml`.
 
 ## Open Questions
@@ -107,3 +125,5 @@ experimental capability; it must not imply production readiness while
    promoted?
 3. Which web workflows must stay on `/api/agent/*` until `/v1/*` is fully
    contracted?
+4. Which runtime tables should own persisted audit actor fields versus a
+   separate append-only audit sink?

@@ -3,8 +3,8 @@
 > **Status**: In Review
 > **Created**: 2026-06-21
 > **Last Verified**: 2026-06-21
-> **Governing ADRs**: ADR-0011, ADR-0007, ADR-0008
-> **Traceability**: TR-049, TR-050, TR-054
+> **Governing ADRs**: ADR-0011, ADR-0015, ADR-0007, ADR-0008
+> **Traceability**: TR-049, TR-050, TR-054, TR-058
 
 ---
 
@@ -39,6 +39,10 @@ The Python SDK wraps sync/async calls. The TypeScript SDK wraps browser/client
 streaming and reconnect/backoff. The web console consumes these wrappers where
 appropriate, while legacy product views may still use `/api/*`.
 
+Enterprise-mode clients must pass bearer tokens and request correlation IDs to
+the daemon, but SDKs must not persist raw tokens by default or include them in
+exceptions, logs, retry traces, artifacts, or test snapshots.
+
 ## Data Model
 
 SDK DTOs mirror daemon response bodies without becoming the source of truth.
@@ -52,6 +56,8 @@ stream, and retry state.
 - SDK cancellation must be safe if the run already reached a terminal state.
 - Browser clients must surface approval-required states without auto-resuming.
 - Daemon unavailable errors must be operator-readable and retryable.
+- Token expiry or authorization failures must surface as retryable/auth-specific
+  client errors without leaking token material.
 
 ## Dependencies
 
@@ -66,6 +72,7 @@ stream, and retry state.
 - Non-loopback daemon use is out of scope until ADR-0007 security requirements
   are revisited.
 - SDK package/version declarations must not imply a production support window.
+- Enterprise auth mode and token configuration are governed by ADR-0015.
 
 ## Integration Requirements
 
@@ -74,6 +81,8 @@ stream, and retry state.
   new SDK contract.
 - Client tests must cover reconnect/backoff and approval/cancel error shapes
   without live provider calls.
+- Enterprise client tests must cover Authorization header forwarding, request ID
+  forwarding, token redaction, and 401/403 handling before SDK promotion.
 
 ## UI Requirements
 
@@ -88,9 +97,13 @@ production-ready before `runtime-maturity.yaml` gates pass.
 - [ ] TR-054 covers maturity-label guard across README, release notes, and CDDs.
 - [ ] Python and TypeScript SDK docs point to `/v1/*`, not legacy `/api/agent/*`.
 - [ ] Daemon and SDK tests run without live provider credentials.
+- [ ] TR-058 covers SDK bearer-token pass-through, request correlation, auth
+      error handling, and token redaction in enterprise mode.
 
 ## Open Questions
 
 1. Which SDK DTO fields are frozen for external consumers?
 2. Should TypeScript SDK streaming be browser-only or Node-compatible?
 3. What packaging channel should be used before runtime maturity promotion?
+4. Should browser clients refresh tokens themselves or rely on an upstream
+   identity-aware shell?

@@ -1,10 +1,10 @@
 # MY-DOGE-MICRO — Canonical Entities Catalog
 #
 # PURPOSE: Single source of truth for formulas, constants, and named entities
-# (DuckDB views, MCP tools, API routes, services, ports, tables) across the 12
+# (DuckDB views, MCP tools, API routes, services, ports, tables) across the 15
 # product modules. Aggregated from the "Registry Proposals" / Contracts /
-# Configuration-Knobs sections of all 12 CDDs (design/cdd/*.md) and reconciled
-# against the 8 ADRs (docs/architecture/adr-0001..0008).
+# Configuration-Knobs sections of the CDDs (design/cdd/*.md) and reconciled
+# against the ADR registry (docs/architecture/adr-0001..0015).
 #
 # RULES:
 #   - Each canonical value appears EXACTLY ONCE. Duplicate proposals across CDDs
@@ -23,7 +23,7 @@
 # STATUS VALUES: active | superseded
 
 version: 1
-last_updated: "2026-06-12"
+last_updated: "2026-06-22"
 
 # ============================================================================
 # FORMULAS — quantitative / algorithmic formulas with variables and ranges
@@ -707,7 +707,7 @@ entities:
       source: "src/doge/interfaces/mcp/tools/views.py:6-10"
       notes: "run_sql explicitly ABSENT (pinned by test_run_sql_removed)."
 
-  # --- FastAPI routes (26 canonical product routes) owned by Module #9 ---
+  # --- FastAPI routes (58 canonical product routes) owned by Module #9 ---
   api_routes:
     # main router
     - {num: 1, method: GET, path: "/api/health", router: main, source: "src/doge/interfaces/api/main.py"}
@@ -742,6 +742,41 @@ entities:
     - {num: 24, method: GET, path: "/api/config/settings", router: config, source: "src/doge/interfaces/api/routers/config.py"}
     - {num: 25, method: PUT, path: "/api/config/settings", router: config, source: "src/doge/interfaces/api/routers/config.py"}
     - {num: 26, method: POST, path: "/api/config/validate-tdx", router: config, source: "src/doge/interfaces/api/routers/config.py"}
+    # agent compatibility router
+    - {num: 27, method: POST, path: "/api/agent/runs", router: agent, source: "src/doge/interfaces/api/routers/agent.py"}
+    - {num: 28, method: GET, path: "/api/agent/runs/{run_id}", router: agent, source: "src/doge/interfaces/api/routers/agent.py"}
+    - {num: 29, method: GET, path: "/api/agent/runs/{run_id}/events", router: agent, source: "src/doge/interfaces/api/routers/agent.py"}
+    - {num: 30, method: GET, path: "/api/agent/runs/{run_id}/stream", router: agent, source: "src/doge/interfaces/api/routers/agent.py", notes: "SSE stream"}
+    - {num: 31, method: GET, path: "/api/agent/runs/{run_id}/artifacts", router: agent, source: "src/doge/interfaces/api/routers/agent.py"}
+    - {num: 32, method: GET, path: "/api/agent/runs/{run_id}/approvals", router: agent, source: "src/doge/interfaces/api/routers/agent.py"}
+    - {num: 33, method: POST, path: "/api/agent/runs/{run_id}/approvals/{approval_id}", router: agent, source: "src/doge/interfaces/api/routers/agent.py"}
+    # documents compatibility router
+    - {num: 34, method: POST, path: "/api/documents", router: documents, source: "src/doge/interfaces/api/routers/documents.py"}
+    # v1 health/session/run/document/tool routes
+    - {num: 35, method: GET, path: "/health", router: v1_health, source: "src/doge/interfaces/api/routers/v1/health.py"}
+    - {num: 36, method: GET, path: "/health/ready", router: v1_health, source: "src/doge/interfaces/api/routers/v1/health.py"}
+    - {num: 37, method: POST, path: "/v1/sessions", router: v1_sessions, source: "src/doge/interfaces/api/routers/v1/sessions.py"}
+    - {num: 38, method: GET, path: "/v1/sessions", router: v1_sessions, source: "src/doge/interfaces/api/routers/v1/sessions.py"}
+    - {num: 39, method: GET, path: "/v1/sessions/{session_id}", router: v1_sessions, source: "src/doge/interfaces/api/routers/v1/sessions.py"}
+    - {num: 40, method: POST, path: "/v1/sessions/{session_id}/turns", router: v1_sessions, source: "src/doge/interfaces/api/routers/v1/sessions.py"}
+    - {num: 41, method: GET, path: "/v1/runs/{run_id}", router: v1_runs, source: "src/doge/interfaces/api/routers/v1/runs.py"}
+    - {num: 42, method: POST, path: "/v1/runs/{run_id}/cancel", router: v1_runs, source: "src/doge/interfaces/api/routers/v1/runs.py"}
+    - {num: 43, method: GET, path: "/v1/runs/{run_id}/events", router: v1_runs, source: "src/doge/interfaces/api/routers/v1/runs.py"}
+    - {num: 44, method: GET, path: "/v1/runs/{run_id}/stream", router: v1_runs, source: "src/doge/interfaces/api/routers/v1/runs.py", notes: "SSE stream with Last-Event-ID replay"}
+    - {num: 45, method: GET, path: "/v1/runs/{run_id}/artifacts", router: v1_runs, source: "src/doge/interfaces/api/routers/v1/runs.py"}
+    - {num: 46, method: GET, path: "/v1/runs/{run_id}/approvals", router: v1_runs, source: "src/doge/interfaces/api/routers/v1/runs.py"}
+    - {num: 47, method: POST, path: "/v1/runs/{run_id}/approvals/{approval_id}", router: v1_runs, source: "src/doge/interfaces/api/routers/v1/runs.py"}
+    - {num: 48, method: POST, path: "/v1/documents", router: v1_documents, source: "src/doge/interfaces/api/routers/v1/documents.py"}
+    - {num: 49, method: GET, path: "/v1/documents", router: v1_documents, source: "src/doge/interfaces/api/routers/v1/documents.py"}
+    - {num: 50, method: GET, path: "/v1/documents/{document_id}", router: v1_documents, source: "src/doge/interfaces/api/routers/v1/documents.py"}
+    - {num: 51, method: GET, path: "/v1/tools", router: v1_tools, source: "src/doge/interfaces/api/routers/v1/tools.py"}
+    - {num: 52, method: POST, path: "/v1/portfolios/import", router: v1_portfolios, source: "src/doge/interfaces/api/routers/v1/portfolios.py"}
+    - {num: 53, method: GET, path: "/v1/audit/events", router: v1_audit, source: "src/doge/interfaces/api/routers/v1/audit.py"}
+    - {num: 54, method: GET, path: "/v1/audit/events/export", router: v1_audit, source: "src/doge/interfaces/api/routers/v1/audit.py"}
+    - {num: 55, method: POST, path: "/v1/audit/events/retention", router: v1_audit, source: "src/doge/interfaces/api/routers/v1/audit.py"}
+    - {num: 56, method: GET, path: "/v1/enterprise/acl/grants", router: v1_enterprise, source: "src/doge/interfaces/api/routers/v1/enterprise.py"}
+    - {num: 57, method: POST, path: "/v1/enterprise/acl/grants", router: v1_enterprise, source: "src/doge/interfaces/api/routers/v1/enterprise.py"}
+    - {num: 58, method: DELETE, path: "/v1/enterprise/acl/grants", router: v1_enterprise, source: "src/doge/interfaces/api/routers/v1/enterprise.py"}
   api_router_prefixes:
     scan: "/api/scan"
     data: "/api/data"
@@ -749,6 +784,16 @@ entities:
     macro: "/api/macro"
     analysis: "/api/analysis"
     config: "/api/config"
+    agent: "/api/agent"
+    documents: "/api/documents"
+    v1_sessions: "/v1"
+    v1_runs: "/v1"
+    v1_documents: "/v1"
+    v1_portfolios: "/v1"
+    v1_tools: "/v1"
+    v1_audit: "/v1"
+    v1_enterprise: "/v1"
+    v1_health: ""
 
   # --- Core services (5) — ADR-0001 target shape ---
   services:

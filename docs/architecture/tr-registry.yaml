@@ -393,11 +393,11 @@ requirements:
     system: fastapi-service
     cdd: design/cdd/fastapi-service.md
     section: "1 / 4.1"
-    requirement: "The canonical FastAPI app (doge.interfaces.api.main) binds to 127.0.0.1:8901 and exposes exactly 51 product routes: 34 legacy /api routes plus 17 daemon/v1 routes; docs/API.md route table is the auditable contract."
+    requirement: "The canonical FastAPI app (doge.interfaces.api.main) binds to 127.0.0.1:8901 and exposes exactly 58 product routes: 34 legacy /api routes plus 24 daemon/v1 routes, including portfolio import, audit, and enterprise ACL administration; docs/API.md route table is the auditable contract."
     adr: docs/architecture/adr-0007-api-surface-and-cors.md
     test: tests/contract/test_api_doc_route_coverage.py
     created: 2026-06-12
-    revised: "2026-06-21"
+    revised: "2026-06-22"
     status: active
 
   - id: TR-030
@@ -704,6 +704,55 @@ requirements:
     requirement: "README, release notes, CDDs, SDK docs, and architecture summaries must not claim a runtime level is production-ready while docs/progress/runtime-maturity.yaml has production_ready: false or required level gates remain incomplete."
     adr: docs/architecture/adr-0011-agent-runtime-levels.md
     test: docs/progress/runtime-maturity.yaml
+    created: 2026-06-21
+    revised: ""
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Cross-module enterprise identity and access boundary
+  # CDD coverage: fastapi-service, research-copilot-agent-runtime,
+  # document-evidence-pipeline, sdk-daemon-client-interfaces.
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-055
+    system: fastapi-service
+    cdd: design/cdd/fastapi-service.md
+    section: "4.4 / 8 (enterprise identity boundary)"
+    requirement: "Non-loopback or enterprise-mode API deployment must validate OIDC/JWT issuer, audience, expiry, signature, and key rotation source before trusting tenant, user, role, entitlement, or approval headers."
+    adr: docs/architecture/adr-0015-enterprise-identity-and-access.md
+    test: tests/unit/interfaces/test_tenant_context_middleware.py
+    created: 2026-06-21
+    revised: ""
+    status: active
+
+  - id: TR-056
+    system: research-copilot-agent-runtime
+    cdd: design/cdd/research-copilot-agent-runtime.md
+    section: "Detailed Design / Acceptance Criteria (enterprise context)"
+    requirement: "Runtime runs, model routing metadata, tool visibility, high-risk approval resolution, and audit events must consume the same trusted EnterpriseContext; approval decisions persist actor hash, tenant, request ID, and authority source."
+    adr: docs/architecture/adr-0015-enterprise-identity-and-access.md
+    test: tests/unit/agent/test_runtime_kernel.py
+    created: 2026-06-21
+    revised: ""
+    status: active
+
+  - id: TR-057
+    system: document-evidence-pipeline
+    cdd: design/cdd/document-evidence-pipeline.md
+    section: "Detailed Design / Acceptance Criteria (tenant ACL)"
+    requirement: "Document APIs, RAG, evidence lookup, citation assembly, and citation drill-down must apply tenant ACL predicates in enterprise mode; missing ACL metadata denies access by default."
+    adr: docs/architecture/adr-0015-enterprise-identity-and-access.md
+    test: tests/integration/test_rag_retrieval.py
+    created: 2026-06-21
+    revised: ""
+    status: active
+
+  - id: TR-058
+    system: sdk-daemon-client-interfaces
+    cdd: design/cdd/sdk-daemon-client-interfaces.md
+    section: "Integration Requirements / Acceptance Criteria (enterprise clients)"
+    requirement: "Python and TypeScript daemon clients pass bearer tokens and request correlation IDs when configured, handle 401/403 auth errors explicitly, and redact raw tokens from errors, logs, retry traces, artifacts, and test snapshots."
+    adr: docs/architecture/adr-0015-enterprise-identity-and-access.md
+    test: tests/contract/test_python_sdk.py
     created: 2026-06-21
     revised: ""
     status: active

@@ -2,7 +2,7 @@
 #
 # PURPOSE: Single source of truth for cross-ADR architectural stances that all
 # ADRs must agree on. Skills check this before writing new ADRs to detect
-# conflicts at authoring time. Aggregated from ADR-0001..0011 and the 15 module CDDs.
+# conflicts at authoring time. Aggregated from ADR-0001..0015 and the 15 module CDDs.
 #
 # RULES:
 #   - Register a stance when it constrains how OTHER systems must be built.
@@ -34,7 +34,7 @@ systems:
   - {num: 6, slug: market-reporting, name: "Market Reporting", category: Feature, layer: Feature, cdd: design/cdd/market-reporting.md, status: "Designed", notes: "Pure-SQL reports; NO LLM. (Prior name 'AI Industry Analysis' was a misnomer.)"}
   - {num: 7, slug: research-insight-knowledge-base, name: "Research Insight Knowledge Base", category: Core, layer: Core, cdd: design/cdd/research-insight-knowledge-base.md, status: "Designed", notes: "Owns stock_notes + stock_names; soft-delete (deleted_at)"}
   - {num: 8, slug: mcp-server, name: "MCP Server", category: Interface, layer: Interface, cdd: design/cdd/mcp-server.md, status: "Designed", notes: "6 read-only tools; stdio primary + SSE secondary"}
-  - {num: 9, slug: fastapi-service, name: "FastAPI Service", category: Interface, layer: Interface, cdd: design/cdd/fastapi-service.md, status: "In Review", notes: "51 product routes; 127.0.0.1:8901; legacy /api plus daemon /v1"}
+  - {num: 9, slug: fastapi-service, name: "FastAPI Service", category: Interface, layer: Interface, cdd: design/cdd/fastapi-service.md, status: "In Review", notes: "58 product routes; 127.0.0.1:8901; legacy /api plus daemon /v1"}
   - {num: 10, slug: pyqt-desktop-dashboard, name: "PyQt Desktop Dashboard", category: Presentation, layer: Presentation, cdd: design/cdd/pyqt-desktop-dashboard.md, status: "Designed"}
   - {num: 11, slug: vue-web-console, name: "Vue Web Console", category: Presentation, layer: Presentation, cdd: design/cdd/vue-web-console.md, status: "Designed"}
   - {num: 12, slug: clean-architecture-migration, name: "Clean Architecture Migration", category: Operations, layer: Operations, cdd: design/cdd/clean-architecture-migration.md, status: "Designed"}
@@ -171,7 +171,7 @@ interfaces:
     consumers: [vue-web-console, pyqt-desktop-dashboard]
     transports: [http]
     adr: docs/architecture/adr-0007-api-surface-and-cors.md
-    signature: "51 product routes; JSON + SSE; bind 127.0.0.1:8901; legacy /api plus daemon /v1"
+    signature: "58 product routes; JSON + SSE; bind 127.0.0.1:8901; legacy /api plus daemon /v1"
     referenced_by:
       - docs/architecture/adr-0008-web-architecture.md
     added: "2026-06-12"
@@ -226,6 +226,33 @@ interfaces:
     adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
     signature: "QThread workers emit Qt signals (finished_signal, result_signal); UI thread never blocks"
     added: "2026-06-12"
+
+  - contract: enterprise_model_gateway
+    status: active
+    pattern: direct_call
+    producer: macro-strategy-engine
+    consumers: [research-copilot-agent-runtime, macro-strategy-engine, financial-tools]
+    adr: docs/architecture/adr-0012-enterprise-model-gateway.md
+    signature: "IEnterpriseModelGateway routes provider-neutral requests with task/profile, tenant/user hashes, prompt cache key, usage, latency, and cost metadata"
+    added: "2026-06-21"
+
+  - contract: governed_agent_tool_invocation
+    status: active
+    pattern: direct_call
+    producer: research-copilot-agent-runtime
+    consumers: [financial-tools, fastapi-service, sdk-daemon-client-interfaces]
+    adr: docs/architecture/adr-0013-tool-governance.md
+    signature: "Tool schemas expose category/entitlement/approval metadata; execution re-checks entitlement and routes high-risk actions through approval"
+    added: "2026-06-21"
+
+  - contract: multimodal_evidence_context
+    status: active
+    pattern: shared_resource
+    producer: document-evidence-pipeline
+    consumers: [research-copilot-agent-runtime, research-insight-knowledge-base, vue-web-console]
+    adr: docs/architecture/adr-0014-multimodal-evidence.md
+    signature: "Document/page/chunk/evidence records carry stable provenance for citations, RAG lookup, and deterministic claim validation"
+    added: "2026-06-21"
 
 # ============================================================================
 # FORBIDDEN PATTERNS — explicitly banned by ADR-0001
@@ -508,3 +535,35 @@ adr_index:
     path: docs/architecture/adr-0011-agent-runtime-levels.md
     governs: "Research Copilot Level 1/2/3 runtime model; daemon and SDK maturity gates"
     depends_on: [ADR-0001, ADR-0002, ADR-0007, ADR-0008]
+
+  - id: ADR-0012
+    title: "Enterprise Model Gateway"
+    status: Accepted
+    date: "2026-06-21"
+    path: docs/architecture/adr-0012-enterprise-model-gateway.md
+    governs: "provider-neutral enterprise model gateway, Kimi routing metadata, usage/cost fields"
+    depends_on: [ADR-0001, ADR-0005, ADR-0011]
+
+  - id: ADR-0013
+    title: "Financial Tool Governance"
+    status: Accepted
+    date: "2026-06-21"
+    path: docs/architecture/adr-0013-tool-governance.md
+    governs: "tool categories, entitlements, approval-gated high-risk actions, forbidden automation boundaries"
+    depends_on: [ADR-0001, ADR-0011, ADR-0012]
+
+  - id: ADR-0014
+    title: "Multimodal Financial Evidence"
+    status: Accepted
+    date: "2026-06-21"
+    path: docs/architecture/adr-0014-multimodal-evidence.md
+    governs: "document/page/chunk/evidence provenance, Kimi files/vision boundary, citation quality gates"
+    depends_on: [ADR-0003, ADR-0005, ADR-0011, ADR-0012]
+
+  - id: ADR-0015
+    title: "Enterprise Identity And Access Boundary"
+    status: Proposed
+    date: "2026-06-21"
+    path: docs/architecture/adr-0015-enterprise-identity-and-access.md
+    governs: "OIDC/JWT enterprise auth boundary, tenant ACLs, approval actor, audit actor, secrets handling"
+    depends_on: [ADR-0007, ADR-0011, ADR-0012, ADR-0013, ADR-0014]

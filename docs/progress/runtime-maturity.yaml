@@ -127,18 +127,22 @@ sprint_010_evidence_foundation_gates:
 
 sprint_011_streaming_gates:
   web_research_agent_uses_v1_sse:
-    status: partial
+    status: passed
     evidence:
       - web/src/api/agent.ts
       - web/src/__tests__/agentApi.spec.ts
       - web/src/__tests__/agentStore.spec.ts
-    blocked_by:
-      - browser/manual reconnect evidence is not captured
+      - production/qa/evidence/manual/browser-sdk-sse-reconnect-2026-06-22.md
+      - scripts/research_agent_doged_reconnect_smoke.py
+      - production/qa/evidence/manual/research-agent-doged-reconnect-2026-06-22.md
+    blocked_by: []
   typescript_sdk_reconnect:
     status: passed
     evidence:
       - packages/doge-sdk-typescript/src/client.ts
       - packages/doge-sdk-typescript/src/__tests__/client.spec.ts
+      - scripts/browser_sdk_reconnect_smoke.py
+      - production/qa/evidence/manual/browser-sdk-sse-reconnect-2026-06-22.json
     blocked_by: []
   python_sdk_async_streaming:
     status: passed
@@ -149,12 +153,13 @@ sprint_011_streaming_gates:
       - tests/contract/test_python_sdk.py
     blocked_by: []
   client_streaming_release_gate:
-    status: partial
+    status: passed
     evidence:
       - docs/progress/sse-sdk-streaming-notes.md
       - production/qa/qa-plan-sprint-011.md
-    blocked_by:
-      - browser/manual reconnect evidence pending
+      - production/qa/evidence/manual/browser-sdk-sse-reconnect-2026-06-22.md
+      - production/qa/evidence/manual/research-agent-doged-reconnect-2026-06-22.md
+    blocked_by: []
 
 sprint_012_rag_foundation_gates:
   embedding_and_cache_ports:
@@ -253,17 +258,17 @@ sprint_014_industry_report_modular_gates:
       - tests/unit/agent/test_tool_registry.py
     blocked_by: []
   canonical_scan_router_decoupling:
-    status: partial
+    status: passed
     evidence:
       - src/doge/core/ports/tdx_server_list.py
       - src/doge/infrastructure/data_source/tdx_server_list.py
+      - src/doge/infrastructure/data_source/tdx_helpers.py
       - src/doge/interfaces/api/routers/scan.py
       - tests/contract/test_no_micro_imports_in_interface.py
       - tests/unit/infrastructure/test_tdx_server_list.py
+      - tests/unit/infrastructure/test_tdx_helpers.py
       - tests/unit/layer_gates/test_no_micro_under_doge.py
-    blocked_by:
-      - legacy TDX helper deletion remains deferred
-      - live TDX server smoke remains operator-environment-dependent
+    blocked_by: []
   adr_cdd_modularization_update:
     status: passed
     evidence:
@@ -292,19 +297,30 @@ sprint_015_release_quality_gates:
       - web/src/views/ResearchAgentView.vue
       - web/src/views/ResearchAgentView.spec.ts
       - production/qa/accessibility-sprint-015.md
+      - scripts/research_agent_ax_tree_smoke.py
+      - production/qa/evidence/manual/research-agent-ax-tree-2026-06-22.md
+      - production/qa/screen-reader-manual-protocol-s017.md
+      - production/qa/evidence/manual/research-agent-screen-reader-manual-template-2026-06-22.json
+      - scripts/build_screen_reader_evidence.py
+      - scripts/validate_screen_reader_evidence.py
+      - tests/unit/qa/test_build_screen_reader_evidence.py
+      - tests/unit/qa/test_validate_screen_reader_evidence.py
     blocked_by:
-      - screen-reader manual pass remains deferred
+      - screen-reader manual session remains pending; protocol/template/builder/validator are ready
   core_web_vitals_applicability:
     status: passed
     evidence:
       - production/qa/accessibility-sprint-015.md
     blocked_by: []
   soak_protocol:
-    status: partial
+    status: passed
     evidence:
       - production/qa/soak-protocol-sprint-015.md
-    blocked_by:
-      - one-hour daemon soak has not been executed
+      - scripts/daemon_soak.py
+      - tests/unit/qa/test_daemon_soak_script.py
+      - production/qa/evidence/soak/daemon-soak-run-20260622T044433/daemon-soak-20260621T204434Z.json
+      - production/qa/evidence/soak/daemon-soak-run-20260622T044433/soak-summary.md
+    blocked_by: []
   promotion_review:
     status: passed
     evidence:
@@ -312,6 +328,139 @@ sprint_015_release_quality_gates:
       - docs/progress/release-quality-promotion-review.md
     blocked_by:
       - no Stable promotion authorized
+
+sprint_016_kimi_research_copilot_closure_gates:
+  web_research_business_loop:
+    status: passed
+    evidence:
+      - web/src/views/ResearchAgentView.vue
+      - web/src/components/agent/DocumentUploader.vue
+      - web/src/components/agent/DocumentSelector.vue
+      - web/src/components/agent/ExecutionProfileSelector.vue
+      - web/src/components/agent/PortfolioImporter.vue
+      - web/src/components/agent/CitationDrilldown.vue
+      - web/src/components/agent/CostEvalPanel.vue
+      - src/doge/interfaces/api/routers/v1/portfolios.py
+      - src/doge/application/services/portfolio_import_service.py
+      - production/qa/evidence/manual/research-agent-wave1-2026-06-21.md
+      - production/qa/evidence/manual/research-agent-s016-web-verification-2026-06-22.md
+      - production/qa/evidence/manual/research-agent-browser-walkthrough-2026-06-22.md
+    blocked_by: []
+  financial_connector_boundaries:
+    status: passed
+    evidence:
+      - src/doge/core/ports/financial_connectors.py
+      - src/doge/infrastructure/finance/local_connectors.py
+      - docs/progress/financial-connector-boundaries.md
+      - docs/progress/financial-provider-fixture-contract.md
+      - tests/fixtures/financial_connectors/provider_fixture_contract.json
+      - tests/unit/infrastructure/test_financial_connectors.py
+      - tests/unit/infrastructure/test_financial_provider_fixture_contract.py
+      - tests/unit/agent/test_tool_service.py
+      - tests/unit/test_portfolio_service.py
+    blocked_by: []
+  financial_eval_gold_set:
+    status: passed
+    evidence:
+      - tests/eval/gold_cases.json
+      - tests/eval/gold_eval.py
+      - tests/eval/test_gold_eval.py
+      - docs/progress/financial-eval-gold-set.md
+      - production/qa/evidence/eval/research-gold-set-2026-06-21.md
+    blocked_by: []
+  architecture_boundary_cleanup:
+    status: passed
+    evidence:
+      - src/doge/application/agent/tool_service.py
+      - src/doge/application/composition.py
+      - src/doge/infrastructure/data_source/tdx_helpers.py
+      - docs/progress/architecture-enterprise-closure.md
+      - docs/progress/research-use-case-call-graph.md
+      - tests/unit/agent/test_tool_service.py
+      - tests/unit/agent/test_tool_registry.py
+      - tests/unit/infrastructure/test_tdx_helpers.py
+      - tests/unit/application/test_research_path_boundaries.py
+    blocked_by: []
+  kimi_agent_sdk_semantic_adapter:
+    status: passed
+    evidence:
+      - src/doge/infrastructure/agent/kimi_sdk_adapter.py
+      - src/doge/infrastructure/agent/backends.py
+      - src/doge/core/ports/agent_backend.py
+      - tests/unit/agent/test_backends.py
+      - tests/unit/agent/test_kimi_sdk_adapter.py
+      - tests/live/test_kimi_live_smoke.py
+      - scripts/run_kimi_live_smoke.py
+      - scripts/validate_kimi_live_smoke_evidence.py
+      - scripts/validate_financial_provider_approval_evidence.py
+      - scripts/build_financial_provider_approval_evidence.py
+      - scripts/validate_sdk_release_approval_evidence.py
+      - scripts/build_sdk_release_approval_evidence.py
+      - scripts/validate_enterprise_production_validation_evidence.py
+      - scripts/build_enterprise_production_validation_evidence.py
+      - scripts/validate_analyst_benchmark_evidence.py
+      - scripts/build_analyst_benchmark_evidence.py
+      - scripts/validate_plan_closure_gate.py
+      - scripts/validate_plan_closure_runbook.py
+      - scripts/export_plan_closure_manifest.py
+      - scripts/validate_plan_closure_manifest.py
+      - scripts/validate_kimi_plan_completion_audit.py
+      - scripts/evidence_placeholders.py
+      - scripts/evidence_redaction.py
+      - docs/progress/9b77f9c-external-closure-runbook.md
+      - production/qa/evidence/provider/provider-decisions-template-2026-06-22.json
+      - production/qa/evidence/sdk/sdk-release-decisions-template-2026-06-22.json
+      - production/qa/evidence/manual/screen-reader-observations-template-2026-06-22.json
+      - production/qa/evidence/enterprise/enterprise-production-observations-template-2026-06-22.json
+      - production/qa/evidence/eval/live-kimi-observations-template-2026-06-22.json
+      - production/qa/evidence/eval/approved-thresholds-template-2026-06-22.json
+      - production/qa/evidence/eval/material-manifest-template-2026-06-22.json
+      - production/qa/evidence/eval/label-manifest-template-2026-06-22.json
+      - production/qa/evidence/eval/trend-history-template-2026-06-22.jsonl
+      - tests/unit/qa/test_validate_kimi_live_smoke_evidence.py
+      - tests/unit/qa/test_validate_financial_provider_approval_evidence.py
+      - tests/unit/qa/test_build_financial_provider_approval_evidence.py
+      - tests/unit/qa/test_validate_sdk_release_approval_evidence.py
+      - tests/unit/qa/test_build_sdk_release_approval_evidence.py
+      - tests/unit/qa/test_validate_enterprise_production_validation_evidence.py
+      - tests/unit/qa/test_build_enterprise_production_validation_evidence.py
+      - tests/unit/qa/test_validate_analyst_benchmark_evidence.py
+      - tests/unit/qa/test_build_analyst_benchmark_evidence.py
+      - tests/unit/qa/test_validate_plan_closure_gate.py
+      - tests/unit/qa/test_validate_plan_closure_runbook.py
+      - tests/unit/qa/test_export_plan_closure_manifest.py
+      - tests/unit/qa/test_validate_plan_closure_manifest.py
+      - tests/unit/qa/test_validate_kimi_plan_completion_audit.py
+      - tests/unit/qa/test_evidence_placeholders.py
+      - tests/unit/qa/test_evidence_redaction.py
+      - tests/unit/qa/test_plan_closure_input_templates.py
+      - production/qa/evidence/live/kimi-live-smoke-2026-06-22.json
+      - production/qa/evidence/live/kimi-live-smoke-2026-06-22.md
+      - production/qa/evidence/plan-closure/9b77f9c-external-closure-manifest.json
+      - production/qa/evidence/provider/financial-provider-approval-template-2026-06-22.json
+      - production/qa/evidence/sdk/sdk-release-approval-template-2026-06-22.json
+      - production/qa/evidence/enterprise/enterprise-production-validation-template-2026-06-22.json
+      - production/qa/evidence/eval/analyst-benchmark-template-2026-06-22.json
+    blocked_by: []
+  enterprise_identity_design:
+    status: passed
+    evidence:
+      - docs/architecture/adr-0015-enterprise-identity-and-access.md
+      - design/cdd/fastapi-service.md
+      - design/cdd/research-copilot-agent-runtime.md
+      - design/cdd/document-evidence-pipeline.md
+      - design/cdd/sdk-daemon-client-interfaces.md
+      - docs/security-and-data-boundaries.md
+      - docs/architecture/tr-registry.yaml
+    blocked_by: []
+  governance_sync:
+    status: passed
+    evidence:
+      - design/cdd/module-index.md
+      - production/sprint-status.yaml
+      - docs/progress/runtime-maturity.yaml
+      - docs/registry/architecture.yaml
+    blocked_by: []
 
 kimi_enterprise_financial_copilot_gates:
   enterprise_model_gateway:
@@ -494,11 +643,13 @@ level_3:
     evidence:
       - src/doge/infrastructure/agent/kimi_sdk_adapter.py
       - src/doge/infrastructure/agent/backends.py
+      - src/doge/core/ports/agent_backend.py
+      - src/doge/application/agent/runtime_kernel.py
       - src/doge/infrastructure/llm/kimi_client.py
       - tests/unit/agent/test_kimi_sdk_adapter.py
       - tests/unit/agent/test_backends.py
     blocked_by:
-      - live Kimi Agent SDK verification remains environment-dependent
+      - live Kimi Agent SDK session/tool/approval/multimodal verification remains environment-dependent
 
 local_verification:
   python_full:
@@ -619,15 +770,351 @@ local_verification:
       typescript_sdk_full: "3 passed"
       typescript_sdk_build: passed
       remote_ci: "CI run 27897991661 success"
+  sprint_016_closure:
+    commands:
+      - ".\\.venv\\Scripts\\python.exe -m py_compile tests\\live\\test_kimi_live_smoke.py tests\\unit\\infrastructure\\test_financial_provider_fixture_contract.py"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\live\\test_kimi_live_smoke.py tests\\unit\\infrastructure\\test_financial_provider_fixture_contract.py -q"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\contract\\test_v1_api.py tests\\unit\\infrastructure\\test_financial_connectors.py tests\\unit\\infrastructure\\test_financial_provider_fixture_contract.py tests\\unit\\agent\\test_tool_service.py tests\\unit\\agent\\test_tool_registry.py tests\\unit\\test_portfolio_service.py tests\\eval\\test_gold_eval.py tests\\eval\\test_run_eval.py tests\\eval\\test_failure_injection.py tests\\test_tdx_adapter.py tests\\unit\\infrastructure\\test_tdx_helpers.py tests\\unit\\layer_gates\\test_no_micro_under_doge.py tests\\unit\\application\\test_research_path_boundaries.py tests\\unit\\agent\\test_backends.py tests\\unit\\agent\\test_kimi_sdk_adapter.py tests\\unit\\agent\\test_runtime_kernel.py tests\\unit\\agent\\test_inmemory_runtime.py tests\\unit\\agent\\test_model_router.py tests\\contract\\test_agent_router.py tests\\integration\\test_agent_sse_stream.py tests\\unit\\governance\\test_adr_lifecycle_status.py tests\\live\\test_kimi_live_smoke.py -q"
+      - "git diff --check"
+      - "YAML shape check for docs/progress/runtime-maturity.yaml, production/sprint-status.yaml, docs/registry/architecture.yaml, docs/architecture/tr-registry.yaml"
+    result:
+      py_compile_live_and_contract: passed
+      live_smoke_and_fixture_contract: "2 passed, 4 skipped"
+      targeted_cross_wave_regression: "120 passed, 6 skipped in 25.32s"
+      git_diff_check: "passed; LF/CRLF warnings only"
+      yaml_shape_check: "passed; no tabs or CR-only lines"
+      yaml_full_parse: "not run; PyYAML is not installed in this venv"
+      node_web_sdk: "transferred to S017-001 and later passed through temporary Node/npm browser/Web evidence"
+      live_kimi_execution: "not run locally; MOONSHOT_API_KEY and DOGE_LIVE_KIMI unset and transferred to S017-002"
+  sprint_017_planning_progress:
+    commands:
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\governance\\test_s017_planning_docs.py -q"
+      - ".\\.venv\\Scripts\\python.exe scripts\\run_kimi_live_smoke.py --output-dir production\\qa\\evidence\\live --allow-blocked"
+      - ".\\.venv\\Scripts\\python.exe scripts\\validate_kimi_live_smoke_evidence.py production\\qa\\evidence\\live\\kimi-live-smoke-2026-06-22.json --allow-blocked"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\qa\\test_validate_kimi_live_smoke_evidence.py -q"
+      - ".\\.venv\\Scripts\\python.exe scripts\\validate_financial_provider_approval_evidence.py production\\qa\\evidence\\provider\\financial-provider-approval-template-2026-06-22.json --allow-template"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\qa\\test_validate_financial_provider_approval_evidence.py -q"
+      - ".\\.venv\\Scripts\\python.exe -m py_compile scripts\\build_financial_provider_approval_evidence.py"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\qa\\test_build_financial_provider_approval_evidence.py -q"
+      - ".\\.venv\\Scripts\\python.exe scripts\\validate_sdk_release_approval_evidence.py production\\qa\\evidence\\sdk\\sdk-release-approval-template-2026-06-22.json --allow-template"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\qa\\test_validate_sdk_release_approval_evidence.py -q"
+      - ".\\.venv\\Scripts\\python.exe -m py_compile scripts\\build_sdk_release_approval_evidence.py"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\qa\\test_build_sdk_release_approval_evidence.py -q"
+      - ".\\.venv\\Scripts\\python.exe scripts\\validate_enterprise_production_validation_evidence.py production\\qa\\evidence\\enterprise\\enterprise-production-validation-template-2026-06-22.json --allow-template"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\qa\\test_validate_enterprise_production_validation_evidence.py -q"
+      - ".\\.venv\\Scripts\\python.exe -m py_compile scripts\\build_enterprise_production_validation_evidence.py"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\qa\\test_build_enterprise_production_validation_evidence.py -q"
+      - ".\\.venv\\Scripts\\python.exe scripts\\validate_analyst_benchmark_evidence.py production\\qa\\evidence\\eval\\analyst-benchmark-template-2026-06-22.json --allow-template"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\qa\\test_validate_analyst_benchmark_evidence.py -q"
+      - ".\\.venv\\Scripts\\python.exe -m py_compile scripts\\build_analyst_benchmark_evidence.py"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\qa\\test_build_analyst_benchmark_evidence.py -q"
+      - ".\\.venv\\Scripts\\python.exe -m py_compile scripts\\validate_plan_closure_gate.py"
+      - ".\\.venv\\Scripts\\python.exe scripts\\validate_plan_closure_gate.py --allow-open"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\qa\\test_validate_plan_closure_gate.py -q"
+      - ".\\.venv\\Scripts\\python.exe -m py_compile scripts\\validate_plan_closure_runbook.py"
+      - ".\\.venv\\Scripts\\python.exe scripts\\validate_plan_closure_runbook.py"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\qa\\test_validate_plan_closure_runbook.py -q"
+      - ".\\.venv\\Scripts\\python.exe -m py_compile scripts\\export_plan_closure_manifest.py"
+      - ".\\.venv\\Scripts\\python.exe scripts\\export_plan_closure_manifest.py"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\qa\\test_export_plan_closure_manifest.py -q"
+      - ".\\.venv\\Scripts\\python.exe -m py_compile scripts\\validate_plan_closure_manifest.py"
+      - ".\\.venv\\Scripts\\python.exe scripts\\validate_plan_closure_manifest.py"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\qa\\test_validate_plan_closure_manifest.py -q"
+      - ".\\.venv\\Scripts\\python.exe -m py_compile scripts\\validate_kimi_plan_completion_audit.py"
+      - ".\\.venv\\Scripts\\python.exe scripts\\validate_kimi_plan_completion_audit.py"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\qa\\test_validate_kimi_plan_completion_audit.py -q"
+      - ".\\.venv\\Scripts\\python.exe -m py_compile scripts\\evidence_placeholders.py"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\qa\\test_evidence_placeholders.py -q"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\qa\\test_plan_closure_input_templates.py -q"
+      - ".\\.venv\\Scripts\\python.exe scripts\\validate_governance_yaml_shape.py"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\qa\\test_validate_governance_yaml_shape.py -q"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\contract\\test_v1_api.py tests\\unit\\infrastructure\\test_financial_connectors.py tests\\unit\\infrastructure\\test_financial_provider_fixture_contract.py tests\\unit\\agent\\test_tool_service.py tests\\unit\\agent\\test_tool_registry.py tests\\unit\\test_portfolio_service.py tests\\eval\\test_gold_eval.py tests\\eval\\test_run_eval.py tests\\eval\\test_failure_injection.py tests\\test_tdx_adapter.py tests\\unit\\infrastructure\\test_tdx_helpers.py tests\\unit\\layer_gates\\test_no_micro_under_doge.py tests\\unit\\application\\test_research_path_boundaries.py tests\\unit\\agent\\test_backends.py tests\\unit\\agent\\test_kimi_sdk_adapter.py tests\\unit\\agent\\test_runtime_kernel.py tests\\unit\\agent\\test_inmemory_runtime.py tests\\unit\\agent\\test_model_router.py tests\\contract\\test_agent_router.py tests\\integration\\test_agent_sse_stream.py tests\\unit\\governance\\test_adr_lifecycle_status.py tests\\unit\\governance\\test_s017_planning_docs.py tests\\live\\test_kimi_live_smoke.py -q"
+    result:
+      planning_docs_contract: "23 passed in 0.08s"
+      kimi_live_runner_blocked_evidence: "result=blocked; blockers DOGE_LIVE_KIMI=1 and MOONSHOT_API_KEY; no raw key, prompt, or file id recorded"
+      kimi_live_evidence_validator: "passed with --allow-blocked; default mode rejects blocked evidence as incomplete"
+      kimi_live_validator_tests: "6 passed in 0.20s"
+      financial_provider_approval_template: "validates with --allow-template; default mode rejects not_run template as incomplete"
+      financial_provider_approval_validator_tests: "7 passed in 0.21s"
+      financial_provider_approval_builder: "scripts/build_financial_provider_approval_evidence.py converts compact operator decisions into validator-ready S017-003 evidence; non-approved outcomes require issue refs"
+      financial_provider_approval_builder_tests: "4 passed"
+      sdk_release_approval_template: "validates with --allow-template; default mode rejects not_run template as incomplete"
+      sdk_release_approval_validator_tests: "7 passed in 0.21s"
+      sdk_release_approval_builder: "scripts/build_sdk_release_approval_evidence.py converts compact release-manager decisions into validator-ready S017-007 evidence; non-approved outcomes require issue refs"
+      sdk_release_approval_builder_tests: "4 passed"
+      screen_reader_evidence_template: "validates with --allow-template; default mode rejects not_run template as incomplete"
+      screen_reader_evidence_builder: "scripts/build_screen_reader_evidence.py converts compact operator observations into validator-ready S017-006 passed/failed evidence; failed evidence requires issue refs"
+      screen_reader_evidence_builder_tests: "5 passed"
+      enterprise_production_validation_template: "validates with --allow-template; default mode rejects not_run template as incomplete"
+      enterprise_production_validation_tests: "7 passed in 0.24s"
+      enterprise_production_validation_builder: "scripts/build_enterprise_production_validation_evidence.py converts compact operator production observations into validator-ready AUTH-prod passed/failed evidence; failed evidence requires issue refs"
+      enterprise_production_validation_builder_tests: "6 passed"
+      analyst_benchmark_template: "validates with --allow-template; default mode rejects not_run template as incomplete"
+      analyst_benchmark_validator_tests: "9 passed"
+      analyst_benchmark_builder: "scripts/build_analyst_benchmark_evidence.py converts redacted observations plus approved thresholds into validator-ready W3-live evidence; failed evidence requires issue refs"
+      analyst_benchmark_builder_tests: "3 passed"
+      plan_closure_gate: "scripts/validate_plan_closure_gate.py reports result=open with 6 controlled open external gates under --allow-open, emits next_action/strict_command/passing_results per gate, ignores template files even when they match completed-evidence globs, prefers non-template completed evidence before template fallbacks, and requires each gate to reach its explicit passing_results rather than merely passing structural validation; default strict mode rejects the same open evidence"
+      plan_closure_runbook: "docs/progress/9b77f9c-external-closure-runbook.md records required results, manifest export/validation commands, and validates against scripts/validate_plan_closure_gate.py through scripts/validate_plan_closure_runbook.py"
+      plan_closure_manifest: "scripts/export_plan_closure_manifest.py writes production/qa/evidence/plan-closure/9b77f9c-external-closure-manifest.json with 6 open tasks, required_results, validator_command, next_action, blockers, builder/runner handoff commands, input_templates, input_refs, output_ref, close_condition, and non-production posture"
+      plan_closure_manifest_validator: "scripts/validate_plan_closure_manifest.py verifies the generated manifest still matches the current closure gate; stale task lists or gate metadata fail"
+      plan_completion_audit_validator: "scripts/validate_kimi_plan_completion_audit.py verifies docs/progress/kimi-plan-completion-audit.md has the same 6 remaining external gates, required passing results, fallback evidence, completed evidence patterns, and validator scripts as scripts/validate_plan_closure_gate.py"
+      plan_closure_external_preflight: "scripts/preflight_plan_closure_external.py checks manifest freshness, allow-open gate posture, runner/builder/validator scripts, output dirs, templates, required env/file inputs, optional Agent SDK readiness, optional handoff workspace validity, and workspace draft input readiness without printing secret values; copied templates are not treated as ready external inputs; draft JSON/JSONL content gets lightweight schema sanity checks, unresolved-placeholder checks, credential-shaped value checks, S017-003 provider approval field checks for all five connector capabilities/license/storage/freshness/provenance details, S017-007 SDK release field checks for Python/TypeScript package decisions/registry smoke/security review, and W3-live gold-case/label-count consistency checks before being considered ready; --task-id limits the check to one external closure task for split operator windows"
+      plan_closure_handoff_workspace: "scripts/prepare_plan_closure_handoff.py reads the manifest and prepares a dated operator handoff workspace with copied draft inputs, README.md, handoff.json, operator-checklist.md, operator-commands.ps1, and workspace_command_plan entries that bind draft inputs into builder commands while leaving completed evidence outputs in production evidence folders; the checklist gives a compact per-gate input/output/validator table and rejects template-as-evidence closure; the command list runs preflight, builders/runners, strict validators, manifest/runbook/audit validators, and the final gate, single-quotes prepared input and resolved evidence output paths for PowerShell, defines $repoRoot and Set-Location before repo-relative commands, defines and checks $python before invoking Python, supports -TaskId for task-scoped execution with --task-id preflight, and does not create completed evidence or close gates by itself"
+      plan_closure_handoff_validator: "scripts/validate_plan_closure_handoff.py validates prepared handoff workspaces against the manifest and rejects stale metadata, missing/out-of-workspace draft inputs, missing warnings, missing or weakened operator checklist/command lists, missing repo-root self-location, missing Python interpreter guard, missing task-selection wiring, missing completion-audit validation before the strict gate, command plans that write completed evidence into the workspace, or completed-evidence-looking files"
+      plan_closure_gate_tests: "8 passed"
+      plan_closure_runbook_tests: "3 passed"
+      plan_closure_manifest_tests: "2 passed"
+      plan_closure_manifest_validator_tests: "3 passed"
+      plan_completion_audit_validator_tests: "4 passed"
+      plan_closure_external_preflight_tests: "tests/unit/qa/test_preflight_plan_closure_external.py: 13 passed; includes edited-draft rejection when template sentinel placeholders remain, credential-shaped draft values appear, provider/SDK approval details are incomplete, or W3-live observations do not cover the gold set"
+      plan_closure_handoff_tests: "tests/unit/qa/test_prepare_plan_closure_handoff.py: 3 passed with workspace_command_plan, operator-checklist.md, operator-commands.ps1, repo-root self-location, Python interpreter guard, TaskId filtering, and path-with-spaces coverage"
+      plan_closure_handoff_validator_tests: "tests/unit/qa/test_validate_plan_closure_handoff.py: 13 passed"
+      external_evidence_placeholder_guard: "scripts/evidence_placeholders.py rejects unresolved template placeholders such as <...>, YYYY-MM-DD, $createdAt, $analystInitials, *-TEMPLATE, and TEMPLATE_* in completed external evidence and edited handoff draft inputs; strict validators apply it to passed/failed/approved/rejected/needs_revision evidence while preserving explicit template/blocker modes"
+      external_evidence_placeholder_tests: "tests/unit/qa/test_evidence_placeholders.py: 2 passed"
+      external_evidence_redaction_guard: "scripts/evidence_redaction.py rejects unredacted sensitive fields, bearer credentials, provider-style API keys, and key-value secret assignments in completed external evidence and edited handoff drafts without printing secret values; the scanner avoids token-count metadata and redacted placeholders"
+      external_evidence_redaction_tests: "tests/unit/qa/test_evidence_redaction.py: 2 passed"
+      plan_closure_input_template_tests: "6 passed; generated non-closing evidence from copied operator templates now fails strict validation when unresolved placeholder issue ids or template sentinels remain"
+      governance_yaml_shape_check: "scripts/validate_governance_yaml_shape.py passed for docs/progress/runtime-maturity.yaml, production/sprint-status.yaml, docs/registry/architecture.yaml, docs/registry/entities.yaml, and docs/architecture/tr-registry.yaml; validates UTF-8, no tab indentation, no CR-only line endings, even two-space indentation, unique top-level keys, and required top-level sections without claiming full YAML parsing"
+      governance_yaml_shape_tests: "tests/unit/qa/test_validate_governance_yaml_shape.py: 6 passed"
+      fastapi_route_governance_sync: "docs/API.md, design/cdd/fastapi-service.md, docs/registry/architecture.yaml, docs/registry/entities.yaml, docs/architecture/tr-registry.yaml, docs/architecture/architecture-traceability.md, docs/architecture/adr-0007-api-surface-and-cors.md, and docs/imports/my-doge-micro/current-state-2026-06-21.md now agree on 58 product routes; tests/contract/test_api_doc_route_coverage.py proves docs/API.md matches the live FastAPI app, and tests/unit/governance/test_s017_planning_docs.py proves docs/registry/entities.yaml has the same (method, path) route set"
+      external_evidence_validator_suite: "142 passed in 8.04s"
+      targeted_cross_wave_regression: "176 passed, 4 skipped in 21.74s"
+      prepared_external_handoff_workspace: "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22; validation passed; includes operator-checklist.md and preflight reports pending_external_inputs because copied drafts still match templates"
+      enterprise_auth_implementation_plan: "docs/progress/enterprise-auth-implementation-plan.md"
+      financial_provider_approval_packet: "docs/progress/financial-provider-approval-packet.md"
+      kimi_plan_completion_audit: "docs/progress/kimi-plan-completion-audit.md; six remaining external items are machine-checked by scripts/validate_kimi_plan_completion_audit.py"
+      git_diff_check: "passed; LF/CRLF warnings only"
+      yaml_shape_check: "scripts/validate_governance_yaml_shape.py passed; 5 files, 0 findings"
+      dependency_check: "Default PATH has no Node/npm; temporary Node was found and used; Kimi live env vars unset; structured S017-002 blocked evidence exists"
+      external_items_remaining: "S017-002 real live Kimi execution, S017-003 completed provider approval/license scope and approved real provider fixture storage, W3 analyst benchmark template execution with real materials/live Kimi observations/human labels/thresholds/trend history, enterprise production validation template execution for live IdP/JWKS, production secret-store command smoke/rotation evidence, SDK registry publication/release approval/registry-backed consumer smoke, production SIEM/WORM sink integration and operator sign-off, live remote-bind deployment smoke, and production data-isolation review"
+  sprint_017_web_sdk_automated_verification:
+    commands:
+      - "cd web && npm ci"
+      - "cd web && npm test -- --run src/views/ResearchAgentView.spec.ts src/__tests__/agentApi.spec.ts src/__tests__/agentStore.spec.ts src/stores/documents.spec.ts"
+      - "cd web && npm test"
+      - "cd web && npm run build"
+      - "cd web && npx vue-tsc --noEmit"
+      - "cd packages/doge-sdk-typescript && npm test"
+      - "cd packages/doge-sdk-typescript && npm run build"
+    result:
+      node_version: "v24.17.0 via temporary Node path"
+      npm_version: "11.13.0 via temporary Node path"
+      web_clean_install: "passed; npm audit and npm audit --omit=dev report 0 vulnerabilities after lockfile refresh and Vitest 4.1.9 upgrade"
+      web_targeted_tests: "4 files, 8 tests passed"
+      web_full_tests: "12 files, 78 tests passed under Vitest 4.1.9"
+      web_build: passed
+      web_typecheck: passed
+      typescript_sdk_tests: "1 file, 11 tests passed under Vitest 4.1.9"
+      typescript_sdk_build: passed
+      browser_manual_walkthrough: "passed; production/qa/evidence/manual/research-agent-browser-walkthrough-2026-06-22.md"
+      browser_citation_drilldown_fixture: "passed; populated citation drawer source/page/snippet captured"
+  sprint_017_enterprise_auth_boundary:
+    commands:
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\interfaces\\test_api_auth_startup.py tests\\unit\\interfaces\\test_tenant_context_middleware.py tests\\unit\\infrastructure\\test_enterprise_auth_provider.py tests\\unit\\infrastructure\\test_jwt_enterprise_auth_provider.py tests\\compat\\test_api_loopback_guarantee.py tests\\test_settings.py -q"
+      - ".\\.venv\\Scripts\\python.exe -m compileall -q src/doge/core/ports/enterprise_auth.py src/doge/infrastructure/auth src/doge/interfaces/api/middleware/tenant_context.py src/doge/config/settings.py src/doge/interfaces/api/main.py tests/unit/infrastructure/test_enterprise_auth_provider.py tests/unit/interfaces/test_tenant_context_middleware.py"
+      - ".\\.venv\\Scripts\\python.exe scripts\\doged_enterprise_static_auth_smoke.py --output-dir production\\qa\\evidence\\manual"
+      - ".\\.venv\\Scripts\\python.exe scripts\\doged_enterprise_jwks_auth_smoke.py --output-dir production\\qa\\evidence\\manual"
+      - ".\\.venv\\Scripts\\python.exe scripts\\doged_remote_bind_gate_smoke.py --output-dir production\\qa\\evidence\\manual"
+    result:
+      auth_boundary_tests: "56 passed, 1 warning in 1.51s"
+      targeted_cross_wave_regression_after_auth_boundary: "160 passed, 4 skipped in 19.66s"
+      compileall: passed
+      doged_static_bearer_smoke: "passed; production/qa/evidence/manual/doged-enterprise-static-auth-smoke-2026-06-22.json"
+      doged_local_jwks_smoke: "passed; production/qa/evidence/manual/doged-enterprise-jwks-auth-smoke-2026-06-22.json"
+      doged_remote_bind_gate_smoke: "passed; production/qa/evidence/manual/doged-remote-bind-gate-smoke-2026-06-22.json"
+      implemented:
+        - "AuthConfig with DOGE_AUTH_MODE and OIDC/static fixture fields"
+        - "APIConfig with remote-bind, CORS allow-list, and TLS-termination gate fields"
+        - "IEnterpriseAuthProvider and AuthenticatedPrincipal port"
+        - "Fail-closed DenyAll provider when enterprise mode lacks configured provider"
+        - "API startup rejects enterprise mode when the provider builder resolves to DenyAll"
+        - "StaticBearerAuthProvider for local fixture validation only"
+        - "TenantContextMiddleware bearer path that maps trusted principals and ignores caller-supplied tenant/user headers"
+        - "Real doged loopback smoke verifies enterprise static bearer startup, missing/wrong bearer rejection, authorized session/document calls, creator ACL grant, and tenant-scoped audit listing"
+        - "Real doged loopback smoke verifies the OIDC/JWKS path against a temporary local JWKS endpoint, including missing bearer, wrong audience, invalid signature, authorized session/document calls, creator ACL grant, tenant-scoped audit listing, and proof that PyJWKClient fetched the JWKS URL"
+        - "Remote-bind promotion gate requires DOGE_ALLOW_REMOTE_BIND=1, enterprise auth, configured provider, explicit CORS allow-list, and TLS termination acknowledgement"
+        - "Real doged daemon-entrypoint smoke verifies unapproved DOGE_BIND_HOST=0.0.0.0 exits through the ADR-0007 gate and approved remote bind starts only with enterprise auth, explicit CORS, and TLS acknowledgement"
+      remaining:
+        - "Live IdP/JWKS smoke against an operator-approved identity provider"
+        - "Production SIEM/WORM sink integration and operator sign-off"
+        - "SDK registry publication and release approval"
+        - "Live remote-bind deployment smoke in an operator-approved environment"
+  sprint_017_enterprise_acl_audit:
+    commands:
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\infrastructure\\test_enterprise_governance_repository.py tests\\contract\\test_enterprise_acl_api.py -q"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\contract\\test_v1_api.py tests\\unit\\interfaces\\test_tenant_context_middleware.py -q"
+    result:
+      governance_repository_tests: "5 passed"
+      enterprise_acl_api_tests: "16 passed"
+      document_portfolio_partition_regression: "25 passed"
+      runtime_evidence_partition_regression: "25 passed in 7.70s"
+      v1_api_and_middleware_regression: "14 passed"
+      audit_retention_regression: "18 passed in 5.77s"
+      audit_export_integrity_handoff_regression: "18 passed in 5.28s"
+      enterprise_acl_admin_and_v1_regression: "26 passed in 8.08s"
+      targeted_cross_wave_regression_after_acl_audit: "192 passed, 4 skipped in 26.24s"
+      implemented:
+        - "SQLite enterprise ACL grants scoped by tenant, subject, resource type, resource id, and permission"
+        - "Documents table stores tenant_id and enterprise document list/get filters by trusted tenant before ACL checks"
+        - "Portfolios table stores tenant_id and enterprise portfolio import writes trusted tenant metadata"
+        - "Sessions, turns, runs, events, artifacts, approvals, document pages/chunks, and evidence records store tenant_id"
+        - "Repository and API tests cover session/run/event/artifact/approval/evidence tenant filtering"
+        - "Schema bootstrap migrates tenant_id columns into legacy runtime/evidence tables"
+        - "ContextBuilder filters session history, prior artifacts, document content, multimodal file ids, and chunks by trusted tenant context"
+        - "Append-only enterprise audit events"
+        - "Approval actor decision records with tenant, actor hash, request id, authority source, decision, and metadata"
+        - "Document list/get/create API ACL filtering, read denial, creator grants, and audit events"
+        - "Portfolio import creator grants and audit events"
+        - "Tool listing filter through persistent tool ACL or trusted entitlement claims"
+        - "Approval resolution authority checks and actor recording"
+        - "Tenant-scoped admin ACL grant/list/revoke API with role enforcement and audit events"
+        - "Tenant-scoped admin-only /v1/audit/events/retention purge with configurable DOGE_AUDIT_RETENTION_DAYS"
+  sprint_017_rag_citation_acl:
+    commands:
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\agent\\test_tool_service.py tests\\unit\\agent\\test_tool_registry.py tests\\unit\\test_citation_service.py -q"
+    result:
+      rag_citation_acl_tests: "23 passed"
+      targeted_cross_wave_regression_after_rag_citation_acl: "157 passed, 6 skipped in 26.79s"
+      implemented:
+        - "ToolRegistry passes enterprise context into hidden tool parameters when supported"
+        - "lookup_evidence scopes RAG search by document ACL and denies enterprise empty-ACL fallback"
+        - "validate_financial_claims filters RAG evidence by document ACL"
+        - "CitationService filters generated citations by document ACL"
+      remaining:
+        - "Retrieval-quality and citation-quality benchmarks with analyst-labeled documents"
+  sprint_017_runtime_tool_acl_audit_export:
+    commands:
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\agent\\test_runtime_kernel.py tests\\contract\\test_enterprise_acl_api.py -q"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\contract\\test_v1_api.py tests\\contract\\test_agent_router.py tests\\contract\\test_enterprise_acl_api.py tests\\contract\\test_python_sdk.py tests\\unit\\agent\\test_runtime_kernel.py tests\\unit\\agent\\test_worker.py tests\\unit\\agent\\test_context_builder.py tests\\unit\\agent\\test_tool_registry.py tests\\unit\\agent\\test_tool_service.py tests\\unit\\agent\\test_model_router.py tests\\unit\\agent\\test_kimi_sdk_adapter.py tests\\unit\\agent\\test_backends.py tests\\unit\\application\\test_runtime_backed_research_use_cases.py tests\\unit\\infrastructure\\test_financial_connectors.py tests\\unit\\infrastructure\\test_financial_provider_fixture_contract.py tests\\unit\\infrastructure\\test_enterprise_auth_provider.py tests\\unit\\infrastructure\\test_jwt_enterprise_auth_provider.py tests\\unit\\infrastructure\\test_enterprise_governance_repository.py tests\\unit\\infrastructure\\test_kimi_enterprise_gateway.py tests\\unit\\infrastructure\\test_kimi_client.py tests\\unit\\infrastructure\\test_kimi_files_client.py tests\\unit\\infrastructure\\test_tdx_helpers.py tests\\integration\\test_rag_retrieval.py tests\\integration\\test_agent_sse_stream.py tests\\eval\\test_run_eval.py tests\\eval\\test_gold_eval.py tests\\eval\\test_failure_injection.py tests\\unit\\governance\\test_s017_planning_docs.py tests\\live\\test_kimi_live_smoke.py -q"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\interfaces\\test_tenant_context_middleware.py tests\\unit\\test_citation_service.py tests\\unit\\agent\\test_tool_service.py tests\\contract\\test_enterprise_acl_api.py -q"
+    result:
+      runtime_and_api_acl_audit: "25 passed in 9.76s"
+      targeted_cross_wave_regression_after_runtime_acl_audit: "157 passed, 4 skipped in 19.46s"
+      tenant_context_citation_acl_regression: "28 passed in 2.90s"
+      implemented:
+        - "RuntimeKernel derives trusted EnterpriseContext from stored ModelPolicy"
+        - "Trusted API session creation injects persistent document, portfolio, tool, and approval ACLs into ModelPolicy"
+        - "Runtime tool schemas are filtered by persistent ACL or trusted entitlements before model calls"
+        - "Runtime tool execution is denied by default for enterprise contexts without a persistent grant or trusted entitlement"
+        - "Runtime emits model_route, tool_execute, and tool_denied audit events with tenant, actor, request id, run id, and metadata"
+        - "Tenant-scoped /v1/audit/events route lists only the caller tenant's audit records"
+        - "Admin-only /v1/audit/events/export emits redacted tenant-scoped JSONL plus SHA-256/count/schema integrity headers for SIEM/WORM handoff"
+        - "Admin-only /v1/audit/events/retention purges only the caller tenant's expired audit records and records the purge action"
+        - "Tenant-scoped /v1/enterprise/acl/grants route supports trusted admin grant/list/revoke operations"
+        - "Local operational audit review recorded at docs/progress/enterprise-operational-audit-review.md"
+        - "Audit SIEM/WORM handoff packet recorded at docs/progress/audit-siem-worm-handoff-packet.md"
+      remaining:
+        - "Live IdP/JWKS smoke against an operator-approved identity provider"
+        - "Live production secret-store command smoke, permissions, and rotation evidence"
+        - "Production SIEM/WORM sink integration and operator sign-off"
+  sprint_017_oidc_jwt_provider:
+    commands:
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\infrastructure\\test_jwt_enterprise_auth_provider.py -q"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\infrastructure\\test_jwt_enterprise_auth_provider.py tests\\unit\\infrastructure\\test_enterprise_auth_provider.py tests\\unit\\interfaces\\test_tenant_context_middleware.py tests\\test_settings.py -q"
+      - ".\\.venv\\Scripts\\python.exe scripts\\doged_enterprise_jwks_auth_smoke.py --output-dir production\\qa\\evidence\\manual"
+    result:
+      jwt_provider_tests: "9 passed"
+      auth_settings_middleware_regression: "40 passed"
+      targeted_cross_wave_regression_after_jwt_provider: "139 passed, 6 skipped in 23.73s"
+      doged_local_jwks_smoke: "passed; production/qa/evidence/manual/doged-enterprise-jwks-auth-smoke-2026-06-22.json"
+      implemented:
+        - "JwtEnterpriseAuthProvider using PyJWT and PyJWKClient"
+        - "Issuer, audience, algorithm, expiry, required subject, required tenant, and signature validation"
+        - "Claims mapped to AuthenticatedPrincipal with hashed subject/token IDs"
+        - "Enterprise provider builder selects JWT provider when issuer/audience/JWKS config exists"
+        - "Real doged loopback smoke exercises PyJWKClient against a temporary JWKS URL and validates success plus missing bearer, wrong audience, and invalid signature failures"
+      remaining:
+        - "Live IdP/JWKS smoke in an operator-approved environment"
+        - "Deployment wiring and live environment startup smoke"
+  sprint_017_sdk_auth_pass_through:
+    commands:
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\core\\test_redaction.py tests\\contract\\test_enterprise_acl_api.py tests\\cli\\test_cli_session.py tests\\contract\\test_python_sdk.py tests\\unit\\governance\\test_s017_planning_docs.py -q"
+      - "cd packages/doge-sdk-typescript && npm test"
+      - "cd packages/doge-sdk-typescript && npm run build"
+    result:
+      python_redaction_and_sdk_contract: "44 passed"
+      typescript_sdk_tests: "1 file, 11 tests passed"
+      typescript_sdk_build: passed
+      targeted_cross_wave_regression_after_sdk_auth: "158 passed, 6 skipped in 31.97s"
+      local_external_consumer_smoke: "passed; production/qa/evidence/sdk/sdk-external-consumer-smoke.json"
+      implemented:
+        - "Python DogeClient and AsyncDogeClient accept request_id and send X-Request-ID with bearer auth"
+        - "Python SDK redacts bearer tokens from API error messages"
+        - "Python SDK redacts bearer tokens from SSE stream error response bodies"
+        - "Python SDK redacts key-value API secrets and provider-style sk-* values from API errors"
+        - "TypeScript DogeClient accepts requestId and sends X-Request-ID with JSON, multipart, and SSE requests"
+        - "TypeScript SDK redacts bearer tokens from API error messages"
+        - "TypeScript SDK redacts bearer tokens from SSE stream error response bodies"
+        - "TypeScript SDK redacts key-value API secrets and provider-style sk-* values from API errors"
+        - "Shared Python redaction utility redacts nested dataclasses/dicts/lists for audit and trace payloads"
+        - "Tenant-scoped audit JSONL export redacts sensitive keys, bearer strings, key-value secrets, and provider-style sk-* values"
+        - "Embedded CLI /trace and /artifacts output serializes redacted JSON instead of raw object repr"
+        - "Local operational audit review records audit coverage and production SIEM/WORM boundaries"
+        - "Python SDK wheel builds through PEP 517 and TypeScript SDK npm pack dry-run contains only dist/package metadata"
+        - "SDK release approval packet records registry, package-name, version, changelog, and external-consumer smoke requirements"
+        - "Local external-consumer artifact smoke installs Python wheel in a clean venv and TypeScript tarball in a clean Node ESM project"
+        - "TypeScript SDK emitted ESM uses .js relative module specifiers for Node tarball consumers"
+        - "TypeScript SDK reconnect regression covers mid-stream drop after event id 2 and replay with Last-Event-ID 2 before terminal event id 3"
+      remaining:
+        - "SDK registry publication, release-manager approval, package-name ownership, and registry-backed consumer smoke"
+        - "Enterprise end-to-end auth contract against doged"
+  sprint_017_secret_provider_rollout:
+    commands:
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\infrastructure\\test_secret_provider.py tests\\unit\\infrastructure\\test_kimi_client.py tests\\unit\\infrastructure\\test_kimi_files_client.py tests\\unit\\core\\ports\\test_llm_port.py tests\\unit\\infrastructure\\test_enterprise_auth_provider.py tests\\unit\\agent\\test_backends.py -q"
+      - ".\\.venv\\Scripts\\python.exe scripts\\doged_enterprise_process_secret_auth_smoke.py --output-dir production\\qa\\evidence\\manual"
+    result:
+      secret_provider_regression: "41 passed in 1.31s"
+      targeted_cross_wave_regression_after_secret_provider: "152 passed, 4 skipped in 18.30s"
+      doged_process_secret_smoke: "passed; production/qa/evidence/manual/doged-enterprise-process-secret-auth-smoke-2026-06-22.json"
+      implemented:
+        - "ISecretProvider core port"
+        - "EnvSecretProvider maps canonical names for Kimi, DeepSeek, and static bearer secrets"
+        - "SecretConfig selects env or process providers through DOGE_SECRET_PROVIDER"
+        - "ProcessSecretProvider executes an operator-controlled command template without a shell"
+        - "ProcessSecretProvider enforces safe canonical names, an allowlist, timeout handling, and fail-closed missing-secret semantics"
+        - "Composition root wires DOGE_SECRET_PROVIDER=process to ProcessSecretProvider"
+        - "API main builds enterprise auth with the configured SecretProvider instead of implicitly falling back to environment-only secrets"
+        - "Production secret-store selection and deployment wiring are recorded in docs/progress/production-secret-store-selection.md"
+        - "KimiAgentModel resolves api_key through SecretProvider when no explicit constructor override is supplied"
+        - "KimiFilesClient resolves api_key through SecretProvider"
+        - "KimiAgentSdkBackend resolves api_key through SecretProvider"
+        - "DeepSeekClient resolves api_key through SecretProvider"
+        - "Static bearer enterprise auth resolves token through SecretProvider"
+        - "Real doged loopback smoke verifies enterprise static bearer startup through DOGE_SECRET_PROVIDER=process with no DOGE_AUTH_STATIC_BEARER_TOKEN in the child environment"
+      remaining:
+        - "Live operator KMS/Vault/cloud command smoke, permissions, rotation, and incident-response ownership"
+  sprint_017_daemon_soak_execution:
+    commands:
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\qa\\test_daemon_soak_script.py -q"
+      - ".\\.venv\\Scripts\\python.exe scripts\\daemon_soak.py --help"
+      - ".\\.venv\\Scripts\\python.exe scripts\\daemon_soak.py --base-url http://127.0.0.1:8901 --duration-seconds 3600 --interval-seconds 5 --checkpoint-seconds 900 --output-dir production/qa/evidence/soak/daemon-soak-run-20260622T044433"
+    result:
+      soak_runner_tests: "3 passed in 0.87s"
+      help_check: passed
+      one_hour_loopback_soak: "PASS: 3602.76s, 653 iterations, 0 failures"
+      evidence_json: "production/qa/evidence/soak/daemon-soak-run-20260622T044433/daemon-soak-20260621T204434Z.json"
+      evidence_summary: "production/qa/evidence/soak/daemon-soak-run-20260622T044433/soak-summary.md"
+      observations:
+        - "API health stayed ready during polling"
+        - "soak.err.log stayed empty"
+        - "API traceback and ERROR/Exception counts stayed 0"
+        - "Observed listener RSS growth was approximately 4.7%, below the >20% threshold"
+      limitations:
+        - "Local loopback daemon only; does not cover live Kimi or production deployment"
+        - "Runner embedded daemon_pid captured the PowerShell wrapper process; real listener PID observations are recorded in soak-summary.md"
 
 remaining_stability_blockers:
   - Real CLI /attach file registration, local page/chunk context grounding, and cross-run session history context are implemented; citation-quality evaluation remains open.
   - Embedded CLI approval continuation is implemented; gateway-mode real daemon manual pass evidence remains open.
-  - Web Research Agent create/approval helpers use v1 SSE locally; browser/manual reconnect evidence remains open.
-  - SDK auto-reconnect and Python async streaming landed locally; packaging/distribution hardening remains open.
-  - Local RAG foundation landed; retrieval quality benchmarking, production embeddings/vector backend, and full ACL workflow remain open.
-  - Deterministic portfolio/risk/scenario tools landed; real fundamentals/announcement connectors and portfolio import workflow remain open.
-  - Industry report use case and agent tool landed; real fundamentals/announcement connectors, live Kimi synthesis smoke, and legacy TDX helper deletion remain open.
-  - Live Kimi Vision/File Q&A smoke remains operator-environment-dependent.
-  - KimiAgentSdkBackend has mock-covered optional dependency mapping; live Kimi Agent SDK verification remains environment-dependent.
-  - S015 local performance, accessibility, Kimi retry, soak protocol, and remote CI evidence landed; executed soak evidence, screen-reader manual pass, and browser/manual reconnect evidence remain open.
+  - Web Research Agent create/approval helpers use v1 SSE locally; automated Web/SDK verification and browser walkthrough evidence passed under S017-001, browser-runtime TypeScript SDK reconnect/replay smoke passed with Last-Event-ID 1 -> 2, and real doged Research Agent reconnect smoke passed with forced first-stream disconnect plus Last-Event-ID replay through approval completion.
+  - SDK auto-reconnect, Python async streaming, local package compatibility checks, Python wheel build, TypeScript npm pack dry-run, local external-consumer artifact smoke, SDK release approval packet, release approval template, and validator landed locally; SDK registry publication, release-manager approval, package-name ownership, version/changelog policy, and registry-backed consumer smoke remain open.
+  - Local RAG foundation landed; retrieval quality benchmarking and production embeddings/vector backend remain open.
+  - Deterministic portfolio/risk/scenario tools and local portfolio CSV import landed; real fundamentals/announcement/consensus/risk-factor connector implementation is transferred to S017-003 and later provider-adapter stories.
+  - Industry report use case, agent tool, scan-router decoupling, and legacy TDX helper migration landed; real fundamentals/announcement connectors and live Kimi/TDX smoke remain external validation items.
+  - Live Kimi Vision/File Q&A smoke is executable through tests/live/test_kimi_live_smoke.py plus scripts/run_kimi_live_smoke.py, and redacted blocked evidence validates with scripts/validate_kimi_live_smoke_evidence.py --allow-blocked; actual live execution remains open in S017-002.
+  - KimiAgentSdkBackend has mock-covered structured messages, tool schema, metadata, approval, tool-call ID, reasoning, usage, and finish-reason mapping; live Kimi Agent SDK session/tool/approval/multimodal verification remains open in S017-002.
+  - Enterprise identity/access is ADR/CDD-covered; AuthConfig, API startup hard-fail for unconfigured enterprise auth, fail-closed/static provider boundary, JWT/OIDC provider validation, bearer middleware path, trusted principal-to-context mapping, tenant metadata for documents, portfolios, sessions, runs, events, artifacts, approvals, and evidence, persistent ACL/audit repositories, document/portfolio/session/run/tool-list/approval API enforcement, tenant-scoped admin ACL grant/list/revoke API, trusted run policy injection, runtime tool ACL enforcement, runtime model/tool audit events, tenant-scoped audit listing, redacted JSONL export with integrity handoff headers, admin retention purge, SecretProvider port/env/process adapter rollout, production secret-store process/sidecar selection, remote-bind promotion gate tests, RAG/citation context filtering, approval actor records, Python/TypeScript SDK bearer/request-id pass-through with error redaction, audit export redaction, CLI trace/artifact redaction, local operational audit review, audit SIEM/WORM handoff packet, local SDK package compatibility, real doged loopback enterprise static-bearer smoke, real doged loopback local-JWKS smoke, real doged loopback process-secret smoke, real doged remote-bind gate smoke, and unified enterprise production validation template/builder/validator landed with tests. Live IdP/JWKS smoke against an operator-approved provider, production secret-store command smoke/rotation evidence, SDK registry publication/release approval, production SIEM/WORM sink integration/operator sign-off, live remote-bind deployment smoke, and production data-isolation review in an operator-approved environment remain open.
+  - Financial provider approval packet, evidence template, validator, and synthetic safe provider-shaped fixtures exist; the template validates only with --allow-template, while product/operator approval, provider/license scope, any real provider-derived fixtures, and licensed adapter implementation remain open.
+  - The financial eval seed set, analyst benchmark evidence template, and validator exist; real analyst-labeled observations, acceptance thresholds, live Kimi observations, and repeat-run trend history remain open.
+  - S015 local performance, accessibility, Chrome accessibility-tree smoke, Kimi retry, soak protocol, soak runner, remote CI evidence, executed one-hour local daemon soak evidence, browser SDK SSE reconnect evidence, and real doged Research Agent reconnect evidence landed; S017-006 screen-reader protocol/template/builder/validator are ready for operator execution, while the actual manual screen-reader pass and true manual operator-interruption reconnect session remain open.
+  - The unified 9b77f9c plan closure gate exists at scripts/validate_plan_closure_gate.py with tests in tests/unit/qa/test_validate_plan_closure_gate.py and operator steps in docs/progress/9b77f9c-external-closure-runbook.md; it currently reports 6 controlled open gates and keeps the plan result open until live Kimi, provider approval, analyst benchmark, enterprise production validation, screen-reader manual pass, and SDK release approval evidence are completed.

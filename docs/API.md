@@ -1,9 +1,10 @@
 # HTTP API Reference (FastAPI)
 
 The local-first HTTP backend of MY-DOGE-MICRO. A single FastAPI application
-(`doge.interfaces.api.main`) binds to `127.0.0.1:8901` and exposes **51 product routes**:
-34 legacy `/api/*` routes plus 17 daemon/v1 routes (`sessions`, `runs`,
-`documents`, `tools`, `health`). It is the surface the
+(`doge.interfaces.api.main`) binds to `127.0.0.1:8901` and exposes **58 product routes**:
+34 legacy `/api/*` routes plus 24 daemon/v1 routes (`sessions`, `runs`,
+`documents`, `tools`, `health`, portfolio import, audit, and enterprise ACL).
+It is the surface the
 Vue web console (`web/`) and optionally the PyQt desktop dashboard call to
 trigger market scans, browse persisted data, manage stock notes, read macro and
 research reports, run the Research Copilot demo workflow, and configure the TDX
@@ -206,10 +207,17 @@ code cannot drift.
 | 49 | GET | `/v1/documents` | List persisted documents | `v1/documents.py` |
 | 50 | GET | `/v1/documents/{document_id}` | Read a persisted document | `v1/documents.py` |
 | 51 | GET | `/v1/tools` | List function-tool schemas | `v1/tools.py` |
+| 52 | POST | `/v1/portfolios/import` | Import a UTF-8 portfolio CSV and persist holdings | `v1/portfolios.py` |
+| 53 | GET | `/v1/audit/events` | List tenant-scoped audit events | `v1/audit.py` |
+| 54 | GET | `/v1/audit/events/export` | Export tenant audit events as redacted JSONL | `v1/audit.py` |
+| 55 | POST | `/v1/audit/events/retention` | Purge expired tenant audit events by retention policy | `v1/audit.py` |
+| 56 | GET | `/v1/enterprise/acl/grants` | List tenant ACL grants for enterprise admins | `v1/enterprise.py` |
+| 57 | POST | `/v1/enterprise/acl/grants` | Create a tenant ACL grant | `v1/enterprise.py` |
+| 58 | DELETE | `/v1/enterprise/acl/grants` | Revoke a tenant ACL grant | `v1/enterprise.py` |
 
 > The OpenAPI surface also exposes `/openapi.json`, `/docs`,
 > `/docs/oauth2-redirect`, `/redoc` (FastAPI defaults) — infrastructure, not
-> product endpoints, so not counted in the 26.
+> product endpoints, so not counted in the 58 product routes above.
 
 ## Per-Endpoint Reference
 

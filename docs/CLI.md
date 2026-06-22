@@ -430,6 +430,8 @@ doged status
 ```
 
 `doged serve` 复用 API 的 loopback bind 保障，默认只绑定 `127.0.0.1`。
+非 loopback 绑定需要显式通过 enterprise auth、CORS allow-list、TLS
+termination acknowledgement 和 `DOGE_ALLOW_REMOTE_BIND=1` 的 promotion gate。
 如果设置 `DOGE_API_TOKEN`，v1 session/run/document/tool 路由要求
 `Authorization: Bearer <token>`。
 

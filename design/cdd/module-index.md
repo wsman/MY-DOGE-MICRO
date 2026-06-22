@@ -9,7 +9,7 @@
 
 ## Overview
 
-MY-DOGE QUANT SYSTEM is a local-first product composed of data ingestion, local storage, quantitative analysis, AI-assisted interpretation, document evidence extraction, Research Copilot agent runtime, and multiple operator/client interfaces. The current brownfield implementation has working legacy modules plus release-follow-up runtime slices; the module plan below captures both current product capability and the migration path needed for CDD-controlled development.
+MY-DOGE QUANT SYSTEM is a local-first product composed of data ingestion, local storage, quantitative analysis, AI-assisted interpretation, document evidence extraction, Research Copilot agent runtime, and multiple operator/client interfaces. The current brownfield implementation has working legacy modules plus release-follow-up runtime slices; the module plan below captures both current product capability and the migration path needed for CDD-controlled development. The Kimi enterprise model gateway, financial tool governance, multimodal evidence boundary, and enterprise identity/access boundary are now represented in ADR/TR governance, but enterprise production readiness remains explicitly blocked.
 
 ---
 
@@ -137,6 +137,20 @@ MY-DOGE QUANT SYSTEM is a local-first product composed of data ingestion, local 
 | Research Copilot Agent Runtime | Runtime/Product | Level 1/2/3 slices exist, but runtime maturity explicitly remains non-production until required gates are evidenced. | Keep `docs/progress/runtime-maturity.yaml` as the maturity source and forbid promotion claims while `production_ready: false`. |
 | Document Evidence Pipeline | Data Quality | Uploaded documents, OCR/page extraction, chunking, and evidence citation can drift from source files if metadata is incomplete. | Persist document/page/chunk/evidence metadata and require source-backed retrieval tests. |
 | SDK And Daemon Client Interfaces | Contract | SDK and daemon streaming clients can create a public contract before the runtime is ready. | Mark SDK daemon clients experimental until Level 2/3 gates and remote CI evidence pass. |
+| FastAPI Service / Runtime / Evidence Pipeline | Security | Enterprise tenant, user, document ACL, approval actor, and audit actor semantics are designed but not implemented as production auth. | ADR-0015 blocks non-loopback or hosted enterprise deployment until OIDC/JWT, persistent ACL, audit, approval actor, CORS, and secret handling gates pass. |
+
+---
+
+## Latest Governance Sync
+
+- ADR-0012 records the enterprise model gateway and Kimi routing boundary.
+- ADR-0013 records financial tool governance, entitlement categories, and
+  high-risk approval handling.
+- ADR-0014 records multimodal financial evidence and citation provenance.
+- ADR-0015 proposes the enterprise identity/access boundary for OIDC/JWT,
+  tenant ACLs, approval actor, audit actor, and secrets handling.
+- TR-055 through TR-058 add enterprise identity requirements across FastAPI,
+  runtime, document evidence, and SDK/daemon client CDDs.
 
 ---
 
@@ -146,7 +160,7 @@ MY-DOGE QUANT SYSTEM is a local-first product composed of data ingestion, local 
 |--------|-------|
 | Total modules identified | 15 |
 | Design docs started | 15 |
-| Design docs reviewed | 12 |
+| Design docs reviewed | 15 |
 | Design docs approved | 0 |
 | MVP modules designed | 8/8 |
 | Vertical Slice modules designed | 3/3 |
@@ -158,6 +172,8 @@ MY-DOGE QUANT SYSTEM is a local-first product composed of data ingestion, local 
 
 - [ ] Review and approve this 15-module enumeration.
 - [ ] Review the three Release Follow-Up CDDs (#13/#14/#15) before any runtime maturity promotion.
+- [ ] Keep ADR-0015 Proposed until OIDC/JWT, tenant ACL, approval actor, audit
+      actor, and secrets handling implementation tests exist.
 - [ ] Run `/design-review` on each completed CDD.
 - [ ] Run `/architecture-review` after ADR and CDD coverage exists.
 - [ ] Run `/sprint-plan update` after sprint scope is confirmed.

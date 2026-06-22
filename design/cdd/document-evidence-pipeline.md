@@ -3,8 +3,8 @@
 > **Status**: In Review
 > **Created**: 2026-06-21
 > **Last Verified**: 2026-06-21
-> **Governing ADRs**: ADR-0011, ADR-0001, ADR-0003, ADR-0005
-> **Traceability**: TR-051, TR-052, TR-053, TR-054
+> **Governing ADRs**: ADR-0011, ADR-0014, ADR-0015, ADR-0001, ADR-0003, ADR-0005
+> **Traceability**: TR-051, TR-052, TR-053, TR-054, TR-057
 
 ---
 
@@ -38,6 +38,11 @@ Kimi Files and Kimi Vision integrations stay behind adapter boundaries. The
 pipeline records provider IDs and request-shape evidence without making the
 provider a storage owner.
 
+Enterprise deployments must apply tenant ACL filters before any document,
+chunk, evidence, or citation is returned to a run, RAG query, tool call, API
+client, or UI. ADR-0015 owns the identity boundary; this module owns document
+ACL enforcement once a trusted `EnterpriseContext` is available.
+
 ## Data Model
 
 - document: ID, filename, content type, size, checksum, source surface,
@@ -47,6 +52,8 @@ provider a storage owner.
   metadata.
 - evidence: source document/page/chunk IDs, quote/snippet, retrieval score, tool
   or run provenance.
+- ACL metadata: tenant ID, allowed actor/group references, classification, and
+  policy version needed to reconstruct why a document was visible.
 
 ## Edge Cases
 
@@ -56,6 +63,9 @@ provider a storage owner.
 - Provider file upload success without local parse success must remain a
   partial state, not evidence availability.
 - Page/chunk IDs must remain stable enough for citations after re-open.
+- Missing ACL metadata in enterprise mode must deny access by default.
+- Citation drill-down must verify document access again instead of trusting the
+  run artifact alone.
 
 ## Dependencies
 
@@ -80,6 +90,8 @@ provider a storage owner.
   diverge in persisted metadata semantics.
 - Kimi adapters may serialize file IDs and vision messages, but the canonical
   evidence store remains local.
+- RAG, evidence lookup, citation assembly, and document APIs must apply the same
+  tenant ACL predicate in enterprise mode.
 
 ## UI Requirements
 
@@ -96,6 +108,8 @@ evidence" states.
       evidence.
 - [ ] No documentation declares document evidence production-ready while
       runtime maturity remains false.
+- [ ] TR-057 covers tenant ACL persistence and deny-by-default document/evidence
+      retrieval in enterprise mode.
 
 ## Open Questions
 
@@ -103,3 +117,5 @@ evidence" states.
 2. Should provider file IDs be pruned with local documents or retained for
    audit?
 3. What citation granularity is required for PDF pages versus plain text chunks?
+4. Which ACL model should be persisted first: per-document allowlist, inherited
+   portfolio/client policy, or both?

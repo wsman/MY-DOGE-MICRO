@@ -3,12 +3,12 @@
 > **Module #9** — Category: **Interface**
 > **Slug**: `fastapi-service`
 > **Status**: In Review
-> **Last Verified**: 2026-06-21
-> **Notes**: Major release-follow-up update; canonical app, 51 product routes, Research Copilot compatibility routes, document routes, daemon `/v1/*` routes, SSE behavior, and shipped error envelope are reflected here.
+> **Last Verified**: 2026-06-22
+> **Notes**: Major release-follow-up update; canonical app, 58 product routes, Research Copilot compatibility routes, document routes, daemon `/v1/*` routes, portfolio import, audit/enterprise governance routes, SSE behavior, and shipped error envelope are reflected here.
 > **Depends on**: #1 `runtime-configuration`, #2 `market-data-storage`, #4 `macro-strategy-engine`, #5 `micro-momentum-scanner`, #13 `research-copilot-agent-runtime`, #14 `document-evidence-pipeline`
 > **Depended on by**: #11 `vue-web-console`, #10 `pyqt-desktop-dashboard`, #15 `sdk-daemon-client-interfaces`
 > **Source files reverse-documented**: `src/doge/interfaces/api/main.py`, `src/doge/interfaces/api/routers/{scan,data,notes,macro,analysis,config,agent,documents}.py`, `src/doge/interfaces/api/routers/v1/*.py`; `src/api/*` is compatibility shim history only.
-> **Related ADRs**: [ADR-0007](../../docs/architecture/adr-0007-api-surface-and-cors.md), [ADR-0011](../../docs/architecture/adr-0011-agent-runtime-levels.md), [ADR-0001](../../docs/architecture/adr-0001-brownfield-clean-architecture.md), [ADR-0002](../../docs/architecture/adr-0002-centralized-configuration.md)
+> **Related ADRs**: [ADR-0007](../../docs/architecture/adr-0007-api-surface-and-cors.md), [ADR-0011](../../docs/architecture/adr-0011-agent-runtime-levels.md), [ADR-0015](../../docs/architecture/adr-0015-enterprise-identity-and-access.md), [ADR-0001](../../docs/architecture/adr-0001-brownfield-clean-architecture.md), [ADR-0002](../../docs/architecture/adr-0002-centralized-configuration.md)
 
 ---
 
@@ -16,17 +16,20 @@
 
 The FastAPI Service is the local-first HTTP interface layer of MY-DOGE-MICRO.
 The canonical application is `doge.interfaces.api.main:app`, launched on
-`127.0.0.1:8901`. It exposes **51 product routes**:
+`127.0.0.1:8901`. It exposes **58 product routes**:
 
 - 34 legacy `/api/*` product routes, including top-level helpers, market scan,
   data browsing, notes, macro reports, analysis reports, config, Research
   Copilot demo routes, and document registration.
-- 17 daemon/v1 routes for health/readiness, sessions, runs, documents, tool
-  schemas, approvals, cancellation, artifacts, and SSE replay.
+- 24 daemon/v1 routes for health/readiness, sessions, runs, documents, tool
+  schemas, approvals, cancellation, artifacts, SSE replay, portfolio import,
+  tenant audit, and enterprise ACL administration.
 
-The API remains local-first and unauthenticated. ADR-0007 allows permissive CORS
-only because `_resolve_bind_host()` rejects non-loopback binds. Rebinding to any
-remote interface requires CORS allow-list hardening and auth first.
+The API remains local-first and unauthenticated in loopback demo mode.
+ADR-0007 allows permissive CORS only because `_resolve_bind_host()` rejects
+non-loopback binds. ADR-0015 defines the enterprise identity boundary: rebinding
+to any remote interface requires OIDC/JWT authentication, strict CORS, tenant
+context validation, and audit handling first.
 
 ## 2. User Promise / JTBD
 
@@ -50,6 +53,9 @@ existing product screens continue to consume the `/api/*` routes.
   `OPENBLAS_NUM_THREADS=1`, `OMP_NUM_THREADS=1`.
 - `CORSMiddleware` keeps `allow_origins=["*"]`, `allow_methods=["*"]`,
   `allow_headers=["*"]` under the ADR-0007 loopback guarantee.
+- Local demo tenant headers may be converted into `EnterpriseContext` only
+  while the app remains loopback-bound. Enterprise mode must authenticate first
+  before trusting tenant, user, role, entitlement, or approval headers.
 - `HTTPException` is reshaped into
   `{"error": {"code": <string-enum>, "message": <operator-safe-detail>}}`.
 - otherwise-unhandled exceptions are logged server-side and returned as
@@ -117,7 +123,7 @@ persisted event replay via `Last-Event-ID`.
 
 The route table is canonical in [docs/API.md](../../docs/API.md) and is guarded
 by `tests/contract/test_api_doc_route_coverage.py`. The current count is exactly
-**51 product routes**:
+**58 product routes**:
 
 | Range | Surface | Count |
 |---|---|---:|
@@ -125,7 +131,10 @@ by `tests/contract/test_api_doc_route_coverage.py`. The current count is exactly
 | 3-26 | legacy scan/data/notes/macro/analysis/config routers | 24 |
 | 27-33 | `/api/agent` compatibility routes | 7 |
 | 34 | `/api/documents` compatibility route | 1 |
-| 35-51 | health and `/v1/*` daemon routes | 17 |
+| 35-51 | health and core `/v1/*` daemon routes | 17 |
+| 52 | `/v1/portfolios/import` portfolio import route | 1 |
+| 53-55 | `/v1/audit/*` audit list/export/retention routes | 3 |
+| 56-58 | `/v1/enterprise/acl/grants` ACL list/grant/revoke routes | 3 |
 
 ### 4.2 Error Contract
 
@@ -149,6 +158,20 @@ The API itself does not own runtime state. It routes to Module #13 and #14:
 - uploaded/registered documents, pages, chunks, and evidence live in the
   document evidence boundary.
 
+### 4.4 Enterprise Identity Boundary
+
+Enterprise authentication is not implemented by the current local demo service.
+The required production contract is:
+
+- `local_demo` mode may accept operator-supplied headers only on loopback.
+- `enterprise` mode must validate OIDC/JWT issuer, audience, expiry, signature,
+  and key rotation source before building `EnterpriseContext`.
+- The API must pass trusted tenant/user/role/entitlement context into runtime
+  runs, document ACL checks, portfolio access checks, tool schema filtering, and
+  approval resolution.
+- API logs and error responses must never include bearer tokens, raw user IDs,
+  emails, customer account IDs, or API keys.
+
 ## 5. Edge Cases
 
 - Missing local DB files must return empty lists or operator-safe errors, not
@@ -159,8 +182,8 @@ The API itself does not own runtime state. It routes to Module #13 and #14:
   operator-safe error.
 - SSE reconnect must replay persisted daemon events without duplicating terminal
   states in clients.
-- Non-loopback bind requests must fail closed until auth and CORS hardening are
-  designed and implemented.
+- Non-loopback bind requests must fail closed until ADR-0015 authentication,
+  tenant isolation, audit, and CORS hardening are implemented and tested.
 
 ## 6. Dependencies
 
@@ -180,12 +203,13 @@ The API itself does not own runtime state. It routes to Module #13 and #14:
 | bind host | `DOGE_BIND_HOST`, default `127.0.0.1` | Non-loopback rejected by `_resolve_bind_host()`. |
 | bind port | hardcoded `8901` | Future API config may own this. |
 | CORS origins | `["*"]` | Accepted only with loopback guarantee. |
+| auth mode | future `DOGE_AUTH_MODE`, default `local_demo` | Enterprise mode requires OIDC/JWT per ADR-0015 before non-loopback use. |
 | DB paths | `get_settings().db.*` and repository deps | Some legacy routers still carry migration debt. |
 | document storage | local data directory | See Module #14. |
 
 ## 8. Acceptance Criteria
 
-- [x] `docs/API.md` enumerates exactly 51 product routes.
+- [x] `docs/API.md` enumerates exactly 58 product routes.
 - [x] `tests/contract/test_api_doc_route_coverage.py` verifies docs-vs-live route
       coverage.
 - [x] HTTPException and unhandled exceptions use the shipped non-leaking error
@@ -195,7 +219,9 @@ The API itself does not own runtime state. It routes to Module #13 and #14:
       cancellation, and document upload/read routes are represented in the CDD.
 - [ ] All legacy routers route reads/writes through repositories/use cases with
       no direct SQLite/DuckDB access in interface code.
-- [ ] CORS and auth are redesigned before any non-loopback deployment.
+- [ ] ADR-0015 enterprise auth is implemented before any non-loopback
+      deployment.
+- [ ] Enterprise mode validates JWTs before trusting tenant/user headers.
 - [ ] Runtime maturity claims remain blocked by
       `docs/progress/runtime-maturity.yaml` while `production_ready: false`.
 
@@ -207,6 +233,8 @@ The API itself does not own runtime state. It routes to Module #13 and #14:
   a product route is added or removed.
 - New error responses must use operator-safe messages and string-enum codes.
 - New streaming endpoints must document replay/cancellation/terminal semantics.
+- New remote/enterprise routes must consume a trusted `EnterpriseContext`, not
+  unvalidated tenant headers.
 
 ## 10. UI Requirements
 
@@ -222,3 +250,5 @@ from production readiness while the maturity registry forbids promotion.
 4. Which repository methods are still missing before direct interface DB access
    can be removed completely?
 5. What evidence is required to promote Level 2 daemon maturity?
+6. Which OIDC provider and JWT verification library should enterprise stories
+   use when ADR-0015 moves from Proposed to implementation?

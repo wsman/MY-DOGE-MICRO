@@ -16,7 +16,7 @@ the 2026-06-21 project state.
 
 | Area | Current state | Evidence |
 |------|---------------|----------|
-| Product entry docs | Root README remains product-focused and points to the operational docs. API count is 51 product routes. CLI recommendation is `doge ...`. | `README.md`, `docs/API.md`, `docs/CLI.md`, `docs/GETTING_STARTED.md` |
+| Product entry docs | Root README remains product-focused and points to the operational docs. API count is 58 product routes after the S017 portfolio/audit/enterprise route additions. CLI recommendation is `doge ...`. | `README.md`, `docs/API.md`, `docs/CLI.md`, `docs/GETTING_STARTED.md` |
 | CDD module map | Module index now has 15 modules, including Research Copilot runtime, Document Evidence Pipeline, and SDK/Daemon Client Interfaces. | `design/cdd/module-index.md` |
 | New CDDs | Modules #13/#14/#15 are in review and record implemented release-follow-up slices plus maturity blockers. | `design/cdd/research-copilot-agent-runtime.md`, `design/cdd/document-evidence-pipeline.md`, `design/cdd/sdk-daemon-client-interfaces.md` |
 | ADR/traceability | ADR-0001..0011 are Accepted; traceability manifest is 2026-06-21 Release scope. | `docs/architecture/architecture-traceability.md` |

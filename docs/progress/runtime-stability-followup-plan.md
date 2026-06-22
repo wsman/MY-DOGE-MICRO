@@ -91,8 +91,10 @@ Status:
 - Web Research Agent helper paths now consume v1 SSE for create and approval
   continuations instead of post-approval polling.
 - Targeted Web tests cover create, approval, and store compatibility.
-- Still open: browser/manual reconnect evidence against a running daemon and
-  full Web test/build gate for Sprint 011.
+- Browser-runtime TypeScript SDK reconnect/replay smoke landed on 2026-06-22
+  at `production/qa/evidence/manual/browser-sdk-sse-reconnect-2026-06-22.md`.
+- Still open: full Research Agent browser/manual reconnect evidence against a
+  running daemon.
 
 Scope:
 - Replace post-approval polling in the Web Research Agent with v1 SSE streaming.
@@ -178,9 +180,12 @@ Status:
 - Sprint 015 adds local performance smoke tests, Kimi chat retry/rate-limit
   behavior, Research Agent accessibility semantics, a Core Web Vitals
   non-applicability decision for the local loopback app, and a one-hour daemon
-  soak protocol.
-- Still open: executed soak evidence, remote CI after push, browser/manual
-  reconnect evidence, live Kimi smoke, and citation-quality evaluation.
+  soak protocol. The one-hour local daemon soak was later executed under
+  `production/qa/evidence/soak/daemon-soak-run-20260622T044433/`.
+- Still open: full Research Agent browser/manual reconnect evidence, live Kimi
+  smoke, and citation-quality evaluation. Remote CI, browser SDK reconnect
+  smoke, and local one-hour soak now have evidence, but none authorizes Stable
+  promotion by itself.
 
 Scope:
 - Add formal accessibility/Core Web Vitals checks for the Research Agent UI.
@@ -216,9 +221,10 @@ real file upload, page/chunk/evidence storage, Kimi message serialization, Web
 SSE helper usage, SDK reconnect/async streaming, local RAG, and deterministic
 portfolio/risk/scenario tools, industry-report claim/citation assembly,
 canonical scan-router decoupling from the legacy downloader, and local release
-quality smoke evidence. Remaining blockers include live Kimi smoke,
-citation-quality evaluation, browser/manual reconnect evidence, production
-retrieval quality, real fundamentals/connectors, legacy compatibility deletion,
-remote CI after push, and executed soak evidence. No level may be marked Stable.
+quality smoke evidence plus one-hour local daemon soak evidence. Remaining
+blockers include live Kimi smoke, citation-quality evaluation, full Research
+Agent browser/manual reconnect evidence, production retrieval quality, real
+fundamentals/connectors, and legacy compatibility deletion. No level may be
+marked Stable.
 
 This document satisfies the Sprint 008 requirement to give the remaining non-runtime blockers their own follow-up plan. It does not mark any level Stable.

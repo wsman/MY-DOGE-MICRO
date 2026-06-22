@@ -2,12 +2,17 @@
 
 Generated: 2026-06-21
 
+Governing ADR: `docs/architecture/adr-0015-enterprise-identity-and-access.md`
+
 ## Local Boundary
 
 The current FastAPI service is designed for loopback operation. Permissive CORS
 is acceptable only while `_resolve_bind_host()` rejects non-loopback hosts.
-Changing the bind address to `0.0.0.0` is blocked until auth, strict CORS, TLS,
-key management, and tenant isolation exist.
+Changing the bind address to `0.0.0.0` is blocked by default. The local
+promotion gate allows it only with enterprise auth, a configured non-DenyAll
+provider, an explicit CORS allow-list, TLS termination acknowledgement, and the
+`DOGE_ALLOW_REMOTE_BIND=1` operator flag. This is configuration evidence, not a
+production deployment proof.
 
 ## Kimi Boundary
 
@@ -41,10 +46,22 @@ account ids, and customer identifiers must not be placed in model prompts.
 
 ## API Header Rules
 
-`TenantContextMiddleware` may derive context from headers in local demo mode.
-Enterprise mode must authenticate first before trusting tenant or user headers.
-This keeps local demos ergonomic without converting headers into a production
-identity system.
+`TenantContextMiddleware` may derive context from headers in local demo mode
+only while the API remains loopback-bound. Enterprise mode must authenticate via
+OIDC/JWT first before trusting tenant, user, role, entitlement, or approval
+headers. This keeps local demos ergonomic without converting headers into a
+production identity system.
+
+Required enterprise gates before non-loopback deployment:
+
+- JWT issuer, audience, expiry, signature, and key rotation validation.
+- `DOGE_ALLOW_REMOTE_BIND=1`, explicit `DOGE_CORS_ALLOW_ORIGINS`, and
+  `DOGE_API_TLS_TERMINATION_REQUIRED=1`.
+- Persistent or reconstructable document ACL, portfolio permission, tool
+  entitlement, and approval authority decisions.
+- Approval actor and audit actor hashes recorded with request correlation IDs.
+- Secret, bearer-token, raw user ID, email, account ID, and customer identifier
+  redaction in logs, prompts, SDK errors, artifacts, and traces.
 
 ## High-Risk Actions
 
