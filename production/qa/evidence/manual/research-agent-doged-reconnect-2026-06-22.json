@@ -1,0 +1,109 @@
+{
+  "browser": {
+    "chrome_path": "C:\\Users\\Aby\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe",
+    "mode": "headless CDP",
+    "shutdown": {
+      "killed": false,
+      "returncode": 1,
+      "terminated": true
+    }
+  },
+  "checks": [
+    {
+      "name": "research_agent_view_loaded",
+      "passed": true
+    },
+    {
+      "name": "first_stream_forced_disconnect_after_event",
+      "passed": true
+    },
+    {
+      "last_event_id_headers": [
+        null,
+        "1",
+        "14"
+      ],
+      "name": "browser_reconnected_with_last_event_id",
+      "passed": true
+    },
+    {
+      "name": "approval_path_completed_after_reconnect",
+      "passed": true
+    },
+    {
+      "event_count": 16,
+      "name": "no_duplicate_run_events_in_final_fetch",
+      "passed": true
+    },
+    {
+      "name": "single_terminal_artifact_event",
+      "passed": true,
+      "terminal_count": 1
+    }
+  ],
+  "doged": {
+    "auth_mode": "local_demo",
+    "base_url": "http://127.0.0.1:8901",
+    "entrypoint": "python -m doge.interfaces.daemon.main serve",
+    "model": "scripted_no_kimi_key",
+    "shutdown": {
+      "killed": false,
+      "returncode": 1,
+      "terminated": true
+    }
+  },
+  "notes": [
+    "Kimi/Moonshot/DeepSeek env vars are removed from the child doged process so the smoke uses ScriptedAgentModel.",
+    "This is browser-level automated evidence, not a manual screen-reader or operator-interruption pass."
+  ],
+  "observed": {
+    "approval_count": 1,
+    "approval_items": [
+      "high \u00b7 approved\npublish investment committee memo"
+    ],
+    "artifact_count": 1,
+    "event_count": 16,
+    "event_types": [
+      "run_created",
+      "run_queued",
+      "model_response",
+      "tool_call",
+      "tool_result",
+      "model_response",
+      "tool_call",
+      "tool_result",
+      "model_response",
+      "tool_call",
+      "tool_result",
+      "approval_requested",
+      "approval_resolved",
+      "run_queued",
+      "model_response",
+      "artifact_created"
+    ],
+    "first_released_event_id": "1",
+    "forced_disconnects": 1,
+    "last_event_id_headers": [
+      null,
+      "1",
+      "14"
+    ],
+    "run_id": "run-b4739e0dd7b2",
+    "status": "completed",
+    "status_text": "completed\ntokens 0",
+    "stream_request_count": 3
+  },
+  "result": "passed",
+  "schema": "doge.research_agent_doged_reconnect_smoke.v1",
+  "screenshot": "production\\qa\\evidence\\manual\\research-agent-doged-reconnect-2026-06-22.png",
+  "started_at": "2026-06-21T23:00:53.134212+00:00",
+  "web": {
+    "shutdown": {
+      "killed": false,
+      "returncode": 1,
+      "terminated": true
+    },
+    "view": "research-agent",
+    "vite_url": "http://127.0.0.1:65030/"
+  }
+}

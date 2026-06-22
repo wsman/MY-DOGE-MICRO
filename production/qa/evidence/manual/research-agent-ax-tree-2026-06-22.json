@@ -1,0 +1,428 @@
+{
+  "api_fixture": "local fake /v1/documents on 127.0.0.1:8901",
+  "browser": {
+    "chrome_path": "C:\\Users\\Aby\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe",
+    "mode": "headless CDP"
+  },
+  "result": "passed",
+  "schema": "doge.research_agent_ax_tree_smoke.v1",
+  "screenshot": "production\\qa\\evidence\\manual\\research-agent-ax-tree-2026-06-22.png",
+  "started_at": "2026-06-21T22:23:55.417832+00:00",
+  "summary": {
+    "checks": {
+      "approval_group_label": true,
+      "research_question": true,
+      "run_button": true,
+      "status_live_region": true,
+      "timeline_list": true,
+      "workspace_region": true
+    },
+    "failed": [],
+    "sample": [
+      {
+        "name": "MY-DOGE",
+        "role": "RootWebArea",
+        "value": ""
+      },
+      {
+        "name": "MY-DOGE",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "1",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "|",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Equalize",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "1",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Equalize",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Split Horizontal",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "Split Vertical",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "Zoom",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "Close",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "Research Agent workspace",
+        "role": "generic",
+        "value": ""
+      },
+      {
+        "name": "INPUT",
+        "role": "region",
+        "value": ""
+      },
+      {
+        "name": "RESEARCH MEMO",
+        "role": "region",
+        "value": ""
+      },
+      {
+        "name": "EVIDENCE",
+        "role": "region",
+        "value": ""
+      },
+      {
+        "name": "QUALITY",
+        "role": "region",
+        "value": ""
+      },
+      {
+        "name": "AGENT TIMELINE",
+        "role": "region",
+        "value": ""
+      },
+      {
+        "name": "Research Agent loading",
+        "role": "generic",
+        "value": ""
+      },
+      {
+        "name": "Market",
+        "role": "generic",
+        "value": ""
+      },
+      {
+        "name": "Execution profile",
+        "role": "generic",
+        "value": ""
+      },
+      {
+        "name": "Research question",
+        "role": "generic",
+        "value": ""
+      },
+      {
+        "name": "Run",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "loading Upload",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "Drop research files here",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "loading Refresh",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "All",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "Clear",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "Import CSV",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "Agent status idle; tokens 0",
+        "role": "status",
+        "value": ""
+      },
+      {
+        "name": "Approval requests",
+        "role": "generic",
+        "value": ""
+      },
+      {
+        "name": "Cost and evaluation metrics",
+        "role": "generic",
+        "value": ""
+      },
+      {
+        "name": "Routing decision",
+        "role": "generic",
+        "value": ""
+      },
+      {
+        "name": "Agent event timeline",
+        "role": "list",
+        "value": ""
+      },
+      {
+        "name": "Research Agent",
+        "role": "generic",
+        "value": ""
+      },
+      {
+        "name": "loading",
+        "role": "image",
+        "value": ""
+      },
+      {
+        "name": "INPUT",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Run",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "loading",
+        "role": "image",
+        "value": ""
+      },
+      {
+        "name": "Upload",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "loading",
+        "role": "image",
+        "value": ""
+      },
+      {
+        "name": "Refresh",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "All",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Clear",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "No documents uploaded",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Import CSV",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "portfolio-demo",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "RESEARCH MEMO",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "No memo generated",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "EVIDENCE",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Sources",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "No source citations available",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "QUALITY",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Cost / Eval",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Total Tokens",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Prompt Tokens",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Cost USD",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Citation Precision",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Numerical Consistency",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Tool Success",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "AGENT TIMELINE",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "US Market loading",
+        "role": "generic",
+        "value": ""
+      },
+      {
+        "name": "Financial Research loading",
+        "role": "generic",
+        "value": ""
+      },
+      {
+        "name": "idle",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "tokens 0",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "No approvals pending",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "n/a",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "n/a",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "n/a",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "n/a",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "n/a",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "n/a",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "backend n/a",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "model n/a",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Research Agent",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "US Market",
+        "role": "generic",
+        "value": ""
+      },
+      {
+        "name": "loading",
+        "role": "image",
+        "value": ""
+      },
+      {
+        "name": "Financial Research",
+        "role": "generic",
+        "value": ""
+      },
+      {
+        "name": "loading",
+        "role": "image",
+        "value": ""
+      },
+      {
+        "name": "Analyze the company earnings quality, industry momentum, and portfolio impact.",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "US Market",
+        "role": "StaticText",
+        "value": ""
+      }
+    ]
+  },
+  "web": {
+    "view": "research-agent",
+    "vite_url": "http://127.0.0.1:63425/"
+  }
+}

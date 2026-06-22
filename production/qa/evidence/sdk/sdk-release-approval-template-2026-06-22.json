@@ -1,0 +1,63 @@
+{
+  "schema": "doge.sdk_release_approval.v1",
+  "story_id": "S017-007",
+  "created_at": "2026-06-22T00:00:00Z",
+  "result": "not_run",
+  "approval_scope": "Release-manager approval for SDK registry target, package name ownership, version/changelog policy, registry-backed consumer smoke, and publication guards.",
+  "local_evidence": {
+    "package_compatibility": "docs/progress/sdk-package-compatibility.md",
+    "release_packet": "docs/progress/sdk-release-approval-packet.md",
+    "external_consumer_smoke": "production/qa/evidence/sdk/sdk-external-consumer-smoke.json",
+    "python_wheel_local_smoke": true,
+    "typescript_tarball_local_smoke": true
+  },
+  "release_manager": {
+    "role": "",
+    "initials": ""
+  },
+  "approved_at": "",
+  "packages": [
+    {
+      "language": "python",
+      "package_path": "packages/doge-sdk-python",
+      "current_name": "doge-sdk",
+      "approved_package_name": "",
+      "registry_target": "pending",
+      "package_name_ownership": "pending",
+      "version_policy": "pending",
+      "changelog_policy": "pending",
+      "registry_consumer_smoke": "pending",
+      "publish_guard": "blocked_until_approval",
+      "decision_status": "not_decided",
+      "notes": ""
+    },
+    {
+      "language": "typescript",
+      "package_path": "packages/doge-sdk-typescript",
+      "current_name": "doge-sdk",
+      "approved_package_name": "",
+      "registry_target": "pending",
+      "package_name_ownership": "pending",
+      "version_policy": "pending",
+      "changelog_policy": "pending",
+      "registry_consumer_smoke": "pending",
+      "publish_guard": "private_true_until_approval",
+      "decision_status": "not_decided",
+      "notes": ""
+    }
+  ],
+  "security_review": {
+    "no_credentials_in_package_config": false,
+    "typescript_sources_excluded_from_tarball": false,
+    "redaction_behavior_documented": false,
+    "contains_credentials": false
+  },
+  "issue_refs": [],
+  "blockers": [
+    "release-manager approval",
+    "registry target decision",
+    "package name ownership",
+    "version/changelog policy",
+    "registry-backed consumer smoke"
+  ]
+}

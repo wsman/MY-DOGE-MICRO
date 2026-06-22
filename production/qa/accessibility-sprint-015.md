@@ -30,6 +30,18 @@ npm test -- --run src/views/ResearchAgentView.spec.ts
 
 Result: `1 passed`.
 
+## S017 Manual Follow-Up
+
+Sprint 017 adds a manual execution package for the deferred screen-reader item:
+
+- protocol: `production/qa/screen-reader-manual-protocol-s017.md`
+- evidence template: `production/qa/evidence/manual/research-agent-screen-reader-manual-template-2026-06-22.json`
+- validator: `scripts/validate_screen_reader_evidence.py`
+
+The template is intentionally marked `result: "not_run"` and only validates
+with `--allow-template`. It is readiness evidence, not a completed
+screen-reader pass.
+
 ## Core Web Vitals Applicability
 
 Core Web Vitals are scoped **not applicable** for Sprint 015 promotion because

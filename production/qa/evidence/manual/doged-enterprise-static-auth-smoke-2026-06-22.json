@@ -1,0 +1,69 @@
+{
+  "auth_mode": "enterprise",
+  "base_url": "http://127.0.0.1:63738",
+  "checks": [
+    {
+      "name": "missing_bearer_rejected",
+      "passed": true,
+      "status_code": 401
+    },
+    {
+      "name": "wrong_bearer_rejected",
+      "passed": true,
+      "status_code": 401
+    },
+    {
+      "name": "authorized_session_create",
+      "passed": true,
+      "session_id_present": true,
+      "status_code": 200,
+      "tenant_id": "tenant-smoke"
+    },
+    {
+      "document_id": "doc-smoke",
+      "name": "authorized_document_create_grants_acl",
+      "passed": true,
+      "status_code": 200,
+      "tenant_id": "tenant-smoke"
+    },
+    {
+      "document_ids": [
+        "doc-smoke"
+      ],
+      "name": "authorized_document_list_sees_created_doc",
+      "passed": true,
+      "status_code": 200
+    },
+    {
+      "document_id": "doc-smoke",
+      "name": "authorized_document_read",
+      "passed": true,
+      "status_code": 200,
+      "tenant_id": "tenant-smoke"
+    },
+    {
+      "event_types": [
+        "document_create",
+        "document_list",
+        "document_read"
+      ],
+      "name": "authorized_audit_list_tenant_scoped",
+      "passed": true,
+      "status_code": 200,
+      "tenant_ids": [
+        "tenant-smoke"
+      ]
+    }
+  ],
+  "process": {
+    "forced_shutdown": false,
+    "returncode": 1,
+    "shutdown_requested_by_smoke": true,
+    "stderr_tail": "",
+    "stdout_tail": ""
+  },
+  "provider": "static_bearer_fixture",
+  "result": "passed",
+  "schema": "doge.doged_enterprise_static_auth_smoke.v1",
+  "started_at": "2026-06-21T22:30:43.061195+00:00"
+}

@@ -1,0 +1,29 @@
+{
+  "checks": [
+    {
+      "name": "python_sdk_external_consumer",
+      "status": "passed",
+      "stdout": "python-consumer-ok",
+      "wheel": "D:\\Users\\Aby\\Desktop\\CodingTask\\MY-DOGE-MICRO\\.tmp\\sdk-external-consumer-smoke\\python\\wheelhouse\\doge_sdk-0.1.0-py3-none-any.whl"
+    },
+    {
+      "entry_count": 11,
+      "name": "typescript_sdk_external_consumer",
+      "package_size": 3721,
+      "status": "passed",
+      "stdout": "typescript-consumer-ok",
+      "tarball": "D:\\Users\\Aby\\Desktop\\CodingTask\\MY-DOGE-MICRO\\.tmp\\sdk-external-consumer-smoke\\typescript\\doge-sdk-0.1.0.tgz",
+      "unpacked_size": 13395
+    }
+  ],
+  "finished_at": "2026-06-21T22:02:57.389254+00:00",
+  "output_dir": "D:\\Users\\Aby\\Desktop\\CodingTask\\MY-DOGE-MICRO\\production\\qa\\evidence\\sdk",
+  "schema": "doge.sdk_external_consumer_smoke.v1",
+  "started_at": "2026-06-21T22:02:39.394966+00:00",
+  "summary": {
+    "checks": 2,
+    "failures": 0,
+    "passed": true
+  },
+  "workspace": "D:\\Users\\Aby\\Desktop\\CodingTask\\MY-DOGE-MICRO\\.tmp\\sdk-external-consumer-smoke"
+}

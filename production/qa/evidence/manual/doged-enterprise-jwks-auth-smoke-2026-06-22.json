@@ -1,0 +1,77 @@
+{
+  "audience": "doge-api",
+  "auth_mode": "enterprise",
+  "base_url": "http://127.0.0.1:63914",
+  "checks": [
+    {
+      "name": "missing_bearer_rejected",
+      "passed": true,
+      "status_code": 401
+    },
+    {
+      "name": "wrong_audience_rejected",
+      "passed": true,
+      "status_code": 401
+    },
+    {
+      "name": "invalid_signature_rejected",
+      "passed": true,
+      "status_code": 401
+    },
+    {
+      "name": "authorized_session_create",
+      "passed": true,
+      "session_id_present": true,
+      "status_code": 200,
+      "tenant_id": "tenant-jwks"
+    },
+    {
+      "document_id": "doc-jwks",
+      "name": "authorized_document_create_grants_acl",
+      "passed": true,
+      "status_code": 200,
+      "tenant_id": "tenant-jwks"
+    },
+    {
+      "document_ids": [
+        "doc-jwks"
+      ],
+      "name": "authorized_document_list_sees_created_doc",
+      "passed": true,
+      "status_code": 200
+    },
+    {
+      "event_types": [
+        "document_create",
+        "document_list"
+      ],
+      "name": "authorized_audit_list_tenant_scoped",
+      "passed": true,
+      "status_code": 200,
+      "tenant_ids": [
+        "tenant-jwks"
+      ]
+    },
+    {
+      "name": "jwks_endpoint_was_used",
+      "passed": true,
+      "paths": [
+        "/.well-known/jwks.json"
+      ],
+      "request_count": 1
+    }
+  ],
+  "issuer": "http://127.0.0.1/local-idp",
+  "jwks_url": "http://127.0.0.1:63913/.well-known/jwks.json",
+  "process": {
+    "forced_shutdown": false,
+    "returncode": 1,
+    "shutdown_requested_by_smoke": true,
+    "stderr_tail": "",
+    "stdout_tail": ""
+  },
+  "provider": "local_jwks_fixture",
+  "result": "passed",
+  "schema": "doge.doged_enterprise_jwks_auth_smoke.v1",
+  "started_at": "2026-06-21T22:34:48.115480+00:00"
+}

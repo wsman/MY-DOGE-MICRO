@@ -1,0 +1,73 @@
+{
+  "schema": "doge.analyst_labeled_eval_benchmark.v1",
+  "story_id": "W3-live",
+  "created_at": "2026-06-22T00:00:00Z",
+  "result": "not_run",
+  "benchmark_scope": "Real analyst-labeled financial research benchmark for annual reports, presentations, chart images, portfolio CSVs, unsupported claims, and multi-turn follow-up.",
+  "seed_evidence": {
+    "gold_cases": "tests/eval/gold_cases.json",
+    "gold_eval": "tests/eval/gold_eval.py",
+    "seed_report": "production/qa/evidence/eval/research-gold-set-2026-06-21.md"
+  },
+  "analyst_review": {
+    "role": "",
+    "initials": "",
+    "reviewed_at": ""
+  },
+  "materials": {
+    "annual_report_cases": 0,
+    "presentation_cases": 0,
+    "chart_image_cases": 0,
+    "portfolio_csv_cases": 0,
+    "unsupported_claim_cases": 0,
+    "multi_turn_cases": 0,
+    "total_cases": 0,
+    "material_manifest_ref": ""
+  },
+  "labels": {
+    "human_citation_labels": 0,
+    "human_numerical_labels": 0,
+    "insufficient_evidence_labels": 0,
+    "label_manifest_ref": "",
+    "label_policy_ref": ""
+  },
+  "observations": {
+    "live_kimi_observation_ref": "",
+    "model_profiles": [],
+    "run_ids_redacted": true,
+    "raw_sensitive_documents_recorded": false
+  },
+  "thresholds": {
+    "retrieval_recall_min": null,
+    "retrieval_precision_min": null,
+    "citation_precision_min": null,
+    "numerical_consistency_min": null,
+    "usage_cost_record_coverage_min": null,
+    "latency_p95_ms_max": null,
+    "cost_usd_p95_max": null
+  },
+  "results": {
+    "retrieval_recall": null,
+    "retrieval_precision": null,
+    "citation_precision": null,
+    "numerical_consistency": null,
+    "usage_cost_record_coverage": null,
+    "latency_p95_ms": null,
+    "cost_usd_p95": null,
+    "trend_history_ref": ""
+  },
+  "redaction_review": {
+    "contains_credentials": false,
+    "contains_raw_proprietary_documents": false,
+    "contains_personal_data": false,
+    "run_ids_redacted": true
+  },
+  "issue_refs": [],
+  "blockers": [
+    "real annual report/deck/chart/portfolio fixture approval",
+    "analyst citation and numeric labels",
+    "live Kimi observation capture",
+    "acceptance threshold approval",
+    "repeat-run trend history"
+  ]
+}

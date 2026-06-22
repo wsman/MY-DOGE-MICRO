@@ -5,8 +5,8 @@
 > Focus: stability, memory, queue durability, SSE continuity
 > Surface: Product local daemon (`doged serve` / FastAPI v1)
 
-This protocol is prepared for the first operator-run endurance pass. It has not
-been executed in this local implementation pass.
+This protocol has now been executed for the first local loopback endurance pass.
+The result is local-only evidence, not a production-readiness promotion.
 
 ## Pre-Session Setup
 
@@ -18,6 +18,8 @@ been executed in this local implementation pass.
   `Get-Process python | Select-Object Id,ProcessName,WorkingSet64,CPU`
 - [ ] Record baseline sizes for `data/agent_state.db` and `data/research_insights.db`.
 - [ ] Confirm `/health/ready` returns ready.
+- [ ] Optional automation runner is available:
+  `python scripts/daemon_soak.py --duration-seconds 3600 --base-url http://127.0.0.1:8901`
 
 ## Workload Loop
 
@@ -69,3 +71,22 @@ FAIL:
 
 Write executed results to `production/qa/evidence/soak/` and link them from
 `docs/progress/runtime-maturity.yaml` before any maturity promotion.
+
+Executed evidence:
+
+- `production/qa/evidence/soak/daemon-soak-run-20260622T044433/daemon-soak-20260621T204434Z.json`
+  - PASS: `3602.76s`, `653` iterations, `0` failures.
+- `production/qa/evidence/soak/daemon-soak-run-20260622T044433/soak-summary.md`
+  - PASS: real listener RSS growth stayed below the protocol threshold and no
+    API tracebacks/errors were observed.
+
+The runner writes JSON evidence under `production/qa/evidence/soak/`. A short
+`--duration-seconds 0` smoke only proves the harness works; it does not satisfy
+the one-hour soak gate.
+
+Runner verification:
+
+- `.\.venv\Scripts\python.exe -m pytest tests\unit\qa\test_daemon_soak_script.py -q`
+  - PASS: `1 passed in 0.14s`.
+- `.\.venv\Scripts\python.exe scripts\daemon_soak.py --help`
+  - PASS: command-line help renders.

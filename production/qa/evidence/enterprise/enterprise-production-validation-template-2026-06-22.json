@@ -1,0 +1,102 @@
+{
+  "schema": "doge.enterprise_production_validation.v1",
+  "story_id": "S017-004",
+  "created_at": "2026-06-22T00:00:00Z",
+  "result": "not_run",
+  "validation_scope": "Operator production validation for live IdP/JWKS, production secret-store command, SIEM/WORM audit export, live remote-bind deployment, and production data isolation.",
+  "local_evidence": {
+    "enterprise_auth_plan": "docs/progress/enterprise-auth-implementation-plan.md",
+    "operational_audit_review": "docs/progress/enterprise-operational-audit-review.md",
+    "audit_siem_worm_handoff_packet": "docs/progress/audit-siem-worm-handoff-packet.md",
+    "production_secret_store_selection": "docs/progress/production-secret-store-selection.md",
+    "local_jwks_smoke": "production/qa/evidence/manual/doged-enterprise-jwks-auth-smoke-2026-06-22.json",
+    "local_process_secret_smoke": "production/qa/evidence/manual/doged-enterprise-process-secret-auth-smoke-2026-06-22.json",
+    "local_remote_bind_gate_smoke": "production/qa/evidence/manual/doged-remote-bind-gate-smoke-2026-06-22.json"
+  },
+  "operator": {
+    "role": "",
+    "initials": ""
+  },
+  "executed_at": "",
+  "checks": [
+    {
+      "id": "live_idp_jwks",
+      "status": "not_run",
+      "required_evidence": [
+        "approved issuer/audience/JWKS URL recorded without secrets",
+        "valid token accepted",
+        "missing bearer rejected",
+        "wrong audience rejected",
+        "invalid signature rejected",
+        "key rotation or JWKS refresh behavior observed"
+      ],
+      "evidence_ref": "",
+      "notes": ""
+    },
+    {
+      "id": "production_secret_store_command",
+      "status": "not_run",
+      "required_evidence": [
+        "DOGE_SECRET_PROVIDER=process configured",
+        "approved command/sidecar path recorded without secret values",
+        "auth/static or model secret resolved only through the command",
+        "rotation or permission boundary evidence recorded",
+        "raw secret absent from child process environment and logs"
+      ],
+      "evidence_ref": "",
+      "notes": ""
+    },
+    {
+      "id": "siem_worm_export",
+      "status": "not_run",
+      "required_evidence": [
+        "tenant-admin export written to approved SIEM/log target",
+        "export body hash matches X-DOGE-Audit-SHA256",
+        "byte/line/event counts match manifest headers",
+        "WORM or immutable object/version id recorded",
+        "retention/legal-hold policy recorded"
+      ],
+      "evidence_ref": "",
+      "notes": ""
+    },
+    {
+      "id": "live_remote_bind_deployment",
+      "status": "not_run",
+      "required_evidence": [
+        "non-loopback bind approved by operator",
+        "enterprise auth enabled",
+        "explicit CORS allow-list configured",
+        "TLS termination acknowledgement recorded",
+        "firewall/network exposure approved",
+        "unauthenticated request rejected in deployed environment"
+      ],
+      "evidence_ref": "",
+      "notes": ""
+    },
+    {
+      "id": "production_data_isolation_review",
+      "status": "not_run",
+      "required_evidence": [
+        "tenant-scoped document/session/run/audit queries rehearsed on an approved deployment snapshot",
+        "cross-tenant access attempt rejected or returns 404",
+        "migration/backup/restore ownership recorded",
+        "operator signs off on tenant data-isolation boundary"
+      ],
+      "evidence_ref": "",
+      "notes": ""
+    }
+  ],
+  "redaction_review": {
+    "contains_credentials": false,
+    "contains_raw_subjects": false,
+    "contains_proprietary_customer_data": false
+  },
+  "issue_refs": [],
+  "blockers": [
+    "operator-approved IdP/JWKS environment",
+    "operator-approved KMS/Vault/cloud secret command",
+    "operator-approved SIEM/WORM target",
+    "operator-approved remote deployment",
+    "production data-isolation review"
+  ]
+}

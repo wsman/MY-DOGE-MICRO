@@ -1,0 +1,9 @@
+{
+  "citation_precision_min": 0.85,
+  "cost_usd_p95_max": 1.0,
+  "latency_p95_ms_max": 30000.0,
+  "numerical_consistency_min": 0.9,
+  "retrieval_precision_min": 0.8,
+  "retrieval_recall_min": 0.85,
+  "usage_cost_record_coverage_min": 1.0
+}

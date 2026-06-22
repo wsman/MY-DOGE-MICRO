@@ -1,0 +1,91 @@
+{
+  "schema": "doge.financial_provider_approval.v1",
+  "story_id": "S017-003",
+  "created_at": "2026-06-22T00:00:00Z",
+  "result": "not_run",
+  "approval_scope": "Provider choice, license scope, repository fixture storage, freshness, and provenance approval before real financial adapter work.",
+  "contract": {
+    "fixture_contract": "tests/fixtures/financial_connectors/provider_fixture_contract.json",
+    "synthetic_samples": "tests/fixtures/financial_connectors/provider_fixture_samples.json",
+    "contract_status": "contract_only",
+    "synthetic_samples_status": "synthetic_safe_samples"
+  },
+  "operator": {
+    "role": "",
+    "initials": ""
+  },
+  "approved_at": "",
+  "decisions": [
+    {
+      "capability": "financial_statements",
+      "decision_status": "not_decided",
+      "preferred_provider_direction": "Exchange filings or licensed fundamentals provider",
+      "local_fallback": "StockOverviewFinancialStatementRepository",
+      "approved_provider": "",
+      "license_scope": "pending",
+      "fixture_storage_policy": "pending",
+      "freshness_requirement": "pending",
+      "provenance_requirement": "pending",
+      "notes": ""
+    },
+    {
+      "capability": "announcements",
+      "decision_status": "not_decided",
+      "preferred_provider_direction": "Exchange disclosure feed",
+      "local_fallback": "LocalNoteAnnouncementRepository",
+      "approved_provider": "",
+      "license_scope": "pending",
+      "fixture_storage_policy": "pending",
+      "freshness_requirement": "pending",
+      "provenance_requirement": "pending",
+      "notes": ""
+    },
+    {
+      "capability": "consensus",
+      "decision_status": "not_decided",
+      "preferred_provider_direction": "Licensed consensus feed",
+      "local_fallback": "UnavailableConsensusEstimateRepository",
+      "approved_provider": "",
+      "license_scope": "pending",
+      "fixture_storage_policy": "pending",
+      "freshness_requirement": "pending",
+      "provenance_requirement": "pending",
+      "notes": ""
+    },
+    {
+      "capability": "industry_classification",
+      "decision_status": "not_decided",
+      "preferred_provider_direction": "Licensed taxonomy or exchange sector map",
+      "local_fallback": "StaticIndustryClassificationSource",
+      "approved_provider": "",
+      "license_scope": "pending",
+      "fixture_storage_policy": "pending",
+      "freshness_requirement": "pending",
+      "provenance_requirement": "pending",
+      "notes": ""
+    },
+    {
+      "capability": "risk_factors",
+      "decision_status": "not_decided",
+      "preferred_provider_direction": "Licensed factor/risk model feed",
+      "local_fallback": "StaticRiskFactorSource",
+      "approved_provider": "",
+      "license_scope": "pending",
+      "fixture_storage_policy": "pending",
+      "freshness_requirement": "pending",
+      "provenance_requirement": "pending",
+      "notes": ""
+    }
+  ],
+  "issue_refs": [],
+  "redaction_review": {
+    "contains_credentials": false,
+    "contains_proprietary_data": false,
+    "repository_storage_approved": false
+  },
+  "blockers": [
+    "product/operator approval",
+    "provider/license scope",
+    "real provider-derived fixture storage approval"
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "approved_process": {
+    "forced_shutdown": false,
+    "returncode": 1,
+    "shutdown_requested_by_smoke": true,
+    "stderr_tail": "INFO:     Started server process [15660]\nINFO:     Waiting for application startup.\nINFO:     Application startup complete.\nINFO:     Uvicorn running on http://0.0.0.0:64474 (Press CTRL+C to quit)\n",
+    "stdout_tail": "INFO:     127.0.0.1:64475 - \"GET /api/health HTTP/1.1\" 200 OK\nINFO:     127.0.0.1:64480 - \"GET /v1/sessions HTTP/1.1\" 401 Unauthorized\nINFO:     127.0.0.1:64481 - \"GET /api/health HTTP/1.1\" 200 OK\n"
+  },
+  "bind_host": "0.0.0.0",
+  "checks": [
+    {
+      "name": "unapproved_remote_bind_rejected",
+      "passed": true,
+      "returncode": 1,
+      "stderr_contains_gate": true,
+      "stderr_tail": "E-MICRO\\src\\doge\\interfaces\\api\\main.py\", line 229, in _resolve_bind_host\n    _validate_api_remote_bind_startup(settings, auth_provider, host)\n  File \"D:\\Users\\Aby\\Desktop\\CodingTask\\MY-DOGE-MICRO\\src\\doge\\interfaces\\api\\main.py\", line 195, in _validate_api_remote_bind_startup\n    assert settings.api.allow_remote_bind, (\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: ADR-0007 remote-bind promotion: set DOGE_ALLOW_REMOTE_BIND=1 before binding the API outside loopback.\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"D:\\Users\\Aby\\Desktop\\CodingTask\\MY-DOGE-MICRO\\src\\doge\\interfaces\\daemon\\main.py\", line 45, in <module>\n    main()\n  File \"D:\\Users\\Aby\\Desktop\\CodingTask\\MY-DOGE-MICRO\\src\\doge\\interfaces\\daemon\\main.py\", line 29, in main\n    uvicorn.run(\"doge.interfaces.api.main:app\", host=_resolve_bind_host(), port=args.port, reload=args.reload)\n                                                     ^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\Users\\Aby\\Desktop\\CodingTask\\MY-DOGE-MICRO\\src\\doge\\interfaces\\api\\main.py\", line 231, in _resolve_bind_host\n    raise AssertionError(\nAssertionError: ADR-0007 loopback guarantee: non-loopback bind requires CORS allow-list hardening + auth first (see ADR-0007 Promotion gate). ADR-0007 remote-bind promotion: set DOGE_ALLOW_REMOTE_BIND=1 before binding the API outside loopback.\n",
+      "stdout_tail": ""
+    },
+    {
+      "authorized_health_payload": {
+        "status": "ok"
+      },
+      "authorized_health_status": 200,
+      "missing_bearer_status": 401,
+      "name": "approved_remote_bind_started_with_enterprise_auth",
+      "passed": true,
+      "process_running": true
+    }
+  ],
+  "provider": "local_enterprise_static_bearer_fixture",
+  "result": "passed",
+  "schema": "doge.doged_remote_bind_gate_smoke.v1",
+  "started_at": "2026-06-21T22:50:13.859773+00:00"
+}

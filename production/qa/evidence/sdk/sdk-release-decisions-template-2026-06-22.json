@@ -1,0 +1,39 @@
+{
+  "result": "needs_revision",
+  "release_manager": {
+    "role": "release-manager",
+    "initials": "RM"
+  },
+  "approved_at": "2026-06-22T00:00:00Z",
+  "issue_refs": [
+    "S017-007-TEMPLATE"
+  ],
+  "security_review": {
+    "no_credentials_in_package_config": false,
+    "typescript_sources_excluded_from_tarball": false,
+    "redaction_behavior_documented": false,
+    "contains_credentials": false
+  },
+  "packages": {
+    "python": {
+      "decision_status": "needs_revision",
+      "approved_package_name": "doge-sdk",
+      "registry_target": "pending",
+      "package_name_ownership": "pending",
+      "version_policy": "pending",
+      "changelog_policy": "pending",
+      "registry_consumer_smoke": "pending",
+      "notes": "Replace this template with release-manager approval details."
+    },
+    "typescript": {
+      "decision_status": "needs_revision",
+      "approved_package_name": "@my-doge/doge-sdk",
+      "registry_target": "pending",
+      "package_name_ownership": "pending",
+      "version_policy": "pending",
+      "changelog_policy": "pending",
+      "registry_consumer_smoke": "pending",
+      "notes": "Replace this template with release-manager approval details."
+    }
+  }
+}

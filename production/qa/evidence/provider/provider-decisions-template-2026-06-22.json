@@ -1,0 +1,48 @@
+{
+  "result": "needs_revision",
+  "operator": {
+    "role": "product-owner",
+    "initials": "PO"
+  },
+  "approved_at": "2026-06-22T00:00:00Z",
+  "issue_refs": [
+    "S017-003-TEMPLATE"
+  ],
+  "redaction_review": {
+    "contains_credentials": false,
+    "contains_proprietary_data": false,
+    "repository_storage_approved": false
+  },
+  "decisions": {
+    "announcements": {
+      "decision_status": "needs_revision",
+      "preferred_provider_direction": "Exchange disclosure feed",
+      "local_fallback": "LocalNoteAnnouncementRepository",
+      "notes": "Replace this template with approved provider/license/storage details."
+    },
+    "consensus": {
+      "decision_status": "needs_revision",
+      "preferred_provider_direction": "Licensed consensus feed",
+      "local_fallback": "UnavailableConsensusEstimateRepository",
+      "notes": "Replace this template with approved provider/license/storage details."
+    },
+    "financial_statements": {
+      "decision_status": "needs_revision",
+      "preferred_provider_direction": "Exchange filings or licensed fundamentals provider",
+      "local_fallback": "StockOverviewFinancialStatementRepository",
+      "notes": "Replace this template with approved provider/license/storage details."
+    },
+    "industry_classification": {
+      "decision_status": "needs_revision",
+      "preferred_provider_direction": "Licensed taxonomy or exchange sector map",
+      "local_fallback": "StaticIndustryClassificationSource",
+      "notes": "Replace this template with approved provider/license/storage details."
+    },
+    "risk_factors": {
+      "decision_status": "needs_revision",
+      "preferred_provider_direction": "Licensed factor/risk model feed",
+      "local_fallback": "StaticRiskFactorSource",
+      "notes": "Replace this template with approved provider/license/storage details."
+    }
+  }
+}

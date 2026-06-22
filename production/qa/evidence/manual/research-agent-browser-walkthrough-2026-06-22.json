@@ -1,0 +1,16 @@
+{
+  "result": "pass",
+  "url": "http://127.0.0.1:5173/#/scanner",
+  "payload": {
+    "document_ids_count": 1,
+    "portfolio_id": "portfolio-3d761615f907",
+    "execution_profile": "vision_analysis"
+  },
+  "approval_visible": true,
+  "status_text": "completed\ntokens 0",
+  "evidence_text": "EVIDENCE\ncompleted\ntokens 0\nSources\nNo source citations available\nhigh · approved\npublish investment committee memo",
+  "quality_text": "QUALITY\nCost / Eval\nTotal Tokens\n0\nPrompt Tokens\n0\nCost USD\n$0.0000\nCitation Precision\nn/a\nNumerical Consistency\n33%\nTool Success\n67%\ndirect_kimi_api\nkimi-k2.6\nbudget n/a",
+  "failed_responses": [],
+  "console_errors": [],
+  "screenshot": "D:\\Users\\Aby\\Desktop\\CodingTask\\MY-DOGE-MICRO\\production\\qa\\evidence\\manual\\research-agent-browser-walkthrough-2026-06-22.png"
+}

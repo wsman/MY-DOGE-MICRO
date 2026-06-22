@@ -1,0 +1,49 @@
+{
+  "result": "failed",
+  "executed_at": "2026-06-22T00:00:00Z",
+  "operator": {
+    "role": "platform-operator",
+    "initials": "OPS"
+  },
+  "issue_refs": [
+    "AUTH-PROD-TEMPLATE"
+  ],
+  "checks": {
+    "live_idp_jwks": {
+      "status": "blocked",
+      "evidence_ref": "operator-secure-store://replace/live_idp_jwks",
+      "issue_ref": "AUTH-PROD-TEMPLATE",
+      "notes": "Replace with redacted operator-approved IdP/JWKS evidence reference."
+    },
+    "live_remote_bind_deployment": {
+      "status": "blocked",
+      "evidence_ref": "operator-secure-store://replace/live_remote_bind_deployment",
+      "issue_ref": "AUTH-PROD-TEMPLATE",
+      "notes": "Replace with redacted operator-approved deployment evidence reference."
+    },
+    "production_data_isolation_review": {
+      "status": "blocked",
+      "evidence_ref": "operator-secure-store://replace/production_data_isolation_review",
+      "issue_ref": "AUTH-PROD-TEMPLATE",
+      "notes": "Replace with redacted production data-isolation review reference."
+    },
+    "production_secret_store_command": {
+      "status": "blocked",
+      "evidence_ref": "operator-secure-store://replace/production_secret_store_command",
+      "issue_ref": "AUTH-PROD-TEMPLATE",
+      "notes": "Replace with redacted KMS/Vault/cloud command evidence reference."
+    },
+    "siem_worm_export": {
+      "status": "blocked",
+      "evidence_ref": "operator-secure-store://replace/siem_worm_export",
+      "issue_ref": "AUTH-PROD-TEMPLATE",
+      "notes": "Replace with redacted SIEM/WORM export evidence reference."
+    }
+  },
+  "redaction_review": {
+    "contains_credentials": false,
+    "contains_raw_subjects": false,
+    "contains_proprietary_customer_data": false,
+    "notes": "Record only redacted IDs and summaries."
+  }
+}

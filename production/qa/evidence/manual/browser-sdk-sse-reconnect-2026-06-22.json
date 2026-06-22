@@ -1,0 +1,45 @@
+{
+  "browser": {
+    "chrome_path": "C:\\Users\\Aby\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe",
+    "mode": "headless CDP"
+  },
+  "observed": {
+    "browser_result": {
+      "events": [
+        {
+          "data": {
+            "step": "started"
+          },
+          "id": "2",
+          "type": "tool_call"
+        },
+        {
+          "data": {
+            "terminal": true
+          },
+          "id": "3",
+          "type": "artifact_created"
+        }
+      ],
+      "status": "passed"
+    },
+    "connection_count": 2,
+    "event_ids": [
+      "2",
+      "3"
+    ],
+    "last_event_id_headers": [
+      "1",
+      "2"
+    ]
+  },
+  "result": "passed",
+  "scenario": {
+    "first_connection": "server sends complete event id 2, then a truncated malformed SSE frame",
+    "second_connection": "server expects Last-Event-ID 2 and sends terminal event id 3"
+  },
+  "schema": "doge.browser_sdk_sse_reconnect_smoke.v1",
+  "screenshot": "production\\qa\\evidence\\manual\\browser-sdk-sse-reconnect-2026-06-22.png",
+  "sdk_dist": "D:\\Users\\Aby\\Desktop\\CodingTask\\MY-DOGE-MICRO\\packages\\doge-sdk-typescript\\dist",
+  "started_at": "2026-06-21T22:17:17.472037+00:00"
+}

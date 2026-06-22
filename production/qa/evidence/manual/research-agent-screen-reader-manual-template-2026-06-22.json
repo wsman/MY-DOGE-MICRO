@@ -1,0 +1,72 @@
+{
+  "schema": "doge.research_agent_screen_reader_manual.v1",
+  "result": "not_run",
+  "story_id": "S017-006",
+  "created_at": "2026-06-22T00:00:00Z",
+  "executed_at": null,
+  "operator": {
+    "role": "accessibility-specialist",
+    "initials": null
+  },
+  "environment": {
+    "platform": null,
+    "browser": null,
+    "browser_version": null,
+    "screen_reader": null,
+    "screen_reader_version": null,
+    "web_url": null,
+    "doged_base_url": null,
+    "live_kimi": false
+  },
+  "fixtures": {
+    "documents": [],
+    "portfolio": null,
+    "execution_profile": "financial_research"
+  },
+  "checks": [
+    {
+      "id": "sr_landmarks_sections",
+      "status": "not_run",
+      "severity": null,
+      "notes": "Input, Research Memo, Evidence, Quality, and Agent Timeline are discoverable."
+    },
+    {
+      "id": "sr_keyboard_primary_controls",
+      "status": "not_run",
+      "severity": null,
+      "notes": "Market, execution profile, question, Run, Upload, Import CSV are keyboard reachable and named."
+    },
+    {
+      "id": "sr_status_announcements",
+      "status": "not_run",
+      "severity": null,
+      "notes": "Run status changes are announced without visual inspection."
+    },
+    {
+      "id": "sr_approval_context",
+      "status": "not_run",
+      "severity": null,
+      "notes": "Approval risk level, status, action, Approve, and Deny controls are announced with context."
+    },
+    {
+      "id": "sr_memo_evidence_quality_timeline",
+      "status": "not_run",
+      "severity": null,
+      "notes": "Memo, citation/evidence area, cost/eval panel, and timeline are understandable."
+    },
+    {
+      "id": "sr_no_keyboard_trap",
+      "status": "not_run",
+      "severity": null,
+      "notes": "No keyboard trap, unexpected focus loss, or unlabeled interactive control is observed."
+    }
+  ],
+  "issues": [],
+  "attachments": [],
+  "redaction_review": {
+    "contains_secrets": false,
+    "contains_sensitive_documents": false,
+    "notes": "Use only non-sensitive fixtures and do not paste secrets into this evidence file."
+  },
+  "summary": "Template only. Manual screen-reader session has not been executed."
+}

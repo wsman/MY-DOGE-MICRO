@@ -1,0 +1,4 @@
+{
+  "observations": {},
+  "notes": "Template only. Populate one object per tests/eval/gold_cases.json case id with retrieved_evidence_ids, cited_evidence_ids, numbers, and usage."
+}

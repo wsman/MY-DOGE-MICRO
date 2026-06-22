@@ -1,0 +1,7 @@
+{
+  "status": "template",
+  "human_citation_labels": 0,
+  "human_numerical_labels": 0,
+  "insufficient_evidence_labels": 0,
+  "redaction": "Do not store raw proprietary labels if they reveal sensitive source text."
+}

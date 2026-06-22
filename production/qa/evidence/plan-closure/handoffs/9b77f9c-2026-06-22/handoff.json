@@ -1,0 +1,361 @@
+{
+  "closure_gate": {
+    "acceptable_with_open_items": true,
+    "posture": {
+      "errors": [],
+      "production_ready_false": true,
+      "runtime_maturity": "docs\\progress\\runtime-maturity.yaml",
+      "stable_declaration_forbidden": true
+    },
+    "result": "open",
+    "summary": {
+      "failed": 0,
+      "invalid": 0,
+      "open": 6,
+      "passed": 0,
+      "total": 6
+    }
+  },
+  "date": "2026-06-22",
+  "does_not_close_gates": true,
+  "handoff_json": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\handoff.json",
+  "operator_checklist": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\operator-checklist.md",
+  "operator_commands": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\operator-commands.ps1",
+  "prepared_at": "2026-06-22T03:27:21.553894+00:00",
+  "readme": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\README.md",
+  "schema": "doge.plan_closure_handoff_workspace.v1",
+  "source_manifest": "production\\qa\\evidence\\plan-closure\\9b77f9c-external-closure-manifest.json",
+  "source_plan": "C:\\Users\\Aby\\.claude\\plans\\9b77f9c-kimi-twinkly-map.md",
+  "tasks": [
+    {
+      "build_or_run_command": ".\\.venv\\Scripts\\python.exe scripts\\run_kimi_live_smoke.py --output-dir production\\qa\\evidence\\live",
+      "close_condition": "result must be passed; blocked evidence remains open",
+      "current_blockers": [
+        "blocked evidence records readiness/blockers only; rerun with live credentials to complete S017-002"
+      ],
+      "current_evidence": "production\\qa\\evidence\\live\\kimi-live-smoke-2026-06-22.json",
+      "current_result": "blocked",
+      "current_status": "open",
+      "handoff_kind": "live_runner",
+      "id": "S017-002",
+      "input_refs": [
+        "env:DOGE_LIVE_KIMI=1",
+        "env:MOONSHOT_API_KEY",
+        "optional:env:DOGE_LIVE_KIMI_AGENT_SDK=1"
+      ],
+      "input_templates": [],
+      "next_action": "Run scripts/run_kimi_live_smoke.py in an operator-approved Kimi credential/spend window with DOGE_LIVE_KIMI=1 and MOONSHOT_API_KEY set, then replace the blocked evidence with the live result.",
+      "output_ref": "production\\qa\\evidence\\live\\kimi-live-smoke-2026-06-22.json",
+      "prepared_inputs": [],
+      "required_results": [
+        "passed"
+      ],
+      "title": "Live Kimi smoke execution",
+      "validator_command": ".\\.venv\\Scripts\\python.exe scripts\\validate_kimi_live_smoke_evidence.py production\\qa\\evidence\\live\\kimi-live-smoke-2026-06-22.json",
+      "workspace_command_plan": {
+        "command_template": ".\\.venv\\Scripts\\python.exe scripts\\run_kimi_live_smoke.py --output-dir production\\qa\\evidence\\live",
+        "command_with_draft_inputs": ".\\.venv\\Scripts\\python.exe scripts\\run_kimi_live_smoke.py --output-dir production\\qa\\evidence\\live",
+        "prepared_input_bindings": [],
+        "requires_operator_values": [],
+        "resolved_output_ref": "production\\qa\\evidence\\live\\kimi-live-smoke-2026-06-22.json",
+        "timestamp_preamble": null,
+        "writes_completed_evidence_to_workspace": false
+      }
+    },
+    {
+      "build_or_run_command": ".\\.venv\\Scripts\\python.exe scripts\\build_financial_provider_approval_evidence.py --decisions production\\qa\\evidence\\provider\\provider-decisions-YYYY-MM-DD.json --output production\\qa\\evidence\\provider\\financial-provider-approval-YYYY-MM-DD.json --created-at \"YYYY-MM-DDTHH:MM:SSZ\"",
+      "close_condition": "result must be approved; needs_revision/rejected evidence remains open",
+      "current_blockers": [
+        "not_run evidence is an approval template/preflight artifact, not completed provider approval"
+      ],
+      "current_evidence": "production\\qa\\evidence\\provider\\financial-provider-approval-template-2026-06-22.json",
+      "current_result": "not_run",
+      "current_status": "open",
+      "handoff_kind": "evidence_builder",
+      "id": "S017-003",
+      "input_refs": [
+        "production\\qa\\evidence\\provider\\provider-decisions-YYYY-MM-DD.json"
+      ],
+      "input_templates": [
+        "production\\qa\\evidence\\provider\\provider-decisions-template-2026-06-22.json"
+      ],
+      "next_action": "Complete the provider approval template with product/operator decisions, license scope, fixture storage policy, freshness, provenance, and reviewer sign-off.",
+      "output_ref": "production\\qa\\evidence\\provider\\financial-provider-approval-YYYY-MM-DD.json",
+      "prepared_inputs": [
+        {
+          "action": "copied_template_for_operator_edit",
+          "prepared_input": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\s017-003\\provider-decisions-draft-2026-06-22.json",
+          "source_template": "production\\qa\\evidence\\provider\\provider-decisions-template-2026-06-22.json"
+        }
+      ],
+      "required_results": [
+        "approved"
+      ],
+      "title": "Financial provider fixture approval",
+      "validator_command": ".\\.venv\\Scripts\\python.exe scripts\\validate_financial_provider_approval_evidence.py production\\qa\\evidence\\provider\\financial-provider-approval-template-2026-06-22.json",
+      "workspace_command_plan": {
+        "command_template": ".\\.venv\\Scripts\\python.exe scripts\\build_financial_provider_approval_evidence.py --decisions production\\qa\\evidence\\provider\\provider-decisions-YYYY-MM-DD.json --output production\\qa\\evidence\\provider\\financial-provider-approval-YYYY-MM-DD.json --created-at \"YYYY-MM-DDTHH:MM:SSZ\"",
+        "command_with_draft_inputs": ".\\.venv\\Scripts\\python.exe scripts\\build_financial_provider_approval_evidence.py --decisions production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\s017-003\\provider-decisions-draft-2026-06-22.json --output production\\qa\\evidence\\provider\\financial-provider-approval-2026-06-22.json --created-at \"$createdAt\"",
+        "prepared_input_bindings": [
+          {
+            "input_ref": "production\\qa\\evidence\\provider\\provider-decisions-YYYY-MM-DD.json",
+            "prepared_input": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\s017-003\\provider-decisions-draft-2026-06-22.json",
+            "source_template": "production\\qa\\evidence\\provider\\provider-decisions-template-2026-06-22.json"
+          }
+        ],
+        "requires_operator_values": [
+          "$createdAt"
+        ],
+        "resolved_output_ref": "production\\qa\\evidence\\provider\\financial-provider-approval-2026-06-22.json",
+        "timestamp_preamble": "$createdAt = (Get-Date).ToUniversalTime().ToString(\"yyyy-MM-ddTHH:mm:ssZ\")",
+        "writes_completed_evidence_to_workspace": false
+      }
+    },
+    {
+      "build_or_run_command": ".\\.venv\\Scripts\\python.exe scripts\\build_analyst_benchmark_evidence.py --observations production\\qa\\evidence\\eval\\live-kimi-observations-redacted.json --thresholds production\\qa\\evidence\\eval\\approved-thresholds.json --output production\\qa\\evidence\\eval\\analyst-benchmark-YYYY-MM-DD.json --material-manifest-ref production/qa/evidence/eval/material-manifest-approved.json --label-manifest-ref production/qa/evidence/eval/label-manifest-approved.json --label-policy-ref docs/progress/financial-eval-gold-set.md --live-observation-ref production/qa/evidence/eval/live-kimi-observations-redacted.json --trend-history-ref production/qa/evidence/eval/trend-history.jsonl --analyst-role research-qa-analyst --analyst-initials \"<initials>\" --reviewed-at \"YYYY-MM-DDTHH:MM:SSZ\"",
+      "close_condition": "result must be passed; failed evidence remains open",
+      "current_blockers": [
+        "not_run evidence is an analyst benchmark template/preflight artifact"
+      ],
+      "current_evidence": "production\\qa\\evidence\\eval\\analyst-benchmark-template-2026-06-22.json",
+      "current_result": "not_run",
+      "current_status": "open",
+      "handoff_kind": "evidence_builder",
+      "id": "W3-live",
+      "input_refs": [
+        "production\\qa\\evidence\\eval\\live-kimi-observations-redacted.json",
+        "production\\qa\\evidence\\eval\\approved-thresholds.json",
+        "production\\qa\\evidence\\eval\\material-manifest-approved.json",
+        "production\\qa\\evidence\\eval\\label-manifest-approved.json",
+        "production\\qa\\evidence\\eval\\trend-history.jsonl"
+      ],
+      "input_templates": [
+        "production\\qa\\evidence\\eval\\live-kimi-observations-template-2026-06-22.json",
+        "production\\qa\\evidence\\eval\\approved-thresholds-template-2026-06-22.json",
+        "production\\qa\\evidence\\eval\\material-manifest-template-2026-06-22.json",
+        "production\\qa\\evidence\\eval\\label-manifest-template-2026-06-22.json",
+        "production\\qa\\evidence\\eval\\trend-history-template-2026-06-22.jsonl"
+      ],
+      "next_action": "Fill the analyst benchmark evidence with real materials, human citation labels, live Kimi observations, thresholds, and trend-history metadata.",
+      "output_ref": "production\\qa\\evidence\\eval\\analyst-benchmark-YYYY-MM-DD.json",
+      "prepared_inputs": [
+        {
+          "action": "copied_template_for_operator_edit",
+          "prepared_input": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\w3-live\\live-kimi-observations-draft-2026-06-22.json",
+          "source_template": "production\\qa\\evidence\\eval\\live-kimi-observations-template-2026-06-22.json"
+        },
+        {
+          "action": "copied_template_for_operator_edit",
+          "prepared_input": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\w3-live\\approved-thresholds-draft-2026-06-22.json",
+          "source_template": "production\\qa\\evidence\\eval\\approved-thresholds-template-2026-06-22.json"
+        },
+        {
+          "action": "copied_template_for_operator_edit",
+          "prepared_input": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\w3-live\\material-manifest-draft-2026-06-22.json",
+          "source_template": "production\\qa\\evidence\\eval\\material-manifest-template-2026-06-22.json"
+        },
+        {
+          "action": "copied_template_for_operator_edit",
+          "prepared_input": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\w3-live\\label-manifest-draft-2026-06-22.json",
+          "source_template": "production\\qa\\evidence\\eval\\label-manifest-template-2026-06-22.json"
+        },
+        {
+          "action": "copied_template_for_operator_edit",
+          "prepared_input": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\w3-live\\trend-history-draft-2026-06-22.jsonl",
+          "source_template": "production\\qa\\evidence\\eval\\trend-history-template-2026-06-22.jsonl"
+        }
+      ],
+      "required_results": [
+        "passed"
+      ],
+      "title": "Analyst-labeled financial eval benchmark",
+      "validator_command": ".\\.venv\\Scripts\\python.exe scripts\\validate_analyst_benchmark_evidence.py production\\qa\\evidence\\eval\\analyst-benchmark-template-2026-06-22.json",
+      "workspace_command_plan": {
+        "command_template": ".\\.venv\\Scripts\\python.exe scripts\\build_analyst_benchmark_evidence.py --observations production\\qa\\evidence\\eval\\live-kimi-observations-redacted.json --thresholds production\\qa\\evidence\\eval\\approved-thresholds.json --output production\\qa\\evidence\\eval\\analyst-benchmark-YYYY-MM-DD.json --material-manifest-ref production/qa/evidence/eval/material-manifest-approved.json --label-manifest-ref production/qa/evidence/eval/label-manifest-approved.json --label-policy-ref docs/progress/financial-eval-gold-set.md --live-observation-ref production/qa/evidence/eval/live-kimi-observations-redacted.json --trend-history-ref production/qa/evidence/eval/trend-history.jsonl --analyst-role research-qa-analyst --analyst-initials \"<initials>\" --reviewed-at \"YYYY-MM-DDTHH:MM:SSZ\"",
+        "command_with_draft_inputs": ".\\.venv\\Scripts\\python.exe scripts\\build_analyst_benchmark_evidence.py --observations production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\w3-live\\live-kimi-observations-draft-2026-06-22.json --thresholds production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\w3-live\\approved-thresholds-draft-2026-06-22.json --output production\\qa\\evidence\\eval\\analyst-benchmark-2026-06-22.json --material-manifest-ref production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\w3-live\\material-manifest-draft-2026-06-22.json --label-manifest-ref production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\w3-live\\label-manifest-draft-2026-06-22.json --label-policy-ref docs/progress/financial-eval-gold-set.md --live-observation-ref production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\w3-live\\live-kimi-observations-draft-2026-06-22.json --trend-history-ref production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\w3-live\\trend-history-draft-2026-06-22.jsonl --analyst-role research-qa-analyst --analyst-initials \"<initials>\" --reviewed-at \"$createdAt\"",
+        "prepared_input_bindings": [
+          {
+            "input_ref": "production\\qa\\evidence\\eval\\live-kimi-observations-redacted.json",
+            "prepared_input": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\w3-live\\live-kimi-observations-draft-2026-06-22.json",
+            "source_template": "production\\qa\\evidence\\eval\\live-kimi-observations-template-2026-06-22.json"
+          },
+          {
+            "input_ref": "production\\qa\\evidence\\eval\\approved-thresholds.json",
+            "prepared_input": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\w3-live\\approved-thresholds-draft-2026-06-22.json",
+            "source_template": "production\\qa\\evidence\\eval\\approved-thresholds-template-2026-06-22.json"
+          },
+          {
+            "input_ref": "production\\qa\\evidence\\eval\\material-manifest-approved.json",
+            "prepared_input": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\w3-live\\material-manifest-draft-2026-06-22.json",
+            "source_template": "production\\qa\\evidence\\eval\\material-manifest-template-2026-06-22.json"
+          },
+          {
+            "input_ref": "production\\qa\\evidence\\eval\\label-manifest-approved.json",
+            "prepared_input": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\w3-live\\label-manifest-draft-2026-06-22.json",
+            "source_template": "production\\qa\\evidence\\eval\\label-manifest-template-2026-06-22.json"
+          },
+          {
+            "input_ref": "production\\qa\\evidence\\eval\\trend-history.jsonl",
+            "prepared_input": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\w3-live\\trend-history-draft-2026-06-22.jsonl",
+            "source_template": "production\\qa\\evidence\\eval\\trend-history-template-2026-06-22.jsonl"
+          }
+        ],
+        "requires_operator_values": [
+          "$createdAt",
+          "<initials>"
+        ],
+        "resolved_output_ref": "production\\qa\\evidence\\eval\\analyst-benchmark-2026-06-22.json",
+        "timestamp_preamble": "$createdAt = (Get-Date).ToUniversalTime().ToString(\"yyyy-MM-ddTHH:mm:ssZ\")",
+        "writes_completed_evidence_to_workspace": false
+      }
+    },
+    {
+      "build_or_run_command": ".\\.venv\\Scripts\\python.exe scripts\\build_enterprise_production_validation_evidence.py --observations production\\qa\\evidence\\enterprise\\enterprise-production-observations-YYYY-MM-DD.json --output production\\qa\\evidence\\enterprise\\enterprise-production-validation-YYYY-MM-DD.json --created-at \"YYYY-MM-DDTHH:MM:SSZ\"",
+      "close_condition": "result must be passed; failed evidence remains open",
+      "current_blockers": [
+        "not_run evidence is an enterprise production validation template/preflight artifact"
+      ],
+      "current_evidence": "production\\qa\\evidence\\enterprise\\enterprise-production-validation-template-2026-06-22.json",
+      "current_result": "not_run",
+      "current_status": "open",
+      "handoff_kind": "evidence_builder",
+      "id": "AUTH-prod",
+      "input_refs": [
+        "production\\qa\\evidence\\enterprise\\enterprise-production-observations-YYYY-MM-DD.json"
+      ],
+      "input_templates": [
+        "production\\qa\\evidence\\enterprise\\enterprise-production-observations-template-2026-06-22.json"
+      ],
+      "next_action": "Execute enterprise production validation against operator-approved IdP/JWKS, secret-store command, SIEM/WORM sink, remote deployment, and data-isolation review evidence.",
+      "output_ref": "production\\qa\\evidence\\enterprise\\enterprise-production-validation-YYYY-MM-DD.json",
+      "prepared_inputs": [
+        {
+          "action": "copied_template_for_operator_edit",
+          "prepared_input": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\auth-prod\\enterprise-production-observations-draft-2026-06-22.json",
+          "source_template": "production\\qa\\evidence\\enterprise\\enterprise-production-observations-template-2026-06-22.json"
+        }
+      ],
+      "required_results": [
+        "passed"
+      ],
+      "title": "Enterprise production validation",
+      "validator_command": ".\\.venv\\Scripts\\python.exe scripts\\validate_enterprise_production_validation_evidence.py production\\qa\\evidence\\enterprise\\enterprise-production-validation-template-2026-06-22.json",
+      "workspace_command_plan": {
+        "command_template": ".\\.venv\\Scripts\\python.exe scripts\\build_enterprise_production_validation_evidence.py --observations production\\qa\\evidence\\enterprise\\enterprise-production-observations-YYYY-MM-DD.json --output production\\qa\\evidence\\enterprise\\enterprise-production-validation-YYYY-MM-DD.json --created-at \"YYYY-MM-DDTHH:MM:SSZ\"",
+        "command_with_draft_inputs": ".\\.venv\\Scripts\\python.exe scripts\\build_enterprise_production_validation_evidence.py --observations production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\auth-prod\\enterprise-production-observations-draft-2026-06-22.json --output production\\qa\\evidence\\enterprise\\enterprise-production-validation-2026-06-22.json --created-at \"$createdAt\"",
+        "prepared_input_bindings": [
+          {
+            "input_ref": "production\\qa\\evidence\\enterprise\\enterprise-production-observations-YYYY-MM-DD.json",
+            "prepared_input": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\auth-prod\\enterprise-production-observations-draft-2026-06-22.json",
+            "source_template": "production\\qa\\evidence\\enterprise\\enterprise-production-observations-template-2026-06-22.json"
+          }
+        ],
+        "requires_operator_values": [
+          "$createdAt"
+        ],
+        "resolved_output_ref": "production\\qa\\evidence\\enterprise\\enterprise-production-validation-2026-06-22.json",
+        "timestamp_preamble": "$createdAt = (Get-Date).ToUniversalTime().ToString(\"yyyy-MM-ddTHH:mm:ssZ\")",
+        "writes_completed_evidence_to_workspace": false
+      }
+    },
+    {
+      "build_or_run_command": ".\\.venv\\Scripts\\python.exe scripts\\build_screen_reader_evidence.py --observations production\\qa\\evidence\\manual\\screen-reader-observations-YYYY-MM-DD.json --output production\\qa\\evidence\\manual\\research-agent-screen-reader-manual-YYYY-MM-DD.json --created-at \"YYYY-MM-DDTHH:MM:SSZ\"",
+      "close_condition": "result must be passed; failed evidence remains open",
+      "current_blockers": [
+        "not_run evidence is a template/preflight artifact, not a completed manual pass"
+      ],
+      "current_evidence": "production\\qa\\evidence\\manual\\research-agent-screen-reader-manual-template-2026-06-22.json",
+      "current_result": "not_run",
+      "current_status": "open",
+      "handoff_kind": "evidence_builder",
+      "id": "S017-006",
+      "input_refs": [
+        "production\\qa\\evidence\\manual\\screen-reader-observations-YYYY-MM-DD.json"
+      ],
+      "input_templates": [
+        "production\\qa\\evidence\\manual\\screen-reader-observations-template-2026-06-22.json"
+      ],
+      "next_action": "Run the S017 screen-reader manual protocol with an approved screen reader/browser combination and record pass/fail evidence.",
+      "output_ref": "production\\qa\\evidence\\manual\\research-agent-screen-reader-manual-YYYY-MM-DD.json",
+      "prepared_inputs": [
+        {
+          "action": "copied_template_for_operator_edit",
+          "prepared_input": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\s017-006\\screen-reader-observations-draft-2026-06-22.json",
+          "source_template": "production\\qa\\evidence\\manual\\screen-reader-observations-template-2026-06-22.json"
+        }
+      ],
+      "required_results": [
+        "passed"
+      ],
+      "title": "Research Agent screen-reader manual pass",
+      "validator_command": ".\\.venv\\Scripts\\python.exe scripts\\validate_screen_reader_evidence.py production\\qa\\evidence\\manual\\research-agent-screen-reader-manual-template-2026-06-22.json",
+      "workspace_command_plan": {
+        "command_template": ".\\.venv\\Scripts\\python.exe scripts\\build_screen_reader_evidence.py --observations production\\qa\\evidence\\manual\\screen-reader-observations-YYYY-MM-DD.json --output production\\qa\\evidence\\manual\\research-agent-screen-reader-manual-YYYY-MM-DD.json --created-at \"YYYY-MM-DDTHH:MM:SSZ\"",
+        "command_with_draft_inputs": ".\\.venv\\Scripts\\python.exe scripts\\build_screen_reader_evidence.py --observations production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\s017-006\\screen-reader-observations-draft-2026-06-22.json --output production\\qa\\evidence\\manual\\research-agent-screen-reader-manual-2026-06-22.json --created-at \"$createdAt\"",
+        "prepared_input_bindings": [
+          {
+            "input_ref": "production\\qa\\evidence\\manual\\screen-reader-observations-YYYY-MM-DD.json",
+            "prepared_input": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\s017-006\\screen-reader-observations-draft-2026-06-22.json",
+            "source_template": "production\\qa\\evidence\\manual\\screen-reader-observations-template-2026-06-22.json"
+          }
+        ],
+        "requires_operator_values": [
+          "$createdAt"
+        ],
+        "resolved_output_ref": "production\\qa\\evidence\\manual\\research-agent-screen-reader-manual-2026-06-22.json",
+        "timestamp_preamble": "$createdAt = (Get-Date).ToUniversalTime().ToString(\"yyyy-MM-ddTHH:mm:ssZ\")",
+        "writes_completed_evidence_to_workspace": false
+      }
+    },
+    {
+      "build_or_run_command": ".\\.venv\\Scripts\\python.exe scripts\\build_sdk_release_approval_evidence.py --decisions production\\qa\\evidence\\sdk\\sdk-release-decisions-approved.json --output production\\qa\\evidence\\sdk\\sdk-release-approval-YYYY-MM-DD.json --created-at \"YYYY-MM-DDTHH:MM:SSZ\"",
+      "close_condition": "result must be approved; needs_revision/rejected evidence remains open",
+      "current_blockers": [
+        "not_run evidence is a release approval template/preflight artifact, not completed SDK release approval"
+      ],
+      "current_evidence": "production\\qa\\evidence\\sdk\\sdk-release-approval-template-2026-06-22.json",
+      "current_result": "not_run",
+      "current_status": "open",
+      "handoff_kind": "evidence_builder",
+      "id": "S017-007",
+      "input_refs": [
+        "production\\qa\\evidence\\sdk\\sdk-release-decisions-approved.json"
+      ],
+      "input_templates": [
+        "production\\qa\\evidence\\sdk\\sdk-release-decisions-template-2026-06-22.json"
+      ],
+      "next_action": "Complete SDK release approval with registry targets, package-name ownership, version/changelog policy, registry-backed consumer smoke, and release-manager sign-off.",
+      "output_ref": "production\\qa\\evidence\\sdk\\sdk-release-approval-YYYY-MM-DD.json",
+      "prepared_inputs": [
+        {
+          "action": "copied_template_for_operator_edit",
+          "prepared_input": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\s017-007\\sdk-release-decisions-draft-2026-06-22.json",
+          "source_template": "production\\qa\\evidence\\sdk\\sdk-release-decisions-template-2026-06-22.json"
+        }
+      ],
+      "required_results": [
+        "approved"
+      ],
+      "title": "SDK registry publication approval",
+      "validator_command": ".\\.venv\\Scripts\\python.exe scripts\\validate_sdk_release_approval_evidence.py production\\qa\\evidence\\sdk\\sdk-release-approval-template-2026-06-22.json",
+      "workspace_command_plan": {
+        "command_template": ".\\.venv\\Scripts\\python.exe scripts\\build_sdk_release_approval_evidence.py --decisions production\\qa\\evidence\\sdk\\sdk-release-decisions-approved.json --output production\\qa\\evidence\\sdk\\sdk-release-approval-YYYY-MM-DD.json --created-at \"YYYY-MM-DDTHH:MM:SSZ\"",
+        "command_with_draft_inputs": ".\\.venv\\Scripts\\python.exe scripts\\build_sdk_release_approval_evidence.py --decisions production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\s017-007\\sdk-release-decisions-draft-2026-06-22.json --output production\\qa\\evidence\\sdk\\sdk-release-approval-2026-06-22.json --created-at \"$createdAt\"",
+        "prepared_input_bindings": [
+          {
+            "input_ref": "production\\qa\\evidence\\sdk\\sdk-release-decisions-approved.json",
+            "prepared_input": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22\\inputs\\s017-007\\sdk-release-decisions-draft-2026-06-22.json",
+            "source_template": "production\\qa\\evidence\\sdk\\sdk-release-decisions-template-2026-06-22.json"
+          }
+        ],
+        "requires_operator_values": [
+          "$createdAt"
+        ],
+        "resolved_output_ref": "production\\qa\\evidence\\sdk\\sdk-release-approval-2026-06-22.json",
+        "timestamp_preamble": "$createdAt = (Get-Date).ToUniversalTime().ToString(\"yyyy-MM-ddTHH:mm:ssZ\")",
+        "writes_completed_evidence_to_workspace": false
+      }
+    }
+  ],
+  "workspace_root": "production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-22"
+}

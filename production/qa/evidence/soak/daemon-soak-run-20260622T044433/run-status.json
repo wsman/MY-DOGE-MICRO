@@ -1,0 +1,15 @@
+{
+  "status": "running",
+  "started_at": "2026-06-22T04:44:34.6700921+08:00",
+  "server_pid": 13772,
+  "soak_pid": 8056,
+  "run_dir": "D:\\Users\\Aby\\Desktop\\CodingTask\\MY-DOGE-MICRO\\production\\qa\\evidence\\soak\\daemon-soak-run-20260622T044433",
+  "db_dir": "D:\\Users\\Aby\\Desktop\\CodingTask\\MY-DOGE-MICRO\\.tmp\\daemon-soak-db-20260622T044433",
+  "agent_db": "D:\\Users\\Aby\\Desktop\\CodingTask\\MY-DOGE-MICRO\\.tmp\\daemon-soak-db-20260622T044433\\agent_state.db",
+  "api_stdout": "D:\\Users\\Aby\\Desktop\\CodingTask\\MY-DOGE-MICRO\\production\\qa\\evidence\\soak\\daemon-soak-run-20260622T044433\\uvicorn.out.log",
+  "api_stderr": "D:\\Users\\Aby\\Desktop\\CodingTask\\MY-DOGE-MICRO\\production\\qa\\evidence\\soak\\daemon-soak-run-20260622T044433\\uvicorn.err.log",
+  "soak_stdout": "D:\\Users\\Aby\\Desktop\\CodingTask\\MY-DOGE-MICRO\\production\\qa\\evidence\\soak\\daemon-soak-run-20260622T044433\\soak.out.log",
+  "soak_stderr": "D:\\Users\\Aby\\Desktop\\CodingTask\\MY-DOGE-MICRO\\production\\qa\\evidence\\soak\\daemon-soak-run-20260622T044433\\soak.err.log",
+  "duration_seconds": 3600,
+  "checkpoint_seconds": 900
+}
