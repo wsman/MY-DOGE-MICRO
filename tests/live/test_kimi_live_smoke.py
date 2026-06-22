@@ -44,10 +44,10 @@ async def test_live_kimi_text_k26_smoke():
     events = [
         event
         async for event in model.chat(
-            [AgentMessage(role="user", content="Return exactly: S016_KIMI_TEXT_OK")],
+            [AgentMessage(role="user", content="Return exactly: S017_KIMI_TEXT_OK")],
             stream=False,
             max_tokens=64,
-            request_metadata={"smoke": "s016_live_text"},
+            request_metadata={"smoke": "s017_live_text"},
         )
     ]
 
@@ -58,8 +58,8 @@ async def test_live_kimi_text_k26_smoke():
 
 def test_live_kimi_files_upload_smoke(tmp_path: Path):
     _require_live_kimi()
-    source = tmp_path / "s016-nonsensitive-smoke.txt"
-    source.write_text("S016 Kimi Files smoke fixture. Non-sensitive synthetic text.", encoding="utf-8")
+    source = tmp_path / "s017-nonsensitive-smoke.txt"
+    source.write_text("S017 Kimi Files smoke fixture. Non-sensitive synthetic text.", encoding="utf-8")
     client = KimiFilesClient()
 
     file_id = client.upload_file(source, purpose="file-extract")
@@ -129,12 +129,12 @@ async def test_live_kimi_agent_sdk_optional_smoke():
     events = [
         event
         async for event in backend.chat(
-            [AgentMessage(role="user", content="Reply with S016_AGENT_SDK_OK.")],
+            [AgentMessage(role="user", content="Reply with S017_AGENT_SDK_OK.")],
             tools=tools,
             tool_choice="auto",
             max_tokens=96,
-            request_metadata={"session_id": "s016-live-smoke", "smoke": "s016_live_agent_sdk"},
-            prompt_cache_key="s016-live-smoke",
+            request_metadata={"session_id": "s017-live-smoke", "smoke": "s017_live_agent_sdk"},
+            prompt_cache_key="s017-live-smoke",
         )
     ]
 

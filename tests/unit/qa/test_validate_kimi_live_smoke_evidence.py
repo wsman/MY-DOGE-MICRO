@@ -96,6 +96,15 @@ def test_passed_evidence_rejects_missing_required_scenario():
     assert any("missing required scenarios" in error for error in errors)
 
 
+def test_passed_evidence_requires_live_environment_gates():
+    payload = _passed()
+    payload["environment"]["MOONSHOT_API_KEY_PRESENT"] = False
+
+    errors = validate(payload)
+
+    assert any("passed evidence requires environment.MOONSHOT_API_KEY_PRESENT=true" in error for error in errors)
+
+
 def test_files_upload_rejects_raw_file_id():
     payload = _passed()
     for scenario in payload["scenarios"]:
@@ -105,6 +114,17 @@ def test_files_upload_rejects_raw_file_id():
     errors = validate(payload)
 
     assert any("raw file id" in error.lower() for error in errors)
+
+
+def test_files_upload_pass_requires_cleanup_confirmation():
+    payload = _passed()
+    for scenario in payload["scenarios"]:
+        if scenario["name"] == "files_upload":
+            scenario["file"]["deleted"] = False
+
+    errors = validate(payload)
+
+    assert any("files_upload: file.deleted must be true" in error for error in errors)
 
 
 def test_secret_like_values_are_rejected_without_false_positive_for_present_flags():

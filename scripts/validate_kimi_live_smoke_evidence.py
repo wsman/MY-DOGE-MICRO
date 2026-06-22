@@ -60,6 +60,10 @@ def validate(payload: dict[str, Any], *, allow_blocked: bool = False) -> list[st
     for key in ["DOGE_LIVE_KIMI", "MOONSHOT_API_KEY_PRESENT", "DOGE_LIVE_KIMI_AGENT_SDK", "general_model"]:
         if key not in environment:
             errors.append(f"environment.{key} is required")
+    if result in {"passed", "failed"}:
+        for key in ["DOGE_LIVE_KIMI", "MOONSHOT_API_KEY_PRESENT"]:
+            if environment.get(key) is not True:
+                errors.append(f"{result} evidence requires environment.{key}=true")
 
     scenarios = payload.get("scenarios")
     if not isinstance(scenarios, list):
@@ -126,6 +130,8 @@ def _validate_scenario(scenario: dict[str, Any], errors: list[str]) -> None:
         file_id_hash = file_info.get("file_id_hash")
         if status == "passed" and (not isinstance(file_id_hash, str) or not file_id_hash.startswith("sha256:")):
             errors.append("files_upload: file.file_id_hash must be redacted as sha256:<prefix>")
+        if status == "passed" and file_info.get("deleted") is not True:
+            errors.append("files_upload: file.deleted must be true for passed scenario")
         if "file_id" in file_info:
             errors.append("files_upload: raw file_id must not be recorded")
     if name == "agent_sdk_optional" and status == "skipped" and not scenario.get("reason"):
