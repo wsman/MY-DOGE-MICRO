@@ -8,7 +8,7 @@
 | Secondary language | TypeScript | project web toolchain | Vue/Vite web UI and TypeScript SDK |
 | Backend/API | FastAPI, Uvicorn, Pydantic | FastAPI 0.123.8, Uvicorn 0.38.0, Pydantic 2.12.4 | Loopback HTTP API and daemon/v1 routes |
 | MCP | mcp | 1.25.0 | stdio and SSE AI-client integration |
-| Desktop UI | PyQt6 | pinned in project dependencies | Windows-first local dashboard |
+| Desktop UI | PyQt6 | optional / unpinned (`gui` extra) | Windows-first local dashboard |
 | Web UI | Vue, Vite, Pinia, Naive UI | Vue 3.5.32, Vite 8.0.10, Pinia 3.0.4, Naive UI 2.44.1 | Dense local operator console |
 | Data | SQLite, DuckDB | DuckDB 1.4.4 | Local persistence plus analytical reads/views |
 | Market/AI integrations | yfinance, opentdx, akshare, OpenAI-compatible SDK | yfinance 0.2.66, OpenAI SDK 1.62.0 | Market data and provider-neutral model clients |
@@ -49,3 +49,7 @@
 - Interface/API layers directly opening SQLite or DuckDB connections.
 - Cross-layer imports that bypass ports/services.
 - Network-dependent tests without isolation, fixtures, or explicit integration markers.
+
+## Legacy Compatibility Notes
+
+- `_PROJECT_ROOT` is a settings-derived compatibility variable used only by legacy/test entrypoints that predate the editable install. It is not a new architectural pattern; the canonical rule is that only `src/doge/config/settings.py` may derive the project root.

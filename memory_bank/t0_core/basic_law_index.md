@@ -70,4 +70,4 @@ Status: Accepted (2026-06-21)
 
 | Version | Date | Basis | Status |
 |---------|------|-------|--------|
-| 1.0 | 2026-06-21 | Derived from `design/cdd/product-concept.md`, 15-module index, ADR-0001..ADR-0011, architecture traceability, and Release follow-up production evidence. | Accepted |
+| 1.0 | 2026-06-21 | Derived from `design/cdd/product-concept.md`, 15-module index, ADR-0001..ADR-0014, architecture traceability, and Release follow-up production evidence. | Accepted |

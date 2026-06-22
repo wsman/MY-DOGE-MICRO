@@ -23,7 +23,7 @@ Clean Architecture Migration -> all interface/core/infrastructure modules
 | Product concept | `design/cdd/product-concept.md` | designed |
 | Module index | `design/cdd/module-index.md` | in review |
 | CDD set | `design/cdd/*.md` | 15 modules documented; release follow-up modules in review |
-| ADR set | `docs/architecture/adr-0001..0011*.md` | accepted |
+| ADR set | `docs/architecture/adr-0001..0014*.md` | accepted |
 | TR registry | `docs/architecture/tr-registry.yaml` | current |
 | Runtime maturity | `docs/progress/runtime-maturity.yaml` | current; Stable forbidden |
 | Sprint status | `production/sprint-status.yaml` | current |

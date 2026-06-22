@@ -10,6 +10,7 @@
   - `production/releases/release-report-v0.2.1-2026-06-14.md`
   - `production/releases/promotion-review-sprint-015-2026-06-21.md`
 - Latest promotion posture: no Stable promotion authorized.
+- Current HEAD (`9b77f9c`) remote CI status: not verified; do not claim green without checking GitHub Actions/statuses.
 
 ## Release Guardrails
 

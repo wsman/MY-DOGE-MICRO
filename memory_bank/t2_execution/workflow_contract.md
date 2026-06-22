@@ -25,7 +25,7 @@
 | Product concept | present | `design/cdd/product-concept.md` |
 | Module index | present, in review | `design/cdd/module-index.md` |
 | Module CDDs | present | `design/cdd/*.md` |
-| ADR set | 11 Accepted | `docs/architecture/adr-*.md` |
+| ADR set | 14 Accepted | `docs/architecture/adr-*.md` |
 | Control manifest | present | `docs/architecture/control-manifest.md` |
 | TR registry | present | `docs/architecture/tr-registry.yaml` |
 | Product UX specs | present | `design/ux/*.md` |

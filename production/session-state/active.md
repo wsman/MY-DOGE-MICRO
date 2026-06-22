@@ -33,7 +33,7 @@
 - Full local Python gate: `.\.venv\Scripts\python.exe -m pytest tests/ -q` → **833 passed, 5 skipped, 11 warnings in 63.68s**.
 - Web full gate: `npm test` → **75 passed**; `npm run build` → **passed**.
 - TypeScript SDK full gate: `npm test` → **3 passed**; `npm run build` → **passed**.
-- Stable remains forbidden: live Kimi smoke, citation quality evaluation, browser/manual SSE reconnect evidence, RAG quality benchmarking, real fundamentals/connectors, legacy TDX helper deletion, remote CI after push, and executed soak evidence remain open.
+- Stable remains forbidden: live Kimi smoke, citation quality evaluation, browser/manual SSE reconnect evidence, screen-reader manual evidence, RAG quality benchmarking, real fundamentals/connectors, and legacy TDX helper deletion remain open. Remote CI and one-hour local daemon soak evidence have landed.
 
 Previous baseline:
 

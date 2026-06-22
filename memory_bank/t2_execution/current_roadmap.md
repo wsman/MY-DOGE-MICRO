@@ -35,7 +35,9 @@
 
 ## Recent Verification Baseline
 
-- Python full suite: 833 passed, 5 skipped, 11 warnings.
+- Python full suite persisted release evidence: 833 passed, 5 skipped, 11 warnings.
+- Python full suite local memory-bank audit: 882 passed, 5 skipped, 11 warnings; not yet mirrored into production evidence.
+- Current dirty worktree full suite: 1 failed, 883 passed, 5 skipped, 11 warnings; blocker is API docs route coverage for `POST /v1/portfolios/import` from non-memory implementation changes.
 - Web tests/build: 75 passed; build passed.
 - TypeScript SDK tests/build: 3 passed; build passed.
 - Sprint 015 targeted gates: performance, Kimi retry, and Research Agent a11y targeted tests passed.

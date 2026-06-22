@@ -4,6 +4,7 @@
 
 - Project: MY-DOGE QUANT SYSTEM
 - Current working state: Release follow-up with active runtime, evidence, SDK, RAG, industry-report, and release-quality hardening work.
+- Current HEAD: `9b77f9cb87a59cb1bd4a0ce39d5cf5687e066d5b` (Kimi enterprise model gateway, tool governance, tenant context, multimodal evidence, SDK/CLI/Kimi agent backend extensions).
 - Layer model: T0 (laws) -> T1 (support) -> T2 (execution) -> T3 (archive)
 - Domain: Product
 - Review mode: lean (`production/review-mode.txt`)
@@ -20,7 +21,7 @@ MY-DOGE is a local-first quantitative investment command platform for a personal
 - Version: 1.0
 - Last amended: 2026-06-21
 - Last sign-off: 2026-06-21 by operator approval in Codex `/constitute`
-- Source basis: `design/cdd/product-concept.md`, `design/cdd/module-index.md`, 16 CDD files, 11 Accepted ADRs, `docs/architecture/architecture-traceability.md`, `docs/progress/runtime-maturity.yaml`, and production sprint/release evidence.
+- Source basis: `design/cdd/product-concept.md`, `design/cdd/module-index.md`, 16 CDD files, 14 Accepted ADRs, `docs/architecture/architecture-traceability.md`, `docs/progress/runtime-maturity.yaml`, and production sprint/release evidence.
 
 ## Active Decisions
 

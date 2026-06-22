@@ -42,3 +42,6 @@
 - ADR-0003/0004/0009/0010 govern storage, data source, cache/metadata, and view-service ports.
 - ADR-0006/0007/0008 govern MCP/API/Web surfaces.
 - ADR-0011 governs runtime levels and maturity labels.
+- ADR-0012 governs the enterprise model gateway and provider-neutral usage/cost metadata.
+- ADR-0013 governs tool categorization, entitlement filtering, and high-risk approval gating.
+- ADR-0014 governs multimodal evidence assembly and deterministic validation of financial claims.

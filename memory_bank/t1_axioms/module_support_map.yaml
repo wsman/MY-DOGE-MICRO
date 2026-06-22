@@ -29,7 +29,7 @@ modules:
     layer: Core
     status: Designed
     laws: [BL-03, BL-04, BL-06]
-    adrs: [ADR-0004, ADR-0005]
+    adrs: [ADR-0004, ADR-0005, ADR-0012]
     trs: [TR-013, TR-014, TR-015, TR-016]
   micro-momentum-scanner:
     cdd: design/cdd/micro-momentum-scanner.md
@@ -50,7 +50,7 @@ modules:
     layer: Core
     status: Designed
     laws: [BL-02, BL-03]
-    adrs: [ADR-0001, ADR-0003]
+    adrs: [ADR-0001, ADR-0003, ADR-0014]
     trs: [TR-022, TR-023, TR-024, TR-045, TR-046]
   mcp-server:
     cdd: design/cdd/mcp-server.md
@@ -92,19 +92,19 @@ modules:
     layer: Core
     status: In Review
     laws: [BL-03, BL-04, BL-06]
-    adrs: [ADR-0001, ADR-0002, ADR-0007, ADR-0011]
+    adrs: [ADR-0001, ADR-0002, ADR-0007, ADR-0011, ADR-0012, ADR-0013, ADR-0014]
     trs: [TR-047, TR-048, TR-049, TR-054]
   document-evidence-pipeline:
     cdd: design/cdd/document-evidence-pipeline.md
     layer: Core
     status: In Review
     laws: [BL-02, BL-03]
-    adrs: [ADR-0001, ADR-0003, ADR-0005, ADR-0011]
+    adrs: [ADR-0001, ADR-0003, ADR-0005, ADR-0011, ADR-0014]
     trs: [TR-051, TR-052, TR-053]
   sdk-daemon-client-interfaces:
     cdd: design/cdd/sdk-daemon-client-interfaces.md
     layer: Interface
     status: In Review
     laws: [BL-04, BL-05, BL-06]
-    adrs: [ADR-0007, ADR-0008, ADR-0011]
+    adrs: [ADR-0007, ADR-0008, ADR-0011, ADR-0013]
     trs: [TR-049, TR-050, TR-054]

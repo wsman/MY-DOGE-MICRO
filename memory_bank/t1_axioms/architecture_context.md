@@ -6,7 +6,7 @@ This file indexes architecture decisions without replacing `docs/architecture/ad
 
 - Architecture document: no monolithic `docs/architecture/architecture.md`; the project uses ADRs, traceability, TR registry, and control manifest as the current architecture authority.
 - Current architecture status: accepted ADR set with release follow-up concerns.
-- Current ADR inventory: ADR-0001 through ADR-0011 are Accepted.
+- Current ADR inventory: ADR-0001 through ADR-0014 are Accepted.
 - Key architectural risks: legacy repository-routing debt, runtime promotion blockers, provider live-smoke gaps, SDK packaging hardening, browser reconnect evidence, and citation-quality evaluation.
 
 ## ADR Support Map
@@ -24,6 +24,9 @@ This file indexes architecture decisions without replacing `docs/architecture/ad
 | `docs/architecture/adr-0009-cache-metadata-port-split.md` | Accepted | BL-03, BL-05 | Name cache vs metadata source split |
 | `docs/architecture/adr-0010-view-service-port-injection.md` | Accepted | BL-05 | View services depend on `IMarketViewRepository` |
 | `docs/architecture/adr-0011-agent-runtime-levels.md` | Accepted | BL-03, BL-04, BL-06 | Runtime levels and maturity guardrails |
+| `docs/architecture/adr-0012-enterprise-model-gateway.md` | Accepted | BL-03, BL-04, BL-05 | Provider-neutral enterprise model gateway wrapping `IAgentModel` |
+| `docs/architecture/adr-0013-tool-governance.md` | Accepted | BL-03, BL-04, BL-05 | Tool categories, entitlements, and high-risk approval gating |
+| `docs/architecture/adr-0014-multimodal-evidence.md` | Accepted | BL-02, BL-03 | Deterministic + Kimi multimodal + RAG evidence assembly |
 
 ## Traceability
 
