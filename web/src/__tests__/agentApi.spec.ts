@@ -28,8 +28,9 @@ describe('agent api', () => {
   })
 
   it('streams newly created runs until display-ready', async () => {
+    const runMock = vi.fn(async () => 'run-1')
     mocks.sessions.create.mockResolvedValue({
-      createTurn: vi.fn(async () => 'run-1'),
+      run: runMock,
     })
     mocks.runs.stream.mockImplementation(async function* () {
       yield { id: '1', type: 'run_created', data: { event_id: 'evt-1' } }
@@ -46,14 +47,23 @@ describe('agent api', () => {
     const run = await createAgentRun({
       workflow: 'investment_research',
       question: 'Analyze',
-      document_ids: [],
-      portfolio_id: null,
+      execution_profile: 'web_research',
+      document_ids: ['doc-1'],
+      portfolio_id: 'portfolio-1',
       market: 'us',
       language: 'en',
-      model_policy: {},
+      model_policy: { max_tool_rounds: 4 },
     })
 
     expect(run.status).toBe('awaiting_approval')
+    expect(runMock).toHaveBeenCalledWith('Analyze', {
+      market: 'us',
+      language: 'en',
+      document_ids: ['doc-1'],
+      portfolio_id: 'portfolio-1',
+      execution_profile: 'web_research',
+      model_policy: { max_tool_rounds: 4 },
+    })
     expect(mocks.runs.stream).toHaveBeenCalledWith('run-1', { lastEventId: undefined, reconnect: true })
     expect(mocks.runs.get).toHaveBeenCalledWith('run-1')
   })

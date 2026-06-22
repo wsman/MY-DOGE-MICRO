@@ -4,21 +4,19 @@
       <div id="research-agent-input-title" class="pane-header">Input</div>
       <n-space vertical size="small">
         <n-select v-model:value="store.market" :options="marketOptions" size="small" aria-label="Market" />
+        <ExecutionProfileSelector v-model="store.executionProfile" />
         <n-input
           v-model:value="store.question"
           type="textarea"
           :autosize="{ minRows: 5, maxRows: 8 }"
           aria-label="Research question"
         />
-        <n-button type="primary" size="small" :loading="store.loading" @click="store.startDemoRun">
+        <n-button type="primary" size="small" :loading="store.loading" @click="startRun">
           Run
         </n-button>
-        <div class="file-list">
-          <n-tag size="small">annual report</n-tag>
-          <n-tag size="small">presentation</n-tag>
-          <n-tag size="small">chart</n-tag>
-          <n-tag size="small">portfolio.csv</n-tag>
-        </div>
+        <DocumentUploader />
+        <DocumentSelector />
+        <PortfolioImporter @imported="onPortfolioImported" />
       </n-space>
     </section>
 
@@ -37,6 +35,7 @@
         <n-tag :type="statusType" size="small">{{ store.run?.status || 'idle' }}</n-tag>
         <n-tag size="small">tokens {{ usage.total_tokens ?? 0 }}</n-tag>
       </div>
+      <CitationDrilldown :memo="store.latestMemo" :artifacts="store.artifacts" :events="store.events" />
       <div class="approval-list" aria-label="Approval requests">
         <div
           v-for="approval in store.approvals"
@@ -52,7 +51,13 @@
             <n-button size="tiny" @click="store.resolveApproval(approval.approval_id, false)">Deny</n-button>
           </n-space>
         </div>
+        <div v-if="!store.approvals.length" class="empty-state">No approvals pending</div>
       </div>
+    </section>
+
+    <section class="quality-pane" aria-labelledby="research-agent-quality-title">
+      <div id="research-agent-quality-title" class="pane-header">Quality</div>
+      <CostEvalPanel :artifacts="store.artifacts" :events="store.events" />
     </section>
 
     <section class="timeline-pane" aria-labelledby="research-agent-timeline-title">
@@ -71,9 +76,18 @@
 import { computed } from 'vue'
 import MarkdownIt from 'markdown-it'
 import { NAlert, NButton, NInput, NSelect, NSpace, NTag } from 'naive-ui'
+import CitationDrilldown from '../components/agent/CitationDrilldown.vue'
+import CostEvalPanel from '../components/agent/CostEvalPanel.vue'
+import DocumentSelector from '../components/agent/DocumentSelector.vue'
+import DocumentUploader from '../components/agent/DocumentUploader.vue'
+import ExecutionProfileSelector from '../components/agent/ExecutionProfileSelector.vue'
+import PortfolioImporter from '../components/agent/PortfolioImporter.vue'
+import type { ImportedPortfolio } from '../api/portfolio'
 import { useAgentStore } from '../stores/agent'
+import { useDocumentStore } from '../stores/documents'
 
 const store = useAgentStore()
+const documentStore = useDocumentStore()
 const md = new MarkdownIt()
 
 const marketOptions = [
@@ -99,6 +113,15 @@ function approvalLabel(approval: { risk_level: string; status: string; action: s
   return `${approval.risk_level} risk approval ${approval.status}: ${approval.action}`
 }
 
+async function startRun() {
+  store.setDocumentIds([...documentStore.selectedIds])
+  await store.startDemoRun()
+}
+
+function onPortfolioImported(portfolio: ImportedPortfolio) {
+  store.setPortfolioId(portfolio.portfolio_id)
+}
+
 function compactPayload(payload: Record<string, unknown>) {
   const text = JSON.stringify(payload)
   return text.length > 180 ? `${text.slice(0, 180)}...` : text
@@ -110,7 +133,7 @@ function compactPayload(payload: Record<string, unknown>) {
   height: 100%;
   padding: 12px;
   display: grid;
-  grid-template-columns: minmax(220px, 0.9fr) minmax(320px, 1.4fr) minmax(240px, 0.9fr);
+  grid-template-columns: minmax(220px, 0.85fr) minmax(320px, 1.25fr) minmax(240px, 0.95fr) minmax(220px, 0.85fr);
   grid-template-rows: minmax(0, 1fr) 180px;
   gap: 12px;
   color: var(--dgm-text);
@@ -127,7 +150,14 @@ section {
 }
 
 .timeline-pane {
-  grid-column: 1 / 4;
+  grid-column: 1 / 5;
+}
+
+.evidence-pane,
+.quality-pane {
+  display: grid;
+  align-content: start;
+  gap: 12px;
 }
 
 .pane-header {
@@ -138,7 +168,6 @@ section {
   text-transform: uppercase;
 }
 
-.file-list,
 .status-row {
   display: flex;
   flex-wrap: wrap;
@@ -163,7 +192,6 @@ section {
 }
 
 .approval-list {
-  margin-top: 12px;
   display: grid;
   gap: 10px;
 }
@@ -209,7 +237,7 @@ code {
 @media (max-width: 900px) {
   .research-agent-view {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto minmax(160px, 1fr);
+    grid-template-rows: auto auto auto auto minmax(160px, 1fr);
   }
 
   .timeline-pane {

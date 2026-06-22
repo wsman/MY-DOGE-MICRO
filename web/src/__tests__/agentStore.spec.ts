@@ -1,5 +1,6 @@
 import { setActivePinia, createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createAgentRun } from '../api/agent'
 import { useAgentStore } from '../stores/agent'
 
 vi.mock('../api/agent', () => ({
@@ -34,9 +35,17 @@ describe('agent store', () => {
 
   it('starts a demo run and exposes approvals', async () => {
     const store = useAgentStore()
+    store.executionProfile = 'web_research'
+    store.setDocumentIds(['doc-1'])
+    store.setPortfolioId('portfolio-1')
     await store.startDemoRun()
     expect(store.run?.status).toBe('awaiting_approval')
     expect(store.approvals[0].approval_id).toBe('appr-1')
+    expect(createAgentRun).toHaveBeenCalledWith(expect.objectContaining({
+      execution_profile: 'web_research',
+      document_ids: ['doc-1'],
+      portfolio_id: 'portfolio-1',
+    }))
   })
 
   it('resolves approval and exposes memo artifact', async () => {

@@ -41,6 +41,7 @@ export interface AgentRun {
 export interface CreateAgentRunRequest {
   workflow: string
   question: string
+  execution_profile: string
   document_ids: string[]
   portfolio_id: string | null
   market: string
@@ -50,11 +51,12 @@ export interface CreateAgentRunRequest {
 
 export async function createAgentRun(payload: CreateAgentRunRequest): Promise<AgentRun> {
   const session = await dogeClient.sessions.create('Research Agent Workspace')
-  const runId = await session.createTurn(payload.question, {
+  const runId = await session.run(payload.question, {
     market: payload.market,
     language: payload.language,
     document_ids: payload.document_ids,
     portfolio_id: payload.portfolio_id,
+    execution_profile: payload.execution_profile,
     model_policy: payload.model_policy,
   })
   return await streamAgentRun(runId)
