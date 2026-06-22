@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import importlib
+import inspect
 from typing import Any, AsyncIterator
 
 from doge.core.ports.agent_backend import IAgentBackend
 from doge.core.ports.agent_model import AgentMessage, AgentResponse
+from doge.core.ports.secrets import ISecretProvider
 from doge.infrastructure.agent.kimi_sdk_adapter import KimiSdkEventAdapter
 from doge.infrastructure.agent.scripted_model import ScriptedAgentModel
 from doge.infrastructure.llm.kimi_client import KimiAgentModel
+from doge.infrastructure.secrets import EnvSecretProvider
 
 
 class DirectKimiApiBackend(IAgentBackend):
@@ -24,6 +27,10 @@ class DirectKimiApiBackend(IAgentBackend):
         tools: list[dict[str, Any]] | None = None,
         tool_choice: str | None = None,
         max_tokens: int = 16384,
+        *,
+        request_metadata: dict[str, Any] | None = None,
+        prompt_cache_key: str | None = None,
+        model: str | None = None,
     ) -> AsyncIterator[AgentResponse]:
         async for response in self._model.chat(
             messages,
@@ -47,6 +54,10 @@ class ScriptedDemoBackend(IAgentBackend):
         tools: list[dict[str, Any]] | None = None,
         tool_choice: str | None = None,
         max_tokens: int = 16384,
+        *,
+        request_metadata: dict[str, Any] | None = None,
+        prompt_cache_key: str | None = None,
+        model: str | None = None,
     ) -> AsyncIterator[AgentResponse]:
         async for response in self._model.chat(
             messages,
@@ -68,11 +79,13 @@ class KimiAgentSdkBackend(IAgentBackend):
         base_url: str | None = None,
         model: str | None = None,
         config: Any | None = None,
+        secret_provider: ISecretProvider | None = None,
     ) -> None:
         self._api_key = api_key
         self._base_url = base_url
         self._model = model
         self._config = config
+        self._secret_provider = secret_provider or EnvSecretProvider()
         self._adapter = KimiSdkEventAdapter()
 
     async def chat(
@@ -81,11 +94,31 @@ class KimiAgentSdkBackend(IAgentBackend):
         tools: list[dict[str, Any]] | None = None,
         tool_choice: str | None = None,
         max_tokens: int = 16384,
+        *,
+        request_metadata: dict[str, Any] | None = None,
+        prompt_cache_key: str | None = None,
+        model: str | None = None,
     ) -> AsyncIterator[AgentResponse]:
         sdk = _load_kimi_agent_sdk()
         prompt = getattr(sdk, "prompt")
-        config = self._config or _build_sdk_config(sdk, self._api_key, self._base_url, self._model)
-        async for message in prompt(self._adapter.messages_to_prompt(messages), config=config, yolo=False):
+        model_name = model or self._model
+        api_key = self._api_key if self._api_key is not None else self._secret_provider.get_secret("kimi.api_key")
+        config = self._config or _build_sdk_config(sdk, api_key, self._base_url, model_name)
+        request = self._adapter.build_prompt_request(
+            messages,
+            tools=tools,
+            tool_choice=tool_choice,
+            max_tokens=max_tokens,
+            request_metadata=request_metadata,
+            prompt_cache_key=prompt_cache_key,
+            model=model_name,
+        )
+        kwargs = _supported_prompt_kwargs(prompt, {
+            "config": config,
+            "yolo": False,
+            **self._adapter.to_prompt_kwargs(request),
+        })
+        async for message in prompt(request.prompt, **kwargs):
             yield self._adapter.to_response(message)
 
 
@@ -114,3 +147,20 @@ def _build_sdk_config(sdk, api_key: str | None, base_url: str | None, model: str
         models={model_name: {"provider": "kimi", "model": model_name}},
     )
 
+
+def _supported_prompt_kwargs(prompt, kwargs: dict[str, Any]) -> dict[str, Any]:
+    try:
+        signature = inspect.signature(prompt)
+    except (TypeError, ValueError):
+        return kwargs
+    parameters = signature.parameters
+    if any(parameter.kind == inspect.Parameter.VAR_KEYWORD for parameter in parameters.values()):
+        return kwargs
+    accepted = {
+        name for name, parameter in parameters.items()
+        if name != "prompt" and parameter.kind in {
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            inspect.Parameter.KEYWORD_ONLY,
+        }
+    }
+    return {key: value for key, value in kwargs.items() if key in accepted}

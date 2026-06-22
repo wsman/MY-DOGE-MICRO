@@ -7,6 +7,14 @@ from doge.core.ports.agent_model import AgentContentPart, AgentMessage
 from doge.infrastructure.llm.kimi_client import KimiAgentModel, KimiMessageSerializer
 
 
+class _SecretProvider:
+    def __init__(self, values):
+        self.values = values
+
+    def get_secret(self, name: str):
+        return self.values.get(name)
+
+
 @pytest.mark.asyncio
 async def test_kimi_client_yields_nothing_without_api_key(monkeypatch):
     monkeypatch.delenv("MOONSHOT_API_KEY", raising=False)
@@ -75,6 +83,44 @@ async def test_kimi_client_omits_temperature_and_sets_thinking(monkeypatch):
     assert captured["model"] == "kimi-k2.6"
     assert "temperature" not in captured
     assert captured["extra_body"] == {"thinking": {"type": "enabled", "keep": "all"}}
+
+
+@pytest.mark.asyncio
+async def test_kimi_client_reads_api_key_from_secret_provider(monkeypatch):
+    captured = {}
+
+    class FakeCompletions:
+        async def create(self, **kwargs):
+            captured.update(kwargs)
+            message = SimpleNamespace(role="assistant", content="memo", tool_calls=[])
+            choice = SimpleNamespace(message=message, finish_reason="stop")
+            return SimpleNamespace(
+                choices=[choice],
+                usage=None,
+                model_dump=lambda exclude_none=True: {"id": "resp-1"},
+            )
+
+    class FakeAsyncOpenAI:
+        def __init__(self, **kwargs):
+            captured["client"] = kwargs
+            self.chat = SimpleNamespace(completions=FakeCompletions())
+
+    import openai
+
+    monkeypatch.delenv("MOONSHOT_API_KEY", raising=False)
+    reset_settings()
+    monkeypatch.setattr(openai, "AsyncOpenAI", FakeAsyncOpenAI)
+
+    events = [
+        event
+        async for event in KimiAgentModel(
+            secret_provider=_SecretProvider({"kimi.api_key": "provider-key"}),
+            model="kimi-k2.6",
+        ).chat([AgentMessage(role="user", content="hi")], stream=False)
+    ]
+
+    assert len(events) == 1
+    assert captured["client"]["api_key"] == "provider-key"
 
 
 @pytest.mark.asyncio

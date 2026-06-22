@@ -11,6 +11,8 @@ from typing import Optional
 
 from doge.config import get_settings
 from doge.core.ports.llm import ILLMClient
+from doge.core.ports.secrets import ISecretProvider
+from doge.infrastructure.secrets import EnvSecretProvider
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +24,9 @@ class DeepSeekClient(ILLMClient):
     Lazy-imports ``openai`` inside :meth:`chat` so the rest of the package can be
     imported without the optional ``openai`` extra installed.
     """
+
+    def __init__(self, *, secret_provider: ISecretProvider | None = None) -> None:
+        self._secret_provider = secret_provider or EnvSecretProvider()
 
     def chat(
         self,
@@ -37,7 +42,7 @@ class DeepSeekClient(ILLMClient):
         or any request failure occurs.
         """
         settings = get_settings()
-        api_key = settings.deepseek.api_key
+        api_key = self._secret_provider.get_secret("deepseek.api_key") or settings.deepseek.api_key
         if not api_key:
             logger.warning("DeepSeek API key not configured")
             return None

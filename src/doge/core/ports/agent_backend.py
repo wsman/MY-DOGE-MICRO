@@ -16,5 +16,9 @@ class IAgentBackend(ABC):
         tools: list[dict[str, Any]] | None = None,
         tool_choice: str | None = None,
         max_tokens: int = 16384,
+        *,
+        request_metadata: dict[str, Any] | None = None,
+        prompt_cache_key: str | None = None,
+        model: str | None = None,
     ) -> AsyncIterator[AgentResponse]:
         ...

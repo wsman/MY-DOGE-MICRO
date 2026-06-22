@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Optional
 
 from doge.config import get_settings
+from doge.core.ports.secrets import ISecretProvider
+from doge.infrastructure.secrets import EnvSecretProvider
 
 
 class KimiFilesClient:
@@ -16,9 +18,11 @@ class KimiFilesClient:
         *,
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
+        secret_provider: ISecretProvider | None = None,
     ) -> None:
         settings = get_settings().kimi
-        self._api_key = api_key if api_key is not None else settings.api_key
+        secrets = secret_provider or EnvSecretProvider()
+        self._api_key = api_key if api_key is not None else (secrets.get_secret("kimi.api_key") or settings.api_key)
         self._base_url = base_url if base_url is not None else settings.base_url
 
     @property

@@ -1,0 +1,198 @@
+from __future__ import annotations
+
+import argparse
+from datetime import datetime
+import json
+from pathlib import Path
+import re
+import sys
+from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts.evidence_placeholders import placeholder_errors
+from scripts.evidence_redaction import secret_leak_errors
+
+
+SCHEMA = "doge.kimi_live_smoke.v1"
+STORY_ID = "S017-002"
+REQUIRED_SCENARIOS = {"text_k26", "files_upload", "vision_base64"}
+OPTIONAL_SCENARIOS = {"agent_sdk_optional"}
+ALLOWED_SECRET_KEYS = {
+    "api_key_recorded",
+    "MOONSHOT_API_KEY_PRESENT",
+    "raw_file_id_recorded",
+    "raw_prompt_recorded",
+    "secret_fixture_used",
+    "sensitive_fixture_used",
+}
+SECRET_VALUE_PATTERNS = [
+    re.compile(r"Bearer\s+[A-Za-z0-9._~+/=-]+", re.I),
+    re.compile(r"\bsk-[A-Za-z0-9._-]{6,}\b", re.I),
+]
+
+
+def validate(payload: dict[str, Any], *, allow_blocked: bool = False) -> list[str]:
+    errors: list[str] = []
+    if payload.get("schema") != SCHEMA:
+        errors.append(f"schema must be {SCHEMA}")
+    if payload.get("story_id") != STORY_ID:
+        errors.append(f"story_id must be {STORY_ID}")
+    _require_timestamp(payload.get("created_at"), "created_at", errors)
+
+    result = payload.get("result")
+    if result not in {"passed", "failed", "blocked"}:
+        errors.append("result must be passed, failed, or blocked")
+    if result == "blocked" and not allow_blocked:
+        errors.append("blocked evidence records readiness/blockers only; rerun with live credentials to complete S017-002")
+    if result in {"passed", "failed"}:
+        errors.extend(placeholder_errors(payload))
+        errors.extend(secret_leak_errors(payload))
+
+    redaction = _dict(payload.get("redaction"))
+    for key in ["api_key_recorded", "raw_file_id_recorded", "raw_prompt_recorded", "sensitive_fixture_used"]:
+        if redaction.get(key) is not False:
+            errors.append(f"redaction.{key} must be false")
+
+    environment = _dict(payload.get("environment"))
+    for key in ["DOGE_LIVE_KIMI", "MOONSHOT_API_KEY_PRESENT", "DOGE_LIVE_KIMI_AGENT_SDK", "general_model"]:
+        if key not in environment:
+            errors.append(f"environment.{key} is required")
+
+    scenarios = payload.get("scenarios")
+    if not isinstance(scenarios, list):
+        errors.append("scenarios must be a list")
+        scenarios = []
+    scenario_map = {
+        item.get("name"): item
+        for item in scenarios
+        if isinstance(item, dict) and isinstance(item.get("name"), str)
+    }
+    scenario_names = set(scenario_map)
+    unexpected = scenario_names - REQUIRED_SCENARIOS - OPTIONAL_SCENARIOS
+    if unexpected:
+        errors.append(f"unexpected scenarios: {', '.join(sorted(unexpected))}")
+
+    if result == "blocked":
+        blockers = payload.get("blockers")
+        if not isinstance(blockers, list) or not blockers:
+            errors.append("blocked evidence requires non-empty blockers")
+        if scenarios:
+            errors.append("blocked evidence must not include executed scenarios")
+
+    if result == "passed":
+        missing = REQUIRED_SCENARIOS - scenario_names
+        if missing:
+            errors.append(f"missing required scenarios: {', '.join(sorted(missing))}")
+        for name in sorted(REQUIRED_SCENARIOS):
+            scenario = _dict(scenario_map.get(name))
+            if scenario.get("status") != "passed":
+                errors.append(f"{name}: passed evidence requires status=passed")
+        optional = _dict(scenario_map.get("agent_sdk_optional"))
+        if optional and optional.get("status") == "failed":
+            errors.append("agent_sdk_optional failed in passed evidence")
+
+    if result == "failed" and not (scenario_map or payload.get("error")):
+        errors.append("failed evidence requires scenarios or a redacted error")
+
+    for scenario in scenarios:
+        if not isinstance(scenario, dict):
+            errors.append("each scenario must be an object")
+            continue
+        _validate_scenario(scenario, errors)
+
+    if _contains_secret(payload):
+        errors.append("evidence appears to contain a bearer token, provider key, raw file id, or key-value secret")
+
+    return errors
+
+
+def _validate_scenario(scenario: dict[str, Any], errors: list[str]) -> None:
+    name = scenario.get("name")
+    status = scenario.get("status")
+    if status not in {"passed", "failed", "skipped"}:
+        errors.append(f"{name}: status must be passed, failed, or skipped")
+    if name in REQUIRED_SCENARIOS:
+        for key in ["model", "profile"]:
+            if not isinstance(scenario.get(key), str) or not scenario[key].strip():
+                errors.append(f"{name}: {key} is required")
+        latency = scenario.get("latency_ms")
+        if status == "passed" and not isinstance(latency, (int, float)):
+            errors.append(f"{name}: latency_ms is required for passed scenario")
+    if name == "files_upload":
+        file_info = _dict(scenario.get("file"))
+        file_id_hash = file_info.get("file_id_hash")
+        if status == "passed" and (not isinstance(file_id_hash, str) or not file_id_hash.startswith("sha256:")):
+            errors.append("files_upload: file.file_id_hash must be redacted as sha256:<prefix>")
+        if "file_id" in file_info:
+            errors.append("files_upload: raw file_id must not be recorded")
+    if name == "agent_sdk_optional" and status == "skipped" and not scenario.get("reason"):
+        errors.append("agent_sdk_optional: skipped scenario requires reason")
+
+
+def _dict(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _require_timestamp(value: Any, field: str, errors: list[str]) -> None:
+    if not isinstance(value, str) or not value.strip():
+        errors.append(f"{field} is required")
+        return
+    try:
+        datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        errors.append(f"{field} must be ISO-8601")
+
+
+def _contains_secret(payload: dict[str, Any]) -> bool:
+    return _scan_secret(payload, path=())
+
+
+def _scan_secret(value: Any, *, path: tuple[str, ...]) -> bool:
+    if isinstance(value, dict):
+        for key, item in value.items():
+            key_text = str(key)
+            if _is_secret_key(key_text) and key_text not in ALLOWED_SECRET_KEYS and _has_secret_like_value(item):
+                return True
+            if key_text == "file_id":
+                return True
+            if _scan_secret(item, path=(*path, key_text)):
+                return True
+        return False
+    if isinstance(value, list):
+        return any(_scan_secret(item, path=path) for item in value)
+    if isinstance(value, str):
+        return any(pattern.search(value) for pattern in SECRET_VALUE_PATTERNS)
+    return False
+
+
+def _is_secret_key(key: str) -> bool:
+    return bool(re.search(r"api[_-]?key|secret|password|token", key, re.I))
+
+
+def _has_secret_like_value(value: Any) -> bool:
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, (list, dict)):
+        return bool(value)
+    return False
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Validate S017-002 Kimi live smoke evidence JSON.")
+    parser.add_argument("evidence", help="Path to Kimi live smoke evidence JSON.")
+    parser.add_argument("--allow-blocked", action="store_true", help="Allow blocked evidence for readiness tracking.")
+    args = parser.parse_args(argv)
+
+    path = Path(args.evidence)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    errors = validate(payload, allow_blocked=args.allow_blocked)
+    result = {"path": str(path), "passed": not errors, "errors": errors}
+    print(json.dumps(result, indent=2, sort_keys=True))
+    return 0 if not errors else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -9,6 +9,8 @@ from time import perf_counter
 from typing import Any, AsyncIterator, Awaitable, Callable, Optional
 
 from doge.config import get_settings
+from doge.core.ports.secrets import ISecretProvider
+from doge.infrastructure.secrets import EnvSecretProvider
 from doge.core.ports.agent_model import AgentMessage, AgentResponse, AgentUsage, IAgentModel
 from doge.infrastructure.llm.cost_calculator import CostCalculator
 
@@ -96,10 +98,12 @@ class KimiAgentModel(IAgentModel):
         backoff_base: float | None = None,
         backoff_max: float | None = None,
         cost_calculator: CostCalculator | None = None,
+        secret_provider: ISecretProvider | None = None,
         sleep: Callable[[float], Awaitable[None]] | None = None,
     ) -> None:
         settings = get_settings().kimi
-        self._api_key = api_key if api_key is not None else settings.api_key
+        secrets = secret_provider or EnvSecretProvider()
+        self._api_key = api_key if api_key is not None else (secrets.get_secret("kimi.api_key") or settings.api_key)
         self._base_url = base_url if base_url is not None else settings.base_url
         self._model = model if model is not None else settings.general_model
         self._max_retries = max(0, max_retries if max_retries is not None else settings.max_retries)

@@ -6,6 +6,14 @@ from doge.core.ports.llm import ILLMClient
 from doge.infrastructure.llm.deepseek_client import DeepSeekClient
 
 
+class _SecretProvider:
+    def __init__(self, values):
+        self.values = values
+
+    def get_secret(self, name: str):
+        return self.values.get(name)
+
+
 class TestILLMClientPort:
     def test_illm_client_is_abstract(self):
         assert issubclass(ILLMClient, ABC)
@@ -36,3 +44,34 @@ class TestILLMClientPort:
         client = DeepSeekClient()
         result = client.chat("system", "user")
         assert result is None
+
+    def test_deepseek_client_reads_api_key_from_secret_provider(self, monkeypatch):
+        captured = {}
+
+        class FakeCompletions:
+            def create(self, **kwargs):
+                captured.update(kwargs)
+                message = type("Message", (), {"content": "memo"})()
+                choice = type("Choice", (), {"message": message})()
+                return type("Response", (), {"choices": [choice]})()
+
+        class FakeChat:
+            completions = FakeCompletions()
+
+        class FakeOpenAI:
+            def __init__(self, **kwargs):
+                captured["client"] = kwargs
+                self.chat = FakeChat()
+
+        import openai
+
+        monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+        from doge.config.settings import reset_settings
+        reset_settings()
+        monkeypatch.setattr(openai, "OpenAI", FakeOpenAI)
+
+        client = DeepSeekClient(secret_provider=_SecretProvider({"deepseek.api_key": "provider-key"}))
+        result = client.chat("system", "user")
+
+        assert result == "memo"
+        assert captured["client"]["api_key"] == "provider-key"
