@@ -164,8 +164,12 @@ checks.
 | S017-003 | `approved` | `production/qa/evidence/provider/financial-provider-approval-template-2026-06-22.json` | `production/qa/evidence/provider/financial-provider-approval-*.json` | `.\.venv\Scripts\python.exe scripts\validate_financial_provider_approval_evidence.py <evidence-json>` |
 | W3-live | `passed` | `production/qa/evidence/eval/analyst-benchmark-template-2026-06-22.json` | `production/qa/evidence/eval/analyst-benchmark-*.json` | `.\.venv\Scripts\python.exe scripts\validate_analyst_benchmark_evidence.py <evidence-json>` |
 | AUTH-prod | `passed` | `production/qa/evidence/enterprise/enterprise-production-validation-template-2026-06-22.json` | `production/qa/evidence/enterprise/enterprise-production-validation-*.json` | `.\.venv\Scripts\python.exe scripts\validate_enterprise_production_validation_evidence.py <evidence-json>` |
-| S017-006 | `passed` | `production/qa/evidence/manual/research-agent-screen-reader-manual-template-2026-06-22.json` | `production/qa/evidence/manual/research-agent-screen-reader-manual-*.json` | `.\.venv\Scripts\python.exe scripts\validate_screen_reader_evidence.py <evidence-json>` |
 | S017-007 | `approved` | `production/qa/evidence/sdk/sdk-release-approval-template-2026-06-22.json` | `production/qa/evidence/sdk/sdk-release-approval-*.json` | `.\.venv\Scripts\python.exe scripts\validate_sdk_release_approval_evidence.py <evidence-json>` |
+
+## Completed Gates
+
+- S017-006 passed evidence: `production/qa/evidence/manual/research-agent-screen-reader-manual-2026-06-22.json`;
+  fallback/template retained at `production/qa/evidence/manual/research-agent-screen-reader-manual-template-2026-06-22.json`
 
 ## Execution Steps
 

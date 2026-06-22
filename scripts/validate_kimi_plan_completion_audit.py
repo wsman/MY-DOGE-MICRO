@@ -4,6 +4,7 @@ import argparse
 import json
 from pathlib import Path
 import sys
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -20,6 +21,23 @@ def validate(text: str) -> list[str]:
     path_text = text.replace("\\", "/")
     normalized_text = " ".join(text.split())
     gate_output = validate_all(allow_open=True)
+    summary = gate_output["summary"]
+    gate_results = {
+        item["id"]: item
+        for item in gate_output.get("gates", [])
+        if isinstance(item, dict) and isinstance(item.get("id"), str)
+    }
+    passed_gate_ids = {
+        gate_id
+        for gate_id, item in gate_results.items()
+        if item.get("status") == "passed"
+    }
+    expected_remaining_ids = [
+        gate.gate_id
+        for gate in GATES
+        if gate.gate_id not in passed_gate_ids
+    ]
+    open_count = summary.get("open")
 
     required_global = [
         "C:\\Users\\Aby\\.claude\\plans\\9b77f9c-kimi-twinkly-map.md",
@@ -28,31 +46,30 @@ def validate(text: str) -> list[str]:
         "`stable_declaration` must remain",
         "scripts/validate_plan_closure_gate.py --allow-open",
         "strict mode",
-        "6 controlled open gates",
         "production/qa/evidence/plan-closure/9b77f9c-external-closure-manifest.json",
     ]
     for snippet in required_global:
         if snippet not in text and snippet not in normalized_text:
             errors.append(f"audit missing global snippet: {snippet}")
+    if not _has_controlled_open_count(text, normalized_text, open_count):
+        errors.append(f"audit missing controlled open gate count: {open_count}")
 
-    if gate_output["summary"]["total"] != 6:
-        errors.append("closure gate must report exactly 6 total gates")
-    if gate_output["summary"]["open"] != 6:
-        errors.append("closure gate must report exactly 6 controlled open gates")
+    expected_total = len(GATES)
+    if summary["total"] != expected_total:
+        errors.append(f"closure gate must report exactly {expected_total} total gates")
     if not gate_output["acceptable"]:
         errors.append("closure gate must be acceptable under --allow-open")
 
     rows = _remaining_external_rows(path_text)
     gate_by_id = {gate.gate_id: gate for gate in GATES}
-    expected_gate_ids = [gate.gate_id for gate in GATES]
-    missing_rows = [gate_id for gate_id in expected_gate_ids if gate_id not in rows]
-    extra_rows = sorted(set(rows) - set(expected_gate_ids))
+    missing_rows = [gate_id for gate_id in expected_remaining_ids if gate_id not in rows]
+    extra_rows = sorted(set(rows) - set(expected_remaining_ids))
     for gate_id in missing_rows:
         errors.append(f"audit missing remaining external item row: {gate_id}")
     for gate_id in extra_rows:
         errors.append(f"audit has unexpected remaining external item row: {gate_id}")
 
-    for gate_id in expected_gate_ids:
+    for gate_id in expected_remaining_ids:
         row = rows.get(gate_id, "")
         if not row:
             continue
@@ -75,7 +92,26 @@ def validate(text: str) -> list[str]:
         elif "same evidence file" not in row:
             errors.append(f"{gate_id}: audit row missing same evidence file live-run note")
 
+    for gate_id in sorted(passed_gate_ids):
+        evidence = gate_results.get(gate_id, {}).get("evidence")
+        if not isinstance(evidence, str) or not evidence.strip():
+            errors.append(f"{gate_id}: passed gate missing completed evidence path")
+            continue
+        normalized_evidence = evidence.replace("\\", "/")
+        if normalized_evidence not in path_text:
+            errors.append(f"{gate_id}: audit missing completed evidence {normalized_evidence}")
+
     return errors
+
+
+def _has_controlled_open_count(text: str, normalized_text: str, count: Any) -> bool:
+    if not isinstance(count, int):
+        return False
+    snippets = [
+        f"{count} controlled open gate",
+        f"{count} controlled open gates",
+    ]
+    return any(snippet in text or snippet in normalized_text for snippet in snippets)
 
 
 def _remaining_external_rows(text: str) -> dict[str, str]:

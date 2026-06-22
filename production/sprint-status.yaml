@@ -159,9 +159,10 @@ last_updated: "2026-06-22"
 # production secret-store command, SIEM/WORM export, live remote-bind deployment,
 # and production data-isolation review. These remain external production gates.
 # 2026-06-22 (9b77f9c plan closure gate): scripts/validate_plan_closure_gate.py
-# aggregates the remaining external evidence gates. It reports result=open with
-# 6 controlled open items under --allow-open, while strict mode remains nonzero
-# until all external evidence is completed. The gate emits per-item next_action
+# aggregates the remaining external evidence gates. Before S017-006 closure it
+# reported every external item open under --allow-open; after S017-006 closure
+# it reports 5 controlled open items and 1 passed item. Strict mode
+# remains nonzero until all external evidence is completed. The gate emits per-item next_action
 # strict_command, and passing_results fields, prefers non-template completed
 # evidence before template fallbacks, and is paired with
 # docs/progress/9b77f9c-external-closure-runbook.md plus
@@ -170,7 +171,8 @@ last_updated: "2026-06-22"
 # the machine-readable 6-task external execution checklist, and
 # scripts/validate_plan_closure_manifest.py rejects stale manifest handoffs.
 # scripts/validate_kimi_plan_completion_audit.py keeps the source-plan audit
-# aligned with the same six controlled-open closure gates.
+# aligned with the six-gate manifest: five controlled-open gates plus the
+# passed S017-006 gate.
 # scripts/preflight_plan_closure_external.py now checks manifest freshness,
 # script/output/template readiness, required external inputs, optional Agent SDK
 # readiness, handoff workspace validity, and edited draft-input readiness without
@@ -188,13 +190,23 @@ last_updated: "2026-06-22"
 # window.
 # 2026-06-22 (external handoff prepared): Prepared and validated
 # production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22 with 6 tasks,
-# 9 draft inputs, operator-commands.ps1, and operator-checklist.md. Preflight
-# correctly remains pending_external_inputs until copied drafts are edited with
-# real operator evidence and live env vars are set.
+# 9 draft inputs, operator-commands.ps1, and operator-checklist.md. Global
+# preflight correctly remains pending_external_inputs until the remaining copied
+# drafts are edited with real operator evidence and live env vars are set;
+# task-scoped S017-006 preflight is ready with the filled screen-reader draft.
 # 2026-06-22 (web dependency audit closure): Web lockfile refreshed and Vitest
 # upgraded to 4.1.9. npm audit and npm audit --omit=dev both report 0
 # vulnerabilities; Web 78-test suite, Web build, TypeScript SDK 11-test suite,
 # and SDK build remain green.
+# 2026-06-22 (S017-006 automated adjunct closure): Research Agent accessibility
+# automated/local adjuncts are closed. Component a11y tests, Chrome AX-tree
+# smoke, real doged reconnect through approval completion, and keyboard
+# traversal assist all passed. These adjuncts did not close S017-006 until
+# human screen-reader evidence was completed.
+# 2026-06-22 (S017-006 manual closure): User confirmed the manual screen-reader
+# protocol passed. Built and strictly validated
+# production/qa/evidence/manual/research-agent-screen-reader-manual-2026-06-22.json.
+# Closure gate now reports S017-006 passed with 5 controlled open gates left.
 
 sprints:
   - id: S016
@@ -422,9 +434,9 @@ sprints:
         priority: MED
         effort: S
         owner: accessibility-specialist
-        status: review
+        status: done
         blocking_gate: true
-        note: "S015 accessibility implementation, component tests, Chrome accessibility-tree smoke evidence, and S017 manual protocol/template/builder/validator exist, including scripts/build_screen_reader_evidence.py. Ready for operator execution, not done; manual screen-reader evidence remains pending."
+        note: "Manual screen-reader pass evidence strictly validates at production/qa/evidence/manual/research-agent-screen-reader-manual-2026-06-22.json via scripts/build_screen_reader_evidence.py and scripts/validate_screen_reader_evidence.py. S015 accessibility implementation and automated/local adjuncts are closed: component a11y tests passed, Chrome accessibility-tree smoke evidence passed, real doged Research Agent reconnect completed through approval, and keyboard traversal reached the primary controls without a focus trap. S017 manual protocol/template/builder/validator remain as reproducible evidence tooling."
 
       - id: S017-007
         title: "SDK registry publication approval"
@@ -2139,8 +2151,8 @@ rollup:
     todo: 0
     in_progress: 0
     blocked: 0
-    review: 4
-    done: 3
+    review: 3
+    done: 4
     deferred: 0
   by_priority:
     HIGH: 6
@@ -2155,10 +2167,8 @@ rollup:
   blocking_gated_stories:
     - S017-002
     - S017-003
-    - S017-006
     - S017-007
   top_priority_stories:
     - S017-002
     - S017-003
-    - S017-006
     - S017-007

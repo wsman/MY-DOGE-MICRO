@@ -22,7 +22,8 @@ def test_prepare_plan_closure_handoff_copies_draft_inputs_without_closing_gates(
     assert payload["source_plan_check"]["exists"] is True
     assert len(payload["source_plan_check"]["sha256"]) == 64
     assert len(payload["tasks"]) == 6
-    assert payload["closure_gate"]["summary"]["open"] == 6
+    assert payload["closure_gate"]["summary"]["open"] == 5
+    assert payload["closure_gate"]["summary"]["passed"] == 1
     assert Path(tmp_path / "handoff" / "handoff.json").exists()
     assert Path(tmp_path / "handoff" / "README.md").exists()
     assert Path(tmp_path / "handoff" / "operator-checklist.md").exists()

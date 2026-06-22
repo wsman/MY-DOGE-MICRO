@@ -549,9 +549,16 @@ def test_plan_closure_gate_aggregates_remaining_external_evidence():
     assert manifest["schema"] == "doge.plan_closure_execution_manifest.v1"
     assert manifest["source_plan_check"]["exists"] is True
     assert len(manifest["source_plan_check"]["sha256"]) == 64
-    assert manifest["closure_gate"]["summary"]["open"] == 6
+    assert manifest["closure_gate"]["summary"]["open"] == 5
+    assert manifest["closure_gate"]["summary"]["passed"] == 1
     assert len(manifest["tasks"]) == 6
-    assert all(item["can_close_now"] is False for item in manifest["tasks"])
+    manifest_tasks = {item["id"]: item for item in manifest["tasks"]}
+    assert manifest_tasks["S017-006"]["can_close_now"] is True
+    assert all(
+        item["can_close_now"] is False
+        for item in manifest["tasks"]
+        if item["id"] != "S017-006"
+    )
     assert all(item["handoff"]["input_refs"] for item in manifest["tasks"])
     assert any(item["handoff"]["input_templates"] for item in manifest["tasks"])
     assert all(item["handoff"]["build_or_run_command"] for item in manifest["tasks"])
@@ -700,11 +707,11 @@ def test_research_agent_doged_reconnect_evidence_keeps_manual_operator_pending()
     assert evidence["observed"]["stream_request_count"] >= 3
     assert "artifact_created" in evidence["observed"]["event_types"]
     assert all(item["passed"] for item in evidence["checks"])
-    assert "true manual operator-interruption reconnect session remain open" in maturity
+    assert "true manual operator-interruption reconnect session remains open" in maturity
     assert "true manual operator interruption remains deferred" in sprint
 
 
-def test_research_agent_ax_tree_evidence_keeps_screen_reader_manual_pending():
+def test_research_agent_ax_tree_evidence_supplements_screen_reader_manual_pass():
     maturity = _read("docs/progress/runtime-maturity.yaml")
     sprint = _read("production/sprint-status.yaml")
     evidence = json.loads(_read("production/qa/evidence/manual/research-agent-ax-tree-2026-06-22.json"))
@@ -714,12 +721,12 @@ def test_research_agent_ax_tree_evidence_keeps_screen_reader_manual_pending():
     assert evidence["summary"]["checks"]["status_live_region"] is True
     assert evidence["summary"]["checks"]["timeline_list"] is True
     assert "Chrome accessibility-tree smoke" in maturity
-    assert "screen-reader protocol/template/builder/validator are ready" in maturity
+    assert "research-agent-screen-reader-manual-2026-06-22.json" in maturity
     assert "id: S017-006" in sprint
-    assert "manual screen-reader evidence remains pending" in sprint
+    assert "Manual screen-reader pass evidence strictly validates" in sprint
 
 
-def test_screen_reader_manual_protocol_is_ready_but_not_done():
+def test_screen_reader_manual_protocol_is_closed_with_completed_evidence():
     maturity = _read("docs/progress/runtime-maturity.yaml")
     sprint = _read("production/sprint-status.yaml")
     protocol = _read("production/qa/screen-reader-manual-protocol-s017.md")
@@ -744,8 +751,9 @@ def test_screen_reader_manual_protocol_is_ready_but_not_done():
     assert "scripts/build_screen_reader_evidence.py" in maturity
     assert "tests/unit/qa/test_build_screen_reader_evidence.py" in maturity
     assert "build_screen_reader_evidence.py" in sprint
-    assert "status: review" in re.search(r"- id: S017-006(?P<body>.*?)(?=\n\n      - id: S017-007)", sprint, re.S).group("body")
-    assert "Ready for operator execution, not done" in sprint
+    body = re.search(r"- id: S017-006(?P<body>.*?)(?=\n\n      - id: S017-007)", sprint, re.S).group("body")
+    assert "status: done" in body
+    assert "research-agent-screen-reader-manual-2026-06-22.json" in sprint
 
 
 def test_doged_enterprise_static_auth_smoke_keeps_live_idp_pending():

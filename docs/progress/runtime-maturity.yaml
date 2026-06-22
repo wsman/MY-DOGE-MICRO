@@ -292,21 +292,22 @@ sprint_015_release_quality_gates:
       - docs/CLI.md
     blocked_by: []
   research_agent_accessibility:
-    status: partial
+    status: passed
     evidence:
       - web/src/views/ResearchAgentView.vue
       - web/src/views/ResearchAgentView.spec.ts
       - production/qa/accessibility-sprint-015.md
       - scripts/research_agent_ax_tree_smoke.py
       - production/qa/evidence/manual/research-agent-ax-tree-2026-06-22.md
+      - production/qa/evidence/manual/research-agent-doged-reconnect-2026-06-22.md
       - production/qa/screen-reader-manual-protocol-s017.md
       - production/qa/evidence/manual/research-agent-screen-reader-manual-template-2026-06-22.json
+      - production/qa/evidence/manual/research-agent-screen-reader-manual-2026-06-22.json
       - scripts/build_screen_reader_evidence.py
       - scripts/validate_screen_reader_evidence.py
       - tests/unit/qa/test_build_screen_reader_evidence.py
       - tests/unit/qa/test_validate_screen_reader_evidence.py
-    blocked_by:
-      - screen-reader manual session remains pending; protocol/template/builder/validator are ready
+    blocked_by: []
   core_web_vitals_applicability:
     status: passed
     evidence:
@@ -886,10 +887,10 @@ local_verification:
       fastapi_route_governance_sync: "docs/API.md, design/cdd/fastapi-service.md, docs/registry/architecture.yaml, docs/registry/entities.yaml, docs/architecture/tr-registry.yaml, docs/architecture/architecture-traceability.md, docs/architecture/adr-0007-api-surface-and-cors.md, and docs/imports/my-doge-micro/current-state-2026-06-21.md now agree on 58 product routes; tests/contract/test_api_doc_route_coverage.py proves docs/API.md matches the live FastAPI app, and tests/unit/governance/test_s017_planning_docs.py proves docs/registry/entities.yaml has the same (method, path) route set"
       external_evidence_validator_suite: "170 passed in 10.24s"
       targeted_cross_wave_regression: "176 passed, 4 skipped in 21.74s"
-      prepared_external_handoff_workspace: "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22; validation passed; includes operator-checklist.md and preflight reports pending_external_inputs because copied drafts still match templates"
+      prepared_external_handoff_workspace: "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22; validation passed; includes operator-checklist.md; task-scoped S017-006 preflight with --require-external-inputs is ready using the filled screen-reader observations draft, while the remaining external-gate drafts still require real operator input before their builders can close gates"
       enterprise_auth_implementation_plan: "docs/progress/enterprise-auth-implementation-plan.md"
       financial_provider_approval_packet: "docs/progress/financial-provider-approval-packet.md"
-      kimi_plan_completion_audit: "docs/progress/kimi-plan-completion-audit.md; six remaining external items are machine-checked by scripts/validate_kimi_plan_completion_audit.py"
+      kimi_plan_completion_audit: "docs/progress/kimi-plan-completion-audit.md; five remaining open external gates plus the completed S017-006 gate are machine-checked by scripts/validate_kimi_plan_completion_audit.py"
       git_diff_check: "passed; LF/CRLF warnings only"
       yaml_shape_check: "scripts/validate_governance_yaml_shape.py passed; 5 files, 0 findings"
       dependency_check: "Default PATH has no Node/npm; temporary Node was found and used; Kimi live env vars unset; structured S017-002 blocked evidence exists"
@@ -1123,5 +1124,5 @@ remaining_stability_blockers:
   - Enterprise identity/access is ADR/CDD-covered; AuthConfig, API startup hard-fail for unconfigured enterprise auth, fail-closed/static provider boundary, JWT/OIDC provider validation, bearer middleware path, trusted principal-to-context mapping, tenant metadata for documents, portfolios, sessions, runs, events, artifacts, approvals, and evidence, persistent ACL/audit repositories, document/portfolio/session/run/tool-list/approval API enforcement, tenant-scoped admin ACL grant/list/revoke API, trusted run policy injection, runtime tool ACL enforcement, runtime model/tool audit events, tenant-scoped audit listing, redacted JSONL export with integrity handoff headers, admin retention purge, SecretProvider port/env/process adapter rollout, production secret-store process/sidecar selection, remote-bind promotion gate tests, RAG/citation context filtering, approval actor records, Python/TypeScript SDK bearer/request-id pass-through with error redaction, audit export redaction, CLI trace/artifact redaction, local operational audit review, audit SIEM/WORM handoff packet, local SDK package compatibility, real doged loopback enterprise static-bearer smoke, real doged loopback local-JWKS smoke, real doged loopback process-secret smoke, real doged remote-bind gate smoke, and unified enterprise production validation template/builder/validator landed with tests. Live IdP/JWKS smoke against an operator-approved provider, production secret-store command smoke/rotation evidence, SDK registry publication/release approval, production SIEM/WORM sink integration/operator sign-off, live remote-bind deployment smoke, and production data-isolation review in an operator-approved environment remain open.
   - Financial provider approval packet, evidence template, validator, and synthetic safe provider-shaped fixtures exist; the template validates only with --allow-template, while product/operator approval, provider/license scope, any real provider-derived fixtures, and licensed adapter implementation remain open.
   - The financial eval seed set, analyst benchmark evidence template, and validator exist; real analyst-labeled observations, acceptance thresholds, live Kimi observations, and repeat-run trend history remain open.
-  - S015 local performance, accessibility, Chrome accessibility-tree smoke, Kimi retry, soak protocol, soak runner, remote CI evidence, executed one-hour local daemon soak evidence, browser SDK SSE reconnect evidence, and real doged Research Agent reconnect evidence landed; S017-006 screen-reader protocol/template/builder/validator are ready for operator execution, while the actual manual screen-reader pass and true manual operator-interruption reconnect session remain open.
-  - The unified 9b77f9c plan closure gate exists at scripts/validate_plan_closure_gate.py with tests in tests/unit/qa/test_validate_plan_closure_gate.py and operator steps in docs/progress/9b77f9c-external-closure-runbook.md; it currently reports 6 controlled open gates and keeps the plan result open until live Kimi, provider approval, analyst benchmark, enterprise production validation, screen-reader manual pass, and SDK release approval evidence are completed.
+  - S015 local performance, accessibility, Chrome accessibility-tree smoke, Kimi retry, soak protocol, soak runner, remote CI evidence, executed one-hour local daemon soak evidence, browser SDK SSE reconnect evidence, real doged Research Agent reconnect evidence, and S017-006 manual screen-reader pass evidence landed; true manual operator-interruption reconnect session remains open.
+  - The unified 9b77f9c plan closure gate exists at scripts/validate_plan_closure_gate.py with tests in tests/unit/qa/test_validate_plan_closure_gate.py and operator steps in docs/progress/9b77f9c-external-closure-runbook.md; it currently reports 5 controlled open gates and 1 passed gate, and keeps the plan result open until live Kimi, provider approval, analyst benchmark, enterprise production validation, and SDK release approval evidence are completed.

@@ -11,12 +11,12 @@
     "summary": {
       "failed": 0,
       "invalid": 0,
-      "open": 6,
-      "passed": 0,
+      "open": 5,
+      "passed": 1,
       "total": 6
     }
   },
-  "generated_at": "2026-06-22T05:34:22.728584+00:00",
+  "generated_at": "2026-06-22T11:14:54.289569+00:00",
   "operator_rule": "Complete each task to its required_results, run its validator_command without allow-template/allow-blocked flags, then run scripts/validate_plan_closure_gate.py without --allow-open.",
   "schema": "doge.plan_closure_execution_manifest.v1",
   "source_plan": "C:\\Users\\Aby\\.claude\\plans\\9b77f9c-kimi-twinkly-map.md",
@@ -156,14 +156,12 @@
       "validator_command": ".\\.venv\\Scripts\\python.exe scripts\\validate_enterprise_production_validation_evidence.py production\\qa\\evidence\\enterprise\\enterprise-production-validation-template-2026-06-22.json"
     },
     {
-      "can_close_now": false,
+      "can_close_now": true,
       "completed_evidence_glob": "research-agent-screen-reader-manual-*.json",
-      "current_blockers": [
-        "not_run evidence is a template/preflight artifact, not a completed manual pass"
-      ],
-      "current_evidence": "production\\qa\\evidence\\manual\\research-agent-screen-reader-manual-template-2026-06-22.json",
-      "current_result": "not_run",
-      "current_status": "open",
+      "current_blockers": [],
+      "current_evidence": "production\\qa\\evidence\\manual\\research-agent-screen-reader-manual-2026-06-22.json",
+      "current_result": "passed",
+      "current_status": "passed",
       "fallback_evidence": "production\\qa\\evidence\\manual\\research-agent-screen-reader-manual-template-2026-06-22.json",
       "handoff": {
         "build_or_run_command": ".\\.venv\\Scripts\\python.exe scripts\\build_screen_reader_evidence.py --observations production\\qa\\evidence\\manual\\screen-reader-observations-YYYY-MM-DD.json --output production\\qa\\evidence\\manual\\research-agent-screen-reader-manual-YYYY-MM-DD.json --created-at \"YYYY-MM-DDTHH:MM:SSZ\"",
@@ -183,7 +181,7 @@
         "passed"
       ],
       "title": "Research Agent screen-reader manual pass",
-      "validator_command": ".\\.venv\\Scripts\\python.exe scripts\\validate_screen_reader_evidence.py production\\qa\\evidence\\manual\\research-agent-screen-reader-manual-template-2026-06-22.json"
+      "validator_command": ".\\.venv\\Scripts\\python.exe scripts\\validate_screen_reader_evidence.py production\\qa\\evidence\\manual\\research-agent-screen-reader-manual-2026-06-22.json"
     },
     {
       "can_close_now": false,

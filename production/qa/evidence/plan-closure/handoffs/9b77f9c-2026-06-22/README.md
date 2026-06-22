@@ -1,6 +1,6 @@
 # 9b77f9c External Closure Handoff Workspace
 
-Prepared: 2026-06-22T05:34:44.257778+00:00
+Prepared: 2026-06-22T11:06:10.197586+00:00
 Date token: 2026-06-22
 Source manifest: `production\qa\evidence\plan-closure\9b77f9c-external-closure-manifest.json`
 Source plan SHA-256: `d905770819a571c925b7e105ea524fb8c59f9109af031255ae6122bc25e1cfbf`
@@ -113,11 +113,11 @@ Next action: Execute enterprise production validation against operator-approved 
 ### S017-006 - Research Agent screen-reader manual pass
 
 - Required result: `passed`
-- Current status: `open` / `not_run`
+- Current status: `passed` / `passed`
 - Handoff kind: `evidence_builder`
 - Close condition: result must be passed; failed evidence remains open
 - Output ref: `production\qa\evidence\manual\research-agent-screen-reader-manual-YYYY-MM-DD.json`
-- Validator: `.\.venv\Scripts\python.exe scripts\validate_screen_reader_evidence.py production\qa\evidence\manual\research-agent-screen-reader-manual-template-2026-06-22.json`
+- Validator: `.\.venv\Scripts\python.exe scripts\validate_screen_reader_evidence.py production\qa\evidence\manual\research-agent-screen-reader-manual-2026-06-22.json`
 - Builder/runner: `.\.venv\Scripts\python.exe scripts\build_screen_reader_evidence.py --observations production\qa\evidence\manual\screen-reader-observations-YYYY-MM-DD.json --output production\qa\evidence\manual\research-agent-screen-reader-manual-YYYY-MM-DD.json --created-at "YYYY-MM-DDTHH:MM:SSZ"`
 - Prepared draft inputs:
   - `production\qa\evidence\plan-closure\handoffs\9b77f9c-2026-06-22\inputs\s017-006\screen-reader-observations-draft-2026-06-22.json` from `production\qa\evidence\manual\screen-reader-observations-template-2026-06-22.json`

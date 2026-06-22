@@ -1,5 +1,5 @@
 {
-  "api_fixture": "local fake /v1/documents on 127.0.0.1:8901",
+  "api_fixture": "existing 127.0.0.1:8901 service",
   "browser": {
     "chrome_path": "C:\\Users\\Aby\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe",
     "mode": "headless CDP"
@@ -7,7 +7,7 @@
   "result": "passed",
   "schema": "doge.research_agent_ax_tree_smoke.v1",
   "screenshot": "production\\qa\\evidence\\manual\\research-agent-ax-tree-2026-06-22.png",
-  "started_at": "2026-06-21T22:23:55.417832+00:00",
+  "started_at": "2026-06-22T09:08:17.456954+00:00",
   "summary": {
     "checks": {
       "approval_group_label": true,
@@ -155,6 +155,11 @@
         "value": ""
       },
       {
+        "name": "Uploaded documents",
+        "role": "list",
+        "value": ""
+      },
+      {
         "name": "Import CSV",
         "role": "button",
         "value": ""
@@ -231,11 +236,6 @@
       },
       {
         "name": "Clear",
-        "role": "StaticText",
-        "value": ""
-      },
-      {
-        "name": "No documents uploaded",
         "role": "StaticText",
         "value": ""
       },
@@ -330,6 +330,21 @@
         "value": ""
       },
       {
+        "name": "\u00a0",
+        "role": "checkbox",
+        "value": ""
+      },
+      {
+        "name": "s016-browser-note.txt",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "text/plain \u00b7 72 B",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
         "name": "idle",
         "role": "StaticText",
         "value": ""
@@ -403,26 +418,11 @@
         "name": "Financial Research",
         "role": "generic",
         "value": ""
-      },
-      {
-        "name": "loading",
-        "role": "image",
-        "value": ""
-      },
-      {
-        "name": "Analyze the company earnings quality, industry momentum, and portfolio impact.",
-        "role": "StaticText",
-        "value": ""
-      },
-      {
-        "name": "US Market",
-        "role": "StaticText",
-        "value": ""
       }
     ]
   },
   "web": {
     "view": "research-agent",
-    "vite_url": "http://127.0.0.1:63425/"
+    "vite_url": "http://127.0.0.1:57513/"
   }
 }

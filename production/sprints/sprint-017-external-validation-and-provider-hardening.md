@@ -29,7 +29,7 @@ auth boundary.
 | S017-003 | review | `docs/progress/financial-provider-approval-packet.md`; synthetic safe fixtures exist; approval template and validator exist at `production/qa/evidence/provider/financial-provider-approval-template-2026-06-22.json` and `scripts/validate_financial_provider_approval_evidence.py`. The template validates only with `--allow-template`; product/operator approval, provider/license scope, and any real provider-derived fixtures remain pending. |
 | S017-004 | done | `docs/progress/enterprise-auth-implementation-plan.md`; AuthConfig/provider/startup gate/middleware boundary tests, JWT/OIDC local fixture validation, document/portfolio/session/run/event/artifact/approval/evidence tenant metadata and migration tests, ACL/audit persistence and API enforcement tests, tenant-scoped admin ACL API tests, trusted run policy injection, runtime tool ACL tests, tenant-scoped audit listing/export/retention tests, audit export integrity handoff header tests, SecretProvider env/process rollout tests, production secret-store process bridge documentation, remote-bind promotion gate tests, RAG/citation ACL filtering tests, SDK bearer/request-id pass-through plus API/SSE error redaction tests, audit export redaction tests, CLI trace/artifact redaction tests, local operational audit review, audit SIEM/WORM handoff packet, local SDK package compatibility, real doged enterprise static-bearer loopback smoke, real doged local-JWKS loopback smoke, real doged process-secret loopback smoke, real doged remote-bind gate smoke, and unified enterprise production validation template/builder/validator passed locally. Live IdP/JWKS smoke against an operator-approved provider, production secret-store command smoke/rotation evidence, SDK registry publication/release approval, production SIEM/WORM sink integration/operator sign-off, live remote-bind deployment smoke, and production data-isolation review in an operator-approved network remain follow-on work. |
 | S017-005 | done | One-hour local loopback daemon soak executed. Evidence: `production/qa/evidence/soak/daemon-soak-run-20260622T044433/daemon-soak-20260621T204434Z.json` and `production/qa/evidence/soak/daemon-soak-run-20260622T044433/soak-summary.md`; result `3602.76s`, `653` iterations, `0` failures, no API tracebacks/errors, listener RSS growth below threshold. |
-| S017-006 | review | `production/qa/accessibility-sprint-015.md`, Web accessibility tests, Chrome accessibility-tree smoke evidence, `production/qa/screen-reader-manual-protocol-s017.md`, `production/qa/evidence/manual/research-agent-screen-reader-manual-template-2026-06-22.json`, `scripts/build_screen_reader_evidence.py`, and `scripts/validate_screen_reader_evidence.py` exist. Ready for operator execution, not done; manual screen-reader session evidence remains pending. |
+| S017-006 | done | Manual screen-reader pass evidence exists and strictly validates at `production/qa/evidence/manual/research-agent-screen-reader-manual-2026-06-22.json`; handoff observations are recorded at `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/inputs/s017-006/screen-reader-observations-draft-2026-06-22.json`. Automated/local adjuncts are also closed: Web accessibility tests passed, Chrome accessibility-tree smoke passed, real doged Research Agent reconnect passed through approval completion, and keyboard traversal reached the primary Research Agent controls without a focus trap. |
 | S017-007 | review | SDK release approval packet exists at `docs/progress/sdk-release-approval-packet.md`; Python wheel, TypeScript npm pack dry-run, and local external-consumer artifact smoke evidence exist. Release approval template and validator exist at `production/qa/evidence/sdk/sdk-release-approval-template-2026-06-22.json` and `scripts/validate_sdk_release_approval_evidence.py`. The template validates only with `--allow-template`; registry target, package name ownership, version/changelog policy, registry-backed consumer smoke, and release approval remain pending. |
 
 ## Should Have
@@ -65,9 +65,10 @@ auth boundary.
 | Web full vitest | PASS: 12 files, 78 tests under Vitest `4.1.9`. |
 | Web build/typecheck | PASS: `npm run build`. |
 | TypeScript SDK | PASS: 1 file, 11 tests under Vitest `4.1.9`; `npm run build` passed. |
+| Research Agent accessibility and screen-reader pass | PASS: `scripts/validate_screen_reader_evidence.py production\qa\evidence\manual\research-agent-screen-reader-manual-2026-06-22.json` passed; `ResearchAgentView.spec.ts` passed 2 accessibility-focused tests; `scripts/research_agent_ax_tree_smoke.py` refreshed passing Chrome AX-tree evidence; real doged/Vite/Chrome reconnect smoke completed approval flow with `Last-Event-ID` replay; CDP keyboard traversal reached Market, Execution profile, Research question, Run, Upload/Import CSV, and did not show a focus trap. |
 | Cross-wave Python regression | PASS: `176 passed, 4 skipped in 21.74s`; live Kimi tests skipped without credentials. |
 | External closure validator suite | PASS: `170 passed in 10.24s`; completed external evidence, edited handoff drafts, and builder inputs now reject unresolved template placeholders such as `*-TEMPLATE`, `TEMPLATE_*`, `YYYY-MM-DD`, `$createdAt`, and `<...>` tokens, obvious unredacted credential-shaped values, missing explicit false redaction/security-review flags, stale source-plan fingerprints, incomplete S017-002 live Kimi env/usage-summary/file-cleanup evidence, incomplete S017-003 provider approval details, incomplete W3-live per-case observation and trend-history details, incomplete AUTH-prod enterprise production observations, incomplete S017-006 screen-reader timestamps/observations, and incomplete S017-007 SDK release/security-review details. |
-| Closure gate posture | `scripts/validate_plan_closure_gate.py --allow-open` reports 6 controlled open gates; strict mode exits `1` until those external gates have real passed/approved evidence. |
+| Closure gate posture | `scripts/validate_plan_closure_gate.py --allow-open` reports 5 controlled open gates and 1 passed gate (`S017-006`); strict mode exits `1` until the remaining external gates have real passed/approved evidence. |
 | External handoff workspace | PASS: `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22` prepared and validated; 6 tasks, 9 draft inputs, `operator-commands.ps1`, and `operator-checklist.md` are staged, but copied templates remain blocked until edited with real operator evidence. |
 
 ## Planning Artifacts
@@ -173,9 +174,10 @@ auth boundary.
 - Current prepared workspace:
   `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22`.
   `scripts/validate_plan_closure_handoff.py` passes for this workspace, and
-  `scripts/preflight_plan_closure_external.py --handoff-workspace ...` correctly
-  reports `pending_external_inputs` while the copied draft inputs still match
-  their templates.
+  `scripts/preflight_plan_closure_external.py --handoff-workspace ... --task-id
+  S017-006 --require-external-inputs` reports `ready` for the filled
+  screen-reader observations draft. The remaining external-gate drafts still
+  require real operator input before their builders can close gates.
 - `scripts/validate_plan_closure_handoff.py` validates a prepared handoff
   workspace against the current manifest and rejects stale source-plan
   fingerprints, stale task metadata, missing/out-of-workspace draft inputs,
@@ -210,9 +212,12 @@ auth boundary.
   `production/qa/evidence/manual/research-agent-screen-reader-manual-template-2026-06-22.json`,
   `scripts/build_screen_reader_evidence.py`, and
   `scripts/validate_screen_reader_evidence.py` are the S017-006 manual
-  screen-reader protocol/template/builder/validator set. The builder converts
-  compact operator observations into passed or failed evidence; failed evidence
-  still requires issue references and does not close S017-006.
+  screen-reader protocol/template/builder/validator set. Completed passed
+  evidence now exists at
+  `production/qa/evidence/manual/research-agent-screen-reader-manual-2026-06-22.json`.
+  The builder converts compact operator observations into passed or failed
+  evidence; failed evidence still requires issue references and does not close
+  S017-006.
 - `docs/progress/production-secret-store-selection.md` records the selected
   production secret-store bridge and configuration contract.
 - `production/qa/evidence/enterprise/enterprise-production-validation-template-2026-06-22.json`,

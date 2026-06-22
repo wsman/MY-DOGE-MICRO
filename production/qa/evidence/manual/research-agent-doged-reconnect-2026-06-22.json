@@ -88,7 +88,7 @@
       "1",
       "14"
     ],
-    "run_id": "run-b4739e0dd7b2",
+    "run_id": "run-af156d9292bb",
     "status": "completed",
     "status_text": "completed\ntokens 0",
     "stream_request_count": 3
@@ -96,7 +96,7 @@
   "result": "passed",
   "schema": "doge.research_agent_doged_reconnect_smoke.v1",
   "screenshot": "production\\qa\\evidence\\manual\\research-agent-doged-reconnect-2026-06-22.png",
-  "started_at": "2026-06-21T23:00:53.134212+00:00",
+  "started_at": "2026-06-22T09:09:35.882981+00:00",
   "web": {
     "shutdown": {
       "killed": false,
@@ -104,6 +104,6 @@
       "terminated": true
     },
     "view": "research-agent",
-    "vite_url": "http://127.0.0.1:65030/"
+    "vite_url": "http://127.0.0.1:57595/"
   }
 }

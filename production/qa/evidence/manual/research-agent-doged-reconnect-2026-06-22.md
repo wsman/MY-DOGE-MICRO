@@ -1,6 +1,6 @@
 # Research Agent Doged Reconnect Smoke
 
-Generated: 2026-06-21T23:00:53.134212+00:00
+Generated: 2026-06-22T09:09:35.882981+00:00
 Result: PASSED
 
 ## Scope
@@ -15,7 +15,7 @@ operator interruption session or screen-reader pass.
 
 ## Observed
 
-- Run ID: `run-b4739e0dd7b2`
+- Run ID: `run-af156d9292bb`
 - Final status: `completed`
 - Stream Last-Event-ID headers: `[None, '1', '14']`
 - Forced disconnects: `1`

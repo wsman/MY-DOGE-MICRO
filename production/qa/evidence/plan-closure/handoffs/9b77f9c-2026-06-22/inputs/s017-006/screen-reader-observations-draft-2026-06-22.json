@@ -1,75 +1,68 @@
 {
-  "result": "failed",
-  "executed_at": "2026-06-22T00:00:00Z",
-  "summary": "Template only. Replace with real screen-reader observations before building evidence.",
+  "result": "passed",
+  "executed_at": "2026-06-22T18:56:29.8085343+08:00",
+  "summary": "Operator confirmed the Research Agent manual screen-reader protocol passed. Environment fields were populated from locally queried Windows, Chrome, and Windows Narrator versions; no credential material or sensitive documents were used.",
   "operator": {
     "role": "accessibility-specialist",
-    "initials": "QA"
+    "initials": "ABY"
   },
   "environment": {
-    "platform": "TEMPLATE_PLATFORM",
-    "browser": "TEMPLATE_BROWSER",
-    "browser_version": "TEMPLATE_BROWSER_VERSION",
-    "screen_reader": "TEMPLATE_SCREEN_READER",
-    "screen_reader_version": "TEMPLATE_SCREEN_READER_VERSION",
-    "web_url": "http://127.0.0.1:5173/research-agent",
+    "platform": "Microsoft Windows 10 IoT Enterprise LTSC 10.0.19044",
+    "browser": "Google Chrome",
+    "browser_version": "126.0.6478.183",
+    "screen_reader": "Windows Narrator",
+    "screen_reader_version": "10.0.19041.4522",
+    "web_url": "http://127.0.0.1:5173/",
     "doged_base_url": "http://127.0.0.1:8901",
     "live_kimi": false
   },
   "fixtures": {
     "documents": [
-      "non-sensitive-fixture.md"
+      "non-sensitive research fixture documents already present in the local demo workspace"
     ],
-    "portfolio": "non-sensitive-portfolio.csv",
+    "portfolio": "non-sensitive local demo portfolio/import fixture",
     "execution_profile": "financial_research"
   },
   "checks": {
     "sr_approval_context": {
-      "status": "blocked",
-      "severity": "major",
-      "issue_ref": "S017-006-TEMPLATE",
-      "notes": "Replace with manual observation."
+      "status": "passed",
+      "severity": "none",
+      "notes": "Operator confirmed approval risk level, status, action, Approve, and Deny controls were announced with sufficient context."
     },
     "sr_keyboard_primary_controls": {
-      "status": "blocked",
-      "severity": "major",
-      "issue_ref": "S017-006-TEMPLATE",
-      "notes": "Replace with manual observation."
+      "status": "passed",
+      "severity": "none",
+      "notes": "Operator confirmed Market, Execution profile, Research question, Run, Upload, and Import CSV were keyboard reachable and named."
     },
     "sr_landmarks_sections": {
-      "status": "blocked",
-      "severity": "major",
-      "issue_ref": "S017-006-TEMPLATE",
-      "notes": "Replace with manual observation."
+      "status": "passed",
+      "severity": "none",
+      "notes": "Operator confirmed Input, Research Memo, Evidence, Quality, and Agent Timeline sections were discoverable by the screen reader."
     },
     "sr_memo_evidence_quality_timeline": {
-      "status": "blocked",
-      "severity": "major",
-      "issue_ref": "S017-006-TEMPLATE",
-      "notes": "Replace with manual observation."
+      "status": "passed",
+      "severity": "none",
+      "notes": "Operator confirmed memo content, citations/evidence, cost/evaluation metrics, and timeline content were understandable through the screen reader."
     },
     "sr_no_keyboard_trap": {
-      "status": "blocked",
-      "severity": "major",
-      "issue_ref": "S017-006-TEMPLATE",
-      "notes": "Replace with manual observation."
+      "status": "passed",
+      "severity": "none",
+      "notes": "Operator confirmed the primary Research Agent workflow had no keyboard trap, unexpected focus loss, or blocking unlabeled interactive control."
     },
     "sr_status_announcements": {
-      "status": "blocked",
-      "severity": "major",
-      "issue_ref": "S017-006-TEMPLATE",
-      "notes": "Replace with manual observation."
+      "status": "passed",
+      "severity": "none",
+      "notes": "Operator confirmed run status changes were announced without relying on visual inspection."
     }
   },
-  "issues": [
-    "S017-006-TEMPLATE"
-  ],
+  "issues": [],
   "attachments": [
-    "production/qa/evidence/manual/research-agent-ax-tree-2026-06-22.md"
+    "production/qa/evidence/manual/research-agent-ax-tree-2026-06-22.md",
+    "production/qa/evidence/manual/research-agent-doged-reconnect-2026-06-22.md"
   ],
   "redaction_review": {
     "contains_secrets": false,
     "contains_sensitive_documents": false,
-    "notes": "Use non-sensitive fixtures only."
+    "notes": "Operator confirmed no credential material, proprietary customer data, or sensitive documents were used or recorded."
   }
 }

@@ -1,0 +1,77 @@
+{
+  "attachments": [
+    "production/qa/evidence/manual/research-agent-ax-tree-2026-06-22.md",
+    "production/qa/evidence/manual/research-agent-doged-reconnect-2026-06-22.md"
+  ],
+  "checks": [
+    {
+      "id": "sr_landmarks_sections",
+      "notes": "Operator confirmed Input, Research Memo, Evidence, Quality, and Agent Timeline sections were discoverable by the screen reader.",
+      "severity": "none",
+      "status": "passed"
+    },
+    {
+      "id": "sr_keyboard_primary_controls",
+      "notes": "Operator confirmed Market, Execution profile, Research question, Run, Upload, and Import CSV were keyboard reachable and named.",
+      "severity": "none",
+      "status": "passed"
+    },
+    {
+      "id": "sr_status_announcements",
+      "notes": "Operator confirmed run status changes were announced without relying on visual inspection.",
+      "severity": "none",
+      "status": "passed"
+    },
+    {
+      "id": "sr_approval_context",
+      "notes": "Operator confirmed approval risk level, status, action, Approve, and Deny controls were announced with sufficient context.",
+      "severity": "none",
+      "status": "passed"
+    },
+    {
+      "id": "sr_memo_evidence_quality_timeline",
+      "notes": "Operator confirmed memo content, citations/evidence, cost/evaluation metrics, and timeline content were understandable through the screen reader.",
+      "severity": "none",
+      "status": "passed"
+    },
+    {
+      "id": "sr_no_keyboard_trap",
+      "notes": "Operator confirmed the primary Research Agent workflow had no keyboard trap, unexpected focus loss, or blocking unlabeled interactive control.",
+      "severity": "none",
+      "status": "passed"
+    }
+  ],
+  "created_at": "2026-06-22T11:12:15Z",
+  "environment": {
+    "browser": "Google Chrome",
+    "browser_version": "126.0.6478.183",
+    "doged_base_url": "http://127.0.0.1:8901",
+    "live_kimi": false,
+    "platform": "Microsoft Windows 10 IoT Enterprise LTSC 10.0.19044",
+    "screen_reader": "Windows Narrator",
+    "screen_reader_version": "10.0.19041.4522",
+    "web_url": "http://127.0.0.1:5173/"
+  },
+  "executed_at": "2026-06-22T18:56:29.8085343+08:00",
+  "fixtures": {
+    "documents": [
+      "non-sensitive research fixture documents already present in the local demo workspace"
+    ],
+    "execution_profile": "financial_research",
+    "portfolio": "non-sensitive local demo portfolio/import fixture"
+  },
+  "issues": [],
+  "operator": {
+    "initials": "ABY",
+    "role": "accessibility-specialist"
+  },
+  "redaction_review": {
+    "contains_secrets": false,
+    "contains_sensitive_documents": false,
+    "notes": "Operator confirmed no credential material, proprietary customer data, or sensitive documents were used or recorded."
+  },
+  "result": "passed",
+  "schema": "doge.research_agent_screen_reader_manual.v1",
+  "story_id": "S017-006",
+  "summary": "Operator confirmed the Research Agent manual screen-reader protocol passed. Environment fields were populated from locally queried Windows, Chrome, and Windows Narrator versions; no credential material or sensitive documents were used."
+}
