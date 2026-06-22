@@ -38,6 +38,37 @@ def test_enterprise_auth_implementation_plan_records_required_choices():
         assert item in text
 
 
+def test_s017_qa_plan_tracks_external_closure_gates_without_closing_them():
+    sprint = _read("production/sprints/sprint-017-external-validation-and-provider-hardening.md")
+    status = _read("production/sprint-status.yaml")
+    plan = _read("production/qa/qa-plan-sprint-017.md")
+    normalized_plan = plan.replace("\\", "/")
+
+    assert "QA plan: `production/qa/qa-plan-sprint-017.md`" in sprint
+    assert "qa_plan: production/qa/qa-plan-sprint-017.md" in status
+    assert "5 open / 1 passed" in plan
+    assert "production_ready` stays `false" in plan
+    assert "stable_declaration` stays `forbidden" in plan
+    assert "scripts/validate_plan_closure_gate.py" in plan
+    assert "scripts/prepare_plan_closure_handoff.py --date 2026-06-22" in normalized_plan
+    assert "scripts/preflight_plan_closure_external.py --require-external-inputs" in plan
+    assert "operator-input-guide.md" in plan
+    assert "preserved_existing_template_draft" in plan
+    assert "preserved_existing_operator_draft" in plan
+    for gate_id in ["S017-002", "S017-003", "W3-live", "AUTH-prod", "S017-006", "S017-007"]:
+        assert gate_id in plan
+    for validator in [
+        "validate_kimi_live_smoke_evidence.py",
+        "validate_financial_provider_approval_evidence.py",
+        "validate_analyst_benchmark_evidence.py",
+        "validate_enterprise_production_validation_evidence.py",
+        "validate_screen_reader_evidence.py",
+        "validate_sdk_release_approval_evidence.py",
+    ]:
+        assert validator in plan
+    assert "Failed/rejected/needs_revision evidence includes issue refs and does not close the gate" in plan
+
+
 def test_enterprise_production_validation_template_is_ready_but_not_done():
     sprint = _read("production/sprint-status.yaml")
     sprint_plan = _read("production/sprints/sprint-017-external-validation-and-provider-hardening.md")
@@ -170,8 +201,33 @@ def test_kimi_plan_completion_audit_preserves_non_production_posture():
     assert "analyst-benchmark-template-2026-06-22.json" in text
     assert "validate_analyst_benchmark_evidence.py" in text
     assert "scripts/validate_kimi_plan_completion_audit.py" in text
+    assert "scripts/validate_glowing_weaving_kettle_completion_audit.py" in text
     assert "scripts/validate_governance_yaml_shape.py" in text
     assert "test_validate_governance_yaml_shape.py" in text
+    assert "glowing-weaving-kettle-completion-audit.md" in text
+
+
+def test_glowing_weaving_kettle_audit_separates_local_completion_from_external_closure():
+    text = _read("docs/progress/glowing-weaving-kettle-completion-audit.md")
+    normalized = " ".join(text.split())
+
+    assert "C:\\Users\\Aby\\.claude\\plans\\glowing-weaving-kettle.md" in text
+    assert "Track B platformization is locally implemented" in text
+    assert "Track A external closure is not complete" in text
+    assert "5 open / 1 passed" in text
+    assert "production_ready` remains `false" in text
+    assert "stable_declaration` remains `forbidden" in text
+    assert "level_3_sdk_platform` remains `experimental" in text
+    assert "production/qa/qa-plan-sprint-017.md" in text
+    assert "operator-input-guide.md" in text
+    assert "preserved_existing_template_draft" in text
+    assert "preserved_existing_operator_draft" in text
+    for phase in ["Phase 0", "Phase 1", "Phase 2", "Phase 3", "Phase 4", "Phase 5", "Phase 6"]:
+        assert phase in text
+    for gate in ["S017-002", "S017-003", "W3-live", "AUTH-prod", "S017-006", "S017-007"]:
+        assert gate in text
+    assert "validate_plan_closure_gate.py` exits 0 without `--allow-open" in normalized
+    assert "strict external-input preflight is expected to fail" in normalized
 
 
 def test_fastapi_route_count_governance_syncs_to_s017_surface():
@@ -194,11 +250,20 @@ def test_fastapi_route_count_governance_syncs_to_s017_surface():
         entities_registry,
     )
 
-    assert len(route_rows) == 58
-    assert len(entity_routes) == 58
+    assert len(route_rows) == 76
+    assert len(entity_routes) == 76
     assert set(entity_routes) == set(route_rows)
     for path in [
         "/v1/portfolios/import",
+        "/v1/runs/{run_id}/summary",
+        "/v1/runs/{run_id}/claims",
+        "/v1/runs/{run_id}/citations",
+        "/v1/runs/{run_id}/eval",
+        "/v1/workspaces",
+        "/v1/projects",
+        "/v1/research-cases",
+        "/v1/workflow-templates",
+        "/v1/capabilities",
         "/v1/audit/events",
         "/v1/audit/events/export",
         "/v1/audit/events/retention",
@@ -215,9 +280,9 @@ def test_fastapi_route_count_governance_syncs_to_s017_surface():
         adr_0007,
         imported_state,
     ]:
-        assert "58 product routes" in text
+        assert "76 product routes" in text
         assert "51 product routes" not in text
-    assert "58 canonical product routes" in entities_registry
+    assert "76 canonical product routes" in entities_registry
     assert "51 canonical product routes" not in entities_registry
 
 
@@ -232,6 +297,7 @@ def test_plan_closure_gate_aggregates_remaining_external_evidence():
     manifest_exporter = _read("scripts/export_plan_closure_manifest.py")
     manifest_validator = _read("scripts/validate_plan_closure_manifest.py")
     audit_validator = _read("scripts/validate_kimi_plan_completion_audit.py")
+    glowing_audit_validator = _read("scripts/validate_glowing_weaving_kettle_completion_audit.py")
     external_preflight = _read("scripts/preflight_plan_closure_external.py")
     handoff_preparer = _read("scripts/prepare_plan_closure_handoff.py")
     handoff_validator = _read("scripts/validate_plan_closure_handoff.py")
@@ -253,6 +319,7 @@ def test_plan_closure_gate_aggregates_remaining_external_evidence():
     manifest_test = _read("tests/unit/qa/test_export_plan_closure_manifest.py")
     manifest_validator_test = _read("tests/unit/qa/test_validate_plan_closure_manifest.py")
     audit_validator_test = _read("tests/unit/qa/test_validate_kimi_plan_completion_audit.py")
+    glowing_audit_validator_test = _read("tests/unit/qa/test_validate_glowing_weaving_kettle_completion_audit.py")
     external_preflight_test = _read("tests/unit/qa/test_preflight_plan_closure_external.py")
     handoff_test = _read("tests/unit/qa/test_prepare_plan_closure_handoff.py")
     handoff_validator_test = _read("tests/unit/qa/test_validate_plan_closure_handoff.py")
@@ -278,6 +345,7 @@ def test_plan_closure_gate_aggregates_remaining_external_evidence():
         assert "export_plan_closure_manifest.py" in text
         assert "validate_plan_closure_manifest.py" in text
         assert "validate_kimi_plan_completion_audit.py" in text
+        assert "validate_glowing_weaving_kettle_completion_audit.py" in text
         assert "preflight_plan_closure_external.py" in text
         assert "prepare_plan_closure_handoff.py" in text
         assert "validate_plan_closure_handoff.py" in text
@@ -289,6 +357,7 @@ def test_plan_closure_gate_aggregates_remaining_external_evidence():
     assert "test_export_plan_closure_manifest.py" in maturity
     assert "test_validate_plan_closure_manifest.py" in maturity
     assert "test_validate_kimi_plan_completion_audit.py" in maturity
+    assert "test_validate_glowing_weaving_kettle_completion_audit.py" in maturity
     assert "test_preflight_plan_closure_external.py" in maturity
     assert "test_prepare_plan_closure_handoff.py" in maturity
     assert "test_validate_plan_closure_handoff.py" in maturity
@@ -379,7 +448,12 @@ def test_plan_closure_gate_aggregates_remaining_external_evidence():
     assert "source_plan_check" in manifest_validator
     assert "mismatch:" in manifest_validator
     assert "validate_all(allow_open=True)" in audit_validator
+    assert "glowing-weaving-kettle-completion-audit.md" in glowing_audit_validator
+    assert "Track B platformization is locally implemented" in glowing_audit_validator
+    assert "Track A external closure is not complete" in glowing_audit_validator
+    assert "validate_all(allow_open=True)" in glowing_audit_validator
     assert "test_kimi_plan_completion_audit_matches_closure_gate" in audit_validator_test
+    assert "test_glowing_weaving_kettle_completion_audit_matches_current_gate" in glowing_audit_validator_test
     assert "doge.plan_closure_external_preflight.v1" in external_preflight
     assert "require_external_inputs" in external_preflight
     assert "task_ids" in external_preflight
@@ -431,6 +505,7 @@ def test_plan_closure_gate_aggregates_remaining_external_evidence():
     assert "Source plan SHA-256" in handoff_preparer
     assert "does_not_close_gates" in handoff_preparer
     assert "validate_kimi_plan_completion_audit.py" in handoff_preparer
+    assert "validate_glowing_weaving_kettle_completion_audit.py" in handoff_preparer
     assert "copied_template_for_operator_edit" in handoff_preparer
     assert "workspace_command_plan" in handoff_preparer
     assert "operator-commands.ps1" in handoff_preparer

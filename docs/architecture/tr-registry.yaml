@@ -393,7 +393,7 @@ requirements:
     system: fastapi-service
     cdd: design/cdd/fastapi-service.md
     section: "1 / 4.1"
-    requirement: "The canonical FastAPI app (doge.interfaces.api.main) binds to 127.0.0.1:8901 and exposes exactly 58 product routes: 34 legacy /api routes plus 24 daemon/v1 routes, including portfolio import, audit, and enterprise ACL administration; docs/API.md route table is the auditable contract."
+    requirement: "The canonical FastAPI app (doge.interfaces.api.main) binds to 127.0.0.1:8901 and exposes exactly 76 product routes: 34 legacy /api routes plus 42 daemon/v1/platform routes, including run summary, platform objects, workflow templates, capability discovery, portfolio import, audit, and enterprise ACL administration; docs/API.md route table is the auditable contract."
     adr: docs/architecture/adr-0007-api-surface-and-cors.md
     test: tests/contract/test_api_doc_route_coverage.py
     created: 2026-06-12
@@ -754,5 +754,161 @@ requirements:
     adr: docs/architecture/adr-0015-enterprise-identity-and-access.md
     test: tests/contract/test_python_sdk.py
     created: 2026-06-21
+    revised: ""
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Module #16 — run-summary-citation-api (Interface)
+  # CDD: design/cdd/run-summary-citation-api.md · ADR-0017
+  # Appended during 2026-06-22 platformization governance.
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-059
+    system: run-summary-citation-api
+    cdd: design/cdd/run-summary-citation-api.md
+    section: "Detailed Design / Integration Requirements"
+    requirement: "The backend exposes API-backed /v1/runs/{run_id}/summary, /claims, /citations, and /eval resources so UI and SDK clients do not reconstruct summaries, citations, or eval results from browser-local event state."
+    adr: docs/architecture/adr-0017-run-summary-citation-api.md
+    test: tests/contract/test_run_summary_api.py
+    created: 2026-06-22
+    revised: ""
+    status: active
+
+  - id: TR-060
+    system: run-summary-citation-api
+    cdd: design/cdd/run-summary-citation-api.md
+    section: "Data Model / Edge Cases"
+    requirement: "Run claims and citations expose support status and local evidence provenance; provider file IDs are metadata only and cannot satisfy citation support without a local document/page/chunk/evidence record."
+    adr: docs/architecture/adr-0017-run-summary-citation-api.md
+    test: tests/contract/test_citation_api.py
+    created: 2026-06-22
+    revised: ""
+    status: active
+
+  - id: TR-061
+    system: run-summary-citation-api
+    cdd: design/cdd/run-summary-citation-api.md
+    section: "Edge Cases / Acceptance Criteria"
+    requirement: "Enterprise-mode citation detail and evidence drill-down recheck tenant ACL before returning source snippets; denied citations do not leak snippet text and count as inaccessible in eval."
+    adr: docs/architecture/adr-0017-run-summary-citation-api.md
+    test: tests/contract/test_citation_api.py
+    created: 2026-06-22
+    revised: ""
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Module #17 — workspace-project-research-case (Core)
+  # CDD: design/cdd/workspace-project-research-case.md · ADR-0016
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-062
+    system: workspace-project-research-case
+    cdd: design/cdd/workspace-project-research-case.md
+    section: "Detailed Design / Data Model"
+    requirement: "Workspace, Project, and ResearchCase are first-class local objects with soft-delete lifecycle, timestamps, and idempotent association tables for runtime runs, documents, artifacts, and watchlist items."
+    adr: docs/architecture/adr-0016-user-level-objects.md
+    test: tests/contract/test_platform_api.py
+    created: 2026-06-22
+    revised: ""
+    status: active
+
+  - id: TR-063
+    system: workspace-project-research-case
+    cdd: design/cdd/workspace-project-research-case.md
+    section: "Detailed Design / Dependencies"
+    requirement: "Platform user-object linkage uses association tables by default and must not add nullable workspace_id/project_id/case_id columns to runtime or evidence tables without a follow-up ADR."
+    adr: docs/architecture/adr-0016-user-level-objects.md
+    test: tests/unit/infrastructure/test_platform_repository.py
+    created: 2026-06-22
+    revised: ""
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Module #18 — workflow-templates (Feature)
+  # CDD: design/cdd/workflow-templates.md · ADR-0018
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-064
+    system: workflow-templates
+    cdd: design/cdd/workflow-templates.md
+    section: "Detailed Design / Data Model"
+    requirement: "Workflow templates are versioned data definitions with validated input schema, run instructions, tool policy, evidence policy, output contract, and execution records that preserve template version and submitted inputs."
+    adr: docs/architecture/adr-0018-workflow-template-system.md
+    test: tests/contract/test_platform_api.py
+    created: 2026-06-22
+    revised: ""
+    status: active
+
+  - id: TR-065
+    system: workflow-templates
+    cdd: design/cdd/workflow-templates.md
+    section: "Edge Cases / Acceptance Criteria"
+    requirement: "Template execution validates inputs and capability requirements before run creation and cannot grant tool entitlements or bypass high-risk approval handling defined by tool governance."
+    adr: docs/architecture/adr-0018-workflow-template-system.md
+    test: tests/contract/test_platform_api.py
+    created: 2026-06-22
+    revised: ""
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Module #19 — platform-shell-ui (Presentation)
+  # CDD: design/cdd/platform-shell-ui.md · ADR-0020
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-066
+    system: platform-shell-ui
+    cdd: design/cdd/platform-shell-ui.md
+    section: "Detailed Design / Acceptance Criteria"
+    requirement: "The feature-flagged platform shell preserves direct /research-agent route compatibility while adding navigation, object context, capability status, and experimental maturity indicators."
+    adr: docs/architecture/adr-0020-platform-shell-ui.md
+    test: web/src/views/PlatformView.spec.ts
+    created: 2026-06-22
+    revised: ""
+    status: active
+
+  - id: TR-067
+    system: platform-shell-ui
+    cdd: design/cdd/platform-shell-ui.md
+    section: "UI Requirements / Acceptance Criteria"
+    requirement: "Platform shell promotion requires accessibility evidence for landmarks, names, keyboard focus order, and no production-ready runtime copy while external gates remain open."
+    adr: docs/architecture/adr-0020-platform-shell-ui.md
+    test: production/qa/evidence/manual/platform-shell-ax-tree-2026-06-22.json
+    created: 2026-06-22
+    revised: ""
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Module #20 — capability-registry (Core)
+  # CDD: design/cdd/capability-registry.md · ADR-0019
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-068
+    system: capability-registry
+    cdd: design/cdd/capability-registry.md
+    section: "Detailed Design / Integration Requirements"
+    requirement: "Capability discovery normalizes provider, model, tool, workflow, evidence, API, UI, and maturity records behind a redacted registry facade and exposes safe /v1/capabilities data to UI and SDK clients."
+    adr: docs/architecture/adr-0019-capability-registry.md
+    test: tests/contract/test_capability_registry_api.py
+    created: 2026-06-22
+    revised: ""
+    status: active
+
+  - id: TR-069
+    system: capability-registry
+    cdd: design/cdd/capability-registry.md
+    section: "Edge Cases / Acceptance Criteria"
+    requirement: "Capability registry responses must never expose API keys, bearer tokens, or raw secrets, and runtime production readiness is blocked whenever docs/progress/runtime-maturity.yaml has production_ready: false."
+    adr: docs/architecture/adr-0019-capability-registry.md
+    test: tests/contract/test_capability_registry_api.py
+    created: 2026-06-22
+    revised: ""
+    status: active
+
+  # ────────────────────────────────────────────────────────────────────
+  # Cross-module platform maturity guard
+  # ────────────────────────────────────────────────────────────────────
+  - id: TR-070
+    system: platformization-maturity-governance
+    cdd: "C:\\Users\\Aby\\.claude\\plans\\glowing-weaving-kettle.md"
+    section: "Baseline Truth / Implementation Tracks"
+    requirement: "Track B platformization work may proceed behind feature flags, but it must not close or dilute Track A external closure gates and must keep stable_declaration forbidden and production_ready false until strict evidence passes."
+    adr: docs/architecture/adr-0011-agent-runtime-levels.md
+    test: docs/progress/runtime-maturity.yaml
+    created: 2026-06-22
     revised: ""
     status: active

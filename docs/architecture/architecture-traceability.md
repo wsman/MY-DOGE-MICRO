@@ -15,7 +15,7 @@ Architecture traceability is current enough for Release follow-up governance:
 - The module index now covers 15 modules, including Research Copilot Agent
   Runtime, Document Evidence Pipeline, and SDK And Daemon Client Interfaces.
 - FastAPI documentation and CDD coverage reflect the canonical
-  `doge.interfaces.api.main` application and 58 product routes.
+  `doge.interfaces.api.main` application and 76 product routes.
 - Runtime maturity labels remain separate from release stage. Release-stage
   governance does not imply runtime production readiness.
 
@@ -71,7 +71,7 @@ Remaining concerns are follow-up work, not traceability blockers:
 
 ## 4. Current Controls And Evidence
 
-- **API route coverage**: `docs/API.md` enumerates 58 product routes and
+- **API route coverage**: `docs/API.md` enumerates 76 product routes and
   `tests/contract/test_api_doc_route_coverage.py` asserts docs-vs-live parity.
 - **CLI entrypoint**: `docs/CLI.md` promotes `doge ...`; legacy `python
   src/cli.py ...` remains a compatibility shim.

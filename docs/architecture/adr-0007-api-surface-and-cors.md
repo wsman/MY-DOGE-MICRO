@@ -59,7 +59,7 @@ FastAPI service in `src/doge/interfaces/api/`).
 ## Summary
 
 This ADR records the API surface of the local-first FastAPI service (the
-canonical 51-product-route table across legacy `/api/*` routers and daemon
+canonical 76-product-route table across legacy `/api/*` routers and daemon
 `/v1/*` routes bound to `127.0.0.1:8901`), the decision to ship
 `CORSMiddleware` with
 `allow_origins=["*"]` justified by the loopback bind + local-first scope, and
@@ -101,9 +101,9 @@ handler.
 
 ### Current State
 
-- The app binds to `127.0.0.1:8901` (`src/doge/interfaces/api/main.py`) and registers six
-  routers under `/api/*`, daemon routes under `/v1/*`, and health helpers.
-  The full 51-route table is enumerated in `docs/API.md` and summarized in the
+- The app binds to `127.0.0.1:8901` (`src/doge/interfaces/api/main.py`) and registers legacy
+  routers under `/api/*`, daemon/platform routes under `/v1/*`, and health helpers.
+  The full 76-route table is enumerated in `docs/API.md` and summarized in the
   fastapi-service CDD §4.1.
 - `CORSMiddleware` is added with `allow_origins=["*"]`, `allow_methods=["*"]`,
   `allow_headers=["*"]` (`main.py:22-27`). The inline comment
@@ -146,7 +146,7 @@ handler.
 
 ## Decision
 
-1. **API surface** — the 58 product routes enumerated in `docs/API.md` and
+1. **API surface** — the 76 product routes enumerated in `docs/API.md` and
    summarized in fastapi-service CDD §4.1 are the canonical contract. Any new
    route requires a docs/CDD update and a contract test. The OpenAPI
    auto-generated routes (`/openapi.json`, `/docs`, `/redoc`) are
@@ -341,9 +341,9 @@ returned to `["*"]`; repository routing is backward-compatible by definition.
 
 ## Validation Criteria
 
-- [ ] The fastapi-service CDD §4.1 route table matches the routes FastAPI
-  reports at startup (`[r.path for r in app.routes]`) for the 26 product
-  endpoints.
+- [x] The fastapi-service CDD §4.1 route table matches the routes FastAPI
+  reports at startup (`[r.path for r in app.routes]`) for the 76 product
+  routes, guarded by `tests/contract/test_api_doc_route_coverage.py`.
 - [ ] `tests/test_api_routers.py` is green and covers every endpoint
   (success + validation failure + edge case); the no-auth case is documented
   as intentionally skipped. (DONE — 57 passed as of 2026-06-12.)

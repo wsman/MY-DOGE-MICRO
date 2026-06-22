@@ -2,7 +2,7 @@
 #
 # PURPOSE: Single source of truth for cross-ADR architectural stances that all
 # ADRs must agree on. Skills check this before writing new ADRs to detect
-# conflicts at authoring time. Aggregated from ADR-0001..0015 and the 15 module CDDs.
+# conflicts at authoring time. Aggregated from ADR-0001..0020 and the 20 module CDDs.
 #
 # RULES:
 #   - Register a stance when it constrains how OTHER systems must be built.
@@ -20,10 +20,10 @@
 # STATUS VALUES: active | superseded_by: ADR-NNNN
 
 version: 1
-last_updated: "2026-06-21"
+last_updated: "2026-06-22"
 
 # ============================================================================
-# SYSTEMS — the 15 product modules (module-index.md canonical enumeration)
+# SYSTEMS — the 20 product modules (module-index.md canonical enumeration)
 # ============================================================================
 systems:
   - {num: 1, slug: runtime-configuration, name: "Runtime Configuration", category: Foundation, layer: Foundation, cdd: design/cdd/runtime-configuration.md, status: "Designed"}
@@ -34,13 +34,18 @@ systems:
   - {num: 6, slug: market-reporting, name: "Market Reporting", category: Feature, layer: Feature, cdd: design/cdd/market-reporting.md, status: "Designed", notes: "Pure-SQL reports; NO LLM. (Prior name 'AI Industry Analysis' was a misnomer.)"}
   - {num: 7, slug: research-insight-knowledge-base, name: "Research Insight Knowledge Base", category: Core, layer: Core, cdd: design/cdd/research-insight-knowledge-base.md, status: "Designed", notes: "Owns stock_notes + stock_names; soft-delete (deleted_at)"}
   - {num: 8, slug: mcp-server, name: "MCP Server", category: Interface, layer: Interface, cdd: design/cdd/mcp-server.md, status: "Designed", notes: "6 read-only tools; stdio primary + SSE secondary"}
-  - {num: 9, slug: fastapi-service, name: "FastAPI Service", category: Interface, layer: Interface, cdd: design/cdd/fastapi-service.md, status: "In Review", notes: "58 product routes; 127.0.0.1:8901; legacy /api plus daemon /v1"}
+  - {num: 9, slug: fastapi-service, name: "FastAPI Service", category: Interface, layer: Interface, cdd: design/cdd/fastapi-service.md, status: "In Review", notes: "76 product routes; 127.0.0.1:8901; legacy /api plus daemon /v1/platform"}
   - {num: 10, slug: pyqt-desktop-dashboard, name: "PyQt Desktop Dashboard", category: Presentation, layer: Presentation, cdd: design/cdd/pyqt-desktop-dashboard.md, status: "Designed"}
   - {num: 11, slug: vue-web-console, name: "Vue Web Console", category: Presentation, layer: Presentation, cdd: design/cdd/vue-web-console.md, status: "Designed"}
   - {num: 12, slug: clean-architecture-migration, name: "Clean Architecture Migration", category: Operations, layer: Operations, cdd: design/cdd/clean-architecture-migration.md, status: "Designed"}
   - {num: 13, slug: research-copilot-agent-runtime, name: "Research Copilot Agent Runtime", category: Core, layer: Core, cdd: design/cdd/research-copilot-agent-runtime.md, status: "In Review"}
   - {num: 14, slug: document-evidence-pipeline, name: "Document Evidence Pipeline", category: Core, layer: Core, cdd: design/cdd/document-evidence-pipeline.md, status: "In Review"}
   - {num: 15, slug: sdk-daemon-client-interfaces, name: "SDK And Daemon Client Interfaces", category: Interface, layer: Interface, cdd: design/cdd/sdk-daemon-client-interfaces.md, status: "In Review"}
+  - {num: 16, slug: run-summary-citation-api, name: "Run Summary Citation API", category: Interface, layer: Interface, cdd: design/cdd/run-summary-citation-api.md, status: "In Design"}
+  - {num: 17, slug: workspace-project-research-case, name: "Workspace Project Research Case", category: Core, layer: Core, cdd: design/cdd/workspace-project-research-case.md, status: "In Design"}
+  - {num: 18, slug: workflow-templates, name: "Workflow Templates", category: Feature, layer: Feature, cdd: design/cdd/workflow-templates.md, status: "In Design"}
+  - {num: 19, slug: platform-shell-ui, name: "Platform Shell UI", category: Presentation, layer: Presentation, cdd: design/cdd/platform-shell-ui.md, status: "In Design"}
+  - {num: 20, slug: capability-registry, name: "Capability Registry", category: Core, layer: Core, cdd: design/cdd/capability-registry.md, status: "In Design"}
 
 # ============================================================================
 # STATE OWNERSHIP — authoritative owner of each shared state artifact
@@ -171,7 +176,7 @@ interfaces:
     consumers: [vue-web-console, pyqt-desktop-dashboard]
     transports: [http]
     adr: docs/architecture/adr-0007-api-surface-and-cors.md
-    signature: "58 product routes; JSON + SSE; bind 127.0.0.1:8901; legacy /api plus daemon /v1"
+    signature: "76 product routes; JSON + SSE; bind 127.0.0.1:8901; legacy /api plus daemon /v1/platform"
     referenced_by:
       - docs/architecture/adr-0008-web-architecture.md
     added: "2026-06-12"
@@ -254,6 +259,52 @@ interfaces:
     signature: "Document/page/chunk/evidence records carry stable provenance for citations, RAG lookup, and deterministic claim validation"
     added: "2026-06-21"
 
+  - contract: run_summary_citation_api
+    status: active
+    pattern: rpc
+    producer: run-summary-citation-api
+    consumers: [platform-shell-ui, sdk-daemon-client-interfaces, vue-web-console]
+    adr: docs/architecture/adr-0017-run-summary-citation-api.md
+    signature: "GET /v1/runs/{run_id}/{summary,claims,citations,eval}; server-authoritative summaries, support status, local evidence provenance, and deterministic eval"
+    referenced_by:
+      - docs/architecture/adr-0020-platform-shell-ui.md
+    added: "2026-06-22"
+
+  - contract: workspace_project_case_api
+    status: active
+    pattern: rpc
+    producer: workspace-project-research-case
+    consumers: [platform-shell-ui, workflow-templates, run-summary-citation-api, sdk-daemon-client-interfaces]
+    adr: docs/architecture/adr-0016-user-level-objects.md
+    signature: "/v1/workspaces, /v1/projects, /v1/cases plus idempotent case association routes; no nullable platform context columns on runtime/evidence tables by default"
+    referenced_by:
+      - docs/architecture/adr-0018-workflow-template-system.md
+      - docs/architecture/adr-0020-platform-shell-ui.md
+    added: "2026-06-22"
+
+  - contract: workflow_template_execution
+    status: active
+    pattern: rpc
+    producer: workflow-templates
+    consumers: [platform-shell-ui, sdk-daemon-client-interfaces, research-copilot-agent-runtime]
+    adr: docs/architecture/adr-0018-workflow-template-system.md
+    signature: "Versioned template definitions validate inputs, merge tool policy with ADR-0013 governance, preflight capabilities, and create traceable workflow executions"
+    referenced_by:
+      - docs/architecture/adr-0020-platform-shell-ui.md
+    added: "2026-06-22"
+
+  - contract: capability_registry_discovery
+    status: active
+    pattern: rpc
+    producer: capability-registry
+    consumers: [platform-shell-ui, workflow-templates, sdk-daemon-client-interfaces]
+    adr: docs/architecture/adr-0019-capability-registry.md
+    signature: "GET /v1/capabilities returns redacted provider, model, tool, workflow, evidence, API, UI, and maturity statuses with dependency blockers"
+    referenced_by:
+      - docs/architecture/adr-0018-workflow-template-system.md
+      - docs/architecture/adr-0020-platform-shell-ui.md
+    added: "2026-06-22"
+
 # ============================================================================
 # FORBIDDEN PATTERNS — explicitly banned by ADR-0001
 # ============================================================================
@@ -325,6 +376,22 @@ forbidden_patterns:
     adr: docs/architecture/adr-0005-llm-client-strategy.md
     current_offenders: "models_config.json ships a real-looking api_key (open remediation)"
     added: "2026-06-12"
+
+  - pattern: runtime_platform_context_columns_without_adr
+    status: active
+    description: "Do not add nullable workspace_id, project_id, case_id, or template_id columns to runtime/evidence tables for optional platform organization without a follow-up ADR."
+    why: "Association tables keep platform organization decoupled from runtime and evidence table migrations."
+    adr: docs/architecture/adr-0016-user-level-objects.md
+    current_offenders: "None known"
+    added: "2026-06-22"
+
+  - pattern: client_side_citation_authority
+    status: active
+    description: "Web or SDK clients must not be the source of truth for claim support, citation ACL, or run eval status."
+    why: "Citation support and tenant ACL must be computed server-side from local provenance."
+    adr: docs/architecture/adr-0017-run-summary-citation-api.md
+    current_offenders: "Existing CitationDrilldown.vue and CostEvalPanel.vue reconstruct from artifacts/events as fallback until formal APIs land."
+    added: "2026-06-22"
 
 # ============================================================================
 # API DECISIONS — non-obvious framework/library choices
@@ -403,6 +470,30 @@ api_decisions:
     adr: docs/architecture/adr-0008-web-architecture.md
     reason: "Scan endpoint is POST /api/scan/{market}; EventSource only supports GET. progress===-1 error, >=100 complete."
     added: "2026-06-12"
+
+  - purpose: platform_shell_routing
+    status: active
+    api: "Vue Router feature-flagged platform shell; preserve direct /research-agent route"
+    not: "Immediate replacement of /research-agent"
+    adr: docs/architecture/adr-0020-platform-shell-ui.md
+    reason: "Platform workflows need shared navigation and context while existing agent route compatibility remains required."
+    added: "2026-06-22"
+
+  - purpose: run_summary_discovery
+    status: active
+    api: "FastAPI /v1/runs/{run_id}/{summary,claims,citations,eval}"
+    not: "Client-only reconstruction from event/artifact arrays as the authoritative contract"
+    adr: docs/architecture/adr-0017-run-summary-citation-api.md
+    reason: "Server-side summaries preserve ACL checks, local evidence provenance, and SDK/UI parity."
+    added: "2026-06-22"
+
+  - purpose: capability_discovery
+    status: active
+    api: "FastAPI /v1/capabilities via redacted registry facade"
+    not: "Frontend environment flags as the only capability source"
+    adr: docs/architecture/adr-0019-capability-registry.md
+    reason: "Workflows and shell routes need provider/tool/evidence/maturity blockers from one safe source."
+    added: "2026-06-22"
 
 # ============================================================================
 # PERFORMANCE BUDGETS
@@ -501,7 +592,7 @@ adr_index:
     status: Accepted
     date: "2026-06-12"
     path: docs/architecture/adr-0007-api-surface-and-cors.md
-    governs: "51-route canonical table; 127.0.0.1:8901 bind; allow_origins=['*'] loopback-first; shipped non-leaking error envelope"
+    governs: "76-route canonical table; 127.0.0.1:8901 bind; allow_origins=['*'] loopback-first; shipped non-leaking error envelope"
     depends_on: [ADR-0001]
 
   - id: ADR-0008
@@ -567,3 +658,43 @@ adr_index:
     path: docs/architecture/adr-0015-enterprise-identity-and-access.md
     governs: "OIDC/JWT enterprise auth boundary, tenant ACLs, approval actor, audit actor, secrets handling"
     depends_on: [ADR-0007, ADR-0011, ADR-0012, ADR-0013, ADR-0014]
+
+  - id: ADR-0016
+    title: "User Level Objects"
+    status: Proposed
+    date: "2026-06-22"
+    path: docs/architecture/adr-0016-user-level-objects.md
+    governs: "workspace/project/research-case objects, association tables, no nullable runtime/evidence context columns by default"
+    depends_on: [ADR-0003, ADR-0011]
+
+  - id: ADR-0017
+    title: "Run Summary Citation API"
+    status: Proposed
+    date: "2026-06-22"
+    path: docs/architecture/adr-0017-run-summary-citation-api.md
+    governs: "server-authoritative run summary, claims, citations, eval, and citation ACL checks"
+    depends_on: [ADR-0011, ADR-0014]
+
+  - id: ADR-0018
+    title: "Workflow Template System"
+    status: Proposed
+    date: "2026-06-22"
+    path: docs/architecture/adr-0018-workflow-template-system.md
+    governs: "versioned workflow template definitions, execution records, input validation, and tool-policy merge"
+    depends_on: [ADR-0011, ADR-0013]
+
+  - id: ADR-0019
+    title: "Capability Registry"
+    status: Proposed
+    date: "2026-06-22"
+    path: docs/architecture/adr-0019-capability-registry.md
+    governs: "redacted capability discovery for providers, models, tools, workflows, evidence, APIs, UI, and maturity gates"
+    depends_on: [ADR-0012, ADR-0013]
+
+  - id: ADR-0020
+    title: "Platform Shell UI"
+    status: Proposed
+    date: "2026-06-22"
+    path: docs/architecture/adr-0020-platform-shell-ui.md
+    governs: "feature-flagged platform shell, direct /research-agent compatibility, context navigation, capability and maturity display"
+    depends_on: [ADR-0008, ADR-0016, ADR-0017, ADR-0018, ADR-0019]
