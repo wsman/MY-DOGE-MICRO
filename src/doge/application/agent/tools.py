@@ -68,6 +68,21 @@ class ToolRegistry:
                 allowed.append(redacted)
         return allowed
 
+    def capability_records_for_context(self, context: Any = None) -> list[dict[str, Any]]:
+        effective_context = self._context if context is None else context
+        records: list[dict[str, Any]] = []
+        for schema in self.schemas_for_context(effective_context):
+            name = schema.get("function", {}).get("name", "")
+            category = self._categories.get(name, ToolCategory.READ_ONLY)
+            records.append({
+                "tool_name": name,
+                "description": schema.get("function", {}).get("description", ""),
+                "category": category.value,
+                "risk_level": _risk_level(category),
+                "requires_approval": self._entitlement.requires_approval(effective_context, name, category),
+            })
+        return records
+
     def execute(self, name: str, arguments: str | dict[str, Any] | None = None, *, context: Any = None) -> ToolResult:
         if name not in self._tools:
             return ToolResult(name=name, data={}, ok=False, error="unknown tool")
@@ -339,6 +354,14 @@ def _category(value: ToolCategory | str) -> ToolCategory:
     if isinstance(value, ToolCategory):
         return value
     return ToolCategory(str(value))
+
+
+def _risk_level(category: ToolCategory) -> str:
+    if category == ToolCategory.HIGH_RISK:
+        return "high"
+    if category in {ToolCategory.ANALYTICAL, ToolCategory.GENERATIVE}:
+        return "medium"
+    return "low"
 
 
 def _invoke_tool(func: Callable[..., ToolResult], kwargs: dict[str, Any], context: Any) -> ToolResult:

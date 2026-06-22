@@ -30,6 +30,7 @@ from doge.interfaces.api.routers.v1 import audit as v1_audit
 from doge.interfaces.api.routers.v1 import documents as v1_documents
 from doge.interfaces.api.routers.v1 import enterprise as v1_enterprise
 from doge.interfaces.api.routers.v1 import health as v1_health
+from doge.interfaces.api.routers.v1 import platform as v1_platform
 from doge.interfaces.api.routers.v1 import portfolios as v1_portfolios
 from doge.interfaces.api.routers.v1 import runs as v1_runs
 from doge.interfaces.api.routers.v1 import sessions as v1_sessions
@@ -154,6 +155,7 @@ app.include_router(v1_sessions.router, prefix="/v1", tags=["v1-sessions"])
 app.include_router(v1_runs.router, prefix="/v1", tags=["v1-runs"])
 app.include_router(v1_documents.router, prefix="/v1", tags=["v1-documents"])
 app.include_router(v1_portfolios.router, prefix="/v1", tags=["v1-portfolios"])
+app.include_router(v1_platform.router, prefix="/v1", tags=["v1-platform"])
 app.include_router(v1_tools.router, prefix="/v1", tags=["v1-tools"])
 app.include_router(v1_audit.router, prefix="/v1", tags=["v1-audit"])
 app.include_router(v1_enterprise.router, prefix="/v1", tags=["v1-enterprise"])

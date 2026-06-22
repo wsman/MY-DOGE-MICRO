@@ -88,7 +88,11 @@ class RuntimeKernel:
             model_policy=ModelPolicy.from_dict(request.get("model_policy")),
         )
         self._runs.save(run)
-        await self._add_event(run, EventType.RUN_CREATED, {"question": run.question, "workflow": run.workflow})
+        payload = {"question": run.question, "workflow": run.workflow}
+        template = request.get("template")
+        if isinstance(template, dict):
+            payload["template"] = template
+        await self._add_event(run, EventType.RUN_CREATED, payload)
         return self._hydrate(run.run_id)
 
     async def run_to_pause_or_completion(self, run_id: str) -> AgentRun:

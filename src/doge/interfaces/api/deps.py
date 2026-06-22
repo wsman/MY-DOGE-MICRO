@@ -134,9 +134,32 @@ def get_file_upload_service():
     return _file_upload_service
 
 
+def get_agent_evidence_repository():
+    """Provide the persisted evidence repository."""
+    return app_composition.build_agent_evidence_repository()
+
+
+def get_run_summary_use_case():
+    """Provide the structured run summary/citation/eval use case."""
+    return app_composition.build_run_summary_use_case(
+        runtime=get_persisted_research_agent_runtime(),
+        evidence_repository=get_agent_evidence_repository(),
+    )
+
+
+def get_capability_registry_use_case():
+    """Provide the redacted capability discovery use case."""
+    return app_composition.build_capability_registry_use_case()
+
+
 def get_portfolio_repository():
     """Provide the persisted portfolio repository."""
     return app_composition.build_portfolio_repository()
+
+
+def get_platform_repository():
+    """Provide the platform workspace/project/case/template repository."""
+    return app_composition.build_platform_repository()
 
 
 def get_portfolio_import_service():

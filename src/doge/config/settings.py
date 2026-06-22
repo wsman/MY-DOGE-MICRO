@@ -432,6 +432,24 @@ class SecretConfig:
 
 
 @dataclass(frozen=True)
+class FeatureConfig:
+    """Feature flags for experimental platformization surfaces."""
+
+    run_summary_api: bool = field(
+        default_factory=lambda: _env_bool("DOGE_FEATURE_RUN_SUMMARY_API", False)
+    )
+    platform_objects: bool = field(
+        default_factory=lambda: _env_bool("DOGE_FEATURE_PLATFORM_OBJECTS", False)
+    )
+    workflow_templates: bool = field(
+        default_factory=lambda: _env_bool("DOGE_FEATURE_WORKFLOW_TEMPLATES", False)
+    )
+    capability_registry: bool = field(
+        default_factory=lambda: _env_bool("DOGE_FEATURE_CAPABILITY_REGISTRY", False)
+    )
+
+
+@dataclass(frozen=True)
 class Settings:
     """Application settings container."""
     project_root: Path = _PROJECT_ROOT
@@ -449,6 +467,7 @@ class Settings:
     api: APIConfig = field(default_factory=APIConfig)
     audit: AuditConfig = field(default_factory=AuditConfig)
     secrets: SecretConfig = field(default_factory=SecretConfig)
+    features: FeatureConfig = field(default_factory=FeatureConfig)
 
     # Derived paths
     @property

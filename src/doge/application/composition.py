@@ -62,6 +62,7 @@ from doge.infrastructure.database.embedding_cache import SQLiteEmbeddingCache
 from doge.infrastructure.database.enterprise_governance import SQLiteEnterpriseGovernanceRepository
 from doge.infrastructure.database.claim_repository import SQLiteClaimRepository
 from doge.infrastructure.database.portfolio_repository import SQLitePortfolioRepository, demo_portfolio
+from doge.infrastructure.database.platform_repository import SQLitePlatformRepository
 from doge.infrastructure.database.sqlite_uow import SQLiteAgentUnitOfWork
 from doge.infrastructure.database.sqlite_storage import SQLiteStorageRepository
 from doge.infrastructure.data_source.tdx_file_scanner import TDXFileScanner
@@ -100,6 +101,15 @@ from doge.application.use_cases.generate_industry_report import GenerateIndustry
 from doge.application.use_cases.industry_analyzer import IndustryAnalyzerAgentUseCase
 from doge.application.use_cases.macro_strategist import MacroStrategistAgentUseCase
 from doge.application.use_cases.run_use_cases import ExecuteRun, ResumeRun
+from doge.application.use_cases.run_summary import BuildRunSummary
+from doge.application.use_cases.capability_registry import BuildCapabilityRegistry
+from doge.application.capabilities.registry import (
+    ApiCapabilityProvider,
+    FeatureCapabilityProvider,
+    MaturityCapabilityProvider,
+    ModelProviderCapabilityProvider,
+    ToolRegistryCapabilityProvider,
+)
 from doge.application.use_cases.session_use_cases import AppendTurn, CreateSession, ListSessions, ResumeSession
 from doge.application.agent.runtime_kernel import RuntimeKernel
 from doge.application.agent.context_builder import ContextBuilder
@@ -448,6 +458,11 @@ def build_portfolio_repository(db_path=None):
     return repo
 
 
+def build_platform_repository(db_path=None):
+    """Build the platform workspace/project/case/template repository."""
+    return SQLitePlatformRepository(db_path)
+
+
 def build_financial_statement_repository():
     """Build the configured financial statement connector."""
     return StockOverviewFinancialStatementRepository(build_stock_service())
@@ -475,6 +490,7 @@ def build_risk_factor_source():
 
 def build_tool_application_service(db_path=None) -> ToolApplicationService:
     """Build the fully injected application service used by agent tools."""
+    settings = get_settings()
     return ToolApplicationService(
         stock_service_factory=build_stock_service,
         ranking_service_factory=build_ranking_service,
@@ -492,6 +508,7 @@ def build_tool_application_service(db_path=None) -> ToolApplicationService:
         consensus_estimate_repository_factory=build_consensus_estimate_repository,
         industry_classification_source_factory=build_industry_classification_source,
         view_repository_factory=lambda: build_view_repository(read_only=True),
+        use_capability_providers=settings.features.capability_registry,
     )
 
 
@@ -555,6 +572,30 @@ def build_execute_run_use_case(model=None, tool_registry=None, db_path=None) -> 
 def build_resume_run_use_case(model=None, tool_registry=None, db_path=None) -> ResumeRun:
     runtime = build_persisted_research_agent_runtime(model=model, tool_registry=tool_registry, db_path=db_path)
     return ResumeRun(runtime)
+
+
+def build_run_summary_use_case(runtime=None, evidence_repository=None, db_path=None) -> BuildRunSummary:
+    """Build the structured run summary/citation/eval use case."""
+    if runtime is None:
+        runtime = build_persisted_research_agent_runtime(db_path=db_path)
+    if evidence_repository is None:
+        evidence_repository = build_agent_evidence_repository(db_path)
+    return BuildRunSummary(runtime, evidence_repository)
+
+
+def build_capability_registry_use_case() -> BuildCapabilityRegistry:
+    """Build the redacted capability discovery use case."""
+    settings = get_settings()
+    return BuildCapabilityRegistry(
+        settings,
+        providers=[
+            FeatureCapabilityProvider(settings),
+            ModelProviderCapabilityProvider(settings),
+            ApiCapabilityProvider(settings),
+            MaturityCapabilityProvider(settings.project_root / "docs" / "progress" / "runtime-maturity.yaml"),
+            ToolRegistryCapabilityProvider(build_default_tool_registry()),
+        ],
+    )
 
 
 def build_manage_notes_use_case(

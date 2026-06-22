@@ -32,6 +32,7 @@ from doge.core.ports.financial_connectors import (
 )
 from doge.core.ports.agent_runtime import IResearchAgentRuntime
 from doge.core.ports.cache import ITickerNameCache
+from doge.core.ports.capability_provider import ICapabilityProvider
 from doge.core.ports.claim_repository import IClaimRepository
 from doge.core.ports.data_source import IMarketDataSource
 from doge.core.ports.event_publisher import IEventPublisher
@@ -42,6 +43,7 @@ from doge.core.ports.market_view import IMarketViewRepository
 from doge.core.ports.metadata import ITickerMetadataSource
 from doge.core.ports.model_router import IModelRouter, RoutingDecision
 from doge.core.ports.model_gateway import IEnterpriseModelGateway
+from doge.core.ports.platform_repository import IPlatformRepository
 from doge.core.ports.portfolio_repository import IPortfolioRepository
 from doge.core.ports.tdx_server_list import ITDXServerList, TDXServer
 from doge.core.ports.tool_entitlement import IToolEntitlementChecker
@@ -67,6 +69,7 @@ __all__ = [
     "IAgentUnitOfWork",
     "IApprovalRepository",
     "IArtifactRepository",
+    "ICapabilityProvider",
     "IClaimRepository",
     "ICompanyAnnouncementRepository",
     "IConsensusEstimateRepository",
@@ -92,6 +95,7 @@ __all__ = [
     "IModelRouter",
     "IEnterpriseModelGateway",
     "INoteRepository",
+    "IPlatformRepository",
     "IPortfolioRepository",
     "IReportRepository",
     "IResearchAgentRuntime",

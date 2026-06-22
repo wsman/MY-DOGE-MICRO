@@ -239,3 +239,84 @@ CREATE TABLE IF NOT EXISTS approval_actor_decisions (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY(approval_id, tenant_id, actor_hash, created_at)
 );
+
+CREATE TABLE IF NOT EXISTS workspaces (
+    workspace_id TEXT PRIMARY KEY,
+    tenant_id TEXT,
+    name TEXT NOT NULL,
+    description TEXT,
+    status TEXT NOT NULL,
+    metadata TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    deleted_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS projects (
+    project_id TEXT PRIMARY KEY,
+    tenant_id TEXT,
+    workspace_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    status TEXT NOT NULL,
+    default_market TEXT,
+    metadata TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    deleted_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS research_cases (
+    case_id TEXT PRIMARY KEY,
+    tenant_id TEXT,
+    project_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    thesis TEXT,
+    status TEXT NOT NULL,
+    decision TEXT,
+    metadata TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    deleted_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS research_case_runs (
+    case_id TEXT NOT NULL,
+    run_id TEXT NOT NULL,
+    tenant_id TEXT,
+    link_type TEXT NOT NULL DEFAULT 'primary',
+    linked_at TEXT NOT NULL,
+    PRIMARY KEY(case_id, run_id)
+);
+
+CREATE TABLE IF NOT EXISTS workflow_templates (
+    template_id TEXT PRIMARY KEY,
+    tenant_id TEXT,
+    slug TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    description TEXT,
+    status TEXT NOT NULL,
+    current_version TEXT NOT NULL,
+    input_schema TEXT,
+    run_instructions TEXT,
+    tool_policy TEXT,
+    evidence_policy TEXT,
+    output_contract TEXT,
+    metadata TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS workflow_template_runs (
+    template_id TEXT NOT NULL,
+    run_id TEXT NOT NULL,
+    tenant_id TEXT,
+    linked_at TEXT NOT NULL,
+    PRIMARY KEY(template_id, run_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_projects_workspace ON projects(workspace_id, status);
+CREATE INDEX IF NOT EXISTS idx_research_cases_project ON research_cases(project_id, status);
+CREATE INDEX IF NOT EXISTS idx_research_case_runs_run ON research_case_runs(run_id);
+CREATE INDEX IF NOT EXISTS idx_workflow_templates_status ON workflow_templates(status);
+CREATE INDEX IF NOT EXISTS idx_workflow_template_runs_run ON workflow_template_runs(run_id);

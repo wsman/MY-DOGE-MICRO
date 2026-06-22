@@ -3,18 +3,38 @@
 from __future__ import annotations
 
 import json
-import re
 import subprocess
 import sys
 from dataclasses import asdict, is_dataclass
-from typing import Any, Callable
+from typing import Any
+
+from doge.application.capabilities.compliance_provider import ComplianceToolProvider
+from doge.application.capabilities.fundamental_provider import FundamentalToolProvider
+from doge.application.capabilities.market_provider import MarketToolProvider
+from doge.application.capabilities.portfolio_provider import PortfolioToolProvider
+from doge.application.capabilities.publishing_provider import PublishingToolProvider
+from doge.application.capabilities.quant_provider import QuantToolProvider
+from doge.application.capabilities.registry import ToolExecutionProviderRegistry
+from doge.application.capabilities.research_provider import ResearchToolProvider
+from doge.application.capabilities.tool_utils import (
+    ServiceFactory,
+    claim_matches_evidence as _claim_matches_evidence,
+    claim_matches_rows as _claim_matches_rows,
+    document_scope_from_context as _document_scope_from_context,
+    filter_results_for_context as _filter_results_for_context,
+    is_restricted_context as _is_restricted_context,
+    looks_mutating_sql as _looks_mutating_sql,
+    num as _num,
+    resolve as _resolve,
+    unsafe_python as _unsafe_python,
+)
 
 
-ServiceFactory = Callable[[], Any]
+_NO_PROVIDER = object()
 
 
 class ToolApplicationService:
-    """Single application-layer entrypoint for deterministic research tools."""
+    """Application-layer facade for deterministic research tools."""
 
     def __init__(
         self,
@@ -35,6 +55,8 @@ class ToolApplicationService:
         consensus_estimate_repository_factory: ServiceFactory | None = None,
         industry_classification_source_factory: ServiceFactory | None = None,
         view_repository_factory: ServiceFactory | None = None,
+        use_capability_providers: bool = False,
+        execution_provider_registry: ToolExecutionProviderRegistry | None = None,
     ) -> None:
         self._stock_service_factory = stock_service_factory
         self._ranking_service_factory = ranking_service_factory
@@ -52,6 +74,53 @@ class ToolApplicationService:
         self._consensus_estimate_repository_factory = consensus_estimate_repository_factory
         self._industry_classification_source_factory = industry_classification_source_factory
         self._view_repository_factory = view_repository_factory
+        self._execution_provider_registry = execution_provider_registry
+        if self._execution_provider_registry is None and use_capability_providers:
+            self._execution_provider_registry = self._build_execution_provider_registry()
+
+    def execution_provider_method_names(self) -> tuple[str, ...]:
+        """Return provider-backed method names for parity tests and diagnostics."""
+        if self._execution_provider_registry is None:
+            return ()
+        return self._execution_provider_registry.method_names()
+
+    def _build_execution_provider_registry(self) -> ToolExecutionProviderRegistry:
+        return ToolExecutionProviderRegistry([
+            MarketToolProvider(
+                stock_service_factory=self._stock_service_factory,
+                ranking_service_factory=self._ranking_service_factory,
+                breadth_service_factory=self._breadth_service_factory,
+                anomaly_service_factory=self._anomaly_service_factory,
+            ),
+            PortfolioToolProvider(
+                portfolio_service_factory=self._portfolio_service_factory,
+                risk_service_factory=self._risk_service_factory,
+                scenario_service_factory=self._scenario_service_factory,
+            ),
+            ResearchToolProvider(
+                stock_service_factory=self._stock_service_factory,
+                rag_service_factory=self._rag_service_factory,
+                note_repository_factory=self._note_repository_factory,
+                industry_report_use_case_factory=self._industry_report_use_case_factory,
+            ),
+            FundamentalToolProvider(
+                financial_statement_repository_factory=self._financial_statement_repository_factory,
+                company_announcement_repository_factory=self._company_announcement_repository_factory,
+                consensus_estimate_repository_factory=self._consensus_estimate_repository_factory,
+                industry_classification_source_factory=self._industry_classification_source_factory,
+            ),
+            QuantToolProvider(
+                view_service_factory=self._view_service_factory,
+                view_repository_factory=self._view_repository_factory,
+            ),
+            ComplianceToolProvider(),
+            PublishingToolProvider(),
+        ])
+
+    def _provider_execute(self, method_name: str, *args: Any, **kwargs: Any) -> Any:
+        if self._execution_provider_registry is None:
+            return _NO_PROVIDER
+        return self._execution_provider_registry.execute(method_name, *args, **kwargs)
 
     def _stock_service(self):
         return _resolve(self._stock_service_factory, "stock_service")
@@ -102,37 +171,64 @@ class ToolApplicationService:
         return _resolve(self._view_repository_factory, "view_repository")
 
     def query_stock(self, ticker: str, market: str = "us", days: int = 20) -> dict[str, Any]:
+        result = self._provider_execute("query_stock", ticker, market, days)
+        if result is not _NO_PROVIDER:
+            return result
         rows = self._stock_service().query(ticker, market, days)
         return {"ticker": ticker, "market": market, "days": days, "rows": rows}
 
     def stock_overview(self, ticker: str, market: str = "us") -> dict[str, Any]:
+        result = self._provider_execute("stock_overview", ticker, market)
+        if result is not _NO_PROVIDER:
+            return result
         data = self._stock_service().overview(ticker, market)
         return data or {"ticker": ticker, "market": market, "status": "unavailable"}
 
     def rsrs_ranking(self, market: str = "us", top: int = 20) -> dict[str, Any]:
+        result = self._provider_execute("rsrs_ranking", market, top)
+        if result is not _NO_PROVIDER:
+            return result
         rows = self._ranking_service().rsrs(market, top)
         return {"market": market, "top": top, "rows": rows}
 
     def market_breadth(self, market: str = "us", days: int = 10) -> dict[str, Any]:
+        result = self._provider_execute("market_breadth", market, days)
+        if result is not _NO_PROVIDER:
+            return result
         rows = self._breadth_service().breadth(market, days)
         return {"market": market, "days": days, "rows": rows}
 
     def volume_anomalies(self, min_ratio: float = 3.0, top: int = 20) -> dict[str, Any]:
+        result = self._provider_execute("volume_anomalies", min_ratio, top)
+        if result is not _NO_PROVIDER:
+            return result
         rows = self._anomaly_service().anomalies(min_ratio, top)
         return {"min_ratio": min_ratio, "top": top, "rows": rows}
 
     def list_views(self) -> dict[str, Any]:
+        result = self._provider_execute("list_views")
+        if result is not _NO_PROVIDER:
+            return result
         payload = self._view_service().list_views()
         rows = json.loads(payload)
         return {"views": rows}
 
     def get_portfolio_exposure(self, portfolio_id: str = "portfolio-demo") -> dict[str, Any]:
+        result = self._provider_execute("get_portfolio_exposure", portfolio_id)
+        if result is not _NO_PROVIDER:
+            return result
         return self._portfolio_service().get_exposure(portfolio_id)
 
     def portfolio_risk(self, portfolio_id: str = "portfolio-demo") -> dict[str, Any]:
+        result = self._provider_execute("portfolio_risk", portfolio_id)
+        if result is not _NO_PROVIDER:
+            return result
         return self._risk_service().portfolio_risk(portfolio_id)
 
     def scenario_analysis(self, portfolio_id: str = "portfolio-demo", basis_points: float = 100.0) -> dict[str, Any]:
+        result = self._provider_execute("scenario_analysis", portfolio_id, basis_points)
+        if result is not _NO_PROVIDER:
+            return result
         return self._scenario_service().rate_shock(portfolio_id, basis_points)
 
     def validate_financial_claims(
@@ -143,6 +239,9 @@ class ToolApplicationService:
         *,
         context: Any = None,
     ) -> dict[str, Any]:
+        result = self._provider_execute("validate_financial_claims", claim, ticker, market, context=context)
+        if result is not _NO_PROVIDER:
+            return result
         evidence = []
         try:
             document_ids = _document_scope_from_context(context)
@@ -171,6 +270,9 @@ class ToolApplicationService:
         market: str = "us",
         tickers: list[str] | None = None,
     ) -> dict[str, Any]:
+        result = self._provider_execute("generate_industry_report", industry, market, tickers)
+        if result is not _NO_PROVIDER:
+            return result
         from doge.application.contracts.request import GenerateIndustryReportRequest
 
         response = self._industry_report_use_case().execute(
@@ -183,6 +285,9 @@ class ToolApplicationService:
         return asdict(response) if is_dataclass(response) else dict(response)
 
     def lookup_evidence(self, query: str, limit: int = 5, *, context: Any = None) -> dict[str, Any]:
+        result = self._provider_execute("lookup_evidence", query, limit, context=context)
+        if result is not _NO_PROVIDER:
+            return result
         document_ids = _document_scope_from_context(context)
         try:
             rag_result = self._rag_service().search(query, document_ids=document_ids, limit=limit)
@@ -197,6 +302,9 @@ class ToolApplicationService:
         return {"query": query, "limit": limit, "source": "notes", "results": rows[:limit]}
 
     def request_approval(self, action: str, risk_level: str = "high") -> dict[str, Any]:
+        result = self._provider_execute("request_approval", action, risk_level)
+        if result is not _NO_PROVIDER:
+            return result
         return {"approval_required": True, "action": action, "risk_level": risk_level}
 
     def get_financial_statements(
@@ -205,12 +313,21 @@ class ToolApplicationService:
         statement_type: str = "income",
         period: str = "annual",
     ) -> dict[str, Any]:
+        result = self._provider_execute("get_financial_statements", ticker, statement_type, period)
+        if result is not _NO_PROVIDER:
+            return result
         return self._financial_statement_repository().get_statement(ticker, statement_type, period)
 
     def get_company_announcements(self, ticker: str, limit: int = 5) -> dict[str, Any]:
+        result = self._provider_execute("get_company_announcements", ticker, limit)
+        if result is not _NO_PROVIDER:
+            return result
         return self._company_announcement_repository().list_announcements(ticker, limit)
 
     def calculate_financial_ratios(self, fields: dict[str, Any] | None = None) -> dict[str, Any]:
+        result = self._provider_execute("calculate_financial_ratios", fields)
+        if result is not _NO_PROVIDER:
+            return result
         values = fields or {}
         revenue = _num(values.get("revenue"))
         net_income = _num(values.get("net_income"))
@@ -226,12 +343,21 @@ class ToolApplicationService:
         return {"ratios": ratios, "status": "calculated" if ratios else "insufficient_fields"}
 
     def compare_consensus_estimates(self, ticker: str, metric: str = "eps") -> dict[str, Any]:
+        result = self._provider_execute("compare_consensus_estimates", ticker, metric)
+        if result is not _NO_PROVIDER:
+            return result
         return self._consensus_estimate_repository().compare_estimates(ticker, metric)
 
     def get_industry_classification(self, ticker: str, market: str = "us") -> dict[str, Any]:
+        result = self._provider_execute("get_industry_classification", ticker, market)
+        if result is not _NO_PROVIDER:
+            return result
         return self._industry_classification_source().classify(ticker, market)
 
     def run_sql_query(self, sql: str, readonly: bool = True) -> dict[str, Any]:
+        result = self._provider_execute("run_sql_query", sql, readonly)
+        if result is not _NO_PROVIDER:
+            return result
         if not readonly or _looks_mutating_sql(sql):
             return {"ok": False, "error": "Only read-only SELECT/WITH queries are allowed."}
         try:
@@ -242,6 +368,9 @@ class ToolApplicationService:
             return {"ok": False, "error": "SQL query failed."}
 
     def run_python_analysis(self, code: str, timeout: float = 5.0) -> dict[str, Any]:
+        result = self._provider_execute("run_python_analysis", code, timeout)
+        if result is not _NO_PROVIDER:
+            return result
         if _unsafe_python(code):
             return {"ok": False, "error": "Code uses disallowed operations in the demo sandbox."}
         try:
@@ -262,6 +391,9 @@ class ToolApplicationService:
         }
 
     def screen_compliance_risk(self, text: str) -> dict[str, Any]:
+        result = self._provider_execute("screen_compliance_risk", text)
+        if result is not _NO_PROVIDER:
+            return result
         lowered = text.lower()
         hits = [
             word
@@ -271,6 +403,9 @@ class ToolApplicationService:
         return {"risk": "high" if hits else "low", "matches": hits}
 
     def publish_investment_memo(self, memo_id: str, distribution_list: list[str] | None = None) -> dict[str, Any]:
+        result = self._provider_execute("publish_investment_memo", memo_id, distribution_list)
+        if result is not _NO_PROVIDER:
+            return result
         return {
             "approval_required": True,
             "action": f"publish investment memo {memo_id}",
@@ -283,6 +418,9 @@ class ToolApplicationService:
         portfolio_id: str,
         proposed_changes: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
+        result = self._provider_execute("propose_portfolio_rebalance", portfolio_id, proposed_changes)
+        if result is not _NO_PROVIDER:
+            return result
         return {
             "approval_required": True,
             "action": f"propose rebalance for portfolio {portfolio_id}",
@@ -290,95 +428,3 @@ class ToolApplicationService:
             "portfolio_id": portfolio_id,
             "proposed_changes": proposed_changes or [],
         }
-
-
-def _claim_matches_rows(claim: str, rows: list[dict[str, Any]]) -> bool:
-    numbers = [float(item) for item in re.findall(r"\d+(?:\.\d+)?", claim)]
-    if not numbers:
-        return False
-    numeric_values: list[float] = []
-    for row in rows:
-        for value in row.values():
-            if isinstance(value, (int, float)):
-                numeric_values.append(float(value))
-    return any(
-        abs(claimed - actual) <= max(0.01, abs(actual) * 0.001)
-        for claimed in numbers
-        for actual in numeric_values
-    )
-
-
-def _claim_matches_evidence(claim: str, evidence: list[dict[str, Any]]) -> bool:
-    numbers = re.findall(r"\d+(?:\.\d+)?", claim)
-    texts = " ".join(str(item.get("text", "")) for item in evidence).lower()
-    if numbers:
-        return any(number in texts for number in numbers)
-    claim_terms = {term for term in re.findall(r"[\w\u4e00-\u9fff]+", claim.lower()) if len(term) > 3}
-    if not claim_terms:
-        return False
-    evidence_terms = set(re.findall(r"[\w\u4e00-\u9fff]+", texts))
-    return bool(claim_terms & evidence_terms)
-
-
-def _document_scope_from_context(context: Any) -> list[str] | None:
-    if context is None:
-        return None
-    acl = sorted(getattr(context, "document_acl", frozenset()) or [])
-    if _is_restricted_context(context):
-        return acl
-    return acl or None
-
-
-def _filter_results_for_context(results: list[dict[str, Any]], context: Any) -> list[dict[str, Any]]:
-    if not _is_restricted_context(context):
-        return results
-    allowed = set(getattr(context, "document_acl", frozenset()) or [])
-    if not allowed:
-        return []
-    return [
-        item
-        for item in results
-        if item.get("document_id") in allowed
-    ]
-
-
-def _is_restricted_context(context: Any) -> bool:
-    if context is None:
-        return False
-    return getattr(context, "tenant_id", "local") != "local"
-
-
-def _num(value: Any) -> float:
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return 0.0
-
-
-def _looks_mutating_sql(sql: str) -> bool:
-    stripped = sql.strip().lower()
-    if not (stripped.startswith("select") or stripped.startswith("with")):
-        return True
-    return bool(re.search(r"\b(insert|update|delete|drop|alter|create|attach|copy|pragma)\b", stripped))
-
-
-def _unsafe_python(code: str) -> bool:
-    lowered = code.lower()
-    blocked = (
-        "import os",
-        "import subprocess",
-        "import socket",
-        "from os",
-        "from subprocess",
-        "open(",
-        "__",
-        "eval(",
-        "exec(",
-    )
-    return any(token in lowered for token in blocked)
-
-
-def _resolve(factory: ServiceFactory | None, dependency_name: str) -> Any:
-    if factory is None:
-        raise RuntimeError(f"Tool dependency not configured: {dependency_name}")
-    return factory()

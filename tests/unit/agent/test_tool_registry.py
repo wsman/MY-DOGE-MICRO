@@ -51,6 +51,16 @@ def test_default_registry_marks_high_risk_tools():
     assert categories["propose_portfolio_rebalance"] == "high_risk"
 
 
+def test_high_risk_tool_execution_still_requires_approval():
+    registry = build_default_tool_registry()
+
+    result = registry.execute("publish_investment_memo", {"memo_id": "memo-1"})
+
+    assert result.ok is True
+    assert result.data["approval_required"] is True
+    assert result.data["risk_level"] == "high"
+
+
 def test_portfolio_tool_returns_demo_exposure():
     class FakePortfolioService:
         def get_exposure(self, portfolio_id):

@@ -70,6 +70,21 @@ async def test_kernel_create_run_persists_to_repository(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_kernel_create_run_records_template_metadata_in_created_event(tmp_path):
+    kernel = _kernel(tmp_path)
+
+    run = await kernel.create_run({
+        "question": "Analyze NVDA",
+        "template": {"template_id": "tpl-1", "slug": "earnings-review"},
+    })
+
+    loaded = kernel.get_run(run.run_id)
+    assert loaded is not None
+    assert loaded.events[0].event_type == EventType.RUN_CREATED
+    assert loaded.events[0].payload["template"] == {"template_id": "tpl-1", "slug": "earnings-review"}
+
+
+@pytest.mark.asyncio
 async def test_kernel_step_rebuilds_messages_from_events(tmp_path):
     kernel = _kernel(tmp_path)
     run = await kernel.create_run({"question": "Analyze AAPL"})
