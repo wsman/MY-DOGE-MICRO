@@ -16,6 +16,41 @@ export interface ViewRegistryEntry {
 }
 
 export const VIEW_REGISTRY: Record<ViewId, ViewRegistryEntry> = {
+  'home-dashboard': {
+    id: 'home-dashboard',
+    label: 'Home',
+    icon: 'grid',
+    loader: () => import('./HomeDashboardView.vue'),
+    minWidth: 520,
+  },
+  'research-domain': {
+    id: 'research-domain',
+    label: 'Research',
+    icon: 'book',
+    loader: () => import('./ResearchDomainView.vue'),
+    minWidth: 520,
+  },
+  'market-domain': {
+    id: 'market-domain',
+    label: 'Market',
+    icon: 'line-chart',
+    loader: () => import('./MarketDomainView.vue'),
+    minWidth: 520,
+  },
+  'portfolio-domain': {
+    id: 'portfolio-domain',
+    label: 'Portfolio',
+    icon: 'briefcase',
+    loader: () => import('./PortfolioDomainView.vue'),
+    minWidth: 520,
+  },
+  'quant-domain': {
+    id: 'quant-domain',
+    label: 'Quant',
+    icon: 'doc',
+    loader: () => import('./QuantDomainView.vue'),
+    minWidth: 520,
+  },
   'scanner': {
     id: 'scanner',
     label: 'Scanner',

@@ -20,6 +20,11 @@ export type SpatialDirection = 'left' | 'right' | 'up' | 'down'
 
 /** All view IDs that can be displayed in a panel. */
 export type ViewId =
+  | 'home-dashboard'
+  | 'research-domain'
+  | 'market-domain'
+  | 'portfolio-domain'
+  | 'quant-domain'
   | 'scanner'
   | 'cn-archive'
   | 'us-archive'

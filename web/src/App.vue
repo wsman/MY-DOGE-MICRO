@@ -16,6 +16,11 @@ const route = useRoute()
 const router = useRouter()
 
 const routeViewMap: Record<string, ViewId> = {
+  'home-dashboard': 'home-dashboard',
+  'research-domain': 'research-domain',
+  'market-domain': 'market-domain',
+  'portfolio-domain': 'portfolio-domain',
+  'quant-domain': 'quant-domain',
   scanner: 'scanner',
   'cn-archive': 'cn-archive',
   'us-archive': 'us-archive',
@@ -31,6 +36,15 @@ const routeViewMap: Record<string, ViewId> = {
   'admin-center': 'admin-center',
 }
 
+const primaryNavItems = [
+  { label: 'Home', path: '/home' },
+  { label: 'Research', path: '/research' },
+  { label: 'Market', path: '/market' },
+  { label: 'Portfolio', path: '/portfolio' },
+  { label: 'Quant', path: '/quant' },
+  { label: 'Admin', path: '/admin' },
+]
+
 // ---------------------------------------------------------------------------
 // Layout presets
 // ---------------------------------------------------------------------------
@@ -41,6 +55,31 @@ function preset(p: 'single' | 'h-split' | 'v-split' | 'quad') {
 
 async function openRoute(path: string) {
   await router.push(path)
+}
+
+function isActiveNav(path: string): boolean {
+  const current = route.path
+  if (path === '/home') return current === '/' || current === '/home'
+  if (path === '/research') {
+    return [
+      '/research',
+      '/workspaces',
+      '/templates',
+      '/research-agent',
+      '/insights',
+    ].some(prefix => current === prefix || current.startsWith(`${prefix}/`))
+  }
+  if (path === '/market') {
+    return ['/market', '/scanner', '/cn-archive', '/us-archive'].includes(current)
+  }
+  if (path === '/portfolio') return current === '/portfolio'
+  if (path === '/quant') return current === '/quant' || current === '/analysis'
+  if (path === '/admin') return current === '/admin'
+  return current === path
+}
+
+function navButtonType(path: string) {
+  return isActiveNav(path) ? 'primary' : 'default'
 }
 
 watch(
@@ -123,9 +162,16 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
           <n-text strong class="app-title">MY-DOGE</n-text>
           <n-space size="small" align="center" class="primary-nav">
             <template v-if="platformShellEnabled">
-              <n-button size="tiny" quaternary @click="openRoute('/workspaces')">Workspaces</n-button>
-              <n-button size="tiny" quaternary @click="openRoute('/templates')">Templates</n-button>
-              <n-button size="tiny" quaternary @click="openRoute('/admin')">Admin</n-button>
+              <n-button
+                v-for="item in primaryNavItems"
+                :key="item.path"
+                size="tiny"
+                quaternary
+                :type="navButtonType(item.path)"
+                @click="openRoute(item.path)"
+              >
+                {{ item.label }}
+              </n-button>
             </template>
             <n-button size="tiny" quaternary @click="openRoute('/research-agent')">Agent</n-button>
           </n-space>
@@ -225,6 +271,12 @@ a { text-decoration: none; color: inherit; }
   flex: 1;
   justify-content: center;
   min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.primary-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .toolbar-sep {

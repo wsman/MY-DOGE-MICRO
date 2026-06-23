@@ -2,6 +2,11 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import { platformShellEnabled } from '../config/features'
 
 const platformRouteNames = new Set([
+  'home-dashboard',
+  'research-domain',
+  'market-domain',
+  'portfolio-domain',
+  'quant-domain',
   'workspace-list',
   'workspace-detail',
   'project-detail',
@@ -14,7 +19,12 @@ const platformRouteNames = new Set([
 const router = createRouter({
   history: createWebHashHistory(),
   routes: [
-    { path: '/', redirect: platformShellEnabled ? '/workspaces' : '/research-agent' },
+    { path: '/', redirect: platformShellEnabled ? '/home' : '/research-agent' },
+    { path: '/home', name: 'home-dashboard', component: () => import('../views/HomeDashboardView.vue') },
+    { path: '/research', name: 'research-domain', component: () => import('../views/ResearchDomainView.vue') },
+    { path: '/market', name: 'market-domain', component: () => import('../views/MarketDomainView.vue') },
+    { path: '/portfolio', name: 'portfolio-domain', component: () => import('../views/PortfolioDomainView.vue') },
+    { path: '/quant', name: 'quant-domain', component: () => import('../views/QuantDomainView.vue') },
     { path: '/scanner', name: 'scanner', component: () => import('../views/ScannerView.vue') },
     { path: '/cn-archive', name: 'cn-archive', component: () => import('../views/CnArchiveView.vue') },
     { path: '/us-archive', name: 'us-archive', component: () => import('../views/UsArchiveView.vue') },
