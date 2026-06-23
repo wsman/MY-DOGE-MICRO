@@ -704,6 +704,40 @@ local_verification:
       workflow: success
       python_checks: success
       typescript_checks: success
+  architecture_governance_closure_2026_06_23:
+    source_plan: "C:/Users/Aby/.claude/plans/alpha-foamy-bird.md"
+    commands:
+      - ".\\.venv\\Scripts\\python.exe scripts\\validate_governance_yaml_shape.py"
+      - ".\\.venv\\Scripts\\python.exe scripts\\validate_plan_closure_gate.py --allow-open"
+      - ".\\.venv\\Scripts\\python.exe scripts\\validate_alpha_maturity_honesty.py"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests/unit/governance/test_s017_planning_docs.py tests/unit/governance/test_adr_lifecycle_status.py -q"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests/unit/layer_gates/ tests/unit/architecture/ -q"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests/contract/test_v1_api.py tests/contract/test_platform_api.py tests/contract/test_run_summary_api.py tests/contract/test_agent_router.py tests/contract/test_enterprise_acl_api.py tests/contract/test_python_sdk.py -q"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests/unit/agent/test_runtime_kernel.py tests/unit/agent/test_tool_service.py tests/unit/agent/test_tool_service_facade.py tests/unit/agent/test_tool_registry.py tests/unit/use_cases/test_capability_registry.py tests/unit/capabilities -q"
+      - ".\\.venv\\Scripts\\python.exe -m pytest tests/test_settings.py tests/unit/use_cases/test_capability_registry.py tests/contract/test_platform_api.py tests/contract/test_run_summary_api.py -q"
+      - "cd web && npm test -- features.spec.ts productNavigation.spec.ts platform.spec.ts"
+      - "cd web && npm run build"
+      - "cd packages/doge-sdk-typescript && npm test"
+      - ".\\.venv\\Scripts\\python.exe scripts\\validate_alpha_remote_ci_success.py production\\qa\\evidence\\ci\\remote-ci-0058c5c.json --expected-head 0058c5cd4ad5770fdbbcfd751d1bd3c95374d7c9 --require-canonical-path"
+    result:
+      adr_0021_0022_review: "docs/progress/adr-0021-0022-review-2026-06-23.md; ADR-0021 and ADR-0022 Accepted for local architecture scope"
+      feature_flag_deprecation_plan: "docs/progress/feature-flag-deprecation-plan-2026-06-23.md; all five platformization flags remain default-off"
+      remote_ci: "production/qa/evidence/ci/remote-ci-0058c5c.json; GitHub Actions run 28016915874 success for 0058c5cd4ad5770fdbbcfd751d1bd3c95374d7c9"
+      governance_yaml_shape: "passed; 5 files; 0 findings"
+      closure_gate_allow_open: "passed with controlled-open result; 5 open / 1 passed external gates"
+      maturity_honesty: "passed; production_ready false and stable_declaration forbidden preserved"
+      governance_adr_tests: "33 passed, 2 skipped"
+      layer_architecture_tests: "76 passed, 1 warning"
+      contract_tests: "51 passed"
+      runtime_tool_capability_tests: "57 passed"
+      feature_lifecycle_api_tests: "38 passed"
+      web_targeted_tests: "3 files, 9 tests passed using temporary Node v24.17.0"
+      web_full_tests: "15 files, 87 tests passed using temporary Node v24.17.0"
+      web_build: passed
+      typescript_sdk_tests: "13 passed"
+      typescript_sdk_build: passed
+      full_python_regression: "1340 passed, 9 skipped, 11 warnings"
+      eval_smoke: "7 passed"
   sprint_009_file_pipeline:
     commands:
       - ".\\.venv\\Scripts\\python.exe -m pytest tests/unit/test_file_upload_service.py tests/unit/infrastructure/test_kimi_files_client.py tests/contract/test_agent_repositories.py tests/contract/test_v1_api.py tests/cli/test_cli_session.py -q"

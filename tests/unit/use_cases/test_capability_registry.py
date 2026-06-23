@@ -8,7 +8,7 @@ from doge.application.capabilities.registry import (
 )
 from doge.application.agent.tools import build_default_tool_registry
 from doge.config import Settings
-from doge.config.settings import DeepSeekConfig, FeatureConfig, KimiConfig
+from doge.config.settings import FEATURE_LIFECYCLES, DeepSeekConfig, FeatureConfig, KimiConfig
 from doge.core.domain.tool_policy import ToolCategory
 
 
@@ -28,6 +28,9 @@ def test_capability_registry_redacts_provider_secrets_and_blocks_production_read
     assert capabilities["provider.kimi"]["status"] == "available"
     assert capabilities["provider.kimi"]["metadata"] == {"configured": True}
     assert capabilities["feature.run_summary_api"]["status"] == "available"
+    assert capabilities["feature.run_summary_api"]["metadata"]["lifecycle"]["env_var"] == (
+        "DOGE_FEATURE_RUN_SUMMARY_API"
+    )
     assert capabilities["maturity.production_ready"]["status"] == "blocked"
     assert capabilities["maturity.stable_declaration"]["status"] == "blocked"
 
@@ -46,6 +49,27 @@ def test_capability_provider_split_preserves_existing_non_tool_capabilities():
     ).build()
 
     assert _stable_snapshot(direct) == _stable_snapshot(split)
+
+
+def test_feature_capabilities_include_lifecycle_metadata():
+    snapshot = BuildCapabilityRegistry(Settings()).build()
+    capabilities = {item["capability_id"]: item for item in snapshot["capabilities"]}
+
+    expected = {
+        "feature.run_summary_api": "run_summary_api",
+        "feature.platform_objects": "platform_objects",
+        "feature.workflow_templates": "workflow_templates",
+        "feature.capability_registry": "capability_registry",
+    }
+    for capability_id, feature_name in expected.items():
+        lifecycle = capabilities[capability_id]["metadata"]["lifecycle"]
+        assert lifecycle["env_var"] == FEATURE_LIFECYCLES[feature_name].env_var
+        assert lifecycle["current_default"] is False
+        assert lifecycle["target_default_on"]
+        assert lifecycle["target_removal"]
+        assert lifecycle["replacement_behavior"]
+        assert lifecycle["regression_commands"]
+        assert lifecycle["rollback_criterion"]
 
 
 def test_tool_capability_provider_matches_default_tool_registry_schemas():

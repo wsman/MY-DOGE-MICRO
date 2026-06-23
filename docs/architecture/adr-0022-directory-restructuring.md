@@ -1,10 +1,16 @@
 # ADR-0022: Directory Restructuring
 
 ## Status
-Proposed
+Accepted
 
 ## Date
 2026-06-23
+
+## Last Verified
+2026-06-23
+
+## Decision Makers
+Architecture governance review; Codex implementation agent; project owner approval via `C:\Users\Aby\.claude\plans\alpha-foamy-bird.md`.
 
 ## Technology Compatibility
 

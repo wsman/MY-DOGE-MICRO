@@ -20,7 +20,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 import pytest
 
 from doge.config import get_settings
-from doge.config.settings import Settings, DBConfig, TDXConfig, MarketConfig, MCPConfig, reset_settings
+from doge.config.settings import (
+    DBConfig,
+    FEATURE_LIFECYCLES,
+    FeatureConfig,
+    FeatureLifecycle,
+    MCPConfig,
+    MarketConfig,
+    Settings,
+    TDXConfig,
+    reset_settings,
+)
 
 
 # Keys this module is contractually allowed to read via _env_path.
@@ -33,11 +43,18 @@ DOGE_PATH_VARS = [
     "DOGE_VIEWS_SQL_TRACKED",
 ]
 
+DOGE_FEATURE_VARS = [
+    "DOGE_FEATURE_RUN_SUMMARY_API",
+    "DOGE_FEATURE_PLATFORM_OBJECTS",
+    "DOGE_FEATURE_WORKFLOW_TEMPLATES",
+    "DOGE_FEATURE_CAPABILITY_REGISTRY",
+]
+
 
 @pytest.fixture(autouse=True)
 def _clean_env_and_cache(monkeypatch):
     """Strip DOGE_* path vars and reset the singleton before every test."""
-    for var in DOGE_PATH_VARS:
+    for var in DOGE_PATH_VARS + DOGE_FEATURE_VARS:
         monkeypatch.delenv(var, raising=False)
     reset_settings()
     yield
@@ -117,7 +134,7 @@ class TestEnvOverrides:
 class TestImmutability:
     def test_all_configs_are_frozen(self):
         # Arrange / Act / Assert
-        for cls in (Settings, DBConfig, TDXConfig, MarketConfig, MCPConfig):
+        for cls in (Settings, DBConfig, TDXConfig, MarketConfig, MCPConfig, FeatureConfig, FeatureLifecycle):
             assert getattr(cls, "__dataclass_params__").frozen is True, f"{cls.__name__} must be frozen"
 
     def test_setting_a_db_field_raises(self):
@@ -231,3 +248,33 @@ class TestKnownConstants:
         assert yf.max_retries == 3
         assert yf.retry_delay == 5.0
         assert yf.period_days == 120
+
+
+class TestFeatureLifecycle:
+    def test_platformization_flags_default_off(self):
+        features = get_settings().features
+
+        assert features.run_summary_api is False
+        assert features.platform_objects is False
+        assert features.workflow_templates is False
+        assert features.capability_registry is False
+
+    def test_feature_lifecycle_metadata_covers_all_python_flags(self):
+        assert set(FEATURE_LIFECYCLES) == {
+            "run_summary_api",
+            "platform_objects",
+            "workflow_templates",
+            "capability_registry",
+        }
+        assert {
+            lifecycle.env_var for lifecycle in FEATURE_LIFECYCLES.values()
+        } == set(DOGE_FEATURE_VARS)
+
+        for lifecycle in FEATURE_LIFECYCLES.values():
+            assert lifecycle.current_default is False
+            assert lifecycle.introduced
+            assert lifecycle.target_default_on
+            assert lifecycle.target_removal
+            assert lifecycle.replacement_behavior
+            assert lifecycle.regression_commands
+            assert lifecycle.rollback_criterion

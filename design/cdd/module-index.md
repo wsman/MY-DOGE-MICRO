@@ -23,7 +23,7 @@ The previous module index mixed three dimensions in one counted list:
 - delivery or adapter surfaces such as API, Web, CLI, SDK, MCP, PyQt, SQLite,
   DuckDB, model providers, and market data providers.
 
-ADR-0021 proposes the Phase A consolidation: the counted product/platform
+ADR-0021 accepts the Phase A consolidation: the counted product/platform
 module list is now eight bounded contexts. The former 20 mixed modules are
 preserved in the appendix as detailed design inputs and migration references,
 but they are no longer the canonical counted module set.
@@ -230,9 +230,10 @@ decisions. Only bootstrap/composition roots wire concrete implementations.
   workflows, evidence, UI, APIs, and runtime maturity.
 - ADR-0020 proposes a feature-flagged platform shell while preserving direct
   `/research-agent` compatibility.
-- ADR-0021 proposes the eight bounded-context consolidation recorded in this
+- ADR-0021 accepts the eight bounded-context consolidation recorded in this
   index.
-- ADR-0022 proposes the facade-first target directory restructuring strategy.
+- ADR-0022 accepts the facade-first target directory restructuring strategy
+  while keeping broad physical moves story-gated.
 - TR-055 through TR-058 add enterprise identity requirements across FastAPI,
   runtime, document evidence, and SDK/daemon client CDDs.
 - TR-059 through TR-070 add platformization requirements for run summaries,
@@ -252,23 +253,23 @@ decisions. Only bootstrap/composition roots wire concrete implementations.
 | Former mixed modules preserved as appendix | 20 |
 | Delivery channels excluded from counted modules | 7 |
 | Adapter categories excluded from counted modules | 8+ |
-| Proposed consolidation ADRs | 2 |
-| Accepted consolidation ADRs | 0 |
+| Proposed consolidation ADRs | 0 |
+| Accepted consolidation ADRs | 2 |
 
 ---
 
 ## Next Steps
 
 - [ ] Review and approve or revise the eight bounded-context enumeration.
-- [ ] Review ADR-0021 before treating the new index as implementation
+- [x] Review ADR-0021 before treating the new index as implementation
       authority.
-- [ ] Review ADR-0022 before creating facade packages or moving source files.
+- [x] Review ADR-0022 before creating facade packages or moving source files.
 - [ ] Keep ADR-0015 Proposed until OIDC/JWT, tenant ACL, approval actor, audit
       actor, and secrets handling implementation tests exist.
 - [ ] Keep ADR-0016 through ADR-0020 Proposed until their first implementation
       slices and independent architecture review pass.
-- [ ] Keep ADR-0021 and ADR-0022 Proposed until bounded-context docs,
-      compatibility strategy, and independent architecture review pass.
+- [x] Accept ADR-0021 and ADR-0022 after bounded-context docs, compatibility
+      strategy, and independent architecture review pass.
 - [ ] Run `/design-review` on each bounded-context CDD.
 - [ ] Run `/architecture-review` after ADR and CDD coverage exists.
 - [ ] Update story planning so new scenarios use Workflow Templates instead of

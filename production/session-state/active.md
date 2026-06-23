@@ -197,3 +197,47 @@ The user approved all file writes for this task.
 - Do not mutate existing runtime/evidence tables with nullable platform context
   columns unless a follow-up ADR supersedes ADR-0016.
 - Preserve `/research-agent` route compatibility when working on the shell.
+
+## Session Extract — alpha-foamy-bird governance closure 2026-06-23
+
+- Current task: complete
+  `C:\Users\Aby\.claude\plans\alpha-foamy-bird.md`.
+- Baseline HEAD: `0058c5cd4ad5770fdbbcfd751d1bd3c95374d7c9`.
+- ADR-0021 disposition: Accepted.
+- ADR-0022 disposition: Accepted; broad physical moves remain story-gated.
+- Review report:
+  `docs/progress/adr-0021-0022-review-2026-06-23.md`.
+- Feature flag plan:
+  `docs/progress/feature-flag-deprecation-plan-2026-06-23.md`.
+- Remote CI evidence:
+  `production/qa/evidence/ci/remote-ci-0058c5c.json`;
+  GitHub Actions run `28016915874` passed.
+- Feature lifecycle metadata added in:
+  `src/doge/config/settings.py`,
+  `src/doge/application/capabilities/registry.py`,
+  `web/src/config/features.ts`.
+- Tests run:
+  - governance YAML shape: PASS, 5 files / 0 findings.
+  - closure gate with controlled opens: PASS, 5 open / 1 passed.
+  - alpha maturity honesty: PASS.
+  - governance ADR tests: 33 passed, 2 skipped.
+  - layer and architecture tests: 76 passed, 1 warning.
+  - contract tests: 51 passed.
+  - runtime/tool/capability tests: 57 passed.
+  - feature lifecycle/API tests: 38 passed.
+  - Web targeted tests: 3 files / 9 tests passed.
+  - Web full tests: 15 files / 87 tests passed.
+  - Web build: PASS.
+  - TypeScript SDK tests: 13 passed.
+  - TypeScript SDK build: PASS.
+  - Full Python regression: 1340 passed, 9 skipped, 11 warnings.
+  - Eval smoke: 7 passed.
+- Runtime maturity remains:
+  - `production_ready: false`
+  - `stable_declaration: forbidden`
+  - Level 3 SDK/platform posture: experimental.
+- External gates remain open:
+  S017-002, S017-003, W3-live, AUTH-prod, S017-007.
+- Since this closure modified files after baseline HEAD, a future commit from
+  these changes will need its own exact-SHA remote CI evidence before that
+  newer SHA is called remotely verified.

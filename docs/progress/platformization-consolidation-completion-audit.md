@@ -56,11 +56,12 @@ The former 20-module inventory is retained as appendix/historical mapping only.
 
 ## Architecture State
 
-- ADR-0015 through ADR-0022 remain Proposed.
-- ADR-0021 records the eight-context target boundary.
-- ADR-0022 records facade-first restructuring and blocks broad physical moves
-  until architecture review accepts or revises the target package layout.
-- No ADR was promoted to Accepted in this consolidation pass.
+- ADR-0015 through ADR-0020 remain Proposed.
+- ADR-0021 is Accepted and records the eight-context target boundary.
+- ADR-0022 is Accepted and records facade-first restructuring while blocking broad physical moves
+  until story-level compatibility, rollback, and removal gates pass.
+- ADR-0021 and ADR-0022 were promoted to Accepted in the governance closure
+  pass recorded at `docs/progress/adr-0021-0022-review-2026-06-23.md`.
 - `docs/architecture/control-manifest.md` records bounded-context import rules,
   compatibility rules, and deprecation requirements.
 
@@ -221,3 +222,39 @@ multiple delivery channels with compatibility tests
 ```
 
 Release maturity remains controlled by the external gates above.
+
+## Governance Closure - 2026-06-23
+
+The follow-up governance closure plan
+`C:\Users\Aby\.claude\plans\alpha-foamy-bird.md` closed the local
+architecture-governance gaps for ADR-0021/0022 and recorded exact-SHA remote CI
+evidence for baseline HEAD `0058c5c`.
+
+| Item | Status | Evidence |
+|---|---|---|
+| ADR-0021 disposition | Accepted | `docs/progress/adr-0021-0022-review-2026-06-23.md`, `docs/architecture/adr-0021-bounded-context-consolidation.md` |
+| ADR-0022 disposition | Accepted | `docs/progress/adr-0021-0022-review-2026-06-23.md`, `docs/architecture/adr-0022-directory-restructuring.md` |
+| Remote CI for `0058c5c` | Passed | `production/qa/evidence/ci/remote-ci-0058c5c.json`, `docs/progress/remote-ci-evidence-0058c5c.md`, GitHub Actions run `28016915874` |
+| Feature flag lifecycle plan | Complete | `docs/progress/feature-flag-deprecation-plan-2026-06-23.md`, `src/doge/config/settings.py`, `web/src/config/features.ts` |
+| Feature defaults | Unchanged | All five platformization feature flags remain default-off. |
+| External gates | Still open | `docs/progress/external-gate-next-actions-2026-06-23.md` remains 5 open / 1 passed. |
+
+Additional local verification from the governance closure pass:
+
+```text
+governance ADR tests: 33 passed, 2 skipped
+layer and architecture tests: 76 passed, 1 warning
+contract tests: 51 passed
+runtime/tool/capability tests: 57 passed
+feature lifecycle/API tests: 38 passed
+web targeted tests: 3 files / 9 tests passed
+web full tests: 15 files / 87 tests passed
+web build: passed
+TypeScript SDK tests/build: 13 passed; build passed
+full Python regression: 1340 passed, 9 skipped, 11 warnings
+eval smoke: 7 passed
+```
+
+This closure does not claim Beta, GA, Stable, enterprise production readiness,
+or external gate completion. Any post-closure commit requires its own exact-SHA
+remote CI evidence before that newer SHA can be called remotely verified.

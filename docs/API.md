@@ -254,6 +254,9 @@ The platformization routes above are additive and default off:
 - `VITE_DOGE_FEATURE_PLATFORM_SHELL=1` enables the web platform shell routes;
   with the flag off, `/research-agent` remains the default compatible UI.
 
+Feature flag lifecycle metadata and defaultization/removal gates are recorded in
+`docs/progress/feature-flag-deprecation-plan-2026-06-23.md`.
+
 Python SDK methods mirror these routes with `client.runs.summary()`,
 `client.runs.claims()`, `client.runs.citations()`,
 `client.runs.evaluation()`, `client.platform.*`, and

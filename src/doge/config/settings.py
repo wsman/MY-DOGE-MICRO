@@ -432,6 +432,72 @@ class SecretConfig:
 
 
 @dataclass(frozen=True)
+class FeatureLifecycle:
+    """Lifecycle metadata for migration feature flags."""
+
+    env_var: str
+    introduced: str
+    current_default: bool
+    target_default_on: str
+    target_removal: str
+    replacement_behavior: str
+    regression_commands: tuple[str, ...]
+    rollback_criterion: str
+
+
+FEATURE_LIFECYCLES: dict[str, FeatureLifecycle] = {
+    "run_summary_api": FeatureLifecycle(
+        env_var="DOGE_FEATURE_RUN_SUMMARY_API",
+        introduced="platformization Phase B; docs/progress/platformization-consolidation-baseline.md",
+        current_default=False,
+        target_default_on="after ADR-0017 evidence and citation/eval API regressions are green",
+        target_removal="one release cycle after default-on with approved API/SDK compatibility removal story",
+        replacement_behavior="/v1/runs/{run_id}/summary, claims, citations, and eval are always available",
+        regression_commands=(
+            "python -m pytest tests/contract/test_run_summary_api.py tests/contract/test_v1_api.py -q",
+        ),
+        rollback_criterion="restore default False if run-summary contract tests fail or consumers report API breakage",
+    ),
+    "platform_objects": FeatureLifecycle(
+        env_var="DOGE_FEATURE_PLATFORM_OBJECTS",
+        introduced="platformization Phase B; docs/progress/platformization-consolidation-baseline.md",
+        current_default=False,
+        target_default_on="after ADR-0016 evidence and platform object contract regressions are green",
+        target_removal="one release cycle after default-on with approved legacy workspace compatibility removal story",
+        replacement_behavior="workspace, project, research-case, and case-run APIs are always available",
+        regression_commands=(
+            "python -m pytest tests/contract/test_platform_api.py tests/contract/test_python_sdk.py -q",
+        ),
+        rollback_criterion="restore default False if platform object contracts fail or existing consumers break",
+    ),
+    "workflow_templates": FeatureLifecycle(
+        env_var="DOGE_FEATURE_WORKFLOW_TEMPLATES",
+        introduced="platformization Phase B; docs/progress/platformization-consolidation-baseline.md",
+        current_default=False,
+        target_default_on="after ADR-0018 preflight and template-created run regressions are green",
+        target_removal="one release cycle after default-on with approved workflow-template compatibility removal story",
+        replacement_behavior="workflow template listing, creation, lookup, and case-run creation are always available",
+        regression_commands=(
+            "python -m pytest tests/contract/test_platform_api.py tests/unit/infrastructure/test_platform_repository.py -q",
+        ),
+        rollback_criterion="restore default False if template APIs or template-created run flows regress",
+    ),
+    "capability_registry": FeatureLifecycle(
+        env_var="DOGE_FEATURE_CAPABILITY_REGISTRY",
+        introduced="platformization Phase C; docs/progress/platformization-consolidation-phase-c-2026-06-23.md",
+        current_default=False,
+        target_default_on="first defaultization candidate after ADR-0019 review and capability regressions are green",
+        target_removal="one release cycle after default-on with approved provider-registry compatibility removal story",
+        replacement_behavior="capability discovery and provider-backed tool execution are always registry-backed",
+        regression_commands=(
+            "python -m pytest tests/unit/use_cases/test_capability_registry.py tests/contract/test_platform_api.py tests/unit/capabilities -q",
+        ),
+        rollback_criterion="restore default False if capability discovery, redaction, or provider parity regresses",
+    ),
+}
+
+
+@dataclass(frozen=True)
 class FeatureConfig:
     """Feature flags for experimental platformization surfaces."""
 

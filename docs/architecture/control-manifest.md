@@ -55,7 +55,10 @@ From ADR-0021 + ADR-0022. These rules govern the transition from the old
 - Old and new imports must be covered by compatibility tests before a public
   symbol is moved.
 - Feature flags created for migration must name their removal condition. A
-  flag may not become a permanent second product architecture.
+  flag may not become a permanent second product architecture. Platformization
+  flags must carry lifecycle metadata with env var, current default, target
+  default-on phase, target removal phase, regression commands, and rollback
+  criterion.
 - TR identifiers remain flat and permanent. Never renumber TRs during bounded
   context consolidation.
 
@@ -133,7 +136,7 @@ Proposed  ──►  Accepted  ──►  Superseded
 4. **Each ADR must record**: Title, Status, Date, Last Verified, Decision Makers, Context (Problem/Current State/Constraints/Requirements), Decision, Alternatives Considered, Consequences, ADR Dependencies, Engine/Stack Compatibility, CDD Requirements Addressed.
 5. **Run `/architecture-review` after completing a set of ADRs** — it cross-checks consistency, populates the TR registry, and produces the traceability narrative.
 
-### Current status inventory (2026-06-21)
+### Current status inventory (2026-06-23)
 
 | ADR | Status | Note |
 |---|---|---|
@@ -157,8 +160,8 @@ Proposed  ──►  Accepted  ──►  Superseded
 | 0018 Workflow Template System | **Proposed** | Template slices exist; execution and preflight gates remain open. |
 | 0019 Capability Registry | **Proposed** | Registry slices exist; dependency validation and production-readiness semantics remain gated. |
 | 0020 Platform Shell UI | **Proposed** | Shell slices exist; navigation/accessibility promotion gates remain open. |
-| 0021 Bounded Context Consolidation | **Proposed** | Eight-context consolidation is proposed for review; no implementation authority until accepted or explicitly gated. |
-| 0022 Directory Restructuring | **Proposed** | Facade-first target layout is proposed; physical moves remain gated. |
+| 0021 Bounded Context Consolidation | **Accepted** | Eight-context consolidation accepted by `docs/progress/adr-0021-0022-review-2026-06-23.md`; external gates still block maturity promotion. |
+| 0022 Directory Restructuring | **Accepted** | Facade-first target layout accepted by `docs/progress/adr-0021-0022-review-2026-06-23.md`; broad physical moves remain story-gated. |
 
 ---
 

@@ -162,6 +162,10 @@ def test_capability_registry_api_returns_redacted_snapshot(tmp_path, monkeypatch
     assert "moonshot-secret" not in repr(body)
     capabilities = {item["capability_id"]: item for item in body["capabilities"]}
     assert capabilities["maturity.production_ready"]["status"] == "blocked"
+    assert capabilities["feature.capability_registry"]["metadata"]["lifecycle"]["env_var"] == (
+        "DOGE_FEATURE_CAPABILITY_REGISTRY"
+    )
+    assert capabilities["feature.platform_objects"]["metadata"]["lifecycle"]["current_default"] is False
 
 
 def _app(

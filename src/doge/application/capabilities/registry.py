@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import re
+from dataclasses import asdict
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from doge.config import Settings
+from doge.config.settings import FEATURE_LIFECYCLES
 
 if TYPE_CHECKING:
     from doge.application.agent.tools import ToolRegistry
@@ -43,24 +45,28 @@ class FeatureCapabilityProvider:
                 "ui",
                 "Run Summary API",
                 _feature_status(self._settings.features.run_summary_api),
+                metadata=_feature_metadata("run_summary_api"),
             ),
             capability(
                 "feature.platform_objects",
                 "ui",
                 "Platform Objects",
                 _feature_status(self._settings.features.platform_objects),
+                metadata=_feature_metadata("platform_objects"),
             ),
             capability(
                 "feature.workflow_templates",
                 "workflow",
                 "Workflow Templates",
                 _feature_status(self._settings.features.workflow_templates),
+                metadata=_feature_metadata("workflow_templates"),
             ),
             capability(
                 "feature.capability_registry",
                 "api",
                 "Capability Registry",
                 _feature_status(self._settings.features.capability_registry),
+                metadata=_feature_metadata("capability_registry"),
             ),
         ]
 
@@ -175,6 +181,12 @@ def provider_capability(capability_id: str, name: str, configured: bool) -> dict
 
 def _feature_status(enabled: bool) -> str:
     return "available" if enabled else "disabled"
+
+
+def _feature_metadata(feature_name: str) -> dict[str, Any]:
+    lifecycle = asdict(FEATURE_LIFECYCLES[feature_name])
+    lifecycle["regression_commands"] = list(lifecycle["regression_commands"])
+    return {"lifecycle": lifecycle}
 
 
 def _read_maturity_values(path: Path) -> dict[str, str]:

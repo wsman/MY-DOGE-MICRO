@@ -2,7 +2,7 @@
 #
 # PURPOSE: Single source of truth for cross-ADR architectural stances that all
 # ADRs must agree on. Skills check this before writing new ADRs to detect
-# conflicts at authoring time. Aggregated from ADR-0001..0020 and the 20 module CDDs.
+# conflicts at authoring time. Aggregated from ADR-0001..0022 and module CDDs.
 #
 # RULES:
 #   - Register a stance when it constrains how OTHER systems must be built.
@@ -20,7 +20,7 @@
 # STATUS VALUES: active | superseded_by: ADR-NNNN
 
 version: 1
-last_updated: "2026-06-22"
+last_updated: "2026-06-23"
 
 # ============================================================================
 # SYSTEMS — the 20 product modules (module-index.md canonical enumeration)
@@ -698,3 +698,19 @@ adr_index:
     path: docs/architecture/adr-0020-platform-shell-ui.md
     governs: "feature-flagged platform shell, direct /research-agent compatibility, context navigation, capability and maturity display"
     depends_on: [ADR-0008, ADR-0016, ADR-0017, ADR-0018, ADR-0019]
+
+  - id: ADR-0021
+    title: "Bounded Context Consolidation"
+    status: Accepted
+    date: "2026-06-23"
+    path: docs/architecture/adr-0021-bounded-context-consolidation.md
+    governs: "eight canonical bounded contexts, counted-module rules, delivery channel and adapter exclusion, workflow-template scenario composition"
+    depends_on: [ADR-0001, ADR-0011, ADR-0012, ADR-0013, ADR-0014]
+
+  - id: ADR-0022
+    title: "Directory Restructuring"
+    status: Accepted
+    date: "2026-06-23"
+    path: docs/architecture/adr-0022-directory-restructuring.md
+    governs: "facade-first target package layout, compatibility exports, old/new import tests, physical-move gates"
+    depends_on: [ADR-0001, ADR-0021]
