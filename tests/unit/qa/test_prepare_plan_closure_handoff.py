@@ -27,8 +27,9 @@ def test_prepare_plan_closure_handoff_copies_draft_inputs_without_closing_gates(
 
     assert payload["schema"] == "doge.plan_closure_handoff_workspace.v1"
     assert payload["does_not_close_gates"] is True
-    assert payload["source_plan_check"]["exists"] is True
-    assert len(payload["source_plan_check"]["sha256"]) == 64
+    assert payload["source_plan_check"]["exists"] is False
+    assert payload["source_plan_check"]["sha256"] is None
+    assert payload["source_plan_check"]["external_to_repo"] is True
     assert len(payload["tasks"]) == 6
     assert payload["closure_gate"]["summary"]["open"] == 5
     assert payload["closure_gate"]["summary"]["passed"] == 1
@@ -91,7 +92,7 @@ def test_prepare_plan_closure_handoff_copies_draft_inputs_without_closing_gates(
 
     readme = (tmp_path / "handoff" / "README.md").read_text(encoding="utf-8")
     assert "does not close any gate" in readme
-    assert payload["source_plan_check"]["sha256"] in readme
+    assert "Source plan SHA-256: `unavailable`" in readme
     assert "operator-commands.ps1" in readme
     assert "operator-input-guide.md" in readme
     assert "Prepared draft inputs: none" in readme
@@ -102,7 +103,7 @@ def test_prepare_plan_closure_handoff_copies_draft_inputs_without_closing_gates(
 
     checklist = (tmp_path / "handoff" / "operator-checklist.md").read_text(encoding="utf-8")
     assert "does not close gates" in checklist
-    assert payload["source_plan_check"]["sha256"] in checklist
+    assert "Source plan SHA-256: `unavailable`" in checklist
     assert "Do not place secrets" in checklist
     assert "## Quick Start" in checklist
     assert "operator-input-guide.md" in checklist

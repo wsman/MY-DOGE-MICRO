@@ -131,7 +131,7 @@ def validate(
 ) -> list[str]:
     errors: list[str] = []
     normalized_text = " ".join(text.split())
-    plan_text = PLAN.read_text(encoding="utf-8") if plan_text is None else plan_text
+    plan_text = _read_plan_text(PLAN) if plan_text is None else plan_text
     maturity_text = MATURITY.read_text(encoding="utf-8") if maturity_text is None else maturity_text
     gate_output = validate_all(allow_open=True) if gate_output is None else gate_output
 

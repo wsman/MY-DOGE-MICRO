@@ -1,9 +1,9 @@
 # 9b77f9c External Closure Handoff Workspace
 
-Prepared: 2026-06-22T17:18:49.636439+00:00
+Prepared: 2026-06-23T01:13:51.821627+00:00
 Date token: 2026-06-22
 Source manifest: `production/qa/evidence/plan-closure/9b77f9c-external-closure-manifest.json`
-Source plan SHA-256: `d905770819a571c925b7e105ea524fb8c59f9109af031255ae6122bc25e1cfbf`
+Source plan SHA-256: `unavailable`
 Operator command list: `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/operator-commands.ps1`
 
 This workspace does not close any gate. It only copies operator input

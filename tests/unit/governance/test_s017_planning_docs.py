@@ -833,8 +833,9 @@ def test_plan_closure_gate_aggregates_remaining_external_evidence():
     assert "test_build_rejects_missing_sdk_security_flag" in sdk_builder_test
     assert "test_completed_release_requires_explicit_credential_redaction_flag" in sdk_validator_test
     assert manifest["schema"] == "doge.plan_closure_execution_manifest.v1"
-    assert manifest["source_plan_check"]["exists"] is True
-    assert len(manifest["source_plan_check"]["sha256"]) == 64
+    assert manifest["source_plan_check"]["exists"] is False
+    assert manifest["source_plan_check"]["sha256"] is None
+    assert manifest["source_plan_check"]["external_to_repo"] is True
     assert manifest["closure_gate"]["summary"]["open"] == 5
     assert manifest["closure_gate"]["summary"]["passed"] == 1
     assert len(manifest["tasks"]) == 6

@@ -56,7 +56,7 @@ def validate(
     errors: list[str] = []
     path_text = text.replace("\\", "/")
     normalized_text = " ".join(text.split())
-    plan_text = PLAN.read_text(encoding="utf-8") if plan_text is None else plan_text
+    plan_text = _read_plan_text(PLAN) if plan_text is None else plan_text
     maturity_text = MATURITY.read_text(encoding="utf-8") if maturity_text is None else maturity_text
     manifest = _read_manifest() if manifest is None else manifest
     gate_output = validate_all(allow_open=True) if gate_output is None else gate_output

@@ -2,7 +2,7 @@
 
 Workspace: `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22`
 Command file: `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/operator-commands.ps1`
-Source plan SHA-256: `d905770819a571c925b7e105ea524fb8c59f9109af031255ae6122bc25e1cfbf`
+Source plan SHA-256: `unavailable`
 
 This checklist does not close gates. It is a short execution index for
 real operator evidence. Do not place secrets, API keys, raw sensitive

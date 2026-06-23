@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
+import re
 import sys
 from typing import Any
 
@@ -165,6 +166,15 @@ def _task_from_gate(item: dict[str, Any]) -> dict[str, Any]:
 
 
 def _source_plan_check(source_plan: str) -> dict[str, Any]:
+    if _is_external_path_ref(source_plan):
+        return {
+            "path": source_plan,
+            "exists": False,
+            "sha256": None,
+            "bytes": None,
+            "external_to_repo": True,
+            "reason": "source plan path is external to the repository and is not hashed in CI",
+        }
     path = Path(source_plan)
     if not path.exists():
         return {
@@ -172,6 +182,7 @@ def _source_plan_check(source_plan: str) -> dict[str, Any]:
             "exists": False,
             "sha256": None,
             "bytes": None,
+            "external_to_repo": False,
         }
     content = path.read_bytes()
     return {
@@ -179,7 +190,21 @@ def _source_plan_check(source_plan: str) -> dict[str, Any]:
         "exists": True,
         "sha256": hashlib.sha256(content).hexdigest(),
         "bytes": len(content),
+        "external_to_repo": False,
     }
+
+
+def _is_external_path_ref(source_plan: str) -> bool:
+    if re.match(r"^[A-Za-z]:[\\/]", source_plan):
+        return True
+    path = Path(source_plan)
+    if not path.is_absolute():
+        return False
+    try:
+        path.resolve().relative_to(ROOT.resolve())
+    except ValueError:
+        return True
+    return False
 
 
 def write_manifest(path: Path, manifest: dict[str, Any]) -> None:
