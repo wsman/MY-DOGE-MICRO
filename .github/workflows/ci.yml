@@ -28,6 +28,12 @@ jobs:
       - name: Run pytest
         run: python -m pytest -q
 
+      - name: Validate documentation
+        run: |
+          python scripts/validate_docs_links.py
+          python scripts/validate_no_stale_counts.py
+          python scripts/generate_docs_status.py --check
+
       - name: Run research eval smoke
         run: python -m pytest tests/eval -q
 
