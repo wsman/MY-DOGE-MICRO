@@ -508,7 +508,7 @@ def build_tool_application_service(db_path=None) -> ToolApplicationService:
         consensus_estimate_repository_factory=build_consensus_estimate_repository,
         industry_classification_source_factory=build_industry_classification_source,
         view_repository_factory=lambda: build_view_repository(read_only=True),
-        use_capability_providers=settings.features.capability_registry,
+        use_capability_providers=True,
     )
 
 

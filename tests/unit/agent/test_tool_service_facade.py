@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 from doge.application.agent.tool_service import ToolApplicationService
 from doge.application.agent.tools import build_default_tool_registry
@@ -149,7 +150,7 @@ def test_provider_facade_method_registry_covers_tool_service_surface():
     }
 
 
-def test_provider_facade_direct_method_results_match_legacy_path():
+def test_provider_facade_results_are_stable_when_legacy_switch_is_false():
     direct = _service(use_capability_providers=False)
     provider = _service(use_capability_providers=True)
 
@@ -214,7 +215,27 @@ def test_provider_facade_preserves_dependency_error_propagation():
         raise AssertionError("expected provider-backed query_stock to propagate dependency failure")
 
 
-def test_composition_uses_provider_facade_only_when_capability_registry_flag_is_on(monkeypatch, tmp_path):
+def test_tool_application_service_uses_provider_facade_by_default():
+    service = _service()
+
+    assert "query_stock" in service.execution_provider_method_names()
+
+
+def test_tool_application_service_legacy_switch_no_longer_disables_provider_registry():
+    service = _service(use_capability_providers=False)
+
+    assert "query_stock" in service.execution_provider_method_names()
+
+
+def test_tool_application_service_has_no_legacy_direct_execution_branch():
+    source = Path("src/doge/application/agent/tool_service.py").read_text(encoding="utf-8")
+
+    assert "_NO_PROVIDER" not in source
+    assert "subprocess.run" not in source
+    assert "json.loads" not in source
+
+
+def test_composition_uses_provider_facade_by_default(monkeypatch, tmp_path):
     from doge.application import composition
     from doge.config import reset_settings
 
@@ -226,13 +247,13 @@ def test_composition_uses_provider_facade_only_when_capability_registry_flag_is_
     reset_settings()
     flagged_service = composition.build_tool_application_service(db_path=tmp_path / "flagged.db")
 
-    assert default_service.execution_provider_method_names() == ()
+    assert "query_stock" in default_service.execution_provider_method_names()
     assert "query_stock" in flagged_service.execution_provider_method_names()
 
     reset_settings()
 
 
-def _service(*, use_capability_providers: bool) -> ToolApplicationService:
+def _service(*, use_capability_providers: bool = True) -> ToolApplicationService:
     return ToolApplicationService(
         stock_service_factory=lambda: StockService(),
         ranking_service_factory=lambda: RankingService(),
