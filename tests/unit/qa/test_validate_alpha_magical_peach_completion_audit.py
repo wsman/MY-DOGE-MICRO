@@ -5,9 +5,9 @@ import sys
 
 from scripts.validate_alpha_magical_peach_completion_audit import (
     AUDIT,
+    FALLBACK_PLAN_TEXT,
     MANIFEST,
     MATURITY,
-    PLAN,
     validate,
 )
 
@@ -52,7 +52,7 @@ def test_alpha_magical_peach_completion_audit_rejects_missing_open_gate_id():
 
 
 def test_alpha_magical_peach_completion_audit_rejects_checked_remote_ci_plan_item():
-    plan_text = PLAN.read_text(encoding="utf-8").replace(
+    plan_text = FALLBACK_PLAN_TEXT.replace(
         "- [ ] Remote CI success is linked for the target HEAD",
         "- [x] Remote CI success is linked for the target HEAD",
     )
