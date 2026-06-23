@@ -11,31 +11,35 @@ describe('feature lifecycle metadata', () => {
 
     expect(featureLifecycles.platformShell).toBe(platformShellLifecycle)
     expect(platformShellLifecycle.envVar).toBe('VITE_DOGE_FEATURE_PLATFORM_SHELL')
-    expect(platformShellLifecycle.currentDefault).toBe(false)
-    expect(platformShellLifecycle.targetDefaultOn).toBeTruthy()
+    expect(platformShellLifecycle.currentDefault).toBe(true)
+    expect(platformShellLifecycle.targetDefaultOn).toContain('completed locally')
     expect(platformShellLifecycle.targetRemoval).toBeTruthy()
     expect(platformShellLifecycle.replacementBehavior).toBeTruthy()
     expect(platformShellLifecycle.regressionCommands).toEqual(['npm test', 'npm run build'])
     expect(platformShellLifecycle.rollbackCriterion).toBeTruthy()
   })
 
-  it('parses the platform shell env var as exact opt-in only', async () => {
+  it('defaults the platform shell on while preserving explicit rollback values', async () => {
     const { isPlatformShellEnabled } = await import('./features')
 
     expect(isPlatformShellEnabled('1')).toBe(true)
-    expect(isPlatformShellEnabled('true')).toBe(false)
-    expect(isPlatformShellEnabled('on')).toBe(false)
+    expect(isPlatformShellEnabled('true')).toBe(true)
+    expect(isPlatformShellEnabled('on')).toBe(true)
+    expect(isPlatformShellEnabled('yes')).toBe(true)
     expect(isPlatformShellEnabled('0')).toBe(false)
-    expect(isPlatformShellEnabled('')).toBe(false)
-    expect(isPlatformShellEnabled(undefined)).toBe(false)
+    expect(isPlatformShellEnabled('false')).toBe(false)
+    expect(isPlatformShellEnabled('off')).toBe(false)
+    expect(isPlatformShellEnabled('no')).toBe(false)
+    expect(isPlatformShellEnabled('')).toBe(true)
+    expect(isPlatformShellEnabled(undefined)).toBe(true)
   })
 
-  it('keeps the module-level platform shell flag behind exact env value 1', async () => {
-    vi.stubEnv('VITE_DOGE_FEATURE_PLATFORM_SHELL', '1')
+  it('keeps the module-level platform shell flag enabled by default', async () => {
+    vi.stubEnv('VITE_DOGE_FEATURE_PLATFORM_SHELL', '')
     expect((await import('./features')).platformShellEnabled).toBe(true)
 
     vi.resetModules()
-    vi.stubEnv('VITE_DOGE_FEATURE_PLATFORM_SHELL', 'true')
+    vi.stubEnv('VITE_DOGE_FEATURE_PLATFORM_SHELL', '0')
     expect((await import('./features')).platformShellEnabled).toBe(false)
   })
 })

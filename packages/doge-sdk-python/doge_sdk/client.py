@@ -215,6 +215,9 @@ class PlatformResource:
     def get_research_case(self, case_id: str) -> dict[str, Any]:
         return self._root._request("GET", f"/v1/research-cases/{case_id}")
 
+    def home_queue(self, limit: int = 20) -> dict[str, Any]:
+        return self._root._request("GET", "/v1/home-queue", params={"limit": limit})
+
     def link_research_case_run(self, case_id: str, run_id: str, link_type: str = "primary") -> dict[str, Any]:
         return self._root._request(
             "POST",
@@ -256,6 +259,90 @@ class PlatformResource:
             },
         )
 
+    def list_case_assets(self, case_id: str) -> list[dict[str, Any]]:
+        return self._root._request("GET", f"/v1/research-cases/{case_id}/assets")["assets"]
+
+    def add_case_asset(
+        self,
+        case_id: str,
+        asset_type: str,
+        asset_id: str,
+        *,
+        asset_name: str = "",
+        role: str = "source",
+        version: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return self._root._request(
+            "POST",
+            f"/v1/research-cases/{case_id}/assets",
+            json={
+                "asset_type": asset_type,
+                "asset_id": asset_id,
+                "asset_name": asset_name,
+                "role": role,
+                "version": version,
+                "metadata": metadata or {},
+            },
+        )
+
+    def list_case_decisions(self, case_id: str) -> list[dict[str, Any]]:
+        return self._root._request("GET", f"/v1/research-cases/{case_id}/decisions")["decisions"]
+
+    def record_case_decision(
+        self,
+        case_id: str,
+        decision_type: str,
+        *,
+        rationale: str = "",
+        source_run_ids: list[str] | None = None,
+        source_execution_ids: list[str] | None = None,
+    ) -> dict[str, Any]:
+        return self._root._request(
+            "POST",
+            f"/v1/research-cases/{case_id}/decisions",
+            json={
+                "decision_type": decision_type,
+                "rationale": rationale,
+                "source_run_ids": source_run_ids or [],
+                "source_execution_ids": source_execution_ids or [],
+            },
+        )
+
+    def preflight_case_execution(
+        self,
+        case_id: str,
+        template_id: str,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        return self._root._request(
+            "POST",
+            f"/v1/research-cases/{case_id}/executions/preflight",
+            json=_case_execution_payload(template_id, kwargs),
+        )
+
+    def execute_case_template(
+        self,
+        case_id: str,
+        template_id: str,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        return self._root._request(
+            "POST",
+            f"/v1/research-cases/{case_id}/executions",
+            json=_case_execution_payload(template_id, kwargs),
+        )
+
+    def list_case_executions(self, case_id: str, limit: int = 100) -> list[dict[str, Any]]:
+        return self._root._request(
+            "GET",
+            f"/v1/research-cases/{case_id}/executions",
+            params={"limit": limit},
+        )["executions"]
+
+    def get_case_review(self, case_id: str) -> dict[str, Any]:
+        return self._root._request("GET", f"/v1/research-cases/{case_id}/review")
+
     def list_workflow_templates(self, limit: int = 100) -> list[dict[str, Any]]:
         return self._root._request("GET", "/v1/workflow-templates", params={"limit": limit})["workflow_templates"]
 
@@ -270,6 +357,11 @@ class PlatformResource:
         tool_policy: dict[str, Any] | None = None,
         evidence_policy: dict[str, Any] | None = None,
         output_contract: dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
+        required_capabilities: list[str] | None = None,
+        eval_policy: list[str] | None = None,
+        approval_policy: dict[str, Any] | None = None,
+        ui_schema: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         return self._root._request(
             "POST",
@@ -284,6 +376,11 @@ class PlatformResource:
                 "tool_policy": tool_policy or {},
                 "evidence_policy": evidence_policy or {},
                 "output_contract": output_contract or {},
+                "metadata": metadata or {},
+                "required_capabilities": required_capabilities,
+                "eval_policy": eval_policy,
+                "approval_policy": approval_policy,
+                "ui_schema": ui_schema,
             },
         )
 
@@ -515,6 +612,9 @@ class AsyncPlatformResource:
     async def get_research_case(self, case_id: str) -> dict[str, Any]:
         return await self._root._request("GET", f"/v1/research-cases/{case_id}")
 
+    async def home_queue(self, limit: int = 20) -> dict[str, Any]:
+        return await self._root._request("GET", "/v1/home-queue", params={"limit": limit})
+
     async def link_research_case_run(self, case_id: str, run_id: str, link_type: str = "primary") -> dict[str, Any]:
         return await self._root._request(
             "POST",
@@ -556,6 +656,90 @@ class AsyncPlatformResource:
             },
         )
 
+    async def list_case_assets(self, case_id: str) -> list[dict[str, Any]]:
+        return (await self._root._request("GET", f"/v1/research-cases/{case_id}/assets"))["assets"]
+
+    async def add_case_asset(
+        self,
+        case_id: str,
+        asset_type: str,
+        asset_id: str,
+        *,
+        asset_name: str = "",
+        role: str = "source",
+        version: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return await self._root._request(
+            "POST",
+            f"/v1/research-cases/{case_id}/assets",
+            json={
+                "asset_type": asset_type,
+                "asset_id": asset_id,
+                "asset_name": asset_name,
+                "role": role,
+                "version": version,
+                "metadata": metadata or {},
+            },
+        )
+
+    async def list_case_decisions(self, case_id: str) -> list[dict[str, Any]]:
+        return (await self._root._request("GET", f"/v1/research-cases/{case_id}/decisions"))["decisions"]
+
+    async def record_case_decision(
+        self,
+        case_id: str,
+        decision_type: str,
+        *,
+        rationale: str = "",
+        source_run_ids: list[str] | None = None,
+        source_execution_ids: list[str] | None = None,
+    ) -> dict[str, Any]:
+        return await self._root._request(
+            "POST",
+            f"/v1/research-cases/{case_id}/decisions",
+            json={
+                "decision_type": decision_type,
+                "rationale": rationale,
+                "source_run_ids": source_run_ids or [],
+                "source_execution_ids": source_execution_ids or [],
+            },
+        )
+
+    async def preflight_case_execution(
+        self,
+        case_id: str,
+        template_id: str,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        return await self._root._request(
+            "POST",
+            f"/v1/research-cases/{case_id}/executions/preflight",
+            json=_case_execution_payload(template_id, kwargs),
+        )
+
+    async def execute_case_template(
+        self,
+        case_id: str,
+        template_id: str,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        return await self._root._request(
+            "POST",
+            f"/v1/research-cases/{case_id}/executions",
+            json=_case_execution_payload(template_id, kwargs),
+        )
+
+    async def list_case_executions(self, case_id: str, limit: int = 100) -> list[dict[str, Any]]:
+        return (await self._root._request(
+            "GET",
+            f"/v1/research-cases/{case_id}/executions",
+            params={"limit": limit},
+        ))["executions"]
+
+    async def get_case_review(self, case_id: str) -> dict[str, Any]:
+        return await self._root._request("GET", f"/v1/research-cases/{case_id}/review")
+
     async def list_workflow_templates(self, limit: int = 100) -> list[dict[str, Any]]:
         return (
             await self._root._request("GET", "/v1/workflow-templates", params={"limit": limit})
@@ -572,6 +756,11 @@ class AsyncPlatformResource:
         tool_policy: dict[str, Any] | None = None,
         evidence_policy: dict[str, Any] | None = None,
         output_contract: dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
+        required_capabilities: list[str] | None = None,
+        eval_policy: list[str] | None = None,
+        approval_policy: dict[str, Any] | None = None,
+        ui_schema: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         return await self._root._request(
             "POST",
@@ -586,6 +775,11 @@ class AsyncPlatformResource:
                 "tool_policy": tool_policy or {},
                 "evidence_policy": evidence_policy or {},
                 "output_contract": output_contract or {},
+                "metadata": metadata or {},
+                "required_capabilities": required_capabilities,
+                "eval_policy": eval_policy,
+                "approval_policy": approval_policy,
+                "ui_schema": ui_schema,
             },
         )
 
@@ -611,6 +805,23 @@ def _client_headers(api_token: str | None, request_id: str | None) -> dict[str, 
     if request_id:
         headers["X-Request-ID"] = request_id
     return headers
+
+
+def _case_execution_payload(template_id: str, options: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "template_id": template_id,
+        "question": options.get("question"),
+        "workflow": options.get("workflow"),
+        "session_id": options.get("session_id"),
+        "market": options.get("market", "us"),
+        "language": options.get("language", "en"),
+        "document_ids": options.get("document_ids") or [],
+        "portfolio_id": options.get("portfolio_id"),
+        "asset_link_ids": options.get("asset_link_ids") or [],
+        "model_policy": options.get("model_policy") or {},
+        "inputs": options.get("inputs") or {},
+        "skip_preflight": options.get("skip_preflight", False),
+    }
 
 
 _BEARER_PATTERN = re.compile(r"Bearer\s+[A-Za-z0-9._~+/=-]+")

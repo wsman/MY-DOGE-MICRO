@@ -123,6 +123,7 @@ from doge.application.services.portfolio_service import PortfolioService, RiskSe
 from doge.application.services.citation_service import CitationService
 from doge.application.services.claim_validation_service import ClaimValidationService
 from doge.config import get_settings
+from doge.platform.workspace.service import ResearchCaseService, WorkflowService
 
 
 # ── Low-level service factories (migrated from doge.core.services.composition) ──
@@ -461,6 +462,41 @@ def build_portfolio_repository(db_path=None):
 def build_platform_repository(db_path=None):
     """Build the platform workspace/project/case/template repository."""
     return SQLitePlatformRepository(db_path)
+
+
+def build_research_case_service(
+    runtime=None,
+    repo=None,
+    governance=None,
+    db_path=None,
+    *,
+    capability_registry_enabled: bool = True,
+) -> ResearchCaseService:
+    """Build the case-centered platform service used by API, CLI, and MCP."""
+    if repo is None:
+        repo = build_platform_repository(db_path)
+    if governance is None:
+        governance = SQLiteEnterpriseGovernanceRepository(db_path)
+    if runtime is None:
+        runtime = build_persisted_research_agent_runtime(db_path=db_path)
+    return ResearchCaseService(
+        repo,
+        governance,
+        runtime,
+        document_repository=build_agent_document_repository(db_path),
+        portfolio_repository=build_portfolio_repository(db_path),
+        capability_registry=build_capability_registry_use_case(),
+        capability_registry_enabled=capability_registry_enabled,
+    )
+
+
+def build_workflow_service(repo=None, governance=None, db_path=None) -> WorkflowService:
+    """Build the workflow-template service used by API, CLI, and MCP."""
+    if repo is None:
+        repo = build_platform_repository(db_path)
+    if governance is None:
+        governance = SQLiteEnterpriseGovernanceRepository(db_path)
+    return WorkflowService(repo, governance)
 
 
 def build_financial_statement_repository():

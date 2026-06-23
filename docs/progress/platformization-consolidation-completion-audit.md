@@ -236,7 +236,7 @@ evidence for baseline HEAD `0058c5c`.
 | ADR-0022 disposition | Accepted | `docs/archive/audits/adr-0021-0022-review-2026-06-23.md`, `docs/architecture/adr-0022-directory-restructuring.md` |
 | Remote CI for `0058c5c` | Passed | `production/qa/evidence/ci/remote-ci-0058c5c.json`, `docs/progress/remote-ci-evidence-0058c5c.md`, GitHub Actions run `28016915874` |
 | Feature flag lifecycle plan | Complete | `docs/archive/audits/feature-flag-deprecation-plan-2026-06-23.md`, `src/doge/config/settings.py`, `web/src/config/features.ts` |
-| Feature defaults | Unchanged | All five platformization feature flags remain default-off. |
+| Feature defaults | Updated after this audit | The four backend platformization feature flags remain default-off. `VITE_DOGE_FEATURE_PLATFORM_SHELL` was defaultized in `docs/archive/audits/platform-shell-defaultization-2026-06-24.md` with rollback via `VITE_DOGE_FEATURE_PLATFORM_SHELL=0`. |
 | External gates | Still open | `docs/archive/audits/external-gate-next-actions-2026-06-23.md` remains 5 open / 1 passed. |
 
 Additional local verification from the governance closure pass:

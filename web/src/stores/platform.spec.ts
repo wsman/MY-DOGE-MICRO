@@ -1,32 +1,46 @@
 import { setActivePinia, createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  addCaseAsset,
   createProject,
   createResearchCase,
   createResearchCaseRunFromTemplate,
   createWorkflowTemplate,
   createWorkspace,
+  executeCaseTemplate,
   fetchCapabilities,
+  fetchHomeQueue,
   fetchRunSummaryResources,
+  getCaseReview,
   getProject,
   getResearchCase,
   getWorkflowTemplate,
   getWorkspace,
   linkResearchCaseRun,
+  listCaseAssets,
+  listCaseDecisions,
+  listCaseExecutions,
   listProjects,
   listResearchCases,
   listWorkflowTemplates,
   listWorkspaces,
+  preflightCaseExecution,
+  recordCaseDecision,
 } from '../api/platform'
 import { usePlatformStore } from './platform'
 
 vi.mock('../api/platform', () => ({
   fetchCapabilities: vi.fn(),
+  fetchHomeQueue: vi.fn(),
   fetchRunSummaryResources: vi.fn(),
+  getCaseReview: vi.fn(),
   listWorkspaces: vi.fn(),
   listProjects: vi.fn(),
   listResearchCases: vi.fn(),
   listWorkflowTemplates: vi.fn(),
+  listCaseAssets: vi.fn(),
+  listCaseExecutions: vi.fn(),
+  listCaseDecisions: vi.fn(),
   getWorkspace: vi.fn(),
   getProject: vi.fn(),
   getResearchCase: vi.fn(),
@@ -37,6 +51,10 @@ vi.mock('../api/platform', () => ({
   createResearchCaseRunFromTemplate: vi.fn(),
   createWorkflowTemplate: vi.fn(),
   linkResearchCaseRun: vi.fn(),
+  preflightCaseExecution: vi.fn(),
+  executeCaseTemplate: vi.fn(),
+  addCaseAsset: vi.fn(),
+  recordCaseDecision: vi.fn(),
 }))
 
 describe('platform store', () => {
@@ -61,10 +79,23 @@ describe('platform store', () => {
     vi.mocked(listProjects).mockResolvedValue([project('prj-1', 'wsp-1', 'Research')])
     vi.mocked(listResearchCases).mockResolvedValue([researchCase('case-1', 'prj-1')])
     vi.mocked(listWorkflowTemplates).mockResolvedValue([workflowTemplate('tpl-1')])
+    vi.mocked(listCaseAssets).mockResolvedValue([caseAsset('asset-1', 'case-1')])
+    vi.mocked(listCaseExecutions).mockResolvedValue([workflowExecution('exec-1', 'case-1')])
+    vi.mocked(listCaseDecisions).mockResolvedValue([caseDecision('dec-1', 'case-1')])
     vi.mocked(getWorkspace).mockResolvedValue(workspace('wsp-1', 'Desk'))
     vi.mocked(getProject).mockResolvedValue(project('prj-1', 'wsp-1', 'Research'))
     vi.mocked(getResearchCase).mockResolvedValue(researchCase('case-1', 'prj-1'))
     vi.mocked(getWorkflowTemplate).mockResolvedValue(workflowTemplate('tpl-1'))
+    vi.mocked(getCaseReview).mockResolvedValue(caseReview('case-1'))
+    vi.mocked(fetchHomeQueue).mockResolvedValue({
+      pending_cases: [{ case: researchCase('case-1', 'prj-1'), reason: 'no_recent_execution' }],
+      pending_approvals: [],
+      failed_or_degraded_runs: [],
+      recent_memos: [],
+      recent_executions: [workflowExecution('exec-1', 'case-1')],
+      data_freshness: null,
+      warnings: ['data_freshness_unavailable'],
+    })
     vi.mocked(createWorkspace).mockResolvedValue(workspace('wsp-2', 'Desk 2'))
     vi.mocked(createProject).mockResolvedValue(project('prj-2', 'wsp-2', 'Second Research'))
     vi.mocked(createResearchCase).mockResolvedValue(researchCase('case-2', 'prj-2'))
@@ -83,6 +114,17 @@ describe('platform store', () => {
       tenant_id: null,
       linked_at: '2026-06-22T00:00:00Z',
     })
+    vi.mocked(preflightCaseExecution).mockResolvedValue({
+      valid: true,
+      input_errors: [],
+      missing_capabilities: [],
+      missing_assets: [],
+      warnings: [],
+      estimated_cost: {},
+    })
+    vi.mocked(executeCaseTemplate).mockResolvedValue(workflowExecution('exec-2', 'case-2'))
+    vi.mocked(addCaseAsset).mockResolvedValue(caseAsset('asset-2', 'case-2'))
+    vi.mocked(recordCaseDecision).mockResolvedValue(caseDecision('dec-2', 'case-2'))
     vi.mocked(fetchRunSummaryResources).mockResolvedValue({
       summary: {
         summary_id: 'sum-1',
@@ -144,6 +186,7 @@ describe('platform store', () => {
     await store.loadResearchCases({ project_id: 'prj-1' })
     await store.loadResearchCase('case-1')
     await store.loadWorkflowTemplates()
+    await store.loadHomeQueue()
 
     expect(store.loading).toBe(false)
     expect(store.capabilitiesById['feature.platform_objects'].status).toBe('available')
@@ -153,9 +196,10 @@ describe('platform store', () => {
     expect(store.projectsByWorkspaceId['wsp-1'][0].project_id).toBe('prj-1')
     expect(store.casesByProjectId['prj-1'][0].case_id).toBe('case-1')
     expect(store.workflowTemplates[0].template_id).toBe('tpl-1')
+    expect(store.homeQueue?.pending_cases[0].reason).toBe('no_recent_execution')
   })
 
-  it('creates objects, links runs, and caches run summary resources', async () => {
+  it('creates objects, executes case templates, and caches run summary resources', async () => {
     const store = usePlatformStore()
 
     const createdWorkspace = await store.createWorkspace({ name: 'Desk 2' })
@@ -168,6 +212,22 @@ describe('platform store', () => {
       question: 'Analyze NVDA',
       inputs: { ticker: 'NVDA' },
     })
+    const preflight = await store.preflightCaseExecution(createdCase.case_id, {
+      template_id: createdTemplate.template_id,
+      inputs: { ticker: 'NVDA' },
+    })
+    const execution = await store.executeCaseTemplate(createdCase.case_id, {
+      template_id: createdTemplate.template_id,
+      inputs: { ticker: 'NVDA' },
+    })
+    const asset = await store.addCaseAsset(createdCase.case_id, {
+      asset_type: 'document',
+      asset_id: 'doc-1',
+    })
+    const decision = await store.recordCaseDecision(createdCase.case_id, {
+      decision_type: 'hold',
+      rationale: 'Needs review',
+    })
     const resources = await store.loadRunSummaryResources('run-1')
 
     expect(store.workspaces[0].workspace_id).toBe('wsp-2')
@@ -177,7 +237,14 @@ describe('platform store', () => {
     expect(store.workflowTemplates[0].template_id).toBe('tpl-2')
     expect(link.run_id).toBe('run-1')
     expect(templateLink.run_id).toBe('run-template')
+    expect(preflight.valid).toBe(true)
+    expect(execution.execution_id).toBe('exec-2')
+    expect(asset.asset_link_id).toBe('asset-2')
+    expect(decision.decision_id).toBe('dec-2')
     expect(store.caseRunLinks[0].case_id).toBe('case-2')
+    expect(store.workflowExecutionsByCaseId['case-2'][0].execution_id).toBe('exec-2')
+    expect(store.caseAssetsByCaseId['case-2'][0].asset_link_id).toBe('asset-2')
+    expect(store.caseDecisionsByCaseId['case-2'][0].decision_id).toBe('dec-2')
     expect(resources.eval.coverage_ratio).toBe(1)
     expect(store.runResourcesById['run-1'].summary.summary_id).toBe('sum-1')
     expect(linkResearchCaseRun).toHaveBeenCalledWith('case-2', { run_id: 'run-1' })
@@ -187,6 +254,19 @@ describe('platform store', () => {
       inputs: { ticker: 'NVDA' },
     })
     expect(fetchRunSummaryResources).toHaveBeenCalledWith('run-1')
+  })
+
+  it('loads a complete case workspace snapshot', async () => {
+    const store = usePlatformStore()
+
+    await store.loadCaseWorkspace('case-1')
+
+    expect(store.researchCasesById['case-1'].title).toBe('Case')
+    expect(store.caseAssetsByCaseId['case-1'][0].asset_link_id).toBe('asset-1')
+    expect(store.workflowExecutionsByCaseId['case-1'][0].execution_id).toBe('exec-1')
+    expect(store.caseDecisionsByCaseId['case-1'][0].decision_id).toBe('dec-1')
+    expect(store.caseReviewByCaseId['case-1'].case.case_id).toBe('case-1')
+    expect(store.caseReviewByCaseId['case-1'].approvals[0].approval_id).toBe('appr-1')
   })
 
   it('surfaces request errors and clears loading state', async () => {
@@ -266,5 +346,77 @@ function workflowTemplate(templateId: string) {
     metadata: {},
     created_at: '2026-06-22T00:00:00Z',
     updated_at: '2026-06-22T00:00:00Z',
+  }
+}
+
+function caseAsset(assetLinkId: string, caseId: string) {
+  return {
+    asset_link_id: assetLinkId,
+    case_id: caseId,
+    asset_type: 'document',
+    asset_id: 'doc-1',
+    asset_name: '10-Q',
+    role: 'source',
+    version: null,
+    metadata: {},
+    tenant_id: null,
+    linked_at: '2026-06-22T00:00:00Z',
+    deleted_at: null,
+  }
+}
+
+function workflowExecution(executionId: string, caseId: string) {
+  return {
+    execution_id: executionId,
+    case_id: caseId,
+    template_id: 'tpl-1',
+    template_slug: 'stock',
+    template_version: '1',
+    run_id: 'run-template',
+    status: 'queued',
+    input_snapshot: {},
+    preflight_result: {},
+    trigger_channel: 'web',
+    tenant_id: null,
+    created_at: '2026-06-22T00:00:00Z',
+    updated_at: '2026-06-22T00:00:00Z',
+  }
+}
+
+function caseDecision(decisionId: string, caseId: string) {
+  return {
+    decision_id: decisionId,
+    case_id: caseId,
+    decision_type: 'hold',
+    rationale: 'Needs review',
+    actor_hash: null,
+    source_run_ids: [],
+    source_execution_ids: [],
+    tenant_id: null,
+    created_at: '2026-06-22T00:00:00Z',
+  }
+}
+
+function caseReview(caseId: string) {
+  return {
+    case: researchCase(caseId, 'prj-1'),
+    assets: [caseAsset('asset-1', caseId)],
+    executions: [workflowExecution('exec-1', caseId)],
+    latest_run: null,
+    approvals: [{
+      approval_id: 'appr-1',
+      run_id: 'run-template',
+      action: 'publish memo',
+      risk_level: 'high',
+      status: 'pending',
+      created_at: '2026-06-22T00:00:00Z',
+      resolved_at: null,
+    }],
+    summary: null,
+    claims: [],
+    citations: [],
+    eval: null,
+    decisions: [caseDecision('dec-1', caseId)],
+    warnings: [],
   }
 }

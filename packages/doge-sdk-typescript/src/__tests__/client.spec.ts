@@ -218,6 +218,30 @@ describe('DogeClient', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
+        json: async () => ({ valid: true }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ execution_id: 'exec-1', run_id: 'run-from-execution' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ executions: [{ execution_id: 'exec-1' }] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ case: { case_id: 'case-1' }, executions: [] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ asset_link_id: 'asset-link-1' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ decisions: [{ decision_id: 'decision-1' }] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
         json: async () => ({ template_id: 'tpl-1' }),
       })
       .mockResolvedValueOnce({
@@ -235,13 +259,34 @@ describe('DogeClient', () => {
       modelPolicy: { max_tool_rounds: 3 },
       inputs: { ticker: 'NVDA' },
     })
-    const template = await client.platform.createWorkflowTemplate('stock', 'Stock')
+    const preflight = await client.platform.preflightCaseExecution('case-1', 'tpl-1', {
+      inputs: { ticker: 'NVDA' },
+    })
+    const execution = await client.platform.executeCaseTemplate('case-1', 'tpl-1', {
+      inputs: { ticker: 'NVDA' },
+    })
+    const executions = await client.platform.listCaseExecutions('case-1', 5)
+    const review = await client.platform.getCaseReview('case-1')
+    const asset = await client.platform.addCaseAsset('case-1', 'document', 'doc-1', { assetName: '10-K' })
+    const decisions = await client.platform.listCaseDecisions('case-1')
+    const template = await client.platform.createWorkflowTemplate('stock', 'Stock', {
+      requiredCapabilities: ['feature.workflow_templates'],
+      evalPolicy: ['tool_success'],
+      approvalPolicy: { publish: 'required' },
+      uiSchema: { layout: 'stock' },
+    })
     const capabilities = await client.capabilities.list()
 
     expect(workspace.workspace_id).toBe('w-1')
     expect(projects[0].project_id).toBe('p-1')
     expect(link.run_id).toBe('run-test')
     expect(templateRun.run_id).toBe('run-from-template')
+    expect(preflight.valid).toBe(true)
+    expect(execution.run_id).toBe('run-from-execution')
+    expect(executions[0].execution_id).toBe('exec-1')
+    expect(review.case).toEqual({ case_id: 'case-1' })
+    expect(asset.asset_link_id).toBe('asset-link-1')
+    expect(decisions[0].decision_id).toBe('decision-1')
     expect(template.template_id).toBe('tpl-1')
     expect(capabilities[0].capability_id).toBe('maturity.production_ready')
     expect(fetchMock).toHaveBeenNthCalledWith(
@@ -277,10 +322,84 @@ describe('DogeClient', () => {
     )
     expect(fetchMock).toHaveBeenNthCalledWith(
       5,
-      '/v1/workflow-templates',
+      '/v1/research-cases/case-1/executions/preflight',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          template_id: 'tpl-1',
+          question: undefined,
+          workflow: undefined,
+          session_id: undefined,
+          market: 'us',
+          language: 'en',
+          document_ids: [],
+          portfolio_id: undefined,
+          asset_link_ids: [],
+          model_policy: {},
+          inputs: { ticker: 'NVDA' },
+          skip_preflight: false,
+        }),
+      }),
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      6,
+      '/v1/research-cases/case-1/executions',
       expect.objectContaining({ method: 'POST' }),
     )
-    expect(fetchMock).toHaveBeenNthCalledWith(6, '/v1/capabilities', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      7,
+      '/v1/research-cases/case-1/executions?limit=5',
+      expect.objectContaining({ method: 'GET' }),
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      8,
+      '/v1/research-cases/case-1/review',
+      expect.objectContaining({ method: 'GET' }),
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      9,
+      '/v1/research-cases/case-1/assets',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          asset_type: 'document',
+          asset_id: 'doc-1',
+          asset_name: '10-K',
+          role: 'source',
+          version: undefined,
+          metadata: {},
+        }),
+      }),
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      10,
+      '/v1/research-cases/case-1/decisions',
+      expect.objectContaining({ method: 'GET' }),
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      11,
+      '/v1/workflow-templates',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          slug: 'stock',
+          name: 'Stock',
+          description: '',
+          current_version: '1',
+          input_schema: {},
+          run_instructions: '',
+          tool_policy: {},
+          evidence_policy: {},
+          output_contract: {},
+          metadata: {},
+          required_capabilities: ['feature.workflow_templates'],
+          eval_policy: ['tool_success'],
+          approval_policy: { publish: 'required' },
+          ui_schema: { layout: 'stock' },
+        }),
+      }),
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(12, '/v1/capabilities', expect.objectContaining({ method: 'GET' }))
   })
 
   it('uploads documents as multipart form data without forcing json headers', async () => {
@@ -346,6 +465,21 @@ describe('DogeClient', () => {
       name: 'DogeApiError',
       statusCode: 500,
       message: 'provider failed MOONSHOT_API_KEY=[REDACTED] client_secret=[REDACTED] sk-[REDACTED]',
+    } satisfies Partial<DogeApiError>)
+  })
+
+  it('keeps status text for empty real Response error bodies', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('', {
+      status: 404,
+      statusText: 'Not Found',
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+    const client = new DogeClient()
+
+    await expect(client.platform.homeQueue()).rejects.toMatchObject({
+      name: 'DogeApiError',
+      statusCode: 404,
+      message: 'Not Found',
     } satisfies Partial<DogeApiError>)
   })
 

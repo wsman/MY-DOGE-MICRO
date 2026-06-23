@@ -5,10 +5,13 @@ from __future__ import annotations
 from typing import Protocol
 
 from doge.core.domain.platform_models import (
+    CaseAssetLink,
+    CaseDecision,
     CaseRunLink,
     Project,
     ResearchCase,
     WorkflowTemplate,
+    WorkflowExecution,
     WorkflowTemplateRunLink,
     Workspace,
 )
@@ -80,4 +83,58 @@ class IPlatformRepository(Protocol):
         ...
 
     def list_workflow_templates(self, limit: int = 100, tenant_id: str | None = None) -> list[WorkflowTemplate]:
+        ...
+
+    def save_case_asset(self, link: CaseAssetLink) -> None:
+        ...
+
+    def list_case_assets(
+        self,
+        case_id: str,
+        tenant_id: str | None = None,
+        include_deleted: bool = False,
+    ) -> list[CaseAssetLink]:
+        ...
+
+    def delete_case_asset(self, asset_link_id: str, tenant_id: str | None = None) -> None:
+        ...
+
+    def save_workflow_execution(self, execution: WorkflowExecution) -> None:
+        ...
+
+    def get_workflow_execution(
+        self,
+        execution_id: str,
+        tenant_id: str | None = None,
+    ) -> WorkflowExecution | None:
+        ...
+
+    def list_workflow_executions(
+        self,
+        case_id: str,
+        tenant_id: str | None = None,
+        limit: int = 100,
+    ) -> list[WorkflowExecution]:
+        ...
+
+    def update_workflow_execution_status(
+        self,
+        execution_id: str,
+        status: str,
+        *,
+        run_id: str | None = None,
+        preflight_result: dict | None = None,
+        tenant_id: str | None = None,
+    ) -> WorkflowExecution | None:
+        ...
+
+    def save_case_decision(self, decision: CaseDecision) -> None:
+        ...
+
+    def list_case_decisions(
+        self,
+        case_id: str,
+        tenant_id: str | None = None,
+        limit: int = 100,
+    ) -> list[CaseDecision]:
         ...

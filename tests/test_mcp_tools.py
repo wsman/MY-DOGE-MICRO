@@ -13,6 +13,9 @@ from pathlib import Path
 import pytest
 from starlette.testclient import TestClient
 
+from doge.application import composition
+from doge.config import reset_settings
+from doge.core.domain.platform_models import Project, ResearchCase, Workspace
 from doge.interfaces.mcp import server as srv
 
 # The modular server builds the FastMCP instance lazily via a factory. Construct
@@ -319,7 +322,11 @@ class TestToolsNotPresent:
         tools = await mcp.list_tools()
         names = [t.name for t in tools]
         expected = {"query_stock", "stock_overview", "rsrs_ranking",
-                    "market_breadth", "volume_anomalies", "list_views"}
+                    "market_breadth", "volume_anomalies", "list_views",
+                    "seed_workflow_templates", "list_workflow_templates",
+                    "show_workflow_template", "list_research_cases",
+                    "preflight_case_execution", "execute_case_template",
+                    "record_case_decision"}
         assert expected.issubset(set(names))
 
     @pytest.mark.asyncio
@@ -351,6 +358,54 @@ class TestQueryStockMock:
     def test_invalid_ticker_injection(self):
         with pytest.raises(ValueError, match="invalid characters"):
             srv._validate_ticker("1; DROP TABLE")
+
+
+class TestPlatformWorkflowTools:
+    @pytest.mark.asyncio
+    async def test_case_template_preflight_execute_and_decision(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("DOGE_AGENT_DB", str(tmp_path / "agent_state.db"))
+        monkeypatch.setenv("DOGE_FEATURE_WORKFLOW_TEMPLATES", "true")
+        reset_settings()
+        repo = composition.build_platform_repository()
+        workspace = Workspace.create(name="Desk")
+        project = Project.create(workspace_id=workspace.workspace_id, name="Research")
+        case = ResearchCase.create(project_id=project.project_id, title="NVDA earnings")
+        repo.save_workspace(workspace)
+        repo.save_project(project)
+        repo.save_case(case)
+
+        seed = json.loads(_tool_text(await mcp.call_tool("seed_workflow_templates", {})))
+        preflight = json.loads(_tool_text(await mcp.call_tool(
+            "preflight_case_execution",
+            {
+                "case_id": case.case_id,
+                "template_id": "earnings_review",
+                "inputs": {"ticker": "NVDA", "reporting_period": "2026Q1"},
+            },
+        )))
+        execution = json.loads(_tool_text(await mcp.call_tool(
+            "execute_case_template",
+            {
+                "case_id": case.case_id,
+                "template_id": "earnings_review",
+                "inputs": {"ticker": "NVDA", "reporting_period": "2026Q1"},
+            },
+        )))
+        decision = json.loads(_tool_text(await mcp.call_tool(
+            "record_case_decision",
+            {
+                "case_id": case.case_id,
+                "decision_type": "approve",
+                "rationale": "Supported",
+                "source_run_ids": [execution["run_id"]],
+            },
+        )))
+
+        assert "earnings_review" in seed["inserted"]
+        assert preflight["valid"] is True
+        assert execution["execution_id"].startswith("exec-")
+        assert execution["run_id"].startswith("run-")
+        assert decision["decision_type"] == "approve"
 
 
 # ── Integration Tests (Real DB) ─────────────────────────

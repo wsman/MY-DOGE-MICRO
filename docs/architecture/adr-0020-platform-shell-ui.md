@@ -23,7 +23,7 @@ Proposed
 |-------|-------|
 | **Depends On** | ADR-0008, ADR-0016, ADR-0017, ADR-0018, ADR-0019 |
 | **Enables** | Platform shell implementation stories |
-| **Blocks** | Making the shell the default route until compatibility and accessibility evidence pass |
+| **Blocks** | Removing the legacy route or accepting the ADR until compatibility, accessibility, rollback, and exact-SHA CI evidence pass |
 | **Ordering Note** | `/research-agent` remains supported regardless of shell enablement. |
 
 ## Context
@@ -35,7 +35,7 @@ The web console has working surfaces, including the research agent, but platform
 ### Constraints
 
 - `/research-agent` must keep working as a direct route.
-- Shell must be feature-flagged and reversible.
+- Shell defaultization must remain reversible.
 - Runtime maturity remains experimental.
 - Accessibility evidence is required before promotion.
 - UI must consume backend contracts rather than recomputing summaries or capabilities locally.
@@ -50,7 +50,11 @@ The web console has working surfaces, including the research agent, but platform
 
 ## Decision
 
-Implement the platform shell as a feature-flagged Vue route layer that wraps or links existing views while preserving direct access to `/research-agent`. The shell owns navigation, context selection, status display, and route guards based on backend feature and capability APIs.
+Implement the platform shell as the default local Web route layer that wraps or
+links existing views while preserving direct access to `/research-agent`. The
+shell owns navigation, context selection, status display, and route guards
+based on backend feature and capability APIs. `VITE_DOGE_FEATURE_PLATFORM_SHELL=0`
+remains the rollback path for local builds.
 
 ### Architecture Diagram
 
@@ -71,7 +75,7 @@ Vue router
 
 ### Key Interfaces
 
-- Frontend flag: `VITE_DOGE_PLATFORM_SHELL`
+- Frontend flag: `VITE_DOGE_FEATURE_PLATFORM_SHELL`
 - Backend advertised flag: `DOGE_PLATFORM_SHELL_ENABLED`
 - Required API inputs: `/v1/capabilities`, workspace/project/case routes, workflow routes, run summary routes.
 - Route compatibility: `/research-agent` must render without requiring shell state.
@@ -145,8 +149,10 @@ Vue router
 
 ## Validation Criteria
 
-- Existing `/research-agent` route works when shell flag is off.
-- Shell route only appears when frontend and backend flags allow it.
+- `/` opens `/home` by default in local Web builds.
+- Existing `/research-agent` route remains directly reachable.
+- `VITE_DOGE_FEATURE_PLATFORM_SHELL=0` rolls the root route back to
+  `/research-agent`.
 - Navigation respects backend capability status.
 - Accessibility evidence covers landmarks, names, and keyboard focus.
 - UI copy avoids stable and production-ready runtime claims.

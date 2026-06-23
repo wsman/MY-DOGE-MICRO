@@ -707,7 +707,7 @@ entities:
       source: "src/doge/interfaces/mcp/tools/views.py:6-10"
       notes: "run_sql explicitly ABSENT (pinned by test_run_sql_removed)."
 
-  # --- FastAPI routes (76 canonical product routes) owned by Module #9 ---
+  # --- FastAPI routes (87 canonical product routes) owned by Module #9 ---
   api_routes:
     # main router
     - {num: 1, method: GET, path: "/api/health", router: main, source: "src/doge/interfaces/api/main.py"}
@@ -783,18 +783,29 @@ entities:
     - {num: 62, method: POST, path: "/v1/research-cases", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged platform objects API"}
     - {num: 63, method: GET, path: "/v1/research-cases/{case_id}", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged platform objects API"}
     - {num: 64, method: POST, path: "/v1/research-cases/{case_id}/runs", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged case-run link API"}
-    - {num: 65, method: GET, path: "/v1/workflow-templates", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged workflow templates API"}
-    - {num: 66, method: POST, path: "/v1/workflow-templates", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged workflow templates API"}
-    - {num: 67, method: GET, path: "/v1/workflow-templates/{template_id}", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged workflow templates API"}
-    - {num: 68, method: GET, path: "/v1/capabilities", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged capability registry API"}
-    - {num: 69, method: GET, path: "/v1/tools", router: v1_tools, source: "src/doge/interfaces/api/routers/v1/tools.py"}
-    - {num: 70, method: POST, path: "/v1/portfolios/import", router: v1_portfolios, source: "src/doge/interfaces/api/routers/v1/portfolios.py"}
-    - {num: 71, method: GET, path: "/v1/audit/events", router: v1_audit, source: "src/doge/interfaces/api/routers/v1/audit.py"}
-    - {num: 72, method: GET, path: "/v1/audit/events/export", router: v1_audit, source: "src/doge/interfaces/api/routers/v1/audit.py"}
-    - {num: 73, method: POST, path: "/v1/audit/events/retention", router: v1_audit, source: "src/doge/interfaces/api/routers/v1/audit.py"}
-    - {num: 74, method: GET, path: "/v1/enterprise/acl/grants", router: v1_enterprise, source: "src/doge/interfaces/api/routers/v1/enterprise.py"}
-    - {num: 75, method: POST, path: "/v1/enterprise/acl/grants", router: v1_enterprise, source: "src/doge/interfaces/api/routers/v1/enterprise.py"}
-    - {num: 76, method: DELETE, path: "/v1/enterprise/acl/grants", router: v1_enterprise, source: "src/doge/interfaces/api/routers/v1/enterprise.py"}
+    - {num: 65, method: GET, path: "/v1/home-queue", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged platform work queue API"}
+    - {num: 66, method: GET, path: "/v1/research-cases/{case_id}/assets", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged case assets API"}
+    - {num: 67, method: POST, path: "/v1/research-cases/{case_id}/assets", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged case assets API"}
+    - {num: 68, method: DELETE, path: "/v1/research-cases/{case_id}/assets/{asset_link_id}", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged case assets API"}
+    - {num: 69, method: GET, path: "/v1/research-cases/{case_id}/decisions", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged case decision API"}
+    - {num: 70, method: POST, path: "/v1/research-cases/{case_id}/decisions", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged case decision API"}
+    - {num: 71, method: POST, path: "/v1/research-cases/{case_id}/executions/preflight", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged workflow execution preflight API"}
+    - {num: 72, method: POST, path: "/v1/research-cases/{case_id}/executions", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged workflow execution API"}
+    - {num: 73, method: GET, path: "/v1/research-cases/{case_id}/executions", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged workflow execution API"}
+    - {num: 74, method: GET, path: "/v1/research-cases/{case_id}/executions/{execution_id}", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged workflow execution API"}
+    - {num: 75, method: GET, path: "/v1/research-cases/{case_id}/review", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged case review API"}
+    - {num: 76, method: GET, path: "/v1/workflow-templates", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged workflow templates API"}
+    - {num: 77, method: POST, path: "/v1/workflow-templates", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged workflow templates API"}
+    - {num: 78, method: GET, path: "/v1/workflow-templates/{template_id}", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged workflow templates API"}
+    - {num: 79, method: GET, path: "/v1/capabilities", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged capability registry API"}
+    - {num: 80, method: GET, path: "/v1/tools", router: v1_tools, source: "src/doge/interfaces/api/routers/v1/tools.py"}
+    - {num: 81, method: POST, path: "/v1/portfolios/import", router: v1_portfolios, source: "src/doge/interfaces/api/routers/v1/portfolios.py"}
+    - {num: 82, method: GET, path: "/v1/audit/events", router: v1_audit, source: "src/doge/interfaces/api/routers/v1/audit.py"}
+    - {num: 83, method: GET, path: "/v1/audit/events/export", router: v1_audit, source: "src/doge/interfaces/api/routers/v1/audit.py"}
+    - {num: 84, method: POST, path: "/v1/audit/events/retention", router: v1_audit, source: "src/doge/interfaces/api/routers/v1/audit.py"}
+    - {num: 85, method: GET, path: "/v1/enterprise/acl/grants", router: v1_enterprise, source: "src/doge/interfaces/api/routers/v1/enterprise.py"}
+    - {num: 86, method: POST, path: "/v1/enterprise/acl/grants", router: v1_enterprise, source: "src/doge/interfaces/api/routers/v1/enterprise.py"}
+    - {num: 87, method: DELETE, path: "/v1/enterprise/acl/grants", router: v1_enterprise, source: "src/doge/interfaces/api/routers/v1/enterprise.py"}
   api_router_prefixes:
     scan: "/api/scan"
     data: "/api/data"

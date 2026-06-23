@@ -1,0 +1,47 @@
+{
+  "browser": {
+    "mode": "headless CDP",
+    "path": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
+  },
+  "failed": [],
+  "result": "passed",
+  "scenarios": [
+    {
+      "checks": {
+        "expected_hash": true,
+        "expected_text": true,
+        "no_body_stream_already_read_error": true
+      },
+      "expected_hash": "#/home",
+      "flag_value": null,
+      "name": "default-on",
+      "observed_hash": "#/home",
+      "observed_href": "http://127.0.0.1:53368/#/home",
+      "observed_text_sample": "MY-DOGE\nHome\nResearch\nMarket\nPortfolio\nQuant\nAdmin\nAgent\n1\n|\nEqualize\nHome\nOPERATIONS\nHome\nRefresh\nNew Case\nBad Gateway\nPending Cases\n0\nApprovals\n0\nFailed Runs\n0\nRecent Executions\n0\nPENDING CASES\nNo pending cases\nFAILED OR DEGRADED\nNo failed executions\nRECENT EXECUTIONS\nNo executions\nDATA FRESHNESS\nNo warnings",
+      "screenshot": "production\\qa\\evidence\\manual\\platform-shell-default-entry-default-on-2026-06-24.png",
+      "vite_url": "http://127.0.0.1:53368/"
+    },
+    {
+      "checks": {
+        "expected_hash": true,
+        "expected_text": true,
+        "no_body_stream_already_read_error": true
+      },
+      "expected_hash": "#/research-agent",
+      "flag_value": "0",
+      "name": "rollback-off",
+      "observed_hash": "#/research-agent",
+      "observed_href": "http://127.0.0.1:53406/#/research-agent",
+      "observed_text_sample": "MY-DOGE\nAgent\n1\n|\nEqualize\nResearch Agent\nINPUT\nUS Market\nFinancial Research\nRun\nUpload\nDrop research files here\nBad Gateway\nRefresh\nAll\nClear\nNo documents uploaded\nImport CSV\nportfolio-demo\nRESEARCH MEMO\nNo memo generated\nEVIDENCE\nidle\ntokens 0\nSources\nNo source citations available\nNo approvals pending\nQUALITY\nCost / Eval\nTotal Tokens\nn/a\nPrompt Tokens\nn/a\nCost USD\nn/a\nCitation Precision\nn/a\nNumerical Consistency\nn/a\nTool Success\nn/a\nbackend n/a\nmodel n/a\nAGENT TIMELINE",
+      "screenshot": "production\\qa\\evidence\\manual\\platform-shell-default-entry-rollback-off-2026-06-24.png",
+      "vite_url": "http://127.0.0.1:53406/"
+    }
+  ],
+  "schema": "doge.platform_shell_default_entry_smoke.v1",
+  "scope_notes": [
+    "Default-on scenario runs with VITE_DOGE_FEATURE_PLATFORM_SHELL unset.",
+    "Rollback scenario runs with VITE_DOGE_FEATURE_PLATFORM_SHELL=0.",
+    "This is automated browser route evidence and does not claim remote CI verification or production readiness."
+  ],
+  "started_at": "2026-06-23T16:18:16.400018+00:00"
+}

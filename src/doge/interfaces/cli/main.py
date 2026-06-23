@@ -9,6 +9,8 @@ Usage:
     doge macro [--verbose]
     doge session [--title "..."]
     doge run "question" [--session <session_id>] [--json] [--trace]
+    doge template list|show|seed
+    doge case list|show|preflight|execute|review|decision
 
 Clean-architecture wiring (ADR-0001 / ADR-0010): each subcommand delegates to
 its read-only service or application use case via ``doge.application.composition``.
@@ -36,12 +38,14 @@ for _stream_name in ("stdout", "stderr"):
 from doge.interfaces.cli.commands import (
     cmd_anomaly,
     cmd_breadth,
+    cmd_case,
     cmd_demo,
     cmd_macro,
     cmd_run,
     cmd_rsrs,
     cmd_session,
     cmd_stock,
+    cmd_template,
 )
 
 
@@ -111,6 +115,59 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--json", action="store_true", help="emit JSON only")
     p_run.add_argument("--trace", action="store_true", help="print event trace after the summary")
 
+    # template
+    p_template = sub.add_parser("template", help="manage workflow templates")
+    template_sub = p_template.add_subparsers(dest="template_cmd", required=True)
+    p_template_list = template_sub.add_parser("list", help="list workflow templates")
+    p_template_list.add_argument("--limit", type=int, default=100)
+    p_template_list.add_argument("--json", action="store_true")
+    p_template_show = template_sub.add_parser("show", help="show a workflow template")
+    p_template_show.add_argument("template_id", help="template id or slug")
+    p_template_show.add_argument("--json", action="store_true")
+    p_template_seed = template_sub.add_parser("seed", help="seed built-in workflow templates")
+    p_template_seed.add_argument("--dry-run", action="store_true")
+    p_template_seed.add_argument("--json", action="store_true")
+
+    # case
+    p_case = sub.add_parser("case", help="operate a research case workspace")
+    case_sub = p_case.add_subparsers(dest="case_cmd", required=True)
+    p_case_list = case_sub.add_parser("list", help="list research cases")
+    p_case_list.add_argument("--project-id")
+    p_case_list.add_argument("--limit", type=int, default=100)
+    p_case_list.add_argument("--json", action="store_true")
+    p_case_show = case_sub.add_parser("show", help="show case review state")
+    p_case_show.add_argument("case_id")
+    p_case_show.add_argument("--json", action="store_true")
+    for name, help_text in (
+        ("preflight", "preflight a template execution"),
+        ("execute", "execute a workflow template"),
+    ):
+        p_case_exec = case_sub.add_parser(name, help=help_text)
+        p_case_exec.add_argument("case_id")
+        p_case_exec.add_argument("template_id")
+        p_case_exec.add_argument("--question")
+        p_case_exec.add_argument("--workflow")
+        p_case_exec.add_argument("--session-id")
+        p_case_exec.add_argument("--market", default="us", choices=["cn", "us"])
+        p_case_exec.add_argument("--language", default="en")
+        p_case_exec.add_argument("--document-id", action="append")
+        p_case_exec.add_argument("--portfolio-id")
+        p_case_exec.add_argument("--model-policy")
+        p_case_exec.add_argument("--inputs")
+        p_case_exec.add_argument("--json", action="store_true")
+        if name == "execute":
+            p_case_exec.add_argument("--skip-preflight", action="store_true")
+    p_case_review = case_sub.add_parser("review", help="show case review state")
+    p_case_review.add_argument("case_id")
+    p_case_review.add_argument("--json", action="store_true")
+    p_case_decision = case_sub.add_parser("decision", help="record a case decision")
+    p_case_decision.add_argument("case_id")
+    p_case_decision.add_argument("--decision", required=True, choices=["approve", "reject", "hold", "escalate"])
+    p_case_decision.add_argument("--rationale")
+    p_case_decision.add_argument("--source-run-id", action="append")
+    p_case_decision.add_argument("--source-execution-id", action="append")
+    p_case_decision.add_argument("--json", action="store_true")
+
     return parser
 
 
@@ -131,6 +188,8 @@ def main(argv: list[str] | None = None) -> None:
         "macro": cmd_macro,
         "session": cmd_session,
         "run": cmd_run,
+        "template": cmd_template,
+        "case": cmd_case,
     }
     dispatch[args.cmd](args)
 

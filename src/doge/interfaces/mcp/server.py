@@ -18,6 +18,8 @@ import sys
 import time
 import uuid
 from contextlib import asynccontextmanager
+from dataclasses import asdict, is_dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -283,6 +285,55 @@ def _fmt(columns: List[str], rows: List[Any]) -> str:
     return "\n".join(lines)
 
 
+def _json_result(payload: Any) -> str:
+    return json.dumps(_serialize(payload), ensure_ascii=False, indent=2)
+
+
+def _serialize(obj: Any) -> Any:
+    if isinstance(obj, Enum):
+        return obj.value
+    if is_dataclass(obj):
+        return {key: _serialize(value) for key, value in asdict(obj).items()}
+    if isinstance(obj, list):
+        return [_serialize(item) for item in obj]
+    if isinstance(obj, dict):
+        return {key: _serialize(value) for key, value in obj.items()}
+    return obj
+
+
+def _case_execution_request(
+    template_id: str,
+    *,
+    question: str | None = None,
+    workflow: str | None = None,
+    session_id: str | None = None,
+    market: str = "us",
+    language: str = "en",
+    document_ids: list[str] | None = None,
+    portfolio_id: str | None = None,
+    inputs: dict[str, Any] | None = None,
+    model_policy: dict[str, Any] | None = None,
+    skip_preflight: bool = False,
+    trigger_channel: str = "mcp",
+):
+    from doge.platform.workspace import CaseExecutionCreate
+
+    return CaseExecutionCreate(
+        template_id=template_id,
+        question=question,
+        workflow=workflow,
+        session_id=session_id,
+        market=_validate_market(market),
+        language=language,
+        document_ids=document_ids or [],
+        portfolio_id=portfolio_id,
+        inputs=inputs or {},
+        model_policy=model_policy or {},
+        skip_preflight=skip_preflight,
+        trigger_channel=trigger_channel,
+    )
+
+
 # ── Server factory ───────────────────────────────────
 def create_mcp_server():
     """Create and configure the MCP server with all tools wired through services."""
@@ -354,6 +405,130 @@ def create_mcp_server():
     async def tool_list_views() -> str:
         """列出 DuckDB 中所有视图及其行数、列名。"""
         return await list_views()
+
+    @mcp.tool(name="seed_workflow_templates")
+    @_timed("seed_workflow_templates")
+    async def tool_seed_workflow_templates(dry_run: bool = False) -> str:
+        """写入内置金融 Workflow Template，供 Case 工作流复用。"""
+        from doge.application import composition
+        from doge.platform.workspace import seed_workflow_templates
+
+        result = seed_workflow_templates(composition.build_platform_repository(), dry_run=dry_run)
+        return _json_result(result.to_dict())
+
+    @mcp.tool(name="list_workflow_templates")
+    @_timed("list_workflow_templates")
+    async def tool_list_workflow_templates(limit: int = 100) -> str:
+        """列出可执行的 Workflow Template。"""
+        from doge.application import composition
+        from doge.platform.workspace import PlatformRequestContext
+
+        n = _validate_int("limit", limit, 1, 500)
+        service = composition.build_workflow_service()
+        templates = service.list(PlatformRequestContext(), limit=n)
+        return _json_result({"workflow_templates": templates})
+
+    @mcp.tool(name="show_workflow_template")
+    @_timed("show_workflow_template")
+    async def tool_show_workflow_template(template_id: str) -> str:
+        """查看指定 Workflow Template 的输入、策略和输出契约。"""
+        from doge.application import composition
+        from doge.platform.workspace import PlatformRequestContext
+
+        service = composition.build_workflow_service()
+        template = service.get(PlatformRequestContext(), template_id)
+        return _json_result(template)
+
+    @mcp.tool(name="list_research_cases")
+    @_timed("list_research_cases")
+    async def tool_list_research_cases(project_id: str | None = None, limit: int = 20) -> str:
+        """列出 Research Case，作为模板执行入口。"""
+        from doge.application import composition
+        from doge.platform.workspace import PlatformRequestContext
+
+        n = _validate_int("limit", limit, 1, 500)
+        service = composition.build_research_case_service()
+        cases = service.list(PlatformRequestContext(), project_id=project_id, limit=n)
+        return _json_result({"research_cases": cases})
+
+    @mcp.tool(name="preflight_case_execution")
+    @_timed("preflight_case_execution")
+    async def tool_preflight_case_execution(
+        case_id: str,
+        template_id: str,
+        inputs: dict[str, Any] | None = None,
+        market: str = "us",
+        language: str = "en",
+    ) -> str:
+        """在 Research Case 中预检模板执行所需输入、能力和资产。"""
+        from doge.application import composition
+        from doge.platform.workspace import PlatformRequestContext
+
+        service = composition.build_research_case_service()
+        preflight = service.preflight_template_execution(
+            PlatformRequestContext(),
+            case_id,
+            _case_execution_request(template_id, inputs=inputs, market=market, language=language),
+            workflow_templates_enabled=True,
+        )
+        return _json_result(preflight.to_dict())
+
+    @mcp.tool(name="execute_case_template")
+    @_timed("execute_case_template")
+    async def tool_execute_case_template(
+        case_id: str,
+        template_id: str,
+        inputs: dict[str, Any] | None = None,
+        question: str | None = None,
+        market: str = "us",
+        language: str = "en",
+        skip_preflight: bool = False,
+    ) -> str:
+        """在 Research Case 中执行 Workflow Template 并返回 execution/run 信息。"""
+        from doge.application import composition
+        from doge.platform.workspace import PlatformRequestContext
+
+        service = composition.build_research_case_service()
+        result = await service.execute_template(
+            PlatformRequestContext(),
+            case_id,
+            _case_execution_request(
+                template_id,
+                question=question,
+                inputs=inputs,
+                market=market,
+                language=language,
+                skip_preflight=skip_preflight,
+            ),
+            workflow_templates_enabled=True,
+        )
+        return _json_result(result.to_dict())
+
+    @mcp.tool(name="record_case_decision")
+    @_timed("record_case_decision")
+    async def tool_record_case_decision(
+        case_id: str,
+        decision_type: str,
+        rationale: str = "",
+        source_run_ids: list[str] | None = None,
+        source_execution_ids: list[str] | None = None,
+    ) -> str:
+        """记录 Research Case 的审批、驳回、暂缓或升级决策。"""
+        from doge.application import composition
+        from doge.platform.workspace import CaseDecisionCreate, PlatformRequestContext
+
+        service = composition.build_research_case_service()
+        decision = service.record_decision(
+            PlatformRequestContext(),
+            case_id,
+            CaseDecisionCreate(
+                decision_type=decision_type,
+                rationale=rationale,
+                source_run_ids=source_run_ids or [],
+                source_execution_ids=source_execution_ids or [],
+            ),
+        )
+        return _json_result(decision)
 
     # Health & metrics routes (SSE only)
     from starlette.requests import Request

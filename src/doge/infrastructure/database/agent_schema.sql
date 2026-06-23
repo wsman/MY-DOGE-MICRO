@@ -315,8 +315,54 @@ CREATE TABLE IF NOT EXISTS workflow_template_runs (
     PRIMARY KEY(template_id, run_id)
 );
 
+CREATE TABLE IF NOT EXISTS case_assets (
+    asset_link_id TEXT PRIMARY KEY,
+    case_id TEXT NOT NULL,
+    tenant_id TEXT,
+    asset_type TEXT NOT NULL,
+    asset_id TEXT NOT NULL,
+    asset_name TEXT,
+    role TEXT NOT NULL DEFAULT 'source',
+    version TEXT,
+    metadata TEXT,
+    linked_at TEXT NOT NULL,
+    deleted_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS workflow_executions (
+    execution_id TEXT PRIMARY KEY,
+    case_id TEXT NOT NULL,
+    tenant_id TEXT,
+    template_id TEXT NOT NULL,
+    template_slug TEXT,
+    template_version TEXT NOT NULL DEFAULT '1',
+    run_id TEXT,
+    status TEXT NOT NULL,
+    input_snapshot TEXT,
+    preflight_result TEXT,
+    trigger_channel TEXT NOT NULL DEFAULT 'api',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS case_decisions (
+    decision_id TEXT PRIMARY KEY,
+    case_id TEXT NOT NULL,
+    tenant_id TEXT,
+    decision_type TEXT NOT NULL,
+    rationale TEXT,
+    actor_hash TEXT,
+    source_run_ids TEXT,
+    source_execution_ids TEXT,
+    created_at TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_projects_workspace ON projects(workspace_id, status);
 CREATE INDEX IF NOT EXISTS idx_research_cases_project ON research_cases(project_id, status);
 CREATE INDEX IF NOT EXISTS idx_research_case_runs_run ON research_case_runs(run_id);
 CREATE INDEX IF NOT EXISTS idx_workflow_templates_status ON workflow_templates(status);
 CREATE INDEX IF NOT EXISTS idx_workflow_template_runs_run ON workflow_template_runs(run_id);
+CREATE INDEX IF NOT EXISTS idx_case_assets_case ON case_assets(case_id, deleted_at);
+CREATE INDEX IF NOT EXISTS idx_workflow_executions_case ON workflow_executions(case_id, updated_at);
+CREATE INDEX IF NOT EXISTS idx_workflow_executions_run ON workflow_executions(run_id);
+CREATE INDEX IF NOT EXISTS idx_case_decisions_case ON case_decisions(case_id, created_at);

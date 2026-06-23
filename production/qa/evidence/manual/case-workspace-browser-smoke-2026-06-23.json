@@ -1,0 +1,68 @@
+{
+  "schema": "doge.case_workspace_browser_smoke.v1",
+  "created_at": "2026-06-23T23:59:45+08:00",
+  "result": "passed",
+  "command": "VITE_DOGE_FEATURE_PLATFORM_SHELL=1 npm run dev -- --host 127.0.0.1 --port 5176 --strictPort + headless Edge CDP route smoke",
+  "environment": {
+    "node": "C:\\Users\\Aby\\AppData\\Local\\Temp\\doge-node-portable\\node-v24.17.0-win-x64\\node.exe",
+    "npm": "C:\\Users\\Aby\\AppData\\Local\\Temp\\doge-node-portable\\node-v24.17.0-win-x64\\npm.cmd",
+    "browser": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+    "url": "http://127.0.0.1:5176/"
+  },
+  "routes": [
+    {
+      "name": "root",
+      "url": "http://127.0.0.1:5176/",
+      "href": "http://127.0.0.1:5176/#/home",
+      "hash": "#/home",
+      "observed_text": "MY-DOGE Home Research Market Portfolio Quant Admin Agent Home OPERATIONS Home Refresh New Case Bad Gateway Pending Cases 0 Approvals 0 Failed Runs 0 Recent Executions 0 PENDING CASES No pending cases FAILED OR DEGRADED No failed executions RECENT EXECUTIONS No executions DATA FRESHNESS No warnings"
+    },
+    {
+      "name": "home",
+      "url": "http://127.0.0.1:5176/#/home",
+      "href": "http://127.0.0.1:5176/#/home",
+      "hash": "#/home",
+      "observed_text": "MY-DOGE Home Research Market Portfolio Quant Admin Agent Home OPERATIONS Home Refresh New Case Bad Gateway Pending Cases 0 Approvals 0 Failed Runs 0 Recent Executions 0 PENDING CASES No pending cases FAILED OR DEGRADED No failed executions RECENT EXECUTIONS No executions DATA FRESHNESS No warnings"
+    },
+    {
+      "name": "case",
+      "url": "http://127.0.0.1:5176/#/cases/case-smoke",
+      "href": "http://127.0.0.1:5176/#/cases/case-smoke",
+      "hash": "#/cases/case-smoke",
+      "observed_text": "MY-DOGE Home Research Market Portfolio Quant Admin Agent Case RESEARCH CASE case-smoke Project Refresh Bad Gateway No thesis CASE ASSETS 0 Document Asset ID or URL Name Add No assets TEMPLATE Choose template Question Preflight Execute MEMO No memo yet EXECUTIONS No executions PREFLIGHT Not checked CLAIMS No claims CITATIONS No citations EVAL No eval DECISION Hold Rationale Record No decisions"
+    },
+    {
+      "name": "run",
+      "url": "http://127.0.0.1:5176/#/runs/run-smoke",
+      "href": "http://127.0.0.1:5176/#/runs/run-smoke",
+      "hash": "#/runs/run-smoke",
+      "observed_text": "MY-DOGE Home Research Market Portfolio Quant Admin Agent Run Detail RUN run-smoke Load Bad Gateway No run loaded"
+    },
+    {
+      "name": "research_agent",
+      "url": "http://127.0.0.1:5176/#/research-agent",
+      "href": "http://127.0.0.1:5176/#/research-agent",
+      "hash": "#/research-agent",
+      "observed_text": "MY-DOGE Home Research Market Portfolio Quant Admin Agent Research Agent INPUT US Market Financial Research Run Upload Drop research files here Bad Gateway Refresh All Clear No documents uploaded Import CSV portfolio-demo RESEARCH MEMO No memo generated EVIDENCE idle tokens 0 Sources No source citations available No approvals pending QUALITY Cost / Eval"
+    }
+  ],
+  "checks": {
+    "root_redirects_home_with_platform_flag": true,
+    "home_route_visible": true,
+    "case_workspace_visible": true,
+    "run_detail_visible": true,
+    "research_agent_direct_route_visible": true,
+    "case_workspace_primary_flow_omits_manual_run_id": true,
+    "no_body_stream_already_read_error": true
+  },
+  "scope_notes": [
+    "The smoke runs without a live backend; Bad Gateway is the expected Vite proxy/API error state.",
+    "This is automated browser-level route and rendering evidence, not a screen-reader manual accessibility pass.",
+    "It does not claim production readiness or remote CI verification."
+  ],
+  "non_production_posture": {
+    "production_ready_claimed": false,
+    "stable_claimed": false,
+    "remote_exact_sha_ci_claimed": false
+  }
+}

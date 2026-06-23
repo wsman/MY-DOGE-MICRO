@@ -1,9 +1,9 @@
 # HTTP API Reference (FastAPI)
 
 The local-first HTTP backend of MY-DOGE-MICRO. A single FastAPI application
-(`doge.interfaces.api.main`) binds to `127.0.0.1:8901` and exposes **76 product routes**:
-34 legacy `/api/*` routes plus 42 daemon/v1 routes (`sessions`, `runs`,
-`documents`, `tools`, `health`, portfolio import, audit, and enterprise ACL).
+(`doge.interfaces.api.main`) binds to `127.0.0.1:8901` and exposes **87 product routes**:
+34 legacy `/api/*` routes plus 53 daemon/v1 routes (`sessions`, `runs`,
+`documents`, `tools`, `health`, case workflow, portfolio import, audit, and enterprise ACL).
 It is the surface the
 Vue web console (`web/`) and optionally the PyQt desktop dashboard call to
 trigger market scans, browse persisted data, manage stock notes, read macro and
@@ -220,49 +220,67 @@ code cannot drift.
 | 62 | POST | `/v1/research-cases` | Create a research case (feature-flagged) | `v1/platform.py` |
 | 63 | GET | `/v1/research-cases/{case_id}` | Read a research case (feature-flagged) | `v1/platform.py` |
 | 64 | POST | `/v1/research-cases/{case_id}/runs` | Idempotently link a run to a research case (feature-flagged) | `v1/platform.py` |
-| 65 | GET | `/v1/workflow-templates` | List workflow templates (feature-flagged) | `v1/platform.py` |
-| 66 | POST | `/v1/workflow-templates` | Create a workflow template definition (feature-flagged) | `v1/platform.py` |
-| 67 | GET | `/v1/workflow-templates/{template_id}` | Read a workflow template by ID or slug (feature-flagged) | `v1/platform.py` |
-| 68 | GET | `/v1/capabilities` | Read redacted provider, feature, maturity, and tool capability status (feature-flagged) | `v1/platform.py` |
-| 69 | GET | `/v1/tools` | List function-tool schemas | `v1/tools.py` |
-| 70 | POST | `/v1/portfolios/import` | Import a UTF-8 portfolio CSV and persist holdings | `v1/portfolios.py` |
-| 71 | GET | `/v1/audit/events` | List tenant-scoped audit events | `v1/audit.py` |
-| 72 | GET | `/v1/audit/events/export` | Export tenant audit events as redacted JSONL | `v1/audit.py` |
-| 73 | POST | `/v1/audit/events/retention` | Purge expired tenant audit events by retention policy | `v1/audit.py` |
-| 74 | GET | `/v1/enterprise/acl/grants` | List tenant ACL grants for enterprise admins | `v1/enterprise.py` |
-| 75 | POST | `/v1/enterprise/acl/grants` | Create a tenant ACL grant | `v1/enterprise.py` |
-| 76 | DELETE | `/v1/enterprise/acl/grants` | Revoke a tenant ACL grant | `v1/enterprise.py` |
+| 65 | GET | `/v1/home-queue` | Read actionable case/run/data work queue items (feature-flagged) | `v1/platform.py` |
+| 66 | GET | `/v1/research-cases/{case_id}/assets` | List assets attached to a research case (feature-flagged) | `v1/platform.py` |
+| 67 | POST | `/v1/research-cases/{case_id}/assets` | Attach a document, portfolio, or URL asset to a case (feature-flagged) | `v1/platform.py` |
+| 68 | DELETE | `/v1/research-cases/{case_id}/assets/{asset_link_id}` | Remove a case asset link (feature-flagged) | `v1/platform.py` |
+| 69 | GET | `/v1/research-cases/{case_id}/decisions` | List recorded case decisions (feature-flagged) | `v1/platform.py` |
+| 70 | POST | `/v1/research-cases/{case_id}/decisions` | Record an approve/reject/hold/escalate case decision (feature-flagged) | `v1/platform.py` |
+| 71 | POST | `/v1/research-cases/{case_id}/executions/preflight` | Validate template inputs, assets, and capabilities before execution (feature-flagged) | `v1/platform.py` |
+| 72 | POST | `/v1/research-cases/{case_id}/executions` | Create a workflow execution, run it, and link it to the case (feature-flagged) | `v1/platform.py` |
+| 73 | GET | `/v1/research-cases/{case_id}/executions` | List workflow executions for a case (feature-flagged) | `v1/platform.py` |
+| 74 | GET | `/v1/research-cases/{case_id}/executions/{execution_id}` | Read a workflow execution by ID (feature-flagged) | `v1/platform.py` |
+| 75 | GET | `/v1/research-cases/{case_id}/review` | Read case review state with latest run summary when enabled (feature-flagged) | `v1/platform.py` |
+| 76 | GET | `/v1/workflow-templates` | List workflow templates (feature-flagged) | `v1/platform.py` |
+| 77 | POST | `/v1/workflow-templates` | Create a workflow template definition (feature-flagged) | `v1/platform.py` |
+| 78 | GET | `/v1/workflow-templates/{template_id}` | Read a workflow template by ID or slug (feature-flagged) | `v1/platform.py` |
+| 79 | GET | `/v1/capabilities` | Read redacted provider, feature, maturity, and tool capability status (feature-flagged) | `v1/platform.py` |
+| 80 | GET | `/v1/tools` | List function-tool schemas | `v1/tools.py` |
+| 81 | POST | `/v1/portfolios/import` | Import a UTF-8 portfolio CSV and persist holdings | `v1/portfolios.py` |
+| 82 | GET | `/v1/audit/events` | List tenant-scoped audit events | `v1/audit.py` |
+| 83 | GET | `/v1/audit/events/export` | Export tenant audit events as redacted JSONL | `v1/audit.py` |
+| 84 | POST | `/v1/audit/events/retention` | Purge expired tenant audit events by retention policy | `v1/audit.py` |
+| 85 | GET | `/v1/enterprise/acl/grants` | List tenant ACL grants for enterprise admins | `v1/enterprise.py` |
+| 86 | POST | `/v1/enterprise/acl/grants` | Create a tenant ACL grant | `v1/enterprise.py` |
+| 87 | DELETE | `/v1/enterprise/acl/grants` | Revoke a tenant ACL grant | `v1/enterprise.py` |
 
 > The OpenAPI surface also exposes `/openapi.json`, `/docs`,
 > `/docs/oauth2-redirect`, `/redoc` (FastAPI defaults) — infrastructure, not
-> product endpoints, so not counted in the 76 product routes above.
+> product endpoints, so not counted in the 87 product routes above.
 
 ### Feature-Flagged Platform Surfaces
 
-The platformization routes above are additive and default off:
+The backend platformization routes above are additive and default off:
 
 - `DOGE_FEATURE_RUN_SUMMARY_API=1` enables `/v1/runs/{run_id}/summary`,
   `/claims`, `/citations`, and `/eval`.
 - `DOGE_FEATURE_PLATFORM_OBJECTS=1` enables workspace, project, research-case,
-  and case-run link routes.
+  case-run link, case asset, workflow execution, decision, review, and home
+  queue routes.
 - `DOGE_FEATURE_WORKFLOW_TEMPLATES=1` enables workflow-template routes.
   `POST /v1/research-cases/{case_id}/runs` also accepts `template_id` under
   this flag to create and link a run from a workflow template.
 - `DOGE_FEATURE_CAPABILITY_REGISTRY=1` enables `/v1/capabilities`, including
   provider-split feature/provider/maturity records and default tool capability
   metadata sourced from `ToolRegistry` without executing tools.
-- `VITE_DOGE_FEATURE_PLATFORM_SHELL=1` enables the web platform shell routes;
-  with the flag off, `/research-agent` remains the default compatible UI.
+- The Web platform shell is default-on for local Web builds. `/` opens `/home`;
+  `/research-agent` remains directly reachable. Set
+  `VITE_DOGE_FEATURE_PLATFORM_SHELL=0` to roll the root route back to the
+  legacy Research Agent entry.
 
 Feature flag lifecycle metadata and defaultization/removal gates are recorded in
-`docs/archive/audits/feature-flag-deprecation-plan-2026-06-23.md`.
+`docs/archive/audits/feature-flag-deprecation-plan-2026-06-23.md` and
+`docs/archive/audits/platform-shell-defaultization-2026-06-24.md`.
 
 Python SDK methods mirror these routes with `client.runs.summary()`,
 `client.runs.claims()`, `client.runs.citations()`,
 `client.runs.evaluation()`, `client.platform.*`, and
-`client.platform.create_research_case_run_from_template()`, and
-`client.capabilities.get()/list()`. The TypeScript SDK mirrors the same
-surface in camelCase for platform helpers.
+`client.platform.create_research_case_run_from_template()`. Case-centered
+execution helpers include `home_queue()`, `preflight_case_execution()`,
+`execute_case_template()`, `list_case_executions()`, `get_case_review()`,
+case assets, and case decisions. `client.capabilities.get()/list()` exposes
+capability discovery. The TypeScript SDK mirrors the same surface in camelCase
+for platform helpers.
 
 ## Per-Endpoint Reference
 

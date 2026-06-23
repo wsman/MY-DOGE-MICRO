@@ -9,10 +9,13 @@ from typing import Any
 from doge.config import get_settings
 from doge.core.domain.agent_models import utc_now
 from doge.core.domain.platform_models import (
+    CaseAssetLink,
+    CaseDecision,
     CaseRunLink,
     Project,
     ResearchCase,
     WorkflowTemplate,
+    WorkflowExecution,
     WorkflowTemplateRunLink,
     Workspace,
 )
@@ -278,6 +281,209 @@ class SQLitePlatformRepository(IPlatformRepository):
         rows = self._list("workflow_templates", limit=limit, tenant_id=tenant_id)
         return [WorkflowTemplate.from_mapping(dict(row)) for row in rows]
 
+    def save_case_asset(self, link: CaseAssetLink) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO case_assets(
+                    asset_link_id, case_id, tenant_id, asset_type, asset_id,
+                    asset_name, role, version, metadata, linked_at, deleted_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(asset_link_id) DO UPDATE SET
+                    tenant_id = excluded.tenant_id,
+                    asset_type = excluded.asset_type,
+                    asset_id = excluded.asset_id,
+                    asset_name = excluded.asset_name,
+                    role = excluded.role,
+                    version = excluded.version,
+                    metadata = excluded.metadata,
+                    deleted_at = excluded.deleted_at
+                """,
+                (
+                    link.asset_link_id,
+                    link.case_id,
+                    link.tenant_id,
+                    link.asset_type,
+                    link.asset_id,
+                    link.asset_name,
+                    link.role,
+                    link.version,
+                    _json(link.metadata),
+                    link.linked_at,
+                    link.deleted_at,
+                ),
+            )
+            conn.commit()
+
+    def list_case_assets(
+        self,
+        case_id: str,
+        tenant_id: str | None = None,
+        include_deleted: bool = False,
+    ) -> list[CaseAssetLink]:
+        sql = "SELECT * FROM case_assets WHERE case_id = ?"
+        params: list[Any] = [case_id]
+        if tenant_id is not None:
+            sql += " AND tenant_id = ?"
+            params.append(tenant_id)
+        if not include_deleted:
+            sql += " AND deleted_at IS NULL"
+        sql += " ORDER BY linked_at DESC"
+        with self._connect() as conn:
+            rows = conn.execute(sql, tuple(params)).fetchall()
+        return [CaseAssetLink.from_mapping(dict(row)) for row in rows]
+
+    def delete_case_asset(self, asset_link_id: str, tenant_id: str | None = None) -> None:
+        now = utc_now()
+        sql = "UPDATE case_assets SET deleted_at = ? WHERE asset_link_id = ?"
+        params: list[Any] = [now, asset_link_id]
+        if tenant_id is not None:
+            sql += " AND tenant_id = ?"
+            params.append(tenant_id)
+        with self._connect() as conn:
+            conn.execute(sql, tuple(params))
+            conn.commit()
+
+    def save_workflow_execution(self, execution: WorkflowExecution) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO workflow_executions(
+                    execution_id, case_id, tenant_id, template_id, template_slug,
+                    template_version, run_id, status, input_snapshot,
+                    preflight_result, trigger_channel, created_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(execution_id) DO UPDATE SET
+                    tenant_id = excluded.tenant_id,
+                    template_id = excluded.template_id,
+                    template_slug = excluded.template_slug,
+                    template_version = excluded.template_version,
+                    run_id = excluded.run_id,
+                    status = excluded.status,
+                    input_snapshot = excluded.input_snapshot,
+                    preflight_result = excluded.preflight_result,
+                    trigger_channel = excluded.trigger_channel,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    execution.execution_id,
+                    execution.case_id,
+                    execution.tenant_id,
+                    execution.template_id,
+                    execution.template_slug,
+                    execution.template_version,
+                    execution.run_id,
+                    execution.status,
+                    _json(execution.input_snapshot),
+                    _json(execution.preflight_result),
+                    execution.trigger_channel,
+                    execution.created_at,
+                    execution.updated_at,
+                ),
+            )
+            conn.commit()
+
+    def get_workflow_execution(
+        self,
+        execution_id: str,
+        tenant_id: str | None = None,
+    ) -> WorkflowExecution | None:
+        row = self._get_one("workflow_executions", "execution_id", execution_id, tenant_id)
+        return WorkflowExecution.from_mapping(dict(row)) if row else None
+
+    def list_workflow_executions(
+        self,
+        case_id: str,
+        tenant_id: str | None = None,
+        limit: int = 100,
+    ) -> list[WorkflowExecution]:
+        sql = "SELECT * FROM workflow_executions WHERE case_id = ?"
+        params: list[Any] = [case_id]
+        if tenant_id is not None:
+            sql += " AND tenant_id = ?"
+            params.append(tenant_id)
+        sql += " ORDER BY updated_at DESC LIMIT ?"
+        params.append(limit)
+        with self._connect() as conn:
+            rows = conn.execute(sql, tuple(params)).fetchall()
+        return [WorkflowExecution.from_mapping(dict(row)) for row in rows]
+
+    def update_workflow_execution_status(
+        self,
+        execution_id: str,
+        status: str,
+        *,
+        run_id: str | None = None,
+        preflight_result: dict | None = None,
+        tenant_id: str | None = None,
+    ) -> WorkflowExecution | None:
+        existing = self.get_workflow_execution(execution_id, tenant_id=tenant_id)
+        if existing is None:
+            return None
+        updated = WorkflowExecution(
+            **{
+                **existing.__dict__,
+                "status": status,
+                "run_id": run_id if run_id is not None else existing.run_id,
+                "preflight_result": preflight_result
+                if preflight_result is not None
+                else existing.preflight_result,
+                "updated_at": utc_now(),
+            }
+        )
+        self.save_workflow_execution(updated)
+        return updated
+
+    def save_case_decision(self, decision: CaseDecision) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO case_decisions(
+                    decision_id, case_id, tenant_id, decision_type, rationale,
+                    actor_hash, source_run_ids, source_execution_ids, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(decision_id) DO UPDATE SET
+                    tenant_id = excluded.tenant_id,
+                    decision_type = excluded.decision_type,
+                    rationale = excluded.rationale,
+                    actor_hash = excluded.actor_hash,
+                    source_run_ids = excluded.source_run_ids,
+                    source_execution_ids = excluded.source_execution_ids
+                """,
+                (
+                    decision.decision_id,
+                    decision.case_id,
+                    decision.tenant_id,
+                    decision.decision_type,
+                    decision.rationale,
+                    decision.actor_hash,
+                    _json_value(decision.source_run_ids),
+                    _json_value(decision.source_execution_ids),
+                    decision.created_at,
+                ),
+            )
+            conn.commit()
+
+    def list_case_decisions(
+        self,
+        case_id: str,
+        tenant_id: str | None = None,
+        limit: int = 100,
+    ) -> list[CaseDecision]:
+        sql = "SELECT * FROM case_decisions WHERE case_id = ?"
+        params: list[Any] = [case_id]
+        if tenant_id is not None:
+            sql += " AND tenant_id = ?"
+            params.append(tenant_id)
+        sql += " ORDER BY created_at DESC LIMIT ?"
+        params.append(limit)
+        with self._connect() as conn:
+            rows = conn.execute(sql, tuple(params)).fetchall()
+        return [CaseDecision.from_mapping(dict(row)) for row in rows]
+
     def _get_one(self, table: str, key: str, value: str, tenant_id: str | None):
         with self._connect() as conn:
             return self._get_one_with_conn(conn, table, key, value, tenant_id)
@@ -318,3 +524,7 @@ class SQLitePlatformRepository(IPlatformRepository):
 
 def _json(value: dict[str, Any]) -> str:
     return json.dumps(value or {}, ensure_ascii=False)
+
+
+def _json_value(value: Any) -> str:
+    return json.dumps(value if value is not None else [], ensure_ascii=False)

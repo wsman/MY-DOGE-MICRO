@@ -7,7 +7,10 @@
 
 ## Overview
 
-Platform Shell UI defines a feature-flagged Vue shell that organizes Research Agent, cases, workflows, evidence, capability status, and settings into a coherent product surface. It preserves the existing `/research-agent` route while adding navigation and context needed for platform workflows.
+Platform Shell UI defines a reversible Vue shell that organizes Research Agent,
+cases, workflows, evidence, capability status, and settings into a coherent
+product surface. It preserves the existing `/research-agent` route while adding
+navigation and context needed for platform workflows.
 
 ## User Promise
 
@@ -17,7 +20,7 @@ An operator can move between research objects, workflow starts, evidence review,
 
 ### Core Specification
 
-1. The shell is an optional Vue route layer, not a replacement for existing working views.
+1. The shell is the default local Web route layer, not a replacement for existing working views.
 2. `/research-agent` remains supported as a direct route and can render inside or alongside the shell.
 3. The shell owns global navigation, object context selectors, feature availability indicators, and maturity warnings.
 4. Route availability must follow backend capability and feature-flag responses.
@@ -29,7 +32,7 @@ An operator can move between research objects, workflow starts, evidence review,
 
 | State | Meaning | Valid Transitions |
 |-------|---------|-------------------|
-| `disabled` | Shell route is unavailable; legacy routes remain primary. | `preview`. |
+| `disabled` | Shell route is unavailable; legacy routes remain primary through rollback. | `preview`. |
 | `preview` | Shell is available behind a feature flag for local testing. | `enabled`, `disabled`. |
 | `enabled` | Shell is the default web console route for supported local use. | `preview`, `disabled`. |
 | `blocked` | Shell cannot be enabled because required API capability or evidence is missing. | `preview` after blockers clear. |
@@ -97,7 +100,7 @@ The `navigation_item` model is defined as:
 
 | Parameter | Default | Scope | Description |
 |-----------|---------|-------|-------------|
-| `VITE_DOGE_PLATFORM_SHELL` | `false` until implemented | Frontend build/runtime | Enables shell routes and navigation. |
+| `VITE_DOGE_FEATURE_PLATFORM_SHELL` | `true` for local Web builds | Frontend build/runtime | Keeps shell routes and navigation enabled by default; set `0` to roll `/` back to `/research-agent`. |
 | `DOGE_PLATFORM_SHELL_ENABLED` | `false` until implemented | Backend feature status | Advertises shell support to clients. |
 | `DOGE_PLATFORM_LEGACY_AGENT_ROUTE` | `/research-agent` | Runtime config | Direct route that must remain supported. |
 

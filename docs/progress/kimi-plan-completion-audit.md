@@ -37,9 +37,9 @@ Local slices started in this session:
   execution facade behind `DOGE_FEATURE_CAPABILITY_REGISTRY`, with legacy direct
   execution retained as the default rollback path.
 - Python and TypeScript SDK source helpers for the new APIs.
-- Feature-flagged web platform shell (`VITE_DOGE_FEATURE_PLATFORM_SHELL=1`),
-  with `/research-agent` preserved as the default compatible route when the
-  shell flag is off.
+- Web platform shell, now default-on after the 2026-06-24 defaultization story,
+  with `/research-agent` preserved as a compatible direct route and
+  `VITE_DOGE_FEATURE_PLATFORM_SHELL=0` retained as rollback.
 - A dedicated status audit now exists at
   `docs/progress/glowing-weaving-kettle-completion-audit.md` to keep Track B
   local completion separate from Track A external closure; it is checked by

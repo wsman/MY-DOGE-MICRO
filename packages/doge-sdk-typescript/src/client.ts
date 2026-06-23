@@ -46,13 +46,7 @@ export class DogeClient {
       body: body === undefined ? undefined : JSON.stringify(body),
     })
     if (!response.ok) {
-      let message = response.statusText
-      try {
-        const payload = await response.json() as { error?: { message?: string }, detail?: string }
-        message = payload.error?.message ?? payload.detail ?? message
-      } catch {
-        message = await response.text()
-      }
+      const message = await responseErrorMessage(response)
       throw new DogeApiError(response.status, redactMessage(message, this.apiToken))
     }
     return await response.json() as T
@@ -71,13 +65,7 @@ export class DogeClient {
       body: form,
     })
     if (!response.ok) {
-      let message = response.statusText
-      try {
-        const payload = await response.json() as { error?: { message?: string }, detail?: string }
-        message = payload.error?.message ?? payload.detail ?? message
-      } catch {
-        message = await response.text()
-      }
+      const message = await responseErrorMessage(response)
       throw new DogeApiError(response.status, redactMessage(message, this.apiToken))
     }
     return await response.json() as T
@@ -216,15 +204,27 @@ function defaultSleep(milliseconds: number): Promise<void> {
 
 async function responseErrorMessage(response: Response): Promise<string> {
   let message = response.statusText
+  let body = ''
+  if (typeof response.text === 'function') {
+    try {
+      body = await response.text()
+    } catch {
+      body = ''
+    }
+  }
+  if (body) {
+    try {
+      const payload = JSON.parse(body) as { error?: { message?: string }, detail?: string }
+      return payload.error?.message ?? payload.detail ?? body
+    } catch {
+      return body
+    }
+  }
   try {
     const payload = await response.json() as { error?: { message?: string }, detail?: string }
     message = payload.error?.message ?? payload.detail ?? message
   } catch {
-    try {
-      message = await response.text()
-    } catch {
-      // Keep statusText when the body cannot be read.
-    }
+    // Keep statusText when the body cannot be read.
   }
   return message
 }
@@ -288,6 +288,11 @@ interface CreateWorkflowTemplateOptions {
   toolPolicy?: Record<string, unknown>
   evidencePolicy?: Record<string, unknown>
   outputContract?: Record<string, unknown>
+  metadata?: Record<string, unknown>
+  requiredCapabilities?: string[]
+  evalPolicy?: string[]
+  approvalPolicy?: Record<string, unknown>
+  uiSchema?: Record<string, unknown>
 }
 
 interface CreateResearchCaseRunFromTemplateOptions {
@@ -301,6 +306,20 @@ interface CreateResearchCaseRunFromTemplateOptions {
   documentIds?: string[]
   portfolioId?: string
   linkType?: string
+}
+
+interface CaseExecutionOptions {
+  question?: string
+  workflow?: string
+  sessionId?: string
+  market?: string
+  language?: string
+  documentIds?: string[]
+  portfolioId?: string
+  assetLinkIds?: string[]
+  modelPolicy?: Record<string, unknown>
+  inputs?: Record<string, unknown>
+  skipPreflight?: boolean
 }
 
 export class PlatformResource {
@@ -367,6 +386,10 @@ export class PlatformResource {
     return this.root.request('GET', `/v1/research-cases/${caseId}`)
   }
 
+  homeQueue(limit = 20): Promise<Record<string, unknown>> {
+    return this.root.request('GET', `/v1/home-queue?limit=${limit}`)
+  }
+
   linkResearchCaseRun(caseId: string, runId: string, linkType = 'primary'): Promise<Record<string, unknown>> {
     return this.root.request('POST', `/v1/research-cases/${caseId}/runs`, {
       run_id: runId,
@@ -394,6 +417,96 @@ export class PlatformResource {
     })
   }
 
+  async listCaseAssets(caseId: string): Promise<Record<string, unknown>[]> {
+    const payload = await this.root.request<{ assets: Record<string, unknown>[] }>(
+      'GET',
+      `/v1/research-cases/${caseId}/assets`,
+    )
+    return payload.assets
+  }
+
+  addCaseAsset(
+    caseId: string,
+    assetType: string,
+    assetId: string,
+    options: {
+      assetName?: string
+      role?: string
+      version?: string
+      metadata?: Record<string, unknown>
+    } = {},
+  ): Promise<Record<string, unknown>> {
+    return this.root.request('POST', `/v1/research-cases/${caseId}/assets`, {
+      asset_type: assetType,
+      asset_id: assetId,
+      asset_name: options.assetName ?? '',
+      role: options.role ?? 'source',
+      version: options.version,
+      metadata: options.metadata ?? {},
+    })
+  }
+
+  async listCaseDecisions(caseId: string): Promise<Record<string, unknown>[]> {
+    const payload = await this.root.request<{ decisions: Record<string, unknown>[] }>(
+      'GET',
+      `/v1/research-cases/${caseId}/decisions`,
+    )
+    return payload.decisions
+  }
+
+  recordCaseDecision(
+    caseId: string,
+    decisionType: string,
+    options: {
+      rationale?: string
+      sourceRunIds?: string[]
+      sourceExecutionIds?: string[]
+    } = {},
+  ): Promise<Record<string, unknown>> {
+    return this.root.request('POST', `/v1/research-cases/${caseId}/decisions`, {
+      decision_type: decisionType,
+      rationale: options.rationale ?? '',
+      source_run_ids: options.sourceRunIds ?? [],
+      source_execution_ids: options.sourceExecutionIds ?? [],
+    })
+  }
+
+  preflightCaseExecution(
+    caseId: string,
+    templateId: string,
+    options: CaseExecutionOptions = {},
+  ): Promise<Record<string, unknown>> {
+    return this.root.request(
+      'POST',
+      `/v1/research-cases/${caseId}/executions/preflight`,
+      caseExecutionPayload(templateId, options),
+    )
+  }
+
+  executeCaseTemplate(
+    caseId: string,
+    templateId: string,
+    options: CaseExecutionOptions = {},
+  ): Promise<Record<string, unknown>> {
+    return this.root.request(
+      'POST',
+      `/v1/research-cases/${caseId}/executions`,
+      caseExecutionPayload(templateId, options),
+    )
+  }
+
+  async listCaseExecutions(caseId: string, limit = 100): Promise<Record<string, unknown>[]> {
+    const payload = await this.root.request<{ executions: Record<string, unknown>[] }>(
+      'GET',
+      `/v1/research-cases/${caseId}/executions?limit=${limit}`,
+    )
+    return payload.executions
+  }
+
+  getCaseReview(caseId: string): Promise<Record<string, unknown>> {
+    return this.root.request('GET', `/v1/research-cases/${caseId}/review`)
+  }
+
   async listWorkflowTemplates(limit = 100): Promise<Record<string, unknown>[]> {
     const payload = await this.root.request<{ workflow_templates: Record<string, unknown>[] }>(
       'GET',
@@ -417,6 +530,11 @@ export class PlatformResource {
       tool_policy: options.toolPolicy ?? {},
       evidence_policy: options.evidencePolicy ?? {},
       output_contract: options.outputContract ?? {},
+      metadata: options.metadata ?? {},
+      required_capabilities: options.requiredCapabilities,
+      eval_policy: options.evalPolicy,
+      approval_policy: options.approvalPolicy,
+      ui_schema: options.uiSchema,
     })
   }
 
@@ -454,4 +572,21 @@ function queryPath(path: string, params: Record<string, string | number | undefi
   }
   const suffix = query.toString()
   return suffix ? `${path}?${suffix}` : path
+}
+
+function caseExecutionPayload(templateId: string, options: CaseExecutionOptions): Record<string, unknown> {
+  return {
+    template_id: templateId,
+    question: options.question,
+    workflow: options.workflow,
+    session_id: options.sessionId,
+    market: options.market ?? 'us',
+    language: options.language ?? 'en',
+    document_ids: options.documentIds ?? [],
+    portfolio_id: options.portfolioId,
+    asset_link_ids: options.assetLinkIds ?? [],
+    model_policy: options.modelPolicy ?? {},
+    inputs: options.inputs ?? {},
+    skip_preflight: options.skipPreflight ?? false,
+  }
 }

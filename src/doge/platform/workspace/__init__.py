@@ -2,10 +2,14 @@
 
 from doge.application.use_cases.capability_registry import BuildCapabilityRegistry
 from doge.core.domain.platform_models import (
+    CaseAssetLink,
+    CaseDecision,
     CaseRunLink,
     Project,
     ResearchCase,
+    TemplatePreflightResult,
     WorkflowTemplate,
+    WorkflowExecution,
     WorkflowTemplateRunLink,
     Workspace,
     to_dict,
@@ -14,6 +18,10 @@ from doge.core.domain.workflow_template import TemplateRunInput, build_template_
 from doge.core.ports.capability_provider import ICapabilityProvider
 from doge.core.ports.platform_repository import IPlatformRepository
 from doge.platform.workspace.service import (
+    CaseAssetCreate,
+    CaseDecisionCreate,
+    CaseExecutionCreate,
+    CaseExecutionCreateResult,
     CaseRunCreate,
     CaseRunCreateResult,
     PlatformAccessDeniedError,
@@ -27,9 +35,17 @@ from doge.platform.workspace.service import (
     WorkflowService,
     WorkspaceService,
 )
+from doge.platform.workspace.template_seed import BUILTIN_TEMPLATES, TemplateSeedResult, seed_workflow_templates
 
 __all__ = [
     "BuildCapabilityRegistry",
+    "BUILTIN_TEMPLATES",
+    "CaseAssetCreate",
+    "CaseAssetLink",
+    "CaseDecision",
+    "CaseDecisionCreate",
+    "CaseExecutionCreate",
+    "CaseExecutionCreateResult",
     "CaseRunCreate",
     "CaseRunCreateResult",
     "CaseRunLink",
@@ -46,11 +62,15 @@ __all__ = [
     "ResearchCase",
     "ResearchCaseService",
     "TemplateRunInput",
+    "TemplatePreflightResult",
+    "TemplateSeedResult",
+    "WorkflowExecution",
     "WorkflowTemplate",
     "WorkflowTemplateRunLink",
     "WorkflowService",
     "Workspace",
     "WorkspaceService",
     "build_template_run_request",
+    "seed_workflow_templates",
     "to_dict",
 ]

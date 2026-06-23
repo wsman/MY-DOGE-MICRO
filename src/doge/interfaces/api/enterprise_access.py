@@ -94,6 +94,27 @@ def filter_accessible_resource_ids(
     return (allowed & set(resource_ids)) | inline
 
 
+def redact_run_summary_for_request(
+    request: Request,
+    governance: IEnterpriseGovernanceRepository,
+    result: dict,
+) -> dict:
+    """Apply document ACL citation redaction for a run-summary payload."""
+    if not is_enterprise_request(request):
+        return result
+    from doge.application.use_cases.run_summary import redact_inaccessible_citations
+
+    document_ids = sorted(
+        {
+            citation["document_id"]
+            for citation in result.get("citations", [])
+            if citation.get("document_id")
+        }
+    )
+    allowed = filter_accessible_resource_ids(request, governance, "document", document_ids, "read")
+    return redact_inaccessible_citations(result, allowed)
+
+
 def append_audit(
     request: Request,
     governance: IEnterpriseGovernanceRepository,

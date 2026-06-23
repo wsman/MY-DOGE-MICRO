@@ -1,9 +1,14 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import router from './index'
 import { VIEW_REGISTRY } from '../views/registry'
 
 describe('product navigation routes', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.resetModules()
+  })
+
   it('exposes the consolidated product-domain shell routes', () => {
     const routeNames = router.getRoutes().map(route => String(route.name))
 
@@ -29,6 +34,34 @@ describe('product navigation routes', () => {
       '/analysis',
     ]))
   })
+
+  it('uses the product-domain shell as the default root entry', () => {
+    const root = router.getRoutes().find(route => route.path === '/')
+
+    expect(root?.redirect).toBe('/home')
+  })
+
+  it('keeps the legacy root fallback available through an explicit rollback env value', async () => {
+    vi.stubEnv('VITE_DOGE_FEATURE_PLATFORM_SHELL', '0')
+    vi.resetModules()
+
+    const { default: rollbackRouter } = await import('./index')
+    const root = rollbackRouter.getRoutes().find(route => route.path === '/')
+
+    expect(root?.redirect).toBe('/research-agent')
+  })
+
+  it('redirects platform routes to the legacy agent route when the rollback env value is set', async () => {
+    vi.stubEnv('VITE_DOGE_FEATURE_PLATFORM_SHELL', '0')
+    vi.resetModules()
+
+    const { default: rollbackRouter } = await import('./index')
+    await rollbackRouter.push('/home')
+    await rollbackRouter.isReady()
+
+    expect(rollbackRouter.currentRoute.value.path).toBe('/research-agent')
+  })
+
 
   it('registers the product-domain views for split panels', () => {
     expect(VIEW_REGISTRY['home-dashboard'].label).toBe('Home')

@@ -3,8 +3,9 @@ from fastapi.testclient import TestClient
 
 from doge.config import Settings
 from doge.config.settings import FeatureConfig
-from doge.core.domain.agent_models import AgentRun
+from doge.core.domain.agent_models import AgentRun, RunStatus
 from doge.core.domain.platform_models import Workspace
+from doge.core.domain.portfolio_models import Portfolio
 from doge.core.ports.enterprise_auth import AuthenticatedPrincipal
 from doge.infrastructure.database.enterprise_governance import SQLiteEnterpriseGovernanceRepository
 from doge.infrastructure.database.platform_repository import SQLitePlatformRepository
@@ -122,6 +123,127 @@ def test_research_case_template_run_requires_template_flag(tmp_path):
     assert response.json()["detail"] == "workflow templates API disabled"
 
 
+def test_research_case_execution_preflight_and_execute_records_execution(tmp_path):
+    runtime = _Runtime()
+    app = _app(
+        tmp_path,
+        platform_enabled=True,
+        templates_enabled=True,
+        run_summary_enabled=True,
+        runtime=runtime,
+    )
+
+    with TestClient(app) as client:
+        workspace = client.post("/v1/workspaces", json={"name": "Local Research"}).json()
+        project = client.post(
+            "/v1/projects",
+            json={"workspace_id": workspace["workspace_id"], "name": "Semis"},
+        ).json()
+        case = client.post(
+            "/v1/research-cases",
+            json={"project_id": project["project_id"], "title": "NVDA diligence"},
+        ).json()
+        template = client.post(
+            "/v1/workflow-templates",
+            json={
+                "slug": "earnings-review",
+                "name": "Earnings review",
+                "input_schema": {
+                    "required": ["ticker"],
+                    "properties": {"ticker": {"type": "string"}},
+                },
+                "required_capabilities": ["feature.workflow_templates"],
+            },
+        ).json()
+
+        invalid = client.post(
+            f"/v1/research-cases/{case['case_id']}/executions/preflight",
+            json={"template_id": template["template_id"], "inputs": {}},
+        ).json()
+        valid = client.post(
+            f"/v1/research-cases/{case['case_id']}/executions/preflight",
+            json={"template_id": template["template_id"], "inputs": {"ticker": "NVDA"}},
+        ).json()
+        executed = client.post(
+            f"/v1/research-cases/{case['case_id']}/executions",
+            json={
+                "template_id": template["template_id"],
+                "inputs": {"ticker": "NVDA"},
+                "document_ids": ["doc-1"],
+                "portfolio_id": "portfolio-demo",
+            },
+        ).json()
+        executions = client.get(f"/v1/research-cases/{case['case_id']}/executions").json()["executions"]
+        review = client.get(f"/v1/research-cases/{case['case_id']}/review").json()
+
+    assert invalid["valid"] is False
+    assert invalid["input_errors"][0]["code"] == "required"
+    assert valid["valid"] is True
+    assert executed["execution_id"].startswith("exec-")
+    assert executed["run_id"] == "run-created-1"
+    assert executed["status"] == "queued"
+    assert executed["links"]["run"] == "/v1/runs/run-created-1"
+    assert executions[0]["execution_id"] == executed["execution_id"]
+    assert review["approvals"][0]["approval_id"].startswith("appr-")
+    assert review["approvals"][0]["action"] == "publish memo"
+    assert review["approvals"][0]["status"] == "pending"
+
+
+def test_research_case_assets_decisions_and_review(tmp_path):
+    runtime = _Runtime()
+    app = _app(tmp_path, platform_enabled=True, templates_enabled=True, run_summary_enabled=True, runtime=runtime)
+
+    with TestClient(app) as client:
+        workspace = client.post("/v1/workspaces", json={"name": "Local Research"}).json()
+        project = client.post(
+            "/v1/projects",
+            json={"workspace_id": workspace["workspace_id"], "name": "Semis"},
+        ).json()
+        case = client.post(
+            "/v1/research-cases",
+            json={"project_id": project["project_id"], "title": "NVDA diligence"},
+        ).json()
+        asset = client.post(
+            f"/v1/research-cases/{case['case_id']}/assets",
+            json={"asset_type": "document", "asset_id": "doc-1", "asset_name": "10-Q"},
+        ).json()
+        assets = client.get(f"/v1/research-cases/{case['case_id']}/assets").json()["assets"]
+        decision = client.post(
+            f"/v1/research-cases/{case['case_id']}/decisions",
+            json={"decision_type": "hold", "rationale": "Needs second source."},
+        ).json()
+        decisions = client.get(f"/v1/research-cases/{case['case_id']}/decisions").json()["decisions"]
+        review = client.get(f"/v1/research-cases/{case['case_id']}/review").json()
+
+    assert asset["asset_link_id"].startswith("cal-")
+    assert assets[0]["asset_id"] == "doc-1"
+    assert decision["decision_id"].startswith("dec-")
+    assert decisions[0]["decision_type"] == "hold"
+    assert review["case"]["case_id"] == case["case_id"]
+    assert review["assets"][0]["asset_link_id"] == asset["asset_link_id"]
+
+
+def test_home_queue_returns_actionable_case_items(tmp_path):
+    app = _app(tmp_path, platform_enabled=True, templates_enabled=True)
+
+    with TestClient(app) as client:
+        workspace = client.post("/v1/workspaces", json={"name": "Local Research"}).json()
+        project = client.post(
+            "/v1/projects",
+            json={"workspace_id": workspace["workspace_id"], "name": "Semis"},
+        ).json()
+        case = client.post(
+            "/v1/research-cases",
+            json={"project_id": project["project_id"], "title": "NVDA diligence"},
+        ).json()
+        queue = client.get("/v1/home-queue").json()
+
+    assert queue["pending_cases"][0]["case"]["case_id"] == case["case_id"]
+    assert queue["pending_cases"][0]["reason"] == "no_recent_execution"
+    assert queue["data_freshness"] is None
+    assert "data_freshness_unavailable" in queue["warnings"]
+
+
 def test_enterprise_platform_list_filters_by_acl(tmp_path):
     repo = SQLitePlatformRepository(tmp_path / "agent.db")
     governance = SQLiteEnterpriseGovernanceRepository(tmp_path / "agent.db")
@@ -174,6 +296,7 @@ def _app(
     platform_enabled: bool,
     templates_enabled: bool = False,
     capability_enabled: bool = False,
+    run_summary_enabled: bool = False,
     repo: SQLitePlatformRepository | None = None,
     governance: SQLiteEnterpriseGovernanceRepository | None = None,
     enterprise: bool = False,
@@ -190,12 +313,16 @@ def _app(
             platform_objects=platform_enabled,
             workflow_templates=templates_enabled,
             capability_registry=capability_enabled,
+            run_summary_api=run_summary_enabled,
         )
     )
     app.dependency_overrides[deps.get_platform_repository] = lambda: repo
     app.dependency_overrides[deps.get_enterprise_governance_repository] = lambda: governance
     runtime = runtime or _Runtime()
     app.dependency_overrides[deps.get_persisted_research_agent_runtime] = lambda: runtime
+    app.dependency_overrides[deps.get_agent_document_repository] = lambda: _DocumentRepo()
+    app.dependency_overrides[deps.get_portfolio_repository] = lambda: _PortfolioRepo()
+    app.dependency_overrides[deps.get_daemon_worker] = lambda: _Worker(runtime)
     return app
 
 
@@ -207,20 +334,71 @@ class _Provider:
 class _Runtime:
     def __init__(self):
         self.created_requests = []
+        self.runs = {
+            "run-1": AgentRun.create(workflow="investment_research", question="Analyze", run_id="run-1")
+        }
 
     async def create_run(self, request):
         self.created_requests.append(request)
-        return AgentRun.create(
+        run = AgentRun.create(
             workflow=request.get("workflow", "investment_research"),
             question=request.get("question", "Analyze"),
             run_id=f"run-created-{len(self.created_requests)}",
             model_policy=request.get("model_policy"),
         )
+        run.add_approval("publish memo", "high")
+        self.runs[run.run_id] = run
+        return run
 
     def get_run(self, run_id):
-        if run_id != "run-1":
-            return None
-        return AgentRun.create(workflow="investment_research", question="Analyze", run_id=run_id)
+        return self.runs.get(run_id)
+
+    async def run_to_pause_or_completion(self, run_id):
+        run = self.runs[run_id]
+        run.status = RunStatus.COMPLETED
+        return run
+
+    def list_runs(self, session_id=None, limit=20):
+        return list(self.runs.values())[:limit]
+
+    def list_artifacts(self, run_id):
+        run = self.runs.get(run_id)
+        return list(run.artifacts) if run is not None else []
+
+
+class _Worker:
+    def __init__(self, runtime):
+        self._runtime = runtime
+
+    async def enqueue_continuation(self, run_id):
+        run = self._runtime.runs[run_id]
+        run.status = RunStatus.QUEUED
+
+
+class _DocumentRepo:
+    def get(self, document_id, tenant_id=None):
+        if document_id == "doc-1":
+            return {"document_id": "doc-1", "filename": "10-Q", "tenant_id": tenant_id}
+        return None
+
+    def save(self, document):
+        return None
+
+    def get_by_hash(self, file_hash, tenant_id=None):
+        return None
+
+    def list_recent(self, limit=100, tenant_id=None):
+        return []
+
+
+class _PortfolioRepo:
+    def get(self, portfolio_id, tenant_id=None):
+        if portfolio_id == "portfolio-demo":
+            return Portfolio(portfolio_id="portfolio-demo", name="Demo")
+        return None
+
+    def save(self, portfolio, tenant_id=None):
+        return None
 
 
 def _grant(resource_type: str, resource_id: str, permission: str):

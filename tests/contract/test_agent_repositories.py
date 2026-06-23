@@ -1,3 +1,5 @@
+import sqlite3
+
 from doge.core.domain.agent_models import AgentRun, AgentSession
 from doge.core.domain.document_models import Document, DocumentStatus
 from doge.infrastructure.database.agent_repositories import (
@@ -22,6 +24,21 @@ def test_agent_schema_bootstrap_is_idempotent(tmp_path):
     SQLiteRunRepository(db).save(run)
 
     assert SQLiteRunRepository(db).get(run.run_id) is not None
+
+
+def test_agent_schema_bootstrap_includes_case_workflow_tables(tmp_path):
+    db = tmp_path / "agent_state.db"
+
+    bootstrap_agent_schema(db)
+
+    with sqlite3.connect(db) as conn:
+        table_names = {
+            row[0]
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ).fetchall()
+        }
+    assert {"case_assets", "workflow_executions", "case_decisions"}.issubset(table_names)
 
 
 def test_run_queue_latest_status_drives_pending_list(tmp_path):

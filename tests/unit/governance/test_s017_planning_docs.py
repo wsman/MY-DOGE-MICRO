@@ -250,8 +250,8 @@ def test_fastapi_route_count_governance_syncs_to_s017_surface():
         entities_registry,
     )
 
-    assert len(route_rows) == 76
-    assert len(entity_routes) == 76
+    assert len(route_rows) == 87
+    assert len(entity_routes) == 87
     assert set(entity_routes) == set(route_rows)
     for path in [
         "/v1/portfolios/import",
@@ -262,6 +262,9 @@ def test_fastapi_route_count_governance_syncs_to_s017_surface():
         "/v1/workspaces",
         "/v1/projects",
         "/v1/research-cases",
+        "/v1/home-queue",
+        "/v1/research-cases/{case_id}/executions",
+        "/v1/research-cases/{case_id}/review",
         "/v1/workflow-templates",
         "/v1/capabilities",
         "/v1/audit/events",
@@ -280,9 +283,9 @@ def test_fastapi_route_count_governance_syncs_to_s017_surface():
         adr_0007,
         imported_state,
     ]:
-        assert "76 product routes" in text
+        assert "87 product routes" in text
         assert "51 product routes" not in text
-    assert "76 canonical product routes" in entities_registry
+    assert "87 canonical product routes" in entities_registry
     assert "51 canonical product routes" not in entities_registry
 
 
@@ -312,6 +315,49 @@ def test_platformization_adr_disposition_review_keeps_proposed_alpha_boundary():
     assert "Keep ADR-0016 through ADR-0020 Proposed" in module_index
     assert "production_ready: false" in maturity
     assert "_LEGAL_STATUSES = {\"Proposed\", \"Accepted\", \"Superseded\"}" in lifecycle_test
+
+
+def test_platform_shell_defaultization_keeps_rollback_and_alpha_boundary():
+    defaultization = _read("docs/archive/audits/platform-shell-defaultization-2026-06-24.md")
+    feature_plan = _read("docs/archive/audits/feature-flag-deprecation-plan-2026-06-23.md")
+    features_ts = _read("web/src/config/features.ts")
+    router_spec = _read("web/src/router/productNavigation.spec.ts")
+    evidence = json.loads(
+        _read("production/qa/evidence/manual/platform-shell-default-entry-smoke-2026-06-24.json")
+    )
+
+    assert "`VITE_DOGE_FEATURE_PLATFORM_SHELL` is now default-on" in defaultization
+    assert "$env:VITE_DOGE_FEATURE_PLATFORM_SHELL = \"0\"" in defaultization
+    assert "does not change backend platform feature defaults" in defaultization
+    assert "production_ready: false" in defaultization
+    assert "stable_declaration: forbidden" in defaultization
+    assert "Current default" in feature_plan
+    assert "| 5 | `VITE_DOGE_FEATURE_PLATFORM_SHELL` | `True`" in feature_plan
+    assert "Web root rollback remains available with `VITE_DOGE_FEATURE_PLATFORM_SHELL=0`" in feature_plan
+    assert "currentDefault: true" in features_ts
+    assert "VITE_DOGE_FEATURE_PLATFORM_SHELL', '0'" in router_spec
+    assert evidence["result"] == "passed"
+    scenarios = {scenario["name"]: scenario for scenario in evidence["scenarios"]}
+    assert scenarios["default-on"]["flag_value"] is None
+    assert scenarios["default-on"]["observed_hash"] == "#/home"
+    assert scenarios["rollback-off"]["flag_value"] == "0"
+    assert scenarios["rollback-off"]["observed_hash"] == "#/research-agent"
+
+
+def test_case_centered_p0_local_completion_audit_tracks_remote_ci_gap():
+    audit = _read("docs/archive/audits/case-centered-p0-local-completion-audit-2026-06-24.md")
+    plan = _read(r"C:\Users\Aby\.claude\plans\main-quizzical-quilt.md")
+
+    assert "case-centered P0 implementation is locally complete and verified" in audit
+    assert "The only remaining Definition-of-Done gate is remote exact-SHA CI evidence" in audit
+    assert "approval_region: true" in audit
+    assert "Platform Shell default entry" in audit
+    assert "Platform Shell rollback" in audit
+    assert "1359 passed, 9 skipped, 11 warnings" in audit
+    assert "15 files, 91 tests passed" in audit
+    assert "locally verified" in audit
+    assert "production readiness" in audit
+    assert "Remote exact-SHA CI evidence for the new HEAD" in plan
 
 
 def test_external_gate_next_action_audit_covers_open_closure_gates():

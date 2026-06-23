@@ -1,0 +1,547 @@
+{
+  "browser": {
+    "mode": "headless CDP",
+    "path": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
+  },
+  "result": "passed",
+  "schema": "doge.case_workspace_ax_tree_smoke.v1",
+  "scope_notes": [
+    "This is automated browser accessibility-tree evidence, not a human screen-reader pass.",
+    "The smoke runs without a live backend; Bad Gateway is acceptable as long as the case workspace controls render.",
+    "It does not claim remote CI verification or production readiness."
+  ],
+  "screenshot": "production\\qa\\evidence\\manual\\case-workspace-ax-tree-2026-06-24.png",
+  "started_at": "2026-06-23T16:27:13.562140+00:00",
+  "summary": {
+    "checks": {
+      "approval_region": true,
+      "asset_id_input": true,
+      "case_assets_region": true,
+      "citations_region": true,
+      "claims_region": true,
+      "decision_rationale_input": true,
+      "decision_region": true,
+      "decision_type_control": true,
+      "eval_region": true,
+      "execute_button": true,
+      "execution_question_input": true,
+      "executions_region": true,
+      "manual_run_id_not_primary": true,
+      "preflight_button": true,
+      "preflight_region": true,
+      "record_button": true,
+      "template_inputs_textarea": true,
+      "template_region": true,
+      "workflow_template_control": true,
+      "workspace_region": true
+    },
+    "failed": [],
+    "sample": [
+      {
+        "name": "MY-DOGE",
+        "role": "RootWebArea",
+        "value": ""
+      },
+      {
+        "name": "MY-DOGE",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Home",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "Research",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "Market",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "Portfolio",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "Quant",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "Admin",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "Agent",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "1",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "|",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Equalize",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "MY-DOGE",
+        "role": "InlineTextBox",
+        "value": ""
+      },
+      {
+        "name": "Home",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Research",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Market",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Portfolio",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Quant",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Admin",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Agent",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "1",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "|",
+        "role": "InlineTextBox",
+        "value": ""
+      },
+      {
+        "name": "Equalize",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Split Horizontal",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "Split Vertical",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "Zoom",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "Close",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "Home",
+        "role": "InlineTextBox",
+        "value": ""
+      },
+      {
+        "name": "Research",
+        "role": "InlineTextBox",
+        "value": ""
+      },
+      {
+        "name": "Market",
+        "role": "InlineTextBox",
+        "value": ""
+      },
+      {
+        "name": "Portfolio",
+        "role": "InlineTextBox",
+        "value": ""
+      },
+      {
+        "name": "Quant",
+        "role": "InlineTextBox",
+        "value": ""
+      },
+      {
+        "name": "Admin",
+        "role": "InlineTextBox",
+        "value": ""
+      },
+      {
+        "name": "Agent",
+        "role": "InlineTextBox",
+        "value": ""
+      },
+      {
+        "name": "1",
+        "role": "InlineTextBox",
+        "value": ""
+      },
+      {
+        "name": "Equalize",
+        "role": "InlineTextBox",
+        "value": ""
+      },
+      {
+        "name": "Research case workspace",
+        "role": "generic",
+        "value": ""
+      },
+      {
+        "name": "loading",
+        "role": "image",
+        "value": ""
+      },
+      {
+        "name": "case-ax-smoke",
+        "role": "heading",
+        "value": ""
+      },
+      {
+        "name": "Project",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "Refresh",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "No thesis",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "RESEARCH CASE",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "case-ax-smoke",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Project",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Refresh",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Bad Gateway",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "No thesis",
+        "role": "InlineTextBox",
+        "value": ""
+      },
+      {
+        "name": "CASE ASSETS",
+        "role": "region",
+        "value": ""
+      },
+      {
+        "name": "Case",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "RESEARCH CASE",
+        "role": "InlineTextBox",
+        "value": ""
+      },
+      {
+        "name": "case-ax-smoke",
+        "role": "InlineTextBox",
+        "value": ""
+      },
+      {
+        "name": "Project",
+        "role": "InlineTextBox",
+        "value": ""
+      },
+      {
+        "name": "Refresh",
+        "role": "InlineTextBox",
+        "value": ""
+      },
+      {
+        "name": "Bad Gateway",
+        "role": "InlineTextBox",
+        "value": ""
+      },
+      {
+        "name": "Asset type",
+        "role": "generic",
+        "value": ""
+      },
+      {
+        "name": "Asset ID or URL",
+        "role": "generic",
+        "value": ""
+      },
+      {
+        "name": "Asset display name",
+        "role": "generic",
+        "value": ""
+      },
+      {
+        "name": "Add",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "TEMPLATE",
+        "role": "region",
+        "value": ""
+      },
+      {
+        "name": "MEMO",
+        "role": "region",
+        "value": ""
+      },
+      {
+        "name": "EXECUTIONS",
+        "role": "region",
+        "value": ""
+      },
+      {
+        "name": "PREFLIGHT",
+        "role": "region",
+        "value": ""
+      },
+      {
+        "name": "CLAIMS",
+        "role": "region",
+        "value": ""
+      },
+      {
+        "name": "CITATIONS",
+        "role": "region",
+        "value": ""
+      },
+      {
+        "name": "EVAL",
+        "role": "region",
+        "value": ""
+      },
+      {
+        "name": "APPROVAL",
+        "role": "region",
+        "value": ""
+      },
+      {
+        "name": "DECISION",
+        "role": "region",
+        "value": ""
+      },
+      {
+        "name": "Case",
+        "role": "InlineTextBox",
+        "value": ""
+      },
+      {
+        "name": "CASE ASSETS",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "0",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Add",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "No assets",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Workflow template",
+        "role": "generic",
+        "value": ""
+      },
+      {
+        "name": "Execution question",
+        "role": "generic",
+        "value": ""
+      },
+      {
+        "name": "Template inputs",
+        "role": "generic",
+        "value": ""
+      },
+      {
+        "name": "Preflight",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "Execute",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "Decision type",
+        "role": "generic",
+        "value": ""
+      },
+      {
+        "name": "Decision rationale",
+        "role": "generic",
+        "value": ""
+      },
+      {
+        "name": "Record",
+        "role": "button",
+        "value": ""
+      },
+      {
+        "name": "CASE ASSETS",
+        "role": "InlineTextBox",
+        "value": ""
+      },
+      {
+        "name": "0",
+        "role": "InlineTextBox",
+        "value": ""
+      },
+      {
+        "name": "Add",
+        "role": "InlineTextBox",
+        "value": ""
+      },
+      {
+        "name": "No assets",
+        "role": "InlineTextBox",
+        "value": ""
+      },
+      {
+        "name": "TEMPLATE",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Preflight",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Execute",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "MEMO",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "No memo yet",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "EXECUTIONS",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "No executions",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "PREFLIGHT",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "Not checked",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "CLAIMS",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "No claims",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "CITATIONS",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "No citations",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "EVAL",
+        "role": "StaticText",
+        "value": ""
+      },
+      {
+        "name": "No eval",
+        "role": "StaticText",
+        "value": ""
+      }
+    ]
+  },
+  "web": {
+    "feature_flag": "VITE_DOGE_FEATURE_PLATFORM_SHELL=1",
+    "route": "/#/cases/case-ax-smoke",
+    "vite_url": "http://127.0.0.1:54273/"
+  }
+}

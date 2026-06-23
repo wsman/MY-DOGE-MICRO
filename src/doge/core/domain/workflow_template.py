@@ -72,6 +72,52 @@ def build_template_run_request(
     }
 
 
+def validate_template_inputs(template: WorkflowTemplate, inputs: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """Validate a constrained template input schema.
+
+    The project intentionally supports a small JSON-Schema-like subset here:
+    required keys, scalar/container type checks, and enum membership. This keeps
+    workflow preflight deterministic without introducing a full schema engine.
+    """
+
+    schema = template.input_schema if isinstance(template.input_schema, dict) else {}
+    values = inputs or {}
+    errors: list[dict[str, Any]] = []
+    required = schema.get("required", [])
+    if isinstance(required, list):
+        for key in required:
+            if not isinstance(key, str):
+                continue
+            if key not in values or values.get(key) in (None, ""):
+                errors.append({"field": key, "code": "required", "message": f"{key} is required"})
+
+    properties = schema.get("properties", {})
+    if not isinstance(properties, dict):
+        properties = {}
+    for key, rules in properties.items():
+        if key not in values or not isinstance(rules, dict):
+            continue
+        value = values[key]
+        expected_type = rules.get("type")
+        if isinstance(expected_type, str) and not _matches_type(value, expected_type):
+            errors.append({
+                "field": key,
+                "code": "type",
+                "message": f"{key} must be {expected_type}",
+                "expected": expected_type,
+            })
+            continue
+        enum = rules.get("enum")
+        if isinstance(enum, list) and value not in enum:
+            errors.append({
+                "field": key,
+                "code": "enum",
+                "message": f"{key} must be one of {enum}",
+                "allowed": enum,
+            })
+    return errors
+
+
 def _extract_template_model_policy(tool_policy: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(tool_policy, dict):
         return {}
@@ -83,3 +129,19 @@ def _extract_template_model_policy(tool_policy: dict[str, Any] | None) -> dict[s
         if key in tool_policy:
             policy[key] = tool_policy[key]
     return policy
+
+
+def _matches_type(value: Any, expected_type: str) -> bool:
+    if expected_type == "string":
+        return isinstance(value, str)
+    if expected_type == "number":
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+    if expected_type == "integer":
+        return isinstance(value, int) and not isinstance(value, bool)
+    if expected_type == "boolean":
+        return isinstance(value, bool)
+    if expected_type == "array":
+        return isinstance(value, list)
+    if expected_type == "object":
+        return isinstance(value, dict)
+    return True

@@ -28,6 +28,7 @@ from doge.application.composition import (
     build_portfolio_repository,
     build_portfolio_service,
     build_rag_service,
+    build_research_case_service,
     build_risk_service,
     build_scenario_service,
     build_secret_provider,
@@ -54,6 +55,7 @@ from doge.application.composition import (
     build_stock_service,
     build_view_repository,
     build_view_service,
+    build_workflow_service,
     refresh_views,
 )
 
@@ -97,6 +99,7 @@ __all__ = [
     "build_portfolio_repository",
     "build_portfolio_service",
     "build_rag_service",
+    "build_research_case_service",
     "build_risk_service",
     "build_scenario_service",
     "build_secret_provider",
@@ -115,4 +118,5 @@ __all__ = [
     "build_industry_report_use_case",
     "build_catalog_use_case",
     "build_populate_stock_names_use_case",
+    "build_workflow_service",
 ]

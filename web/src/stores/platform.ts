@@ -1,25 +1,39 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import {
+  addCaseAsset as addCaseAssetApi,
   createProject as createProjectApi,
   createResearchCase as createResearchCaseApi,
   createResearchCaseRunFromTemplate as createResearchCaseRunFromTemplateApi,
   createWorkflowTemplate as createWorkflowTemplateApi,
   createWorkspace as createWorkspaceApi,
+  executeCaseTemplate as executeCaseTemplateApi,
   fetchCapabilities,
+  fetchHomeQueue,
   fetchRunSummaryResources,
+  getCaseReview,
   getProject,
   getResearchCase,
   getWorkflowTemplate,
   getWorkspace,
   linkResearchCaseRun as linkResearchCaseRunApi,
+  listCaseAssets,
+  listCaseDecisions,
+  listCaseExecutions,
   listProjects,
   listResearchCases,
   listWorkflowTemplates,
   listWorkspaces,
+  preflightCaseExecution as preflightCaseExecutionApi,
+  recordCaseDecision as recordCaseDecisionApi,
 } from '../api/platform'
 import type {
+  AddCaseAssetPayload,
   CapabilitySnapshot,
+  CaseAssetLink,
+  CaseDecision,
+  CaseExecutionPayload,
+  CaseReview,
   CaseRunLink,
   CreateProjectPayload,
   CreateResearchCasePayload,
@@ -29,9 +43,13 @@ import type {
   LinkResearchCaseRunPayload,
   ListProjectsOptions,
   ListResearchCasesOptions,
+  HomeQueue,
   Project,
+  RecordCaseDecisionPayload,
   ResearchCase,
   RunSummaryResources,
+  TemplatePreflightResult,
+  WorkflowExecution,
   WorkflowTemplate,
   Workspace,
 } from '../types/platform'
@@ -44,6 +62,12 @@ export const usePlatformStore = defineStore('platform', () => {
   const researchCases = ref<ResearchCase[]>([])
   const workflowTemplates = ref<WorkflowTemplate[]>([])
   const caseRunLinks = ref<CaseRunLink[]>([])
+  const caseAssetsByCaseId = ref<Record<string, CaseAssetLink[]>>({})
+  const workflowExecutionsByCaseId = ref<Record<string, WorkflowExecution[]>>({})
+  const caseDecisionsByCaseId = ref<Record<string, CaseDecision[]>>({})
+  const caseReviewByCaseId = ref<Record<string, CaseReview>>({})
+  const preflightByCaseId = ref<Record<string, TemplatePreflightResult>>({})
+  const homeQueue = ref<HomeQueue | null>(null)
   const runResourcesById = ref<Record<string, RunSummaryResources>>({})
   const pendingCount = ref(0)
   const error = ref<FetchError | null>(null)
@@ -66,6 +90,13 @@ export const usePlatformStore = defineStore('platform', () => {
     return await runTracked(async () => {
       capabilities.value = await fetchCapabilities()
       return capabilities.value
+    })
+  }
+
+  async function loadHomeQueue(limit = 20) {
+    return await runTracked(async () => {
+      homeQueue.value = await fetchHomeQueue(limit)
+      return homeQueue.value
     })
   }
 
@@ -113,6 +144,26 @@ export const usePlatformStore = defineStore('platform', () => {
       const researchCase = await getResearchCase(caseId)
       researchCases.value = upsertById(researchCases.value, researchCase, 'case_id')
       return researchCase
+    })
+  }
+
+  async function loadCaseWorkspace(caseId: string) {
+    return await runTracked(async () => {
+      const [researchCase, templates, assets, executions, decisions, review] = await Promise.all([
+        getResearchCase(caseId),
+        listWorkflowTemplates(100),
+        listCaseAssets(caseId),
+        listCaseExecutions(caseId),
+        listCaseDecisions(caseId),
+        getCaseReview(caseId),
+      ])
+      researchCases.value = upsertById(researchCases.value, researchCase, 'case_id')
+      workflowTemplates.value = templates
+      caseAssetsByCaseId.value = { ...caseAssetsByCaseId.value, [caseId]: assets }
+      workflowExecutionsByCaseId.value = { ...workflowExecutionsByCaseId.value, [caseId]: executions }
+      caseDecisionsByCaseId.value = { ...caseDecisionsByCaseId.value, [caseId]: decisions }
+      caseReviewByCaseId.value = { ...caseReviewByCaseId.value, [caseId]: review }
+      return review
     })
   }
 
@@ -179,6 +230,56 @@ export const usePlatformStore = defineStore('platform', () => {
     })
   }
 
+  async function preflightCaseExecution(caseId: string, payload: CaseExecutionPayload) {
+    return await runTracked(async () => {
+      const preflight = await preflightCaseExecutionApi(caseId, payload)
+      preflightByCaseId.value = { ...preflightByCaseId.value, [caseId]: preflight }
+      return preflight
+    })
+  }
+
+  async function executeCaseTemplate(caseId: string, payload: CaseExecutionPayload) {
+    return await runTracked(async () => {
+      const execution = await executeCaseTemplateApi(caseId, payload)
+      workflowExecutionsByCaseId.value = {
+        ...workflowExecutionsByCaseId.value,
+        [caseId]: upsertById(workflowExecutionsByCaseId.value[caseId] ?? [], execution, 'execution_id'),
+      }
+      if (execution.run_id) {
+        caseRunLinks.value = upsertCaseRunLink(caseRunLinks.value, {
+          case_id: caseId,
+          run_id: execution.run_id,
+          link_type: 'primary',
+          tenant_id: execution.tenant_id,
+          linked_at: execution.created_at,
+        })
+      }
+      return execution
+    })
+  }
+
+  async function addCaseAsset(caseId: string, payload: AddCaseAssetPayload) {
+    return await runTracked(async () => {
+      const asset = await addCaseAssetApi(caseId, payload)
+      caseAssetsByCaseId.value = {
+        ...caseAssetsByCaseId.value,
+        [caseId]: upsertById(caseAssetsByCaseId.value[caseId] ?? [], asset, 'asset_link_id'),
+      }
+      return asset
+    })
+  }
+
+  async function recordCaseDecision(caseId: string, payload: RecordCaseDecisionPayload) {
+    return await runTracked(async () => {
+      const decision = await recordCaseDecisionApi(caseId, payload)
+      caseDecisionsByCaseId.value = {
+        ...caseDecisionsByCaseId.value,
+        [caseId]: upsertById(caseDecisionsByCaseId.value[caseId] ?? [], decision, 'decision_id'),
+      }
+      return decision
+    })
+  }
+
   async function loadRunSummaryResources(runId: string) {
     return await runTracked(async () => {
       const resources = await fetchRunSummaryResources(runId)
@@ -210,6 +311,12 @@ export const usePlatformStore = defineStore('platform', () => {
     researchCases,
     workflowTemplates,
     caseRunLinks,
+    caseAssetsByCaseId,
+    workflowExecutionsByCaseId,
+    caseDecisionsByCaseId,
+    caseReviewByCaseId,
+    preflightByCaseId,
+    homeQueue,
     runResourcesById,
     loading,
     error,
@@ -221,12 +328,14 @@ export const usePlatformStore = defineStore('platform', () => {
     projectsByWorkspaceId,
     casesByProjectId,
     loadCapabilities,
+    loadHomeQueue,
     loadWorkspaces,
     loadWorkspace,
     loadProjects,
     loadProject,
     loadResearchCases,
     loadResearchCase,
+    loadCaseWorkspace,
     loadWorkflowTemplates,
     loadWorkflowTemplate,
     createWorkspace,
@@ -235,6 +344,10 @@ export const usePlatformStore = defineStore('platform', () => {
     createWorkflowTemplate,
     linkResearchCaseRun,
     createResearchCaseRunFromTemplate,
+    preflightCaseExecution,
+    executeCaseTemplate,
+    addCaseAsset,
+    recordCaseDecision,
     loadRunSummaryResources,
   }
 })

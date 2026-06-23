@@ -297,6 +297,9 @@ def test_python_sdk_run_summary_platform_and_capability_resources():
         if request.url.path == "/v1/workspaces" and request.method == "POST":
             seen["workspace_body"] = json.loads(request.content.decode("utf-8"))
             return httpx.Response(201, json={"workspace_id": "w-1"})
+        if request.url.path == "/v1/home-queue":
+            seen["home_query"] = dict(request.url.params)
+            return httpx.Response(200, json={"pending_cases": [{"case_id": "case-1"}]})
         if request.url.path == "/v1/projects" and request.method == "GET":
             seen["project_query"] = dict(request.url.params)
             return httpx.Response(200, json={"projects": [{"project_id": "p-1"}]})
@@ -310,6 +313,27 @@ def test_python_sdk_run_summary_platform_and_capability_resources():
                 )
             seen["case_run_body"] = body
             return httpx.Response(201, json={"case_id": "case-1", "run_id": "run-1"})
+        if request.url.path == "/v1/research-cases/case-1/assets":
+            if request.method == "POST":
+                seen["asset_body"] = json.loads(request.content.decode("utf-8"))
+                return httpx.Response(201, json={"asset_link_id": "asset-link-1"})
+            return httpx.Response(200, json={"assets": [{"asset_link_id": "asset-link-1"}]})
+        if request.url.path == "/v1/research-cases/case-1/decisions":
+            if request.method == "POST":
+                seen["decision_body"] = json.loads(request.content.decode("utf-8"))
+                return httpx.Response(201, json={"decision_id": "decision-1"})
+            return httpx.Response(200, json={"decisions": [{"decision_id": "decision-1"}]})
+        if request.url.path == "/v1/research-cases/case-1/executions/preflight":
+            seen["preflight_body"] = json.loads(request.content.decode("utf-8"))
+            return httpx.Response(200, json={"valid": True})
+        if request.url.path == "/v1/research-cases/case-1/executions":
+            if request.method == "POST":
+                seen["execution_body"] = json.loads(request.content.decode("utf-8"))
+                return httpx.Response(202, json={"execution_id": "exec-1", "run_id": "run-2"})
+            seen["execution_query"] = dict(request.url.params)
+            return httpx.Response(200, json={"executions": [{"execution_id": "exec-1"}]})
+        if request.url.path == "/v1/research-cases/case-1/review":
+            return httpx.Response(200, json={"case": {"case_id": "case-1"}, "executions": []})
         if request.url.path == "/v1/workflow-templates" and request.method == "POST":
             seen["template_body"] = json.loads(request.content.decode("utf-8"))
             return httpx.Response(201, json={"template_id": "tpl-1"})
@@ -324,6 +348,7 @@ def test_python_sdk_run_summary_platform_and_capability_resources():
     assert client.runs.citations("run-1")[0]["citation_id"] == "cit-1"
     assert client.runs.evaluation("run-1")["coverage_ratio"] == 1.0
     assert client.platform.create_workspace("Desk")["workspace_id"] == "w-1"
+    assert client.platform.home_queue(limit=7)["pending_cases"][0]["case_id"] == "case-1"
     assert client.platform.list_projects(workspace_id="w-1", limit=10)[0]["project_id"] == "p-1"
     assert client.platform.link_research_case_run("case-1", "run-1")["run_id"] == "run-1"
     assert client.platform.create_research_case_run_from_template(
@@ -333,15 +358,45 @@ def test_python_sdk_run_summary_platform_and_capability_resources():
         model_policy={"max_tool_rounds": 3},
         inputs={"ticker": "NVDA"},
     )["run_id"] == "run-from-template"
-    assert client.platform.create_workflow_template("stock", "Stock")["template_id"] == "tpl-1"
+    assert client.platform.add_case_asset("case-1", "document", "doc-1", asset_name="10-K")["asset_link_id"] == "asset-link-1"
+    assert client.platform.list_case_assets("case-1")[0]["asset_link_id"] == "asset-link-1"
+    assert client.platform.record_case_decision(
+        "case-1",
+        "approve",
+        rationale="Supported",
+        source_run_ids=["run-2"],
+    )["decision_id"] == "decision-1"
+    assert client.platform.list_case_decisions("case-1")[0]["decision_id"] == "decision-1"
+    assert client.platform.preflight_case_execution("case-1", "tpl-1", inputs={"ticker": "NVDA"})["valid"] is True
+    assert client.platform.execute_case_template("case-1", "tpl-1", inputs={"ticker": "NVDA"})["run_id"] == "run-2"
+    assert client.platform.list_case_executions("case-1", limit=5)[0]["execution_id"] == "exec-1"
+    assert client.platform.get_case_review("case-1")["case"]["case_id"] == "case-1"
+    assert client.platform.create_workflow_template(
+        "stock",
+        "Stock",
+        required_capabilities=["feature.workflow_templates"],
+        eval_policy=["tool_success"],
+        approval_policy={"publish": "required"},
+        ui_schema={"layout": "stock"},
+    )["template_id"] == "tpl-1"
     assert client.capabilities.list()[0]["capability_id"] == "maturity.production_ready"
     assert seen["workspace_body"] == {"name": "Desk", "description": ""}
+    assert seen["home_query"] == {"limit": "7"}
     assert seen["project_query"] == {"limit": "10", "workspace_id": "w-1"}
     assert seen["case_run_body"] == {"run_id": "run-1", "link_type": "primary"}
     assert seen["template_run_body"]["template_id"] == "tpl-1"
     assert seen["template_run_body"]["model_policy"] == {"max_tool_rounds": 3}
     assert seen["template_run_body"]["inputs"] == {"ticker": "NVDA"}
+    assert seen["asset_body"]["asset_type"] == "document"
+    assert seen["asset_body"]["asset_name"] == "10-K"
+    assert seen["decision_body"]["source_run_ids"] == ["run-2"]
+    assert seen["preflight_body"]["template_id"] == "tpl-1"
+    assert seen["preflight_body"]["inputs"] == {"ticker": "NVDA"}
+    assert seen["execution_body"]["template_id"] == "tpl-1"
+    assert seen["execution_query"] == {"limit": "5"}
     assert seen["template_body"]["input_schema"] == {}
+    assert seen["template_body"]["required_capabilities"] == ["feature.workflow_templates"]
+    assert seen["template_body"]["eval_policy"] == ["tool_success"]
 
 
 @pytest.mark.asyncio
@@ -351,11 +406,17 @@ async def test_async_python_sdk_run_summary_platform_and_capability_resources():
             return httpx.Response(200, json={"summary": {"summary_id": "sum-1"}})
         if request.url.path == "/v1/workspaces" and request.method == "GET":
             return httpx.Response(200, json={"workspaces": [{"workspace_id": "w-1"}]})
+        if request.url.path == "/v1/research-cases/case-1/executions/preflight":
+            return httpx.Response(200, json={"valid": True})
         if request.url.path == "/v1/research-cases/case-1/runs" and request.method == "POST":
             return httpx.Response(
                 201,
                 json={"case_id": "case-1", "run_id": "run-from-template", "template_id": "tpl-1"},
             )
+        if request.url.path == "/v1/research-cases/case-1/executions" and request.method == "POST":
+            return httpx.Response(202, json={"execution_id": "exec-1", "run_id": "run-from-execution"})
+        if request.url.path == "/v1/research-cases/case-1/review":
+            return httpx.Response(200, json={"case": {"case_id": "case-1"}})
         if request.url.path == "/v1/capabilities":
             return httpx.Response(200, json={"capabilities": [{"capability_id": "provider.kimi"}]})
         return httpx.Response(404, json={"error": {"message": "not found"}})
@@ -371,9 +432,15 @@ async def test_async_python_sdk_run_summary_platform_and_capability_resources():
             "tpl-1",
             question="Analyze NVDA",
         )
+        preflight = await client.platform.preflight_case_execution("case-1", "tpl-1")
+        execution = await client.platform.execute_case_template("case-1", "tpl-1")
+        review = await client.platform.get_case_review("case-1")
         capabilities = await client.capabilities.list()
 
     assert summary["summary_id"] == "sum-1"
     assert workspaces[0]["workspace_id"] == "w-1"
     assert template_run["run_id"] == "run-from-template"
+    assert preflight["valid"] is True
+    assert execution["run_id"] == "run-from-execution"
+    assert review["case"]["case_id"] == "case-1"
     assert capabilities[0]["capability_id"] == "provider.kimi"

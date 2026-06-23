@@ -12,13 +12,15 @@ npm run dev
 The dev server proxies `/api`, `/v1`, and `/health` to
 `http://localhost:8901`.
 
-## Platform Shell Flag
+## Platform Shell Entry
 
-The workspace/project/case/template/admin shell is guarded by:
+The workspace/project/case/template/admin shell is the default local Web entry.
+Opening `/` redirects to `/home`, and `/research-agent` remains directly
+reachable as a compatibility route.
+
+To roll the root route back to the legacy Research Agent entry for a local
+build, set:
 
 ```powershell
-$env:VITE_DOGE_FEATURE_PLATFORM_SHELL="1"
+$env:VITE_DOGE_FEATURE_PLATFORM_SHELL="0"
 ```
-
-With the flag unset, the app defaults to `/research-agent` and keeps the
-existing Research Agent workflow available.

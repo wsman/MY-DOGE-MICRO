@@ -1,6 +1,11 @@
 import { dogeClient } from './client'
 import type {
   CapabilitySnapshot,
+  AddCaseAssetPayload,
+  CaseAssetLink,
+  CaseDecision,
+  CaseExecutionPayload,
+  CaseReview,
   CaseRunLink,
   CreateProjectPayload,
   CreateResearchCasePayload,
@@ -10,19 +15,27 @@ import type {
   LinkResearchCaseRunPayload,
   ListProjectsOptions,
   ListResearchCasesOptions,
+  HomeQueue,
   Project,
+  RecordCaseDecisionPayload,
   ResearchCase,
   RunCitation,
   RunClaim,
   RunEval,
   RunSummary,
   RunSummaryResources,
+  TemplatePreflightResult,
+  WorkflowExecution,
   WorkflowTemplate,
   Workspace,
 } from '../types/platform'
 
 export async function fetchCapabilities(): Promise<CapabilitySnapshot> {
   return await dogeClient.capabilities.get() as unknown as CapabilitySnapshot
+}
+
+export async function fetchHomeQueue(limit = 20): Promise<HomeQueue> {
+  return await dogeClient.request('GET', `/v1/home-queue?limit=${limit}`) as unknown as HomeQueue
 }
 
 export async function listWorkspaces(limit = 100): Promise<Workspace[]> {
@@ -79,6 +92,75 @@ export async function getResearchCase(caseId: string): Promise<ResearchCase> {
   return await dogeClient.platform.getResearchCase(caseId) as unknown as ResearchCase
 }
 
+export async function listCaseAssets(caseId: string): Promise<CaseAssetLink[]> {
+  const payload = await dogeClient.request<{ assets: CaseAssetLink[] }>(
+    'GET',
+    `/v1/research-cases/${caseId}/assets`,
+  )
+  return payload.assets
+}
+
+export async function addCaseAsset(caseId: string, payload: AddCaseAssetPayload): Promise<CaseAssetLink> {
+  return await dogeClient.request(
+    'POST',
+    `/v1/research-cases/${caseId}/assets`,
+    payload,
+  ) as unknown as CaseAssetLink
+}
+
+export async function listCaseDecisions(caseId: string): Promise<CaseDecision[]> {
+  const payload = await dogeClient.request<{ decisions: CaseDecision[] }>(
+    'GET',
+    `/v1/research-cases/${caseId}/decisions`,
+  )
+  return payload.decisions
+}
+
+export async function recordCaseDecision(
+  caseId: string,
+  payload: RecordCaseDecisionPayload,
+): Promise<CaseDecision> {
+  return await dogeClient.request(
+    'POST',
+    `/v1/research-cases/${caseId}/decisions`,
+    payload,
+  ) as unknown as CaseDecision
+}
+
+export async function preflightCaseExecution(
+  caseId: string,
+  payload: CaseExecutionPayload,
+): Promise<TemplatePreflightResult> {
+  return await dogeClient.request(
+    'POST',
+    `/v1/research-cases/${caseId}/executions/preflight`,
+    payload,
+  ) as unknown as TemplatePreflightResult
+}
+
+export async function executeCaseTemplate(
+  caseId: string,
+  payload: CaseExecutionPayload,
+): Promise<WorkflowExecution> {
+  return await dogeClient.request(
+    'POST',
+    `/v1/research-cases/${caseId}/executions`,
+    payload,
+  ) as unknown as WorkflowExecution
+}
+
+export async function listCaseExecutions(caseId: string): Promise<WorkflowExecution[]> {
+  const payload = await dogeClient.request<{ executions: WorkflowExecution[] }>(
+    'GET',
+    `/v1/research-cases/${caseId}/executions`,
+  )
+  return payload.executions
+}
+
+export async function getCaseReview(caseId: string): Promise<CaseReview> {
+  return await dogeClient.request('GET', `/v1/research-cases/${caseId}/review`) as unknown as CaseReview
+}
+
 export async function linkResearchCaseRun(
   caseId: string,
   payload: LinkResearchCaseRunPayload,
@@ -113,14 +195,21 @@ export async function listWorkflowTemplates(limit = 100): Promise<WorkflowTempla
 }
 
 export async function createWorkflowTemplate(payload: CreateWorkflowTemplatePayload): Promise<WorkflowTemplate> {
-  return await dogeClient.platform.createWorkflowTemplate(payload.slug, payload.name, {
+  return await dogeClient.request('POST', '/v1/workflow-templates', {
+    slug: payload.slug,
+    name: payload.name,
     description: payload.description ?? '',
-    currentVersion: payload.current_version ?? '1',
-    inputSchema: payload.input_schema ?? {},
-    runInstructions: payload.run_instructions ?? '',
-    toolPolicy: payload.tool_policy ?? {},
-    evidencePolicy: payload.evidence_policy ?? {},
-    outputContract: payload.output_contract ?? {},
+    current_version: payload.current_version ?? '1',
+    input_schema: payload.input_schema ?? {},
+    run_instructions: payload.run_instructions ?? '',
+    tool_policy: payload.tool_policy ?? {},
+    evidence_policy: payload.evidence_policy ?? {},
+    output_contract: payload.output_contract ?? {},
+    metadata: payload.metadata ?? {},
+    required_capabilities: payload.required_capabilities ?? undefined,
+    eval_policy: payload.eval_policy ?? undefined,
+    approval_policy: payload.approval_policy ?? undefined,
+    ui_schema: payload.ui_schema ?? undefined,
   }) as unknown as WorkflowTemplate
 }
 

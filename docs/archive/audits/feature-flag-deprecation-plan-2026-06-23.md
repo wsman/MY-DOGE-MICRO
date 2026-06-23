@@ -2,12 +2,13 @@
 
 ## Verdict
 
-The five platformization feature flags remain default-off in this phase.
+The four backend platformization feature flags remain default-off in this
+phase. The Web platform shell flag was defaultized separately on 2026-06-24
+after case-workspace browser and accessibility-tree evidence was captured.
 
-This plan records their lifecycle metadata, target defaultization order,
-rollback criteria, and removal gates. It does not flip defaults and does not
-remove compatibility routes, SDK methods, CLI commands, MCP tools, or the direct
-`/research-agent` route.
+This plan records lifecycle metadata, target defaultization order, rollback
+criteria, and removal gates. It does not remove compatibility routes, SDK
+methods, CLI commands, MCP tools, or the direct `/research-agent` route.
 
 Required maturity posture remains:
 
@@ -25,7 +26,7 @@ level_3_sdk_platform: experimental
 | 2 | `DOGE_FEATURE_PLATFORM_OBJECTS` / `settings.features.platform_objects` | `False` | After ADR-0016 evidence and platform object contract regressions are green. | One release cycle after default-on with approved legacy workspace compatibility removal story. | Workspace, project, research-case, case-run, Python SDK, and TypeScript SDK regressions pass. | Restore default `False` if platform object contracts fail or existing consumers break. | Workspace/project/case APIs become always available after default-on. |
 | 3 | `DOGE_FEATURE_WORKFLOW_TEMPLATES` / `settings.features.workflow_templates` | `False` | After ADR-0018 preflight and template-created run regressions are green. | One release cycle after default-on with approved workflow-template compatibility removal story. | Workflow template list/create/get and template-created research-case run regressions pass. | Restore default `False` if template APIs or template-created run flows regress. | Workflow template APIs become always available after default-on. |
 | 4 | `DOGE_FEATURE_RUN_SUMMARY_API` / `settings.features.run_summary_api` | `False` | After ADR-0017 evidence and citation/eval API regressions are green. | One release cycle after default-on with approved API/SDK compatibility removal story. | Run summary, claims, citations, eval, v1 API, ACL redaction, and SDK regressions pass. | Restore default `False` if run-summary contract tests fail or consumers report API breakage. | `/v1/runs/{run_id}/summary`, `/claims`, `/citations`, and `/eval` become always available after default-on. |
-| 5 | `VITE_DOGE_FEATURE_PLATFORM_SHELL` | `False` | After ADR-0020 review, accessibility evidence, and Web navigation regressions are green. | One release cycle after default-on with approved legacy route compatibility removal story. | `web/src/config/features.spec.ts`, `web/src/router/productNavigation.spec.ts`, `web/src/stores/platform.spec.ts`, full `npm test`, and `npm run build` pass; `/research-agent` compatibility remains tested. | Restore default `False` if product navigation, accessibility evidence, or legacy deep links regress. | Product-domain shell becomes the default Web entry after default-on while `/research-agent` remains a compatibility route until a separate approved removal story. |
+| 5 | `VITE_DOGE_FEATURE_PLATFORM_SHELL` | `True` | Completed locally on 2026-06-24 after ADR-0020 review, case-workspace browser smoke, AX-tree preflight, and Web navigation regressions passed. | One release cycle after default-on with approved legacy route compatibility removal story. | `web/src/config/features.spec.ts`, `web/src/router/productNavigation.spec.ts`, `web/src/stores/platform.spec.ts`, full `npm test`, and `npm run build` pass; `/research-agent` compatibility remains tested; `production/qa/evidence/manual/platform-shell-default-entry-smoke-2026-06-24.json` verifies default-on and rollback routes. | Set `VITE_DOGE_FEATURE_PLATFORM_SHELL=0` or restore default `False` if product navigation, accessibility evidence, or legacy deep links regress. | Product-domain shell is the default Web entry while `/research-agent` remains a compatibility route until a separate approved removal story. |
 
 ## Code Metadata
 
@@ -43,7 +44,8 @@ feature flags:
 - Web: `web/src/config/features.ts`
   - `platformShellLifecycle`
   - `featureLifecycles`
-  - `isPlatformShellEnabled(value)`, preserving exact `'1'` opt-in behavior.
+  - `isPlatformShellEnabled(value)`, defaulting on for unset/empty values and
+    preserving explicit rollback values such as `'0'`, `'false'`, and `'off'`.
 
 ## Defaultization Rules
 
@@ -94,7 +96,7 @@ npm run build
 
 ## Follow-Up Story
 
-First defaultization story candidate:
+First backend defaultization story candidate:
 
 ```text
 Title: Default-on capability registry discovery
@@ -105,8 +107,10 @@ Rollback: restore default False in FeatureConfig if capability discovery or prov
 
 ## Boundaries
 
-- No feature flag default changed in this phase.
+- Web shell defaultization changed only `VITE_DOGE_FEATURE_PLATFORM_SHELL`.
+- No backend feature flag default changed in this phase.
 - No legacy route, SDK method, CLI command, MCP tool, or Web route was removed.
 - `/research-agent` remains reachable.
+- Web root rollback remains available with `VITE_DOGE_FEATURE_PLATFORM_SHELL=0`.
 - External gates remain open and tracked in
   `docs/archive/audits/external-gate-next-actions-2026-06-23.md`.

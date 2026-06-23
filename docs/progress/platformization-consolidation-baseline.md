@@ -116,7 +116,7 @@ Feature-disabled platform routes currently return 404 with details such as
 
 | Route | Name | Notes |
 |-------|------|-------|
-| `/` | redirect | Redirects to `/workspaces` when `VITE_DOGE_FEATURE_PLATFORM_SHELL=1`, otherwise `/research-agent`. |
+| `/` | redirect | Current post-defaultization behavior redirects to `/home`; `VITE_DOGE_FEATURE_PLATFORM_SHELL=0` rolls back to `/research-agent`. Baseline-era behavior was opt-in platform routing. |
 | `/scanner` | `scanner` | Legacy market scanner. |
 | `/cn-archive` | `cn-archive` | Legacy CN archive. |
 | `/us-archive` | `us-archive` | Legacy US archive. |
@@ -293,7 +293,7 @@ Frontend feature flag:
 
 | Setting | Env Var | Default |
 |---------|---------|---------|
-| `platformShellEnabled` | `VITE_DOGE_FEATURE_PLATFORM_SHELL` | enabled only when value is `1` |
+| `platformShellEnabled` | `VITE_DOGE_FEATURE_PLATFORM_SHELL` | default-on for unset/empty values; explicit `0`, `false`, or `off` disables |
 
 ## Governance Baseline
 
