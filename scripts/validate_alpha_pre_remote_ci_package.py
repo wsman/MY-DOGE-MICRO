@@ -13,12 +13,12 @@ if str(ROOT) not in sys.path:
 from scripts.validate_plan_closure_gate import validate_all
 
 
-PACKAGE = ROOT / "docs" / "progress" / "alpha-magical-peach-pre-remote-ci-package-2026-06-23.md"
+PACKAGE = ROOT / "docs" / "archive" / "audits" / "alpha-magical-peach-pre-remote-ci-package-2026-06-23.md"
 PLAN = Path(r"C:\Users\Aby\.claude\plans\alpha-magical-peach.md")
 MATURITY = ROOT / "docs" / "progress" / "runtime-maturity.yaml"
 
 FALLBACK_PLAN_TEXT = """
-docs/progress/alpha-magical-peach-completion-audit-2026-06-23.md
+docs/archive/audits/alpha-magical-peach-completion-audit-2026-06-23.md
 scripts\\verify_remote_ci_evidence.py
 scripts\\validate_alpha_remote_ci_success.py
 scripts\\close_alpha_remote_ci_gate.py
@@ -64,8 +64,8 @@ REQUIRED_SNIPPETS = [
     "tests/unit/qa/test_validate_alpha_pre_commit_readiness.py",
     "production/qa/evidence/plan-closure/9b77f9c-external-closure-manifest.json",
     "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/",
-    "docs/progress/adr-0016-0020-disposition-review-2026-06-23.md",
-    "docs/progress/external-gate-next-actions-2026-06-23.md",
+    "docs/archive/audits/adr-0016-0020-disposition-review-2026-06-23.md",
+    "docs/archive/audits/external-gate-next-actions-2026-06-23.md",
     "web/src/api/client.ts",
     "web/src/api/portfolio.ts",
     "6 total gates: 5 open / 1 passed",
@@ -75,9 +75,9 @@ REQUIRED_SNIPPETS = [
 ]
 
 REQUIRED_PAYLOAD_PATHS = [
-    "docs/progress/alpha-magical-peach-completion-audit-2026-06-23.md",
-    "docs/progress/alpha-magical-peach-pre-remote-ci-package-2026-06-23.md",
-    "docs/progress/remote-ci-handoff-2026-06-23.md",
+    "docs/archive/audits/alpha-magical-peach-completion-audit-2026-06-23.md",
+    "docs/archive/audits/alpha-magical-peach-pre-remote-ci-package-2026-06-23.md",
+    "docs/archive/audits/remote-ci-handoff-2026-06-23.md",
     "scripts/validate_alpha_magical_peach_completion_audit.py",
     "scripts/validate_alpha_pre_remote_ci_package.py",
     "scripts/validate_alpha_pending_payload.py",
@@ -111,8 +111,8 @@ REQUIRED_PAYLOAD_PATHS = [
     "tests/unit/qa/test_plan_closure_input_templates.py",
     "tests/unit/qa/test_preflight_plan_closure_external.py",
     "tests/unit/qa/test_prepare_plan_closure_handoff.py",
-    "docs/progress/adr-0016-0020-disposition-review-2026-06-23.md",
-    "docs/progress/external-gate-next-actions-2026-06-23.md",
+    "docs/archive/audits/adr-0016-0020-disposition-review-2026-06-23.md",
+    "docs/archive/audits/external-gate-next-actions-2026-06-23.md",
     "docs/progress/runtime-maturity.yaml",
     "production/sprints/sprint-017-external-validation-and-provider-hardening.md",
     "tests/unit/governance/test_s017_planning_docs.py",
@@ -162,7 +162,7 @@ def _validate_gate_state(text: str, gate_output: dict[str, Any], errors: list[st
 
 def _validate_plan_refs(plan_text: str, errors: list[str]) -> None:
     required_plan_refs = [
-        "docs/progress/alpha-magical-peach-completion-audit-2026-06-23.md",
+        "docs/archive/audits/alpha-magical-peach-completion-audit-2026-06-23.md",
         "scripts\\verify_remote_ci_evidence.py",
         "scripts\\validate_alpha_remote_ci_success.py",
         "scripts\\close_alpha_remote_ci_gate.py",

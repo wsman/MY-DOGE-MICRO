@@ -145,7 +145,7 @@ def _validate_gate_output(gate_output: dict[str, Any], *, plan_text: str, errors
     elif gate_output.get("result") != "passed":
         errors.append(f"closure gate result must be open or passed, found {gate_output.get('result')}")
     if (
-        "docs/progress/external-gate-next-actions-2026-06-23.md" not in plan_text
+        "docs/archive/audits/external-gate-next-actions-2026-06-23.md" not in plan_text
         and "production/qa/evidence/plan-closure/9b77f9c-external-closure-manifest.json" not in plan_text
     ):
         errors.append("final plan must reference current external gate next-actions or closure manifest evidence")

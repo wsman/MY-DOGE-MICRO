@@ -11,7 +11,7 @@ export interface FeatureLifecycle {
 
 export const platformShellLifecycle = {
   envVar: 'VITE_DOGE_FEATURE_PLATFORM_SHELL',
-  introduced: 'platformization Phase F; docs/progress/platformization-consolidation-phase-f-web-2026-06-23.md',
+  introduced: 'platformization Phase F; docs/archive/audits/platformization-consolidation-phase-f-web-2026-06-23.md',
   currentDefault: false,
   targetDefaultOn: 'after ADR-0020 review, accessibility evidence, and web navigation regressions are green',
   targetRemoval: 'one release cycle after default-on with approved legacy route compatibility removal story',

@@ -28,13 +28,13 @@ The next remote CI target must be the post-commit SHA, not `e6398da`.
 
 | Requirement | Status | Evidence | Completion note |
 |---|---|---|---|
-| Target HEAD is recorded | proved | `alpha-magical-peach.md` records `e6398da`; `docs/progress/remote-ci-handoff-2026-06-23.md` records full SHA `e6398dab7975f130770608f411604d51ec300e43` | Current committed HEAD is known, but a future commit will create a new target SHA for remote CI. |
-| Remote CI success is linked for target HEAD | pending_remote_ci | `docs/progress/remote-ci-handoff-2026-06-23.md` records failed run `27967339069` and required exact-SHA success criteria | Not complete. A commit/push is required, then GitHub Actions must report `status=completed` and `conclusion=success` for the new SHA. |
-| Local baseline validators pass | proved | `docs/progress/remote-ci-handoff-2026-06-23.md` records unit, contract, integration, eval, ADR lifecycle, Web, and TypeScript SDK checks; `scripts/validate_alpha_pre_commit_readiness.py` aggregates the fast/full local Alpha pre-commit gates | Local checks are strong evidence only for local readiness, not remote CI success. |
+| Target HEAD is recorded | proved | `alpha-magical-peach.md` records `e6398da`; `docs/archive/audits/remote-ci-handoff-2026-06-23.md` records full SHA `e6398dab7975f130770608f411604d51ec300e43` | Current committed HEAD is known, but a future commit will create a new target SHA for remote CI. |
+| Remote CI success is linked for target HEAD | pending_remote_ci | `docs/archive/audits/remote-ci-handoff-2026-06-23.md` records failed run `27967339069` and required exact-SHA success criteria | Not complete. A commit/push is required, then GitHub Actions must report `status=completed` and `conclusion=success` for the new SHA. |
+| Local baseline validators pass | proved | `docs/archive/audits/remote-ci-handoff-2026-06-23.md` records unit, contract, integration, eval, ADR lifecycle, Web, and TypeScript SDK checks; `scripts/validate_alpha_pre_commit_readiness.py` aggregates the fast/full local Alpha pre-commit gates | Local checks are strong evidence only for local readiness, not remote CI success. |
 | Handoff workspace is fresh and valid | proved | `scripts/validate_plan_closure_handoff.py production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22` passes; `scripts/preflight_plan_closure_external.py --handoff-workspace ...` reports infrastructure ready and pending external inputs | Handoff is valid, but most external inputs are still templates or missing env credentials. |
-| ADR-0016 through ADR-0020 have intentional disposition | proved | `docs/progress/adr-0016-0020-disposition-review-2026-06-23.md` records `Verdict: Keep Proposed` | This is a disposition review, not an ADR acceptance review. |
+| ADR-0016 through ADR-0020 have intentional disposition | proved | `docs/archive/audits/adr-0016-0020-disposition-review-2026-06-23.md` records `Verdict: Keep Proposed` | This is a disposition review, not an ADR acceptance review. |
 | Runtime maturity honesty scan finds no unauthorized promotion claims | proved | `docs/progress/runtime-maturity.yaml`, `scripts/validate_alpha_maturity_honesty.py`, `scripts/validate_governance_yaml_shape.py`, and S017 governance tests preserve non-production posture | Maturity labels remain preview/alpha/experimental with `production_ready: false`. |
-| All five open external gates have real passed/approved evidence, or each has current next-action card with blocker refs | proved_for_current_alpha_plan | `docs/progress/external-gate-next-actions-2026-06-23.md` records next-action/blocker cards for S017-002, S017-003, W3-live, AUTH-prod, and S017-007 | This satisfies the Alpha plan alternative, not external closure. The five gates still need real evidence before Beta/Production promotion. |
+| All five open external gates have real passed/approved evidence, or each has current next-action card with blocker refs | proved_for_current_alpha_plan | `docs/archive/audits/external-gate-next-actions-2026-06-23.md` records next-action/blocker cards for S017-002, S017-003, W3-live, AUTH-prod, and S017-007 | This satisfies the Alpha plan alternative, not external closure. The five gates still need real evidence before Beta/Production promotion. |
 | Strict closure gate passes without `--allow-open`, or plan explicitly remains Alpha with controlled open gates | proved_for_current_alpha_plan | `scripts/validate_plan_closure_gate.py --allow-open` reports `result=open`, 5 open / 1 passed; `alpha-magical-peach.md` explicitly remains Alpha with controlled open gates | Strict closure is intentionally not passed. |
 | `production_ready: false`, `stable_declaration: forbidden`, and `level_3_sdk_platform: experimental` remain unchanged | proved | `docs/progress/runtime-maturity.yaml` and plan posture blocks preserve these values | No production, stable, GA, or enterprise Beta promotion is claimed. |
 
@@ -73,7 +73,7 @@ Current facts:
   run URL to bind to `wsman/MY-DOGE-MICRO`, and the closure command requires
   the canonical in-repo evidence path
   `production/qa/evidence/ci/remote-ci-<shortsha>.json`.
-- `docs/progress/alpha-magical-peach-pre-remote-ci-package-2026-06-23.md`
+- `docs/archive/audits/alpha-magical-peach-pre-remote-ci-package-2026-06-23.md`
   records the critical commit payload that must move together into the next
   target SHA.
 - `scripts/validate_alpha_commit_scope.py` confirms the pending commit scope has

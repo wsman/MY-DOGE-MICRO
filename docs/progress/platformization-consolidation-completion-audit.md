@@ -26,7 +26,7 @@ level_3_sdk_platform: experimental
 | C: Tool provider registry | Complete | `src/doge/application/agent/tool_service.py`, `src/doge/application/composition.py`, `tests/unit/agent/test_tool_service_facade.py` |
 | D: Platform services | Complete | `src/doge/platform/workspace/service.py`, `src/doge/interfaces/api/routers/v1/platform.py`, `tests/unit/architecture/test_platform_router_delegation.py` |
 | E: Runtime split | Complete | `src/doge/platform/runtime/services.py`, `src/doge/application/agent/runtime_kernel.py`, `tests/unit/architecture/test_runtime_kernel_split.py` |
-| F: Web navigation | Complete | `docs/progress/platformization-consolidation-phase-f-web-2026-06-23.md`, `web/src/App.vue`, `web/src/router/index.ts`, `web/src/views/DomainLandingView.vue` |
+| F: Web navigation | Complete | `docs/archive/audits/platformization-consolidation-phase-f-web-2026-06-23.md`, `web/src/App.vue`, `web/src/router/index.ts`, `web/src/views/DomainLandingView.vue` |
 | G: Delivery channels | Complete locally | SDK, CLI, MCP, transport, Web, API, and package checks passed locally; registry publication remains externally blocked |
 | H: Governance closure | Complete | This audit plus the governance checks listed below |
 
@@ -61,7 +61,7 @@ The former 20-module inventory is retained as appendix/historical mapping only.
 - ADR-0022 is Accepted and records facade-first restructuring while blocking broad physical moves
   until story-level compatibility, rollback, and removal gates pass.
 - ADR-0021 and ADR-0022 were promoted to Accepted in the governance closure
-  pass recorded at `docs/progress/adr-0021-0022-review-2026-06-23.md`.
+  pass recorded at `docs/archive/audits/adr-0021-0022-review-2026-06-23.md`.
 - `docs/architecture/control-manifest.md` records bounded-context import rules,
   compatibility rules, and deprecation requirements.
 
@@ -232,12 +232,12 @@ evidence for baseline HEAD `0058c5c`.
 
 | Item | Status | Evidence |
 |---|---|---|
-| ADR-0021 disposition | Accepted | `docs/progress/adr-0021-0022-review-2026-06-23.md`, `docs/architecture/adr-0021-bounded-context-consolidation.md` |
-| ADR-0022 disposition | Accepted | `docs/progress/adr-0021-0022-review-2026-06-23.md`, `docs/architecture/adr-0022-directory-restructuring.md` |
+| ADR-0021 disposition | Accepted | `docs/archive/audits/adr-0021-0022-review-2026-06-23.md`, `docs/architecture/adr-0021-bounded-context-consolidation.md` |
+| ADR-0022 disposition | Accepted | `docs/archive/audits/adr-0021-0022-review-2026-06-23.md`, `docs/architecture/adr-0022-directory-restructuring.md` |
 | Remote CI for `0058c5c` | Passed | `production/qa/evidence/ci/remote-ci-0058c5c.json`, `docs/progress/remote-ci-evidence-0058c5c.md`, GitHub Actions run `28016915874` |
-| Feature flag lifecycle plan | Complete | `docs/progress/feature-flag-deprecation-plan-2026-06-23.md`, `src/doge/config/settings.py`, `web/src/config/features.ts` |
+| Feature flag lifecycle plan | Complete | `docs/archive/audits/feature-flag-deprecation-plan-2026-06-23.md`, `src/doge/config/settings.py`, `web/src/config/features.ts` |
 | Feature defaults | Unchanged | All five platformization feature flags remain default-off. |
-| External gates | Still open | `docs/progress/external-gate-next-actions-2026-06-23.md` remains 5 open / 1 passed. |
+| External gates | Still open | `docs/archive/audits/external-gate-next-actions-2026-06-23.md` remains 5 open / 1 passed. |
 
 Additional local verification from the governance closure pass:
 

@@ -206,9 +206,9 @@ The user approved all file writes for this task.
 - ADR-0021 disposition: Accepted.
 - ADR-0022 disposition: Accepted; broad physical moves remain story-gated.
 - Review report:
-  `docs/progress/adr-0021-0022-review-2026-06-23.md`.
+  `docs/archive/audits/adr-0021-0022-review-2026-06-23.md`.
 - Feature flag plan:
-  `docs/progress/feature-flag-deprecation-plan-2026-06-23.md`.
+  `docs/archive/audits/feature-flag-deprecation-plan-2026-06-23.md`.
 - Remote CI evidence:
   `production/qa/evidence/ci/remote-ci-0058c5c.json`;
   GitHub Actions run `28016915874` passed.

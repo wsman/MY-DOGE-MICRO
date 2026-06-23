@@ -10,7 +10,7 @@ This index records design, architecture, code, promotion, and release-quality re
 | 2026-06-21 | `docs/architecture/architecture-traceability.md` | ADR/CDD/TR traceability | current with follow-up concerns |
 | 2026-06-21 | `docs/progress/release-quality-promotion-review.md` | release-quality promotion review | no Stable promotion |
 | 2026-06-21 | `production/releases/promotion-review-sprint-015-2026-06-21.md` | Sprint 015 promotion review | no Stable promotion |
-| 2026-06-23 | `docs/progress/adr-0021-0022-review-2026-06-23.md` | ADR-0021/0022 architecture governance closure | PASS |
+| 2026-06-23 | `docs/archive/audits/adr-0021-0022-review-2026-06-23.md` | ADR-0021/0022 architecture governance closure | PASS |
 
 ## Review Watchlist
 

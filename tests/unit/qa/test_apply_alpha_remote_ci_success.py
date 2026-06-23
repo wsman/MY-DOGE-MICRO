@@ -61,7 +61,7 @@ def test_apply_alpha_remote_ci_success_rejects_failed_evidence():
 
 def test_apply_alpha_remote_ci_success_rejects_missing_plan_checklist_line():
     plan_text = _pending_plan_text().replace(
-        "- [ ] Remote CI success is linked for the target HEAD; current handoff is `docs/progress/remote-ci-handoff-2026-06-23.md`.",
+        "- [ ] Remote CI success is linked for the target HEAD; current handoff is `docs/archive/audits/remote-ci-handoff-2026-06-23.md`.",
         "",
     )
 
@@ -194,14 +194,14 @@ def _pending_plan_text() -> str:
 ## Current DoD Snapshot
 
 - [x] Target HEAD is recorded: `e6398da`.
-- [ ] Remote CI success is linked for the repaired target SHA; current handoff is `docs/progress/remote-ci-handoff-2026-06-23.md`.
+- [ ] Remote CI success is linked for the repaired target SHA; current handoff is `docs/archive/audits/remote-ci-handoff-2026-06-23.md`.
 - [x] Strict closure gate does not pass yet; the plan explicitly remains Alpha with controlled open gates.
-- [x] Five external gates still need real evidence and current blocker cards in `docs/progress/external-gate-next-actions-2026-06-23.md`.
+- [x] Five external gates still need real evidence and current blocker cards in `docs/archive/audits/external-gate-next-actions-2026-06-23.md`.
 
 ## Definition of Done
 
 - [x] Target HEAD is recorded.
-- [ ] Remote CI success is linked for the target HEAD; current handoff is `docs/progress/remote-ci-handoff-2026-06-23.md`.
+- [ ] Remote CI success is linked for the target HEAD; current handoff is `docs/archive/audits/remote-ci-handoff-2026-06-23.md`.
 - [x] `production_ready: false`, `stable_declaration: forbidden`, and Level 3 `experimental` remain unchanged.
 """
 

@@ -287,7 +287,7 @@ def test_fastapi_route_count_governance_syncs_to_s017_surface():
 
 
 def test_platformization_adr_disposition_review_keeps_proposed_alpha_boundary():
-    review = _read("docs/progress/adr-0016-0020-disposition-review-2026-06-23.md")
+    review = _read("docs/archive/audits/adr-0016-0020-disposition-review-2026-06-23.md")
     architecture_registry = _read("docs/registry/architecture.yaml")
     module_index = _read("design/cdd/module-index.md")
     maturity = _read("docs/progress/runtime-maturity.yaml")
@@ -315,7 +315,7 @@ def test_platformization_adr_disposition_review_keeps_proposed_alpha_boundary():
 
 
 def test_external_gate_next_action_audit_covers_open_closure_gates():
-    audit = _read("docs/progress/external-gate-next-actions-2026-06-23.md")
+    audit = _read("docs/archive/audits/external-gate-next-actions-2026-06-23.md")
     maturity = _read("docs/progress/runtime-maturity.yaml")
     sprint_plan = _read("production/sprints/sprint-017-external-validation-and-provider-hardening.md")
     manifest = json.loads(_read("production/qa/evidence/plan-closure/9b77f9c-external-closure-manifest.json"))
@@ -379,13 +379,13 @@ def test_external_gate_next_action_audit_covers_open_closure_gates():
         assert blocker in lower_audit
 
     for text in [maturity, sprint_plan]:
-        assert "docs/progress/external-gate-next-actions-2026-06-23.md" in text
+        assert "docs/archive/audits/external-gate-next-actions-2026-06-23.md" in text
     assert "production_ready: false" in maturity
     assert "No production readiness promotion" in sprint_plan
 
 
 def test_remote_ci_handoff_keeps_target_sha_success_pending():
-    handoff = _read("docs/progress/remote-ci-handoff-2026-06-23.md")
+    handoff = _read("docs/archive/audits/remote-ci-handoff-2026-06-23.md")
     maturity = _read("docs/progress/runtime-maturity.yaml")
     sprint_plan = _read("production/sprints/sprint-017-external-validation-and-provider-hardening.md")
 
@@ -427,14 +427,14 @@ def test_remote_ci_handoff_keeps_target_sha_success_pending():
         assert result in handoff
 
     for text in [maturity, sprint_plan]:
-        assert "docs/progress/remote-ci-handoff-2026-06-23.md" in text
+        assert "docs/archive/audits/remote-ci-handoff-2026-06-23.md" in text
         assert "scripts/verify_remote_ci_evidence.py" in text
         assert "scripts/validate_alpha_remote_ci_success.py" in text
         assert "scripts/validate_alpha_commit_scope.py" in text
         assert "scripts/apply_alpha_remote_ci_success.py" in text
         assert "scripts/close_alpha_remote_ci_gate.py" in text
         assert "scripts/validate_alpha_final_closure.py" in text
-        assert "docs/progress/alpha-magical-peach-pre-remote-ci-package-2026-06-23.md" in text
+        assert "docs/archive/audits/alpha-magical-peach-pre-remote-ci-package-2026-06-23.md" in text
         assert "scripts/validate_alpha_pre_remote_ci_package.py" in text
         assert "scripts/validate_alpha_pending_payload.py" in text
         assert "e6398da" in text
@@ -442,7 +442,7 @@ def test_remote_ci_handoff_keeps_target_sha_success_pending():
 
 
 def test_alpha_magical_peach_completion_audit_is_requirement_by_requirement():
-    audit = _read("docs/progress/alpha-magical-peach-completion-audit-2026-06-23.md")
+    audit = _read("docs/archive/audits/alpha-magical-peach-completion-audit-2026-06-23.md")
     maturity = _read("docs/progress/runtime-maturity.yaml")
     sprint_plan = _read("production/sprints/sprint-017-external-validation-and-provider-hardening.md")
     normalized_audit = " ".join(audit.split())
@@ -462,7 +462,7 @@ def test_alpha_magical_peach_completion_audit_is_requirement_by_requirement():
     assert "scripts/apply_alpha_remote_ci_success.py" in audit
     assert "scripts/close_alpha_remote_ci_gate.py" in audit
     assert "scripts/validate_alpha_final_closure.py" in audit
-    assert "docs/progress/alpha-magical-peach-pre-remote-ci-package-2026-06-23.md" in audit
+    assert "docs/archive/audits/alpha-magical-peach-pre-remote-ci-package-2026-06-23.md" in audit
     assert "pending_remote_ci" in audit
     assert "No commit or push has been performed" in audit
     assert "status=completed" in audit
@@ -485,7 +485,7 @@ def test_alpha_magical_peach_completion_audit_is_requirement_by_requirement():
         assert posture in audit
 
     for text in [maturity, sprint_plan]:
-        assert "docs/progress/alpha-magical-peach-completion-audit-2026-06-23.md" in text
+        assert "docs/archive/audits/alpha-magical-peach-completion-audit-2026-06-23.md" in text
         assert "scripts/validate_alpha_magical_peach_completion_audit.py" in text
         assert "scripts/validate_alpha_pre_remote_ci_package.py" in text
         assert "scripts/validate_alpha_pending_payload.py" in text

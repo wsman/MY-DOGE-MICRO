@@ -1,97 +1,71 @@
 # Architecture Traceability
 
-> **Manifest Version**: 2026-06-22
-> **Reviewer**: Release follow-up documentation governance
-> **Scope**: ADR-0001..ADR-0011, 15 module CDDs, module index, `tr-registry.yaml`, runtime maturity registry, and current FastAPI/CLI/daemon/document surfaces
-> **Stage note**: `production/stage.txt` is **Release**. Runtime maturity remains gated by `docs/progress/runtime-maturity.yaml` and `production_ready: false`.
+> **Manifest Version**: 2026-06-23
+> **Reviewer**: P0 documentation consistency pass
+> **Scope**: ADR-0001..ADR-0022, eight bounded-context CDDs,
+> `tr-registry.yaml`, runtime maturity registry, and current API/CLI/Web/MCP
+> surfaces.
 
----
+## Verdict
 
-## 1. Verdict
+Architecture traceability is aligned with the ADR-0021 bounded-context model.
+The counted product/platform module set is eight bounded contexts. Former
+mixed modules are preserved in `design/cdd/module-index.md` and
+`docs/registry/architecture.yaml` as historical/superseded entries.
 
-Architecture traceability is current enough for Release follow-up governance:
+Runtime maturity remains separate from release-stage governance:
 
-- ADR-0001..ADR-0011 are all Accepted.
-- The module index now covers 15 modules, including Research Copilot Agent
-  Runtime, Document Evidence Pipeline, and SDK And Daemon Client Interfaces.
-- FastAPI documentation and CDD coverage reflect the canonical
-  `doge.interfaces.api.main` application and 76 product routes.
-- Runtime maturity labels remain separate from release stage. Release-stage
-  governance does not imply runtime production readiness.
+- `production_ready: false`
+- `stable_declaration: forbidden`
 
-Remaining concerns are follow-up work, not traceability blockers:
+## ADR Status Inventory
 
-- Some legacy interface paths still carry repository-routing debt.
-- Live Kimi file/vision smoke evidence remains operator-environment-dependent.
-- SDK/daemon packaging and browser reconnect evidence remain maturity blockers.
-- Runtime promotion remains forbidden while `production_ready: false`.
+| ADR range | Status |
+|-----------|--------|
+| ADR-0001 through ADR-0014 | Accepted |
+| ADR-0015 through ADR-0020 | Proposed |
+| ADR-0021 | Accepted |
+| ADR-0022 | Accepted |
 
-## 2. ADR Status Inventory
+ADR-0015 through ADR-0020 remain Proposed because their platform and enterprise
+promotion gates are not fully closed.
 
-| ADR | Title | Status | 2026-06-21 assessment |
-|---|---|---|---|
-| 0001 | Brownfield Clean Architecture Migration | **Accepted** | Foundational layer/port contract remains active. |
-| 0002 | Centralized Runtime Configuration | **Accepted** | `get_settings()` remains canonical for project-root/runtime config. |
-| 0003 | Storage Repository Contract | **Accepted** | Repository contract governs local SQLite/DuckDB access. |
-| 0004 | Data Source Adapter Contract | **Accepted** | TDX adapter promotion complete; follow-up retry consolidation remains non-blocking. |
-| 0005 | LLM Client Strategy | **Accepted** | OpenAI-compatible provider strategy remains the LLM boundary. |
-| 0006 | MCP Transport Strategy | **Accepted** | `doge_mcp.py` / modular MCP server remains canonical. |
-| 0007 | API Surface and CORS | **Accepted** | Loopback-guaranteed posture accepted; non-loopback requires CORS/auth first. |
-| 0008 | Vue Web Console Architecture | **Accepted** | Web client architecture remains the presentation contract. |
-| 0009 | Cache/Metadata Port Split | **Accepted** | Name cache and metadata source ports are split. |
-| 0010 | View-Service Port Injection | **Accepted** | `IMarketViewRepository` port injection remains enforced. |
-| 0011 | Agent Runtime Levels | **Accepted** | Level 1/2/3 runtime model is accepted, maturity-gated, and linked to TR-047..054. |
+## Bounded Context Coverage
 
-**Net**: 11 Accepted, 0 Proposed.
+| # | Bounded Context | CDD | Governing ADRs |
+|---|-----------------|-----|----------------|
+| 1 | Market Intelligence | `design/cdd/bc-01-market-intelligence.md` | ADR-0001, ADR-0021 |
+| 2 | Research | `design/cdd/bc-02-research.md` | ADR-0001, ADR-0011, ADR-0021 |
+| 3 | Portfolio & Risk | `design/cdd/bc-03-portfolio-risk.md` | ADR-0013, ADR-0021 |
+| 4 | Quant & Data Lab | `design/cdd/bc-04-quant-data-lab.md` | ADR-0001, ADR-0021 |
+| 5 | Workspace & Workflow | `design/cdd/bc-05-workspace-workflow.md` | ADR-0016, ADR-0018, ADR-0021 |
+| 6 | Agent Runtime | `design/cdd/bc-06-agent-runtime.md` | ADR-0011, ADR-0012, ADR-0013, ADR-0021 |
+| 7 | Knowledge & Evidence | `design/cdd/bc-07-knowledge-evidence.md` | ADR-0014, ADR-0017, ADR-0021 |
+| 8 | Governance & Evaluation | `design/cdd/bc-08-governance-evaluation.md` | ADR-0013, ADR-0015, ADR-0019, ADR-0021 |
 
-## 3. Module Traceability Coverage
+## Current Controls And Evidence
 
-| # | Module | CDD | Governing ADR(s) | Active TR-IDs |
-|---|---|---|---|---|
-| 1 | Runtime Configuration | `runtime-configuration.md` | ADR-0002, ADR-0001 | TR-001..TR-004 |
-| 2 | Market Data Storage | `market-data-storage.md` | ADR-0003, ADR-0001 | TR-005..TR-008 |
-| 3 | TDX/YFinance Data Sources | `data-sources.md` | ADR-0004, ADR-0001 | TR-009..TR-012 |
-| 4 | Macro Strategy Engine | `macro-strategy-engine.md` | ADR-0005, ADR-0004 | TR-013..TR-016 |
-| 5 | Micro Momentum Scanner | `micro-momentum-scanner.md` | ADR-0001 | TR-017..TR-019 |
-| 6 | Market Reporting | `market-reporting.md` | ADR-0001, ADR-0002 | TR-043, TR-044 |
-| 7 | Research Insight Knowledge Base | `research-insight-knowledge-base.md` | ADR-0003, ADR-0001 | TR-022..TR-024, TR-045, TR-046 |
-| 8 | MCP Server | `mcp-server.md` | ADR-0006, ADR-0003 | TR-025..TR-028 |
-| 9 | FastAPI Service | `fastapi-service.md` | ADR-0007, ADR-0011 | TR-029..TR-032, TR-049, TR-051 |
-| 10 | PyQt Desktop Dashboard | `pyqt-desktop-dashboard.md` | ADR-0001 | TR-033, TR-034 |
-| 11 | Vue Web Console | `vue-web-console.md` | ADR-0008, ADR-0007, ADR-0011 | TR-035..TR-037, TR-050 |
-| 12 | Clean Architecture Migration | `clean-architecture-migration.md` | ADR-0001, ADR-0009, ADR-0010 | TR-038..TR-042 |
-| 13 | Research Copilot Agent Runtime | `research-copilot-agent-runtime.md` | ADR-0011, ADR-0001, ADR-0002, ADR-0007 | TR-047..TR-050, TR-054 |
-| 14 | Document Evidence Pipeline | `document-evidence-pipeline.md` | ADR-0011, ADR-0001, ADR-0003, ADR-0005 | TR-051..TR-054 |
-| 15 | SDK And Daemon Client Interfaces | `sdk-daemon-client-interfaces.md` | ADR-0011, ADR-0007, ADR-0008 | TR-049, TR-050, TR-054 |
-
-`TR-020` and `TR-021` are retained for ID permanence but superseded by
-`TR-043` and `TR-044`.
-
-**Total registered TRs**: 54 total IDs, 52 active, 2 superseded.
-
-## 4. Current Controls And Evidence
-
+- **Architecture registry**: `docs/registry/architecture.yaml` has eight
+  active systems and retains the former mixed modules under
+  `superseded_systems`.
 - **API route coverage**: `docs/API.md` enumerates 76 product routes and
   `tests/contract/test_api_doc_route_coverage.py` asserts docs-vs-live parity.
-- **CLI entrypoint**: `docs/CLI.md` promotes `doge ...`; legacy `python
-  src/cli.py ...` remains a compatibility shim.
-- **Runtime maturity**: `docs/progress/runtime-maturity.yaml` is the authority
-  for Level 1/2/3 labels and keeps `production_ready: false`.
-- **Document evidence**: document upload, page/chunk/evidence, Kimi file/vision
-  boundaries, and parser limits are covered by Module #14 and TR-051..053.
-- **SDK/daemon clients**: Python/TypeScript SDK and `/v1/*` daemon routes are
-  covered by Module #15 and TR-049/TR-050.
-- **Governance assets**: `memory_bank/` is the active T0-T3 governance entry
-  point; adapter boundaries are documented under `adapters/`.
+- **CLI entrypoint**: `docs/CLI.md` promotes `doge ...`; legacy
+  `python src/cli.py ...` remains a compatibility shim.
+- **Runtime maturity**: `docs/progress/runtime-maturity.yaml` remains the
+  authority for runtime labels and keeps production readiness blocked.
+- **Progress archive**: dated 2026-06-23 audit snapshots live under
+  `docs/archive/audits/`; `docs/progress/README.md` indexes the active sources.
+- **Docs automation**: `scripts/generate_docs_status.py`,
+  `scripts/validate_docs_links.py`, and `scripts/validate_no_stale_counts.py`
+  provide repeatable local checks.
 
-## 5. Follow-Up Concerns
+## Follow-Up Concerns
 
 | Concern | Status | Owner path |
-|---|---|---|
+|---------|--------|------------|
 | Runtime maturity promotion | Blocked while `production_ready: false` | `docs/progress/runtime-maturity.yaml`, TR-054 |
-| Live Kimi File/Vision smoke | Environment-dependent | Module #14 / QA evidence |
-| Browser/manual SSE reconnect evidence | Pending | Module #15 / sprint QA |
-| Repository-routing debt in legacy API surfaces | Known migration debt | Module #12 / Module #9 |
-| SDK packaging/distribution hardening | Pending | Module #15 |
-
-*Reviewed 2026-06-21 against the local Release follow-up working tree.*
+| Live Kimi/File/Vision smoke | Environment-dependent | Knowledge & Evidence / QA evidence |
+| Financial provider approval | External dependency | Portfolio & Risk / Governance & Evaluation |
+| Enterprise production validation | External dependency | Governance & Evaluation |
+| SDK registry publication | External dependency | SDK/daemon delivery surface |

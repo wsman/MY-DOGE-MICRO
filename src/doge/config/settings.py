@@ -484,7 +484,7 @@ FEATURE_LIFECYCLES: dict[str, FeatureLifecycle] = {
     ),
     "capability_registry": FeatureLifecycle(
         env_var="DOGE_FEATURE_CAPABILITY_REGISTRY",
-        introduced="platformization Phase C; docs/progress/platformization-consolidation-phase-c-2026-06-23.md",
+        introduced="platformization Phase C; docs/archive/audits/platformization-consolidation-phase-c-2026-06-23.md",
         current_default=False,
         target_default_on="first defaultization candidate after ADR-0019 review and capability regressions are green",
         target_removal="one release cycle after default-on with approved provider-registry compatibility removal story",

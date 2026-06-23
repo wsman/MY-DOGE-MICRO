@@ -14,9 +14,9 @@ from scripts.validate_alpha_pre_remote_ci_package import REQUIRED_PAYLOAD_PATHS
 
 
 REQUIRED_PENDING_PATHS = [
-    "docs/progress/alpha-magical-peach-completion-audit-2026-06-23.md",
-    "docs/progress/alpha-magical-peach-pre-remote-ci-package-2026-06-23.md",
-    "docs/progress/remote-ci-handoff-2026-06-23.md",
+    "docs/archive/audits/alpha-magical-peach-completion-audit-2026-06-23.md",
+    "docs/archive/audits/alpha-magical-peach-pre-remote-ci-package-2026-06-23.md",
+    "docs/archive/audits/remote-ci-handoff-2026-06-23.md",
     "scripts/validate_alpha_magical_peach_completion_audit.py",
     "scripts/validate_alpha_pre_remote_ci_package.py",
     "scripts/validate_alpha_pending_payload.py",
@@ -49,8 +49,8 @@ REQUIRED_PENDING_PATHS = [
     "tests/unit/qa/test_plan_closure_input_templates.py",
     "tests/unit/qa/test_preflight_plan_closure_external.py",
     "tests/unit/qa/test_prepare_plan_closure_handoff.py",
-    "docs/progress/adr-0016-0020-disposition-review-2026-06-23.md",
-    "docs/progress/external-gate-next-actions-2026-06-23.md",
+    "docs/archive/audits/adr-0016-0020-disposition-review-2026-06-23.md",
+    "docs/archive/audits/external-gate-next-actions-2026-06-23.md",
     "docs/progress/runtime-maturity.yaml",
     "production/sprints/sprint-017-external-validation-and-provider-hardening.md",
     "tests/unit/governance/test_s017_planning_docs.py",

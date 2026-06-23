@@ -29,11 +29,11 @@ Enterprise Beta can be reconsidered only after:
 DEFAULT_FILES = [
     PLAN,
     ROOT / "docs" / "progress" / "runtime-maturity.yaml",
-    ROOT / "docs" / "progress" / "remote-ci-handoff-2026-06-23.md",
-    ROOT / "docs" / "progress" / "alpha-magical-peach-completion-audit-2026-06-23.md",
-    ROOT / "docs" / "progress" / "alpha-magical-peach-pre-remote-ci-package-2026-06-23.md",
-    ROOT / "docs" / "progress" / "external-gate-next-actions-2026-06-23.md",
-    ROOT / "docs" / "progress" / "adr-0016-0020-disposition-review-2026-06-23.md",
+    ROOT / "docs" / "archive" / "audits" / "remote-ci-handoff-2026-06-23.md",
+    ROOT / "docs" / "archive" / "audits" / "alpha-magical-peach-completion-audit-2026-06-23.md",
+    ROOT / "docs" / "archive" / "audits" / "alpha-magical-peach-pre-remote-ci-package-2026-06-23.md",
+    ROOT / "docs" / "archive" / "audits" / "external-gate-next-actions-2026-06-23.md",
+    ROOT / "docs" / "archive" / "audits" / "adr-0016-0020-disposition-review-2026-06-23.md",
     ROOT / "production" / "sprints" / "sprint-017-external-validation-and-provider-hardening.md",
 ]
 
@@ -51,31 +51,31 @@ REQUIRED_SNIPPETS = {
         "level_3_sdk_platform: experimental",
         "production_ready: false",
     ],
-    "docs/progress/remote-ci-handoff-2026-06-23.md": [
+    "docs/archive/audits/remote-ci-handoff-2026-06-23.md": [
         "it is not sufficient for enterprise Beta or Production",
         "production_ready: false",
         "stable_declaration: forbidden",
         "level_3_sdk_platform: experimental",
     ],
-    "docs/progress/alpha-magical-peach-completion-audit-2026-06-23.md": [
+    "docs/archive/audits/alpha-magical-peach-completion-audit-2026-06-23.md": [
         "does not promote maturity labels",
         "production_ready: false",
         "stable_declaration: forbidden",
         "No production, stable, GA, or enterprise Beta promotion is claimed.",
     ],
-    "docs/progress/alpha-magical-peach-pre-remote-ci-package-2026-06-23.md": [
+    "docs/archive/audits/alpha-magical-peach-pre-remote-ci-package-2026-06-23.md": [
         "does not close enterprise Beta or Production",
         "stable_declaration: forbidden",
         "level_3_sdk_platform: experimental",
         "production_ready: false",
     ],
-    "docs/progress/external-gate-next-actions-2026-06-23.md": [
+    "docs/archive/audits/external-gate-next-actions-2026-06-23.md": [
         "production_ready: false",
         "stable_declaration: forbidden",
         "level_3_sdk_platform: experimental",
         "not enterprise Beta",
     ],
-    "docs/progress/adr-0016-0020-disposition-review-2026-06-23.md": [
+    "docs/archive/audits/adr-0016-0020-disposition-review-2026-06-23.md": [
         "production_ready: false",
         "must not be used as evidence for enterprise Beta, Production, GA",
     ],

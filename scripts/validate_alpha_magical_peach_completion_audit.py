@@ -13,14 +13,14 @@ if str(ROOT) not in sys.path:
 from scripts.validate_plan_closure_gate import validate_all
 
 
-AUDIT = ROOT / "docs" / "progress" / "alpha-magical-peach-completion-audit-2026-06-23.md"
+AUDIT = ROOT / "docs" / "archive" / "audits" / "alpha-magical-peach-completion-audit-2026-06-23.md"
 PLAN = Path(r"C:\Users\Aby\.claude\plans\alpha-magical-peach.md")
 MATURITY = ROOT / "docs" / "progress" / "runtime-maturity.yaml"
 MANIFEST = ROOT / "production" / "qa" / "evidence" / "plan-closure" / "9b77f9c-external-closure-manifest.json"
 SOURCE_PLAN = r"C:\Users\Aby\.claude\plans\alpha-magical-peach.md"
 
 FALLBACK_PLAN_TEXT = """
-docs/progress/alpha-magical-peach-completion-audit-2026-06-23.md
+docs/archive/audits/alpha-magical-peach-completion-audit-2026-06-23.md
 - [ ] Remote CI success is linked for the repaired target SHA
 - [ ] Remote CI success is linked for the target HEAD
 scripts\\close_alpha_remote_ci_gate.py
@@ -83,7 +83,7 @@ def _validate_audit_global_text(text: str, normalized_text: str, errors: list[st
         "scripts/close_alpha_remote_ci_gate.py",
         "scripts/validate_alpha_maturity_honesty.py",
         "scripts/validate_alpha_pre_commit_readiness.py",
-        "docs/progress/alpha-magical-peach-pre-remote-ci-package-2026-06-23.md",
+        "docs/archive/audits/alpha-magical-peach-pre-remote-ci-package-2026-06-23.md",
         "pending_remote_ci",
         "CI#27967339069:completed/failure",
         "No commit or push has been performed",
@@ -171,7 +171,7 @@ def _validate_gate_state(
 
 def _validate_source_plan(plan_text: str, errors: list[str]) -> None:
     required_plan_snippets = [
-        "docs/progress/alpha-magical-peach-completion-audit-2026-06-23.md",
+        "docs/archive/audits/alpha-magical-peach-completion-audit-2026-06-23.md",
         "- [ ] Remote CI success is linked for the repaired target SHA",
         "- [ ] Remote CI success is linked for the target HEAD",
         "scripts\\close_alpha_remote_ci_gate.py",
@@ -198,7 +198,7 @@ def _validate_maturity(maturity_text: str, errors: list[str]) -> None:
         "stable_declaration: forbidden",
         "level_3_sdk_platform: experimental",
         "production_ready: false",
-        "docs/progress/alpha-magical-peach-completion-audit-2026-06-23.md",
+        "docs/archive/audits/alpha-magical-peach-completion-audit-2026-06-23.md",
         "scripts/close_alpha_remote_ci_gate.py",
         "scripts/validate_alpha_maturity_honesty.py",
         "scripts/validate_alpha_pre_commit_readiness.py",

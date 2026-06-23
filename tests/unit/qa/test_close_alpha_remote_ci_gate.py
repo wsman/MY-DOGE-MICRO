@@ -281,15 +281,15 @@ def _plan_text() -> str:
 Current DoD Snapshot
 
 - [x] Target HEAD is recorded: `old`.
-- [ ] Remote CI success is linked for the repaired target SHA; current handoff is `docs/progress/remote-ci-handoff-2026-06-23.md`.
+- [ ] Remote CI success is linked for the repaired target SHA; current handoff is `docs/archive/audits/remote-ci-handoff-2026-06-23.md`.
 
 Definition of Done
 
 - [x] Target HEAD is recorded.
-- [ ] Remote CI success is linked for the target HEAD; current handoff is `docs/progress/remote-ci-handoff-2026-06-23.md`.
+- [ ] Remote CI success is linked for the target HEAD; current handoff is `docs/archive/audits/remote-ci-handoff-2026-06-23.md`.
 
 The plan explicitly remains Alpha with controlled-open Alpha gates.
-External gate blockers are tracked in `docs/progress/external-gate-next-actions-2026-06-23.md`.
+External gate blockers are tracked in `docs/archive/audits/external-gate-next-actions-2026-06-23.md`.
 `production_ready: false`
 `stable_declaration: forbidden`
 Level 3 `experimental`

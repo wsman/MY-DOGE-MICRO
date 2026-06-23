@@ -100,15 +100,15 @@ level_3_sdk_platform: experimental
   keep the follow-on platformization plan separate from the external closure
   gate: Track B may be locally implemented while Track A still reports
   5 controlled-open gates and 1 passed gate.
-- `docs/progress/adr-0016-0020-disposition-review-2026-06-23.md`
+- `docs/archive/audits/adr-0016-0020-disposition-review-2026-06-23.md`
   records the intentional disposition for the platformization ADRs:
   ADR-0016 through ADR-0020 stay Proposed, local feature-flagged slices are
   Alpha evidence only, and no ADR promotion implies production readiness.
-- `docs/progress/external-gate-next-actions-2026-06-23.md` records the
+- `docs/archive/audits/external-gate-next-actions-2026-06-23.md` records the
   current next-action/blocker cards for the five still-open external closure
   gates: S017-002, S017-003, W3-live, AUTH-prod, and S017-007. It does not
   close gates, and strict closure remains open until completed evidence passes.
-- `docs/progress/remote-ci-handoff-2026-06-23.md` records the current
+- `docs/archive/audits/remote-ci-handoff-2026-06-23.md` records the current
   remote CI boundary: committed HEAD `e6398da` has failed push run
   `27967339069`, local repair validation passes, and a new explicit
   commit/push is required before a successful target-HEAD CI run can close the
@@ -126,7 +126,7 @@ level_3_sdk_platform: experimental
   `wait.status=success`; the post-commit closure command also requires the
   canonical in-repo
   `production/qa/evidence/ci/remote-ci-<shortsha>.json` evidence path.
-- `docs/progress/alpha-magical-peach-pre-remote-ci-package-2026-06-23.md`,
+- `docs/archive/audits/alpha-magical-peach-pre-remote-ci-package-2026-06-23.md`,
   `scripts/validate_alpha_pre_remote_ci_package.py`, and
   `tests/unit/qa/test_validate_alpha_pre_remote_ci_package.py` define and
   machine-check the critical commit payload for the next remote CI attempt
@@ -159,7 +159,7 @@ level_3_sdk_platform: experimental
   exact SHA, run URL, canonical evidence ref, checked remote-CI DoD items,
   full controlled-open gate details, current external-gate evidence refs, and
   non-production labels.
-- `docs/progress/alpha-magical-peach-completion-audit-2026-06-23.md` records
+- `docs/archive/audits/alpha-magical-peach-completion-audit-2026-06-23.md` records
   the requirement-by-requirement completion audit for the Alpha posture plan:
   local hardening is proved, external gates remain controlled-open, and remote
   CI success remains the only unchecked current DoD item.

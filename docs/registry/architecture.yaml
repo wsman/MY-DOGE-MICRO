@@ -23,29 +23,42 @@ version: 1
 last_updated: "2026-06-23"
 
 # ============================================================================
-# SYSTEMS — the 20 product modules (module-index.md canonical enumeration)
+# SYSTEMS — canonical eight bounded contexts (ADR-0021)
 # ============================================================================
 systems:
-  - {num: 1, slug: runtime-configuration, name: "Runtime Configuration", category: Foundation, layer: Foundation, cdd: design/cdd/runtime-configuration.md, status: "Designed"}
-  - {num: 2, slug: market-data-storage, name: "Market Data Storage", category: Foundation, layer: Foundation, cdd: design/cdd/market-data-storage.md, status: "Designed"}
-  - {num: 3, slug: data-sources, name: "TDX/YFinance Data Sources", category: Foundation, layer: Foundation, cdd: design/cdd/data-sources.md, status: "Designed"}
-  - {num: 4, slug: macro-strategy-engine, name: "Macro Strategy Engine", category: Core, layer: Core, cdd: design/cdd/macro-strategy-engine.md, status: "Designed", notes: "Owns the project's single LLM client boundary"}
-  - {num: 5, slug: micro-momentum-scanner, name: "Micro Momentum Scanner", category: Core, layer: Core, cdd: design/cdd/micro-momentum-scanner.md, status: "Designed", notes: "Owns canonical RSRS formula"}
-  - {num: 6, slug: market-reporting, name: "Market Reporting", category: Feature, layer: Feature, cdd: design/cdd/market-reporting.md, status: "Designed", notes: "Pure-SQL reports; NO LLM. (Prior name 'AI Industry Analysis' was a misnomer.)"}
-  - {num: 7, slug: research-insight-knowledge-base, name: "Research Insight Knowledge Base", category: Core, layer: Core, cdd: design/cdd/research-insight-knowledge-base.md, status: "Designed", notes: "Owns stock_notes + stock_names; soft-delete (deleted_at)"}
-  - {num: 8, slug: mcp-server, name: "MCP Server", category: Interface, layer: Interface, cdd: design/cdd/mcp-server.md, status: "Designed", notes: "6 read-only tools; stdio primary + SSE secondary"}
-  - {num: 9, slug: fastapi-service, name: "FastAPI Service", category: Interface, layer: Interface, cdd: design/cdd/fastapi-service.md, status: "In Review", notes: "76 product routes; 127.0.0.1:8901; legacy /api plus daemon /v1/platform"}
-  - {num: 10, slug: pyqt-desktop-dashboard, name: "PyQt Desktop Dashboard", category: Presentation, layer: Presentation, cdd: design/cdd/pyqt-desktop-dashboard.md, status: "Designed"}
-  - {num: 11, slug: vue-web-console, name: "Vue Web Console", category: Presentation, layer: Presentation, cdd: design/cdd/vue-web-console.md, status: "Designed"}
-  - {num: 12, slug: clean-architecture-migration, name: "Clean Architecture Migration", category: Operations, layer: Operations, cdd: design/cdd/clean-architecture-migration.md, status: "Designed"}
-  - {num: 13, slug: research-copilot-agent-runtime, name: "Research Copilot Agent Runtime", category: Core, layer: Core, cdd: design/cdd/research-copilot-agent-runtime.md, status: "In Review"}
-  - {num: 14, slug: document-evidence-pipeline, name: "Document Evidence Pipeline", category: Core, layer: Core, cdd: design/cdd/document-evidence-pipeline.md, status: "In Review"}
-  - {num: 15, slug: sdk-daemon-client-interfaces, name: "SDK And Daemon Client Interfaces", category: Interface, layer: Interface, cdd: design/cdd/sdk-daemon-client-interfaces.md, status: "In Review"}
-  - {num: 16, slug: run-summary-citation-api, name: "Run Summary Citation API", category: Interface, layer: Interface, cdd: design/cdd/run-summary-citation-api.md, status: "In Design"}
-  - {num: 17, slug: workspace-project-research-case, name: "Workspace Project Research Case", category: Core, layer: Core, cdd: design/cdd/workspace-project-research-case.md, status: "In Design"}
-  - {num: 18, slug: workflow-templates, name: "Workflow Templates", category: Feature, layer: Feature, cdd: design/cdd/workflow-templates.md, status: "In Design"}
-  - {num: 19, slug: platform-shell-ui, name: "Platform Shell UI", category: Presentation, layer: Presentation, cdd: design/cdd/platform-shell-ui.md, status: "In Design"}
-  - {num: 20, slug: capability-registry, name: "Capability Registry", category: Core, layer: Core, cdd: design/cdd/capability-registry.md, status: "In Design"}
+  - {num: 1, slug: market-intelligence, name: "Market Intelligence", classification: Product, cdd: design/cdd/bc-01-market-intelligence.md, adr: docs/architecture/adr-0021-bounded-context-consolidation.md, owner: "python-specialist, lead-programmer", public_contract: "market scans, RSRS, breadth, anomalies, watchlists, market reports", status: "In Review"}
+  - {num: 2, slug: research, name: "Research", classification: Product, cdd: design/cdd/bc-02-research.md, adr: docs/architecture/adr-0021-bounded-context-consolidation.md, owner: "lead-programmer, python-specialist", public_contract: "macro, company, industry, earnings review, memos, research versions", status: "In Review"}
+  - {num: 3, slug: portfolio-risk, name: "Portfolio & Risk", classification: Product, cdd: design/cdd/bc-03-portfolio-risk.md, adr: docs/architecture/adr-0021-bounded-context-consolidation.md, owner: "python-specialist, security-engineer", public_contract: "holdings, exposure, concentration, scenarios, rebalance drafts", status: "In Review"}
+  - {num: 4, slug: quant-data-lab, name: "Quant & Data Lab", classification: Product, cdd: design/cdd/bc-04-quant-data-lab.md, adr: docs/architecture/adr-0021-bounded-context-consolidation.md, owner: "python-specialist, performance-analyst", public_contract: "SQL/Python factors, backtests, data jobs, code tasks", status: "In Review"}
+  - {num: 5, slug: workspace-workflow, name: "Workspace & Workflow", classification: Platform, cdd: design/cdd/bc-05-workspace-workflow.md, adr: docs/architecture/adr-0021-bounded-context-consolidation.md, owner: "lead-programmer, python-specialist", public_contract: "workspaces, projects, research cases, workflow templates, capability catalog relationships", status: "In Review"}
+  - {num: 6, slug: agent-runtime, name: "Agent Runtime", classification: Platform, cdd: design/cdd/bc-06-agent-runtime.md, adr: docs/architecture/adr-0021-bounded-context-consolidation.md, owner: "lead-programmer, python-specialist", public_contract: "sessions, runs, events, workers, model/tool execution, artifacts, cancellation", status: "In Review"}
+  - {num: 7, slug: knowledge-evidence, name: "Knowledge & Evidence", classification: Platform, cdd: design/cdd/bc-07-knowledge-evidence.md, adr: docs/architecture/adr-0021-bounded-context-consolidation.md, owner: "python-specialist, qa-lead", public_contract: "documents, chunks, retrieval, claims, citations, provenance, summaries, eval read models", status: "In Review"}
+  - {num: 8, slug: governance-evaluation, name: "Governance & Evaluation", classification: Platform, cdd: design/cdd/bc-08-governance-evaluation.md, adr: docs/architecture/adr-0021-bounded-context-consolidation.md, owner: "lead-programmer, security-engineer", public_contract: "identity, tenant ACL, entitlement, approval, audit, secrets, budget, eval, maturity gates", status: "In Review"}
+
+# ============================================================================
+# SUPERSEDED SYSTEMS — former 20 mixed modules retained for traceability
+# ============================================================================
+superseded_systems:
+  - {num: 1, slug: runtime-configuration, name: "Runtime Configuration", category: Foundation, layer: Foundation, cdd: design/cdd/runtime-configuration.md, status: "superseded_by: ADR-0021", target: "shared/bootstrap"}
+  - {num: 2, slug: market-data-storage, name: "Market Data Storage", category: Foundation, layer: Foundation, cdd: design/cdd/market-data-storage.md, status: "superseded_by: ADR-0021", target: "adapters/persistence"}
+  - {num: 3, slug: data-sources, name: "TDX/YFinance Data Sources", category: Foundation, layer: Foundation, cdd: design/cdd/data-sources.md, status: "superseded_by: ADR-0021", target: "adapters/market_data"}
+  - {num: 4, slug: macro-strategy-engine, name: "Macro Strategy Engine", category: Core, layer: Core, cdd: design/cdd/macro-strategy-engine.md, status: "superseded_by: ADR-0021", target: "Research", notes: "Owns historical DeepSeek/OpenAI-compatible LLM boundary"}
+  - {num: 5, slug: micro-momentum-scanner, name: "Micro Momentum Scanner", category: Core, layer: Core, cdd: design/cdd/micro-momentum-scanner.md, status: "superseded_by: ADR-0021", target: "Market Intelligence", notes: "Owns canonical RSRS formula"}
+  - {num: 6, slug: market-reporting, name: "Market Reporting", category: Feature, layer: Feature, cdd: design/cdd/market-reporting.md, status: "superseded_by: ADR-0021", target: "Market Intelligence", notes: "Pure-SQL reports; NO LLM"}
+  - {num: 7, slug: research-insight-knowledge-base, name: "Research Insight Knowledge Base", category: Core, layer: Core, cdd: design/cdd/research-insight-knowledge-base.md, status: "superseded_by: ADR-0021", target: "Research / Knowledge & Evidence", notes: "Owns stock_notes + stock_names historical store"}
+  - {num: 8, slug: mcp-server, name: "MCP Server", category: Interface, layer: Interface, cdd: design/cdd/mcp-server.md, status: "superseded_by: ADR-0021", target: "entrypoints/mcp"}
+  - {num: 9, slug: fastapi-service, name: "FastAPI Service", category: Interface, layer: Interface, cdd: design/cdd/fastapi-service.md, status: "superseded_by: ADR-0021", target: "entrypoints/api", notes: "76 product routes; 127.0.0.1:8901; legacy /api plus daemon /v1/platform"}
+  - {num: 10, slug: pyqt-desktop-dashboard, name: "PyQt Desktop Dashboard", category: Presentation, layer: Presentation, cdd: design/cdd/pyqt-desktop-dashboard.md, status: "superseded_by: ADR-0021", target: "entrypoints/pyqt"}
+  - {num: 11, slug: vue-web-console, name: "Vue Web Console", category: Presentation, layer: Presentation, cdd: design/cdd/vue-web-console.md, status: "superseded_by: ADR-0021", target: "web"}
+  - {num: 12, slug: clean-architecture-migration, name: "Clean Architecture Migration", category: Operations, layer: Operations, cdd: design/cdd/clean-architecture-migration.md, status: "superseded_by: ADR-0021", target: "architecture governance"}
+  - {num: 13, slug: research-copilot-agent-runtime, name: "Research Copilot Agent Runtime", category: Core, layer: Core, cdd: design/cdd/research-copilot-agent-runtime.md, status: "superseded_by: ADR-0021", target: "Agent Runtime"}
+  - {num: 14, slug: document-evidence-pipeline, name: "Document Evidence Pipeline", category: Core, layer: Core, cdd: design/cdd/document-evidence-pipeline.md, status: "superseded_by: ADR-0021", target: "Knowledge & Evidence"}
+  - {num: 15, slug: sdk-daemon-client-interfaces, name: "SDK And Daemon Client Interfaces", category: Interface, layer: Interface, cdd: design/cdd/sdk-daemon-client-interfaces.md, status: "superseded_by: ADR-0021", target: "packages / entrypoints/daemon"}
+  - {num: 16, slug: run-summary-citation-api, name: "Run Summary Citation API", category: Interface, layer: Interface, cdd: design/cdd/run-summary-citation-api.md, status: "superseded_by: ADR-0021", target: "Knowledge & Evidence"}
+  - {num: 17, slug: workspace-project-research-case, name: "Workspace Project Research Case", category: Core, layer: Core, cdd: design/cdd/workspace-project-research-case.md, status: "superseded_by: ADR-0021", target: "Workspace & Workflow"}
+  - {num: 18, slug: workflow-templates, name: "Workflow Templates", category: Feature, layer: Feature, cdd: design/cdd/workflow-templates.md, status: "superseded_by: ADR-0021", target: "Workspace & Workflow"}
+  - {num: 19, slug: platform-shell-ui, name: "Platform Shell UI", category: Presentation, layer: Presentation, cdd: design/cdd/platform-shell-ui.md, status: "superseded_by: ADR-0021", target: "web"}
+  - {num: 20, slug: capability-registry, name: "Capability Registry", category: Core, layer: Core, cdd: design/cdd/capability-registry.md, status: "superseded_by: ADR-0021", target: "Workspace & Workflow / Governance & Evaluation"}
 
 # ============================================================================
 # STATE OWNERSHIP — authoritative owner of each shared state artifact

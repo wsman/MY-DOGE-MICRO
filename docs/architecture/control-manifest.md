@@ -160,8 +160,8 @@ Proposed  ──►  Accepted  ──►  Superseded
 | 0018 Workflow Template System | **Proposed** | Template slices exist; execution and preflight gates remain open. |
 | 0019 Capability Registry | **Proposed** | Registry slices exist; dependency validation and production-readiness semantics remain gated. |
 | 0020 Platform Shell UI | **Proposed** | Shell slices exist; navigation/accessibility promotion gates remain open. |
-| 0021 Bounded Context Consolidation | **Accepted** | Eight-context consolidation accepted by `docs/progress/adr-0021-0022-review-2026-06-23.md`; external gates still block maturity promotion. |
-| 0022 Directory Restructuring | **Accepted** | Facade-first target layout accepted by `docs/progress/adr-0021-0022-review-2026-06-23.md`; broad physical moves remain story-gated. |
+| 0021 Bounded Context Consolidation | **Accepted** | Eight-context consolidation accepted by `docs/archive/audits/adr-0021-0022-review-2026-06-23.md`; external gates still block maturity promotion. |
+| 0022 Directory Restructuring | **Accepted** | Facade-first target layout accepted by `docs/archive/audits/adr-0021-0022-review-2026-06-23.md`; broad physical moves remain story-gated. |
 
 ---
 

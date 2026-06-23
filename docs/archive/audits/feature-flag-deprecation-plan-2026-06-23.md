@@ -109,4 +109,4 @@ Rollback: restore default False in FeatureConfig if capability discovery or prov
 - No legacy route, SDK method, CLI command, MCP tool, or Web route was removed.
 - `/research-agent` remains reachable.
 - External gates remain open and tracked in
-  `docs/progress/external-gate-next-actions-2026-06-23.md`.
+  `docs/archive/audits/external-gate-next-actions-2026-06-23.md`.

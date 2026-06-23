@@ -172,7 +172,7 @@ def _plan_text() -> str:
 - [x] Target HEAD is recorded: `{SHORT_SHA}` / `{SHA}`.
 - [x] Remote CI success is linked for the repaired target SHA: `{RUN_URL}` with `{EVIDENCE_REF}`.
 - [x] Strict closure gate does not pass yet; the plan explicitly remains Alpha with controlled open gates.
-- [x] Five external gates still need real evidence and current blocker cards in `docs/progress/external-gate-next-actions-2026-06-23.md`.
+- [x] Five external gates still need real evidence and current blocker cards in `docs/archive/audits/external-gate-next-actions-2026-06-23.md`.
 
 ## Definition of Done
 

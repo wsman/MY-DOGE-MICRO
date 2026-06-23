@@ -299,7 +299,7 @@ Frontend feature flag:
 
 - ADR-0012 through ADR-0014 are Accepted.
 - ADR-0015 through ADR-0020 remain Proposed.
-- `docs/progress/adr-0016-0020-disposition-review-2026-06-23.md` records
+- `docs/archive/audits/adr-0016-0020-disposition-review-2026-06-23.md` records
   Keep Proposed for ADR-0016 through ADR-0020.
 - `docs/architecture/tr-registry.yaml` uses a flat project-wide `TR-001`
   numbering stream.
