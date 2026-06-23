@@ -164,6 +164,24 @@ def test_git_commit_material_paths_reads_diff_tree(monkeypatch):
     assert commit_scope.git_commit_material_paths("abc123") == {"a.py", "b/c.py"}
 
 
+def test_git_commit_range_material_paths_reads_two_dot_diff(monkeypatch):
+    def fake_run(command, **kwargs):
+        assert command == [
+            "git",
+            "diff",
+            "--name-only",
+            "base123..head456",
+        ]
+        return subprocess.CompletedProcess(command, 0, stdout="a.py\nb/c.py\n", stderr="")
+
+    monkeypatch.setattr(commit_scope.subprocess, "run", fake_run)
+
+    assert commit_scope.git_commit_range_material_paths("base123", "head456") == {
+        "a.py",
+        "b/c.py",
+    }
+
+
 def _required_status_lines() -> list[str]:
     lines = [f" M {path}" for path in REQUIRED_PENDING_PATHS]
     lines += [f" M {prefix}README.md" for prefix in REQUIRED_PENDING_PREFIXES]

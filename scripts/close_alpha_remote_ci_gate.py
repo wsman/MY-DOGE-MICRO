@@ -17,7 +17,11 @@ from scripts.apply_alpha_remote_ci_success import (
     PLAN,
     apply_updates,
 )
-from scripts.validate_alpha_commit_scope import analyze_material_scope, git_commit_material_paths
+from scripts.validate_alpha_commit_scope import (
+    analyze_material_scope,
+    git_commit_material_paths,
+    git_commit_range_material_paths,
+)
 from scripts.validate_alpha_final_closure import validate as validate_final_closure
 from scripts.validate_alpha_remote_ci_success import validate as validate_remote_ci_success
 from scripts.verify_remote_ci_evidence import DEFAULT_OWNER, DEFAULT_REPO, DEFAULT_WORKFLOW_NAME, wait_for_evidence
@@ -44,6 +48,7 @@ def close_remote_ci_gate(
     gate_output: dict[str, Any] | None = None,
     root: Path = ROOT,
     require_commit_scope: bool | None = None,
+    scope_base_sha: str | None = None,
     commit_scope_checker: CommitScopeChecker | None = None,
 ) -> dict[str, Any]:
     """Close the Alpha remote-CI DoD after exact-SHA CI success.
@@ -56,13 +61,15 @@ def close_remote_ci_gate(
     payload = remote_ci_payload
     target_sha = head_sha or _head_sha_from_payload(payload) or _git_head_sha()
     _validate_sha(target_sha)
+    if scope_base_sha is not None:
+        _validate_sha(scope_base_sha)
     require_commit_scope = write if require_commit_scope is None else require_commit_scope
 
     if require_commit_scope:
         scope_errors = (
             commit_scope_checker(target_sha)
             if commit_scope_checker is not None
-            else validate_commit_scope_for_sha(target_sha)
+            else validate_commit_scope_for_sha(target_sha, base_sha=scope_base_sha)
         )
         if scope_errors:
             return _result(
@@ -215,8 +222,12 @@ def _git_head_sha() -> str:
     return result.stdout.strip()
 
 
-def validate_commit_scope_for_sha(head_sha: str) -> list[str]:
-    material_paths = git_commit_material_paths(head_sha)
+def validate_commit_scope_for_sha(head_sha: str, *, base_sha: str | None = None) -> list[str]:
+    material_paths = (
+        git_commit_range_material_paths(base_sha, head_sha)
+        if base_sha is not None
+        else git_commit_material_paths(head_sha)
+    )
     return list(analyze_material_scope(material_paths)["errors"])
 
 
@@ -260,6 +271,13 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Skip target-SHA commit scope validation. Intended only for offline tests or emergency diagnostics.",
     )
+    parser.add_argument(
+        "--scope-base-sha",
+        help=(
+            "Optional base SHA for cumulative material-scope validation. "
+            "Use when the repaired target HEAD contains more than one commit."
+        ),
+    )
     parser.add_argument("--write", action="store_true", help="Write plan/maturity updates after all checks pass.")
     args = parser.parse_args(argv)
 
@@ -281,6 +299,7 @@ def main(argv: list[str] | None = None) -> int:
         write=args.write,
         root=args.root,
         require_commit_scope=False if args.skip_commit_scope else None,
+        scope_base_sha=args.scope_base_sha,
     )
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0 if result["passed"] else 1

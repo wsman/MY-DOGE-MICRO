@@ -150,6 +150,17 @@ def git_commit_material_paths(commit_sha: str) -> set[str]:
     return {path.strip().replace("\\", "/") for path in result.stdout.splitlines() if path.strip()}
 
 
+def git_commit_range_material_paths(base_sha: str, head_sha: str) -> set[str]:
+    result = subprocess.run(
+        ["git", "diff", "--name-only", f"{base_sha}..{head_sha}"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return {path.strip().replace("\\", "/") for path in result.stdout.splitlines() if path.strip()}
+
+
 def _read_path_set(path: Path) -> set[str]:
     return {
         line.strip().replace("\\", "/")

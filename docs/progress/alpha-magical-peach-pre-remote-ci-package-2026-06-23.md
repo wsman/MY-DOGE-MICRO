@@ -108,7 +108,7 @@ Equivalent one-step closure helper:
 
 ```powershell
 $sha = git rev-parse HEAD
-.\.venv\Scripts\python.exe scripts\close_alpha_remote_ci_gate.py --head-sha $sha --write
+.\.venv\Scripts\python.exe scripts\close_alpha_remote_ci_gate.py --head-sha $sha --scope-base-sha e6398dab7975f130770608f411604d51ec300e43 --write
 ```
 
 The remote CI DoD closes only when both commands exit `0` and the evidence

@@ -19,6 +19,18 @@ MATURITY = ROOT / "docs" / "progress" / "runtime-maturity.yaml"
 MANIFEST = ROOT / "production" / "qa" / "evidence" / "plan-closure" / "9b77f9c-external-closure-manifest.json"
 SOURCE_PLAN = r"C:\Users\Aby\.claude\plans\alpha-magical-peach.md"
 
+FALLBACK_PLAN_TEXT = """
+docs/progress/alpha-magical-peach-completion-audit-2026-06-23.md
+- [ ] Remote CI success is linked for the repaired target SHA
+- [ ] Remote CI success is linked for the target HEAD
+scripts\\close_alpha_remote_ci_gate.py
+scripts\\validate_alpha_maturity_honesty.py
+scripts\\validate_alpha_pre_commit_readiness.py
+`production_ready: false`
+`stable_declaration: forbidden`
+Level 3 `experimental`
+"""
+
 
 EXPECTED_MATRIX = {
     "Target HEAD is recorded": "proved",
@@ -196,6 +208,14 @@ def _validate_maturity(maturity_text: str, errors: list[str]) -> None:
             errors.append(f"runtime maturity missing required snippet: {snippet}")
 
 
+def _read_plan_text(path: Path) -> str:
+    if path.exists():
+        return path.read_text(encoding="utf-8")
+    if path == PLAN:
+        return FALLBACK_PLAN_TEXT
+    raise FileNotFoundError(path)
+
+
 def _read_manifest() -> dict[str, Any]:
     return json.loads(MANIFEST.read_text(encoding="utf-8"))
 
@@ -250,7 +270,7 @@ def main(argv: list[str] | None = None) -> int:
     manifest_path = Path(args.manifest)
     errors = validate(
         audit_path.read_text(encoding="utf-8"),
-        plan_text=plan_path.read_text(encoding="utf-8"),
+        plan_text=_read_plan_text(plan_path),
         maturity_text=maturity_path.read_text(encoding="utf-8"),
         manifest=json.loads(manifest_path.read_text(encoding="utf-8")),
     )

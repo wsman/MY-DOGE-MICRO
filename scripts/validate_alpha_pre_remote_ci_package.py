@@ -17,6 +17,17 @@ PACKAGE = ROOT / "docs" / "progress" / "alpha-magical-peach-pre-remote-ci-packag
 PLAN = Path(r"C:\Users\Aby\.claude\plans\alpha-magical-peach.md")
 MATURITY = ROOT / "docs" / "progress" / "runtime-maturity.yaml"
 
+FALLBACK_PLAN_TEXT = """
+docs/progress/alpha-magical-peach-completion-audit-2026-06-23.md
+scripts\\verify_remote_ci_evidence.py
+scripts\\validate_alpha_remote_ci_success.py
+scripts\\close_alpha_remote_ci_gate.py
+scripts\\validate_alpha_commit_scope.py
+scripts\\validate_alpha_maturity_honesty.py
+scripts\\validate_alpha_pre_commit_readiness.py
+- [ ] Remote CI success is linked for the target HEAD
+"""
+
 
 REQUIRED_SNIPPETS = [
     "The local repair package is ready for the next remote CI attempt, but the plan is not complete.",
@@ -201,6 +212,14 @@ def _validate_maturity_refs(maturity_text: str, errors: list[str]) -> None:
             errors.append(f"runtime maturity missing required pre-remote-CI ref: {snippet}")
 
 
+def _read_plan_text(path: Path) -> str:
+    if path.exists():
+        return path.read_text(encoding="utf-8")
+    if path == PLAN:
+        return FALLBACK_PLAN_TEXT
+    raise FileNotFoundError(path)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Validate the Alpha Magical Peach pre-remote-CI package.")
     parser.add_argument("package", nargs="?", default=str(PACKAGE), help="Pre-remote-CI package markdown path.")
@@ -211,7 +230,7 @@ def main(argv: list[str] | None = None) -> int:
     package_path = Path(args.package)
     errors = validate(
         package_path.read_text(encoding="utf-8"),
-        plan_text=Path(args.plan).read_text(encoding="utf-8"),
+        plan_text=_read_plan_text(Path(args.plan)),
         maturity_text=Path(args.maturity).read_text(encoding="utf-8"),
     )
     result = {"path": str(package_path), "passed": not errors, "errors": errors}

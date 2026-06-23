@@ -5,7 +5,9 @@ from pathlib import Path
 import subprocess
 import sys
 
+import scripts.close_alpha_remote_ci_gate as remote_ci_gate
 from scripts.close_alpha_remote_ci_gate import close_remote_ci_gate
+from scripts.validate_alpha_pending_payload import REQUIRED_PENDING_PATHS, REQUIRED_PENDING_PREFIXES
 from scripts.verify_remote_ci_evidence import SCHEMA
 
 
@@ -184,6 +186,23 @@ def test_close_remote_ci_gate_rejects_failed_post_commit_scope_before_write(tmp_
     assert result["written"] is False
     assert not Path(result["remote_ci_evidence"]).exists()
     assert "- [ ] Remote CI success is linked for the target HEAD" in plan.read_text(encoding="utf-8")
+
+
+def test_validate_commit_scope_for_sha_uses_scope_base_sha(monkeypatch):
+    base_sha = "1111111111111111111111111111111111111111"
+    observed: dict[str, str] = {}
+
+    def fake_range(base: str, head: str) -> set[str]:
+        observed["base"] = base
+        observed["head"] = head
+        paths = set(REQUIRED_PENDING_PATHS)
+        paths.update(f"{prefix}README.md" for prefix in REQUIRED_PENDING_PREFIXES)
+        return paths
+
+    monkeypatch.setattr(remote_ci_gate, "git_commit_range_material_paths", fake_range)
+
+    assert remote_ci_gate.validate_commit_scope_for_sha(SHA, base_sha=base_sha) == []
+    assert observed == {"base": base_sha, "head": SHA}
 
 
 def test_close_remote_ci_gate_cli_uses_existing_evidence_without_network(tmp_path):

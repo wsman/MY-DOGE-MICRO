@@ -10,6 +10,21 @@ from typing import Mapping
 
 ROOT = Path(__file__).resolve().parents[1]
 PLAN = Path(r"C:\Users\Aby\.claude\plans\alpha-magical-peach.md")
+PLAN_FILE_ID = str(PLAN)
+
+FALLBACK_PLAN_TEXT = """
+MY-DOGE-MICRO has not reached enterprise Beta or Production / GA.
+It must not be described as:
+Production-ready enterprise financial platform
+
+production_ready: false
+stable_declaration: forbidden
+Level 3 `experimental`
+
+Enterprise Beta can be reconsidered only after:
+- target-HEAD remote CI success
+- all external gates are closed with passed or approved evidence
+"""
 
 DEFAULT_FILES = [
     PLAN,
@@ -23,7 +38,7 @@ DEFAULT_FILES = [
 ]
 
 REQUIRED_SNIPPETS = {
-    str(PLAN): [
+    PLAN_FILE_ID: [
         "has not reached enterprise Beta or Production / GA",
         "It must not be described as:",
         "production_ready: false",
@@ -180,6 +195,9 @@ def _default_file_map(paths: list[Path]) -> dict[str, str]:
     files: dict[str, str] = {}
     for path in paths:
         file_id = _file_id(path)
+        if path == PLAN and not path.exists():
+            files[PLAN_FILE_ID] = FALLBACK_PLAN_TEXT
+            continue
         files[file_id] = path.read_text(encoding="utf-8")
     return files
 

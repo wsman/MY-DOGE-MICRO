@@ -113,7 +113,7 @@ Closure condition:
    with the new SHA, run URL, and evidence ref.
 7. `scripts/validate_alpha_final_closure.py --remote-ci-evidence <evidence> --expected-head <new_sha>`
    exits `0`.
-8. Or `scripts/close_alpha_remote_ci_gate.py --head-sha <new_sha> --write`
+8. Or `scripts/close_alpha_remote_ci_gate.py --head-sha <new_sha> --scope-base-sha e6398dab7975f130770608f411604d51ec300e43 --write`
    exits `0` and performs steps 4 through 7 as one command.
 
 ## Completion Boundary
