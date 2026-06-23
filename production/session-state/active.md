@@ -1,14 +1,58 @@
 # Active Session State
 
 > Living checkpoint. Gitignored. Read this first after any compaction/crash.
-> Branch: `main` · Date: 2026-06-22
+> Branch: `main` · Date: 2026-06-23
 
 ## Current Task
 
-Implement and govern the platformization plan from
-`C:\Users\Aby\.claude\plans\glowing-weaving-kettle.md`.
+Implement and govern the consolidation plan from
+`C:\Users\Aby\.claude\plans\d91dc3b-python-typescript-sdk-federated-bird.md`.
 
-The user approved all file writes and subagent parallel work for this task.
+The user approved all file writes for this task.
+
+## Latest Handoff
+
+- Plan file was reviewed and hardened with stop conditions, ADR disposition
+  notes, TR policy, feature-flag removal criteria, and Phase H audit criteria.
+- Module index was rewritten around 8 bounded contexts instead of 20 mixed
+  product/technical/delivery modules.
+- Added 8 bounded-context CDDs and Proposed ADR-0021/ADR-0022.
+- Added facade packages under `src/doge/shared`, `src/doge/platform`,
+  `src/doge/products`, `src/doge/adapters`, `src/doge/entrypoints`, and
+  `src/doge/bootstrap`.
+- Tool execution now goes through the capability provider registry; legacy
+  direct execution branches were removed from `ToolApplicationService`.
+- Platform router orchestration for workspaces/projects/cases/templates was
+  moved into `src/doge/platform/workspace/service.py`.
+- RuntimeKernel now delegates model execution, tool execution, and artifact/eval
+  responsibilities to `src/doge/platform/runtime/services.py`.
+- Web navigation now has one dominant product-domain shell:
+  Home, Research, Market, Portfolio, Quant, Admin.
+- Legacy Web routes remain reachable, including `/research-agent`.
+- Completion audit exists at
+  `docs/progress/platformization-consolidation-completion-audit.md`.
+
+## Latest Verification
+
+- Web: `npm test` PASS, 14 files / 84 tests; `npm run build` PASS.
+- Architecture/governance: 109 passed, 2 skipped, 1 warning.
+- Runtime/tool: 52 passed.
+- Platform/API/integration: 37 passed.
+- SDK/CLI/MCP/transport: 177 passed, 1 skipped, 2 warnings.
+- TypeScript SDK: 13 tests passed; build passed.
+- Python SDK: sdist and wheel built after installing `build` into `.venv`.
+
+## Current Caveats
+
+- `web/vite.config.ts` and `web/tsconfig.app.json` had pre-existing local
+  modifications; do not overwrite them unless the user explicitly asks.
+- Runtime maturity remains `production_ready: false` and
+  `stable_declaration: forbidden`.
+- ADR-0015 through ADR-0022 remain Proposed unless a separate architecture
+  review promotes them.
+- External release gates remain open: live Kimi, financial provider approval,
+  analyst benchmark, enterprise production validation, and SDK registry
+  publication.
 
 ## Baseline Truth
 

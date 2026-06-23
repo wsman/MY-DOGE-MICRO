@@ -1,6 +1,6 @@
 # Architecture Control Manifest
 
-> **Manifest Version**: 2026-06-21
+> **Manifest Version**: 2026-06-23
 > **Owner**: lead-programmer (architecture); enforced by `/architecture-review`, `/gate-check`, `/story-readiness`, `/story-done`, and CI.
 > **Scope**: MY-DOGE-MICRO — local-first quantitative investment decision-support platform. This manifest is the project's control-plane reference: the quality gates, the BLOCKING vs ADVISORY evidence rules, the ADR lifecycle, the registry-write policy, the forbidden patterns, and the exact verification commands.
 > **How to use**: stories embed this manifest version in their header (`Control Manifest: 2026-06-21`); `/story-done` checks for staleness against this file's header. When a rule changes, bump the version date and re-review open stories.
@@ -29,6 +29,35 @@ From ADR-0001 + `clean-architecture-migration.md §4.3`. This is the invariant e
 - Dependencies are injected at the wiring boundary; adapters accept their config via constructor.
 - Tests are deterministic, isolated, and network-free (mocks/fakes/fixtures).
 - Commits reference a design doc or task ID (coding-standards.md).
+
+### Bounded Context Transition Rules
+
+From ADR-0021 + ADR-0022. These rules govern the transition from the old
+20-entry mixed module list to the eight bounded-context model.
+
+| Boundary | Rule |
+|---|---|
+| `src/doge/products/*` | Product contexts may not directly import one another. Cross-product work goes through public capability contracts or application services. |
+| `src/doge/platform/runtime/*` | Runtime coordination may not directly import product packages. It calls model, tool, artifact, eval, and capability ports. |
+| `src/doge/entrypoints/*` and `src/doge/interfaces/*` | Entrypoints may call application services and bootstrap wiring, but must not open persistence adapters directly. |
+| `src/doge/adapters/*` and `src/doge/infrastructure/*` | Adapters implement ports and must not contain business decisions, approval policy, research semantics, or product orchestration. |
+| `src/doge/bootstrap/*` and composition roots | Only bootstrap/composition roots may wire product contexts, platform services, and concrete adapters together. |
+| `src/doge/shared/*` | Shared code is limited to primitives such as config, errors, ids, clock, and contracts. It must not grow product workflow logic. |
+
+#### Compatibility and Deprecation Rules
+
+- Physical source moves are blocked until ADR-0022 is accepted or a story
+  explicitly declares it is operating under Proposed ADR gates.
+- New target packages start as shallow facades and compatibility exports; they
+  must not duplicate full four-layer directory trees inside each module.
+- Every deprecated public import path must identify the replacement path and
+  the removal phase or version.
+- Old and new imports must be covered by compatibility tests before a public
+  symbol is moved.
+- Feature flags created for migration must name their removal condition. A
+  flag may not become a permanent second product architecture.
+- TR identifiers remain flat and permanent. Never renumber TRs during bounded
+  context consolidation.
 
 ---
 
@@ -119,6 +148,17 @@ Proposed  ──►  Accepted  ──►  Superseded
 | 0009 Cache/Metadata Port Split | **Accepted** | Port split realized; real yfinance metadata adapter is follow-on implementation work. |
 | 0010 View-Service Port Injection | **Accepted** | IMarketViewRepository and composition-root wiring are implemented and tested. |
 | 0011 Agent Runtime Levels | **Accepted** | Level 1/2/3 runtime model accepted; maturity claims remain governed by `docs/progress/runtime-maturity.yaml`. |
+| 0012 Enterprise Model Gateway | **Accepted** | Model routing boundary accepted; live Kimi gates remain external runtime/product gates. |
+| 0013 Tool Governance | **Accepted** | Tool entitlement, approval, and high-risk categories accepted. |
+| 0014 Multimodal Evidence | **Accepted** | Evidence/citation provenance boundary accepted. |
+| 0015 Enterprise Identity And Access | **Proposed** | OIDC/JWT, tenant ACL, approval actor, audit actor, and secrets gates remain open. |
+| 0016 User-Level Objects | **Proposed** | Feature-flagged platform object slices exist; independent acceptance evidence remains open. |
+| 0017 Run Summary Citation API | **Proposed** | Query API slices exist; citation/eval promotion evidence remains open. |
+| 0018 Workflow Template System | **Proposed** | Template slices exist; execution and preflight gates remain open. |
+| 0019 Capability Registry | **Proposed** | Registry slices exist; dependency validation and production-readiness semantics remain gated. |
+| 0020 Platform Shell UI | **Proposed** | Shell slices exist; navigation/accessibility promotion gates remain open. |
+| 0021 Bounded Context Consolidation | **Proposed** | Eight-context consolidation is proposed for review; no implementation authority until accepted or explicitly gated. |
+| 0022 Directory Restructuring | **Proposed** | Facade-first target layout is proposed; physical moves remain gated. |
 
 ---
 
@@ -206,6 +246,14 @@ diff <(awk '/^## /{f=0} /Runtime|Backend and Product|Data and Market/{f=1} f' do
      <(grep -iE "fastapi|uvicorn|pydantic|mcp|duckdb|yfinance|openai" requirements.txt)
 ```
 
+### Governance and bounded-context checks
+
+```bash
+python -m pytest tests/unit/governance/test_s017_planning_docs.py -q
+python -m pytest tests/unit/governance/test_adr_lifecycle_status.py -q
+python -m pytest tests/unit/layer_gates/ -q
+```
+
 ---
 
 ## 7. Brownfield-Migration Gate Sequencing
@@ -240,4 +288,4 @@ The migration is incremental (ADR-0001). Legacy entrypoints stay live until repl
 
 ---
 
-*Manifest Version 2026-06-14. Re-review and bump this date whenever a rule, gate, ADR status, or verification command changes.*
+*Manifest Version 2026-06-23. Re-review and bump this date whenever a rule, gate, ADR status, or verification command changes.*
