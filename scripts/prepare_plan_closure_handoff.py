@@ -682,9 +682,9 @@ def _sha256_file(path: Path) -> str:
 
 def _display_path(path: Path) -> str:
     try:
-        return str(path.resolve().relative_to(ROOT.resolve()))
+        return path.resolve().relative_to(ROOT.resolve()).as_posix()
     except ValueError:
-        return str(path)
+        return path.as_posix()
 
 
 def _draft_name(filename: str, date: str) -> str:

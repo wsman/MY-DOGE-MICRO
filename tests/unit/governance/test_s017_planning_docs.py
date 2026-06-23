@@ -286,6 +286,217 @@ def test_fastapi_route_count_governance_syncs_to_s017_surface():
     assert "51 canonical product routes" not in entities_registry
 
 
+def test_platformization_adr_disposition_review_keeps_proposed_alpha_boundary():
+    review = _read("docs/progress/adr-0016-0020-disposition-review-2026-06-23.md")
+    architecture_registry = _read("docs/registry/architecture.yaml")
+    module_index = _read("design/cdd/module-index.md")
+    maturity = _read("docs/progress/runtime-maturity.yaml")
+    lifecycle_test = _read("tests/unit/governance/test_adr_lifecycle_status.py")
+
+    assert "Verdict: Keep Proposed" in review
+    assert "not an acceptance review" in review
+    assert "No updates are required to `docs/registry/architecture.yaml`" in review
+    assert "No ADR promotion implies production readiness" in review
+    assert "production_ready: false" in review
+    for adr_id in ["ADR-0016", "ADR-0017", "ADR-0018", "ADR-0019", "ADR-0020"]:
+        assert f"- {adr_id}:" in review
+        assert f"id: {adr_id}" in architecture_registry
+    for flag in [
+        "DOGE_FEATURE_PLATFORM_OBJECTS",
+        "DOGE_FEATURE_RUN_SUMMARY_API",
+        "DOGE_FEATURE_WORKFLOW_TEMPLATES",
+        "DOGE_FEATURE_CAPABILITY_REGISTRY",
+        "VITE_DOGE_FEATURE_PLATFORM_SHELL",
+    ]:
+        assert flag in review
+    assert "Keep ADR-0016 through ADR-0020 Proposed" in module_index
+    assert "production_ready: false" in maturity
+    assert "_LEGAL_STATUSES = {\"Proposed\", \"Accepted\", \"Superseded\"}" in lifecycle_test
+
+
+def test_external_gate_next_action_audit_covers_open_closure_gates():
+    audit = _read("docs/progress/external-gate-next-actions-2026-06-23.md")
+    maturity = _read("docs/progress/runtime-maturity.yaml")
+    sprint_plan = _read("production/sprints/sprint-017-external-validation-and-provider-hardening.md")
+    manifest = json.loads(_read("production/qa/evidence/plan-closure/9b77f9c-external-closure-manifest.json"))
+    normalized_audit = audit.replace("\\", "/")
+
+    assert "does not close gates" in audit
+    assert "Open gates: 5" in audit
+    assert "Passed gates: 1" in audit
+    assert "Passed gate: S017-006" in audit
+    assert "production_ready: false" in audit
+    assert "stable_declaration: forbidden" in audit
+    assert "level_3_sdk_platform: experimental" in audit
+    assert "strict closure is still expected to fail" in audit.lower()
+    assert "Product-level Alpha" not in audit
+    assert "product-level Alpha / controlled enterprise PoC" in audit
+    assert "not enterprise Beta" in audit
+    assert "Production, Stable, or GA" in audit
+    assert "validate_plan_closure_gate.py" in normalized_audit
+    assert "preflight_plan_closure_external.py" in normalized_audit
+    assert "validate_plan_closure_handoff.py" in normalized_audit
+
+    open_gate_ids = ["S017-002", "S017-003", "W3-live", "AUTH-prod", "S017-007"]
+    manifest_tasks = {item["id"]: item for item in manifest["tasks"]}
+    assert manifest["closure_gate"]["summary"] == {
+        "failed": 0,
+        "invalid": 0,
+        "open": 5,
+        "passed": 1,
+        "total": 6,
+    }
+    assert manifest_tasks["S017-006"]["can_close_now"] is True
+    for gate_id in open_gate_ids:
+        assert gate_id in audit
+        assert gate_id in maturity
+        assert gate_id in sprint_plan
+        assert manifest_tasks[gate_id]["can_close_now"] is False
+
+    for validator in [
+        "validate_kimi_live_smoke_evidence.py",
+        "validate_financial_provider_approval_evidence.py",
+        "validate_analyst_benchmark_evidence.py",
+        "validate_enterprise_production_validation_evidence.py",
+        "validate_sdk_release_approval_evidence.py",
+    ]:
+        assert validator in audit
+
+    lower_audit = audit.lower()
+    for blocker in [
+        "doge_live_kimi",
+        "moonshot_api_key",
+        "provider decision",
+        "license scope",
+        "human citation labels",
+        "live kimi observations",
+        "live idp/jwks",
+        "production secret-store command",
+        "siem/worm",
+        "registry target",
+        "release-manager sign-off",
+    ]:
+        assert blocker in lower_audit
+
+    for text in [maturity, sprint_plan]:
+        assert "docs/progress/external-gate-next-actions-2026-06-23.md" in text
+    assert "production_ready: false" in maturity
+    assert "No production readiness promotion" in sprint_plan
+
+
+def test_remote_ci_handoff_keeps_target_sha_success_pending():
+    handoff = _read("docs/progress/remote-ci-handoff-2026-06-23.md")
+    maturity = _read("docs/progress/runtime-maturity.yaml")
+    sprint_plan = _read("production/sprints/sprint-017-external-validation-and-provider-hardening.md")
+
+    assert "does not satisfy the `Remote CI success` Definition of Done item" in handoff
+    assert "No commit or push has been performed" in handoff
+    assert "without explicit user instruction" in handoff
+    assert "Local HEAD: `e6398dab7975f130770608f411604d51ec300e43`" in handoff
+    assert "Local short HEAD: `e6398da`" in handoff
+    assert "27967339069" in handoff
+    assert "Run conclusion: `failure`" in handoff
+    assert "The next remote CI target must be the post-commit SHA, not `e6398da`" in handoff
+    assert "status = completed" in handoff
+    assert "conclusion = success" in handoff
+    assert "scripts/verify_remote_ci_evidence.py" in handoff
+    assert "scripts/validate_alpha_remote_ci_success.py" in handoff
+    assert "scripts/validate_alpha_commit_scope.py" in handoff
+    assert "scripts/apply_alpha_remote_ci_success.py" in handoff
+    assert "scripts/close_alpha_remote_ci_gate.py" in handoff
+    assert "scripts/validate_alpha_final_closure.py" in handoff
+    assert "pending_remote_ci" in handoff
+    assert "--wait" in handoff
+    assert "--require-canonical-path" in handoff
+    assert "wait.status = success" in handoff
+    assert "production/qa/evidence/ci/remote-ci-<shortsha>.json" in handoff
+    assert "terminal_failure" in handoff
+    assert "production_ready: false" in handoff
+    assert "stable_declaration: forbidden" in handoff
+    assert "level_3_sdk_platform: experimental" in handoff
+
+    for result in [
+        "807 passed, 2 skipped",
+        "115 passed, 1 skipped",
+        "7 passed",
+        "5 passed",
+        "3 passed, 2 skipped",
+        "13 files / 81 tests passed",
+        "1 file / 13 tests passed",
+    ]:
+        assert result in handoff
+
+    for text in [maturity, sprint_plan]:
+        assert "docs/progress/remote-ci-handoff-2026-06-23.md" in text
+        assert "scripts/verify_remote_ci_evidence.py" in text
+        assert "scripts/validate_alpha_remote_ci_success.py" in text
+        assert "scripts/validate_alpha_commit_scope.py" in text
+        assert "scripts/apply_alpha_remote_ci_success.py" in text
+        assert "scripts/close_alpha_remote_ci_gate.py" in text
+        assert "scripts/validate_alpha_final_closure.py" in text
+        assert "docs/progress/alpha-magical-peach-pre-remote-ci-package-2026-06-23.md" in text
+        assert "scripts/validate_alpha_pre_remote_ci_package.py" in text
+        assert "scripts/validate_alpha_pending_payload.py" in text
+        assert "e6398da" in text
+        assert "27967339069" in text
+
+
+def test_alpha_magical_peach_completion_audit_is_requirement_by_requirement():
+    audit = _read("docs/progress/alpha-magical-peach-completion-audit-2026-06-23.md")
+    maturity = _read("docs/progress/runtime-maturity.yaml")
+    sprint_plan = _read("production/sprints/sprint-017-external-validation-and-provider-hardening.md")
+    normalized_audit = " ".join(audit.split())
+
+    assert "The plan is locally hardened but not complete" in audit
+    assert "full Definition of Done is not yet proved" in normalized_audit
+    assert "Definition of Done Matrix" in audit
+    assert "pending_remote_ci" in audit
+    assert "controlled_open_external" in audit or "controlled-open" in audit
+    assert "proved_for_current_alpha_plan" in audit
+    assert "not `e6398da`" in audit
+    assert "27967339069" in audit
+    assert "conclusion=failure" in audit
+    assert "scripts/verify_remote_ci_evidence.py" in audit
+    assert "scripts/validate_alpha_remote_ci_success.py" in audit
+    assert "scripts/validate_alpha_commit_scope.py" in audit
+    assert "scripts/apply_alpha_remote_ci_success.py" in audit
+    assert "scripts/close_alpha_remote_ci_gate.py" in audit
+    assert "scripts/validate_alpha_final_closure.py" in audit
+    assert "docs/progress/alpha-magical-peach-pre-remote-ci-package-2026-06-23.md" in audit
+    assert "pending_remote_ci" in audit
+    assert "No commit or push has been performed" in audit
+    assert "status=completed" in audit
+    assert "conclusion=success" in audit
+    assert "does not prove that the full plan objective is complete" in audit
+    assert "Production-ready enterprise financial platform" in audit
+
+    for gate_id in ["S017-002", "S017-003", "W3-live", "AUTH-prod", "S017-007"]:
+        assert gate_id in audit
+    assert "S017-006" in audit
+    assert "Total gates: 6" in audit
+    assert "Open gates: 5" in audit
+    assert "Passed gates: 1" in audit
+
+    for posture in [
+        "production_ready: false",
+        "stable_declaration: forbidden",
+        "level_3_sdk_platform: experimental",
+    ]:
+        assert posture in audit
+
+    for text in [maturity, sprint_plan]:
+        assert "docs/progress/alpha-magical-peach-completion-audit-2026-06-23.md" in text
+        assert "scripts/validate_alpha_magical_peach_completion_audit.py" in text
+        assert "scripts/validate_alpha_pre_remote_ci_package.py" in text
+        assert "scripts/validate_alpha_pending_payload.py" in text
+        assert "scripts/validate_alpha_remote_ci_success.py" in text
+        assert "scripts/validate_alpha_commit_scope.py" in text
+        assert "scripts/apply_alpha_remote_ci_success.py" in text
+        assert "scripts/close_alpha_remote_ci_gate.py" in text
+        assert "scripts/validate_alpha_final_closure.py" in text
+        assert "remote CI" in text
+
+
 def test_plan_closure_gate_aggregates_remaining_external_evidence():
     maturity = _read("docs/progress/runtime-maturity.yaml")
     audit = _read("docs/progress/kimi-plan-completion-audit.md")

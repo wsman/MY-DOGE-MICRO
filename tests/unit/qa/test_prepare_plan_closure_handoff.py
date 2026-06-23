@@ -50,15 +50,15 @@ def test_prepare_plan_closure_handoff_copies_draft_inputs_without_closing_gates(
 
     tasks = {task["id"]: task for task in payload["tasks"]}
     assert tasks["S017-002"]["prepared_inputs"] == []
-    assert tasks["S017-002"]["operator_input_guide"].endswith(
-        "inputs\\s017-002\\operator-input-guide.md"
+    assert _norm(tasks["S017-002"]["operator_input_guide"]).endswith(
+        "inputs/s017-002/operator-input-guide.md"
     )
     assert tasks["S017-002"]["workspace_command_plan"]["prepared_input_bindings"] == []
     assert len(tasks["W3-live"]["prepared_inputs"]) == 5
     assert len(tasks["W3-live"]["workspace_command_plan"]["prepared_input_bindings"]) == 5
     assert sum(len(task["prepared_inputs"]) for task in payload["tasks"]) == 9
-    assert tasks["S017-003"]["workspace_command_plan"]["resolved_output_ref"] == (
-        "production\\qa\\evidence\\provider\\financial-provider-approval-2030-01-02.json"
+    assert _norm(tasks["S017-003"]["workspace_command_plan"]["resolved_output_ref"]) == (
+        "production/qa/evidence/provider/financial-provider-approval-2030-01-02.json"
     )
     assert "provider-decisions-draft-2030-01-02.json" in tasks["S017-003"]["workspace_command_plan"]["command_with_draft_inputs"]
     assert "financial-provider-approval-2030-01-02.json" in tasks["S017-003"]["workspace_command_plan"]["command_with_draft_inputs"]
@@ -71,7 +71,7 @@ def test_prepare_plan_closure_handoff_copies_draft_inputs_without_closing_gates(
     )
 
     prepared_paths = [
-        Path(prepared["prepared_input"])
+        Path(prepared["prepared_input"].replace("\\", "/"))
         for task in payload["tasks"]
         for prepared in task["prepared_inputs"]
     ]
@@ -139,10 +139,11 @@ def test_prepare_plan_closure_handoff_copies_draft_inputs_without_closing_gates(
     assert "$preflightArgs += @('--task-id', $TaskId)" in operator_commands
     assert "provider-decisions-draft-2030-01-02.json" in operator_commands
     assert "financial-provider-approval-2030-01-02.json" in operator_commands
+    normalized_operator_commands = _norm(operator_commands)
     assert (
         "validate_financial_provider_approval_evidence.py "
-        "'production\\qa\\evidence\\provider\\financial-provider-approval-2030-01-02.json'"
-    ) in operator_commands
+        "'production/qa/evidence/provider/financial-provider-approval-2030-01-02.json'"
+    ) in normalized_operator_commands
     assert '$analystInitials = "<initials>"' in operator_commands
     assert "$TaskId -in @('all', 'W3-live')" in operator_commands
     assert '--analyst-initials "$analystInitials"' in operator_commands
@@ -163,18 +164,19 @@ def test_prepare_plan_closure_handoff_quotes_operator_paths_with_spaces(tmp_path
     )
 
     operator_commands = (output_dir / "operator-commands.ps1").read_text(encoding="utf-8")
+    normalized_operator_commands = _norm(operator_commands)
 
     assert "operator window with spaces" in operator_commands
     assert "Set-Location -LiteralPath $repoRoot" in operator_commands
     assert "& $python scripts\\build_financial_provider_approval_evidence.py" in operator_commands
     assert "'--handoff-workspace'" in operator_commands
-    assert "'production\\qa\\evidence\\provider\\financial-provider-approval-2030-01-02.json'" in operator_commands
-    assert "'production\\qa\\evidence\\eval\\analyst-benchmark-2030-01-02.json'" in operator_commands
-    assert "'production\\qa\\evidence\\manual\\research-agent-screen-reader-manual-2030-01-02.json'" in operator_commands
-    assert "'production\\qa\\evidence\\sdk\\sdk-release-approval-2030-01-02.json'" in operator_commands
-    assert "'production\\qa\\evidence\\enterprise\\enterprise-production-validation-2030-01-02.json'" in operator_commands
-    assert "'production\\qa\\evidence\\live\\kimi-live-smoke-2026-06-22.json'" in operator_commands
-    assert "\\operator window with spaces\\handoff\\inputs\\s017-003\\provider-decisions-draft-2030-01-02.json'" in operator_commands
+    assert "'production/qa/evidence/provider/financial-provider-approval-2030-01-02.json'" in normalized_operator_commands
+    assert "'production/qa/evidence/eval/analyst-benchmark-2030-01-02.json'" in normalized_operator_commands
+    assert "'production/qa/evidence/manual/research-agent-screen-reader-manual-2030-01-02.json'" in normalized_operator_commands
+    assert "'production/qa/evidence/sdk/sdk-release-approval-2030-01-02.json'" in normalized_operator_commands
+    assert "'production/qa/evidence/enterprise/enterprise-production-validation-2030-01-02.json'" in normalized_operator_commands
+    assert "'production/qa/evidence/live/kimi-live-smoke-2026-06-22.json'" in normalized_operator_commands
+    assert "/operator window with spaces/handoff/inputs/s017-003/provider-decisions-draft-2030-01-02.json'" in normalized_operator_commands
     assert "--created-at \"$createdAt\"" in operator_commands
 
 
@@ -249,3 +251,7 @@ def _looks_like_completed_evidence(filename: str) -> bool:
         "sdk-release-approval-",
     ]
     return any(filename.startswith(prefix) and "draft" not in filename for prefix in completed_prefixes)
+
+
+def _norm(value: str) -> str:
+    return value.replace("\\", "/")

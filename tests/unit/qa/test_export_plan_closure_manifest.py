@@ -71,21 +71,21 @@ def test_build_plan_closure_manifest_from_gate_output():
     assert "run_kimi_live_smoke.py" in handoff["S017-002"]["build_or_run_command"]
     assert handoff["S017-003"]["kind"] == "evidence_builder"
     assert handoff["S017-003"]["input_templates"] == [
-        "production\\qa\\evidence\\provider\\provider-decisions-template-2026-06-22.json"
+        "production/qa/evidence/provider/provider-decisions-template-2026-06-22.json"
     ]
     assert "build_financial_provider_approval_evidence.py" in handoff["S017-003"]["build_or_run_command"]
     assert len(handoff["W3-live"]["input_templates"]) == 5
     assert "build_analyst_benchmark_evidence.py" in handoff["W3-live"]["build_or_run_command"]
     assert handoff["AUTH-prod"]["input_templates"] == [
-        "production\\qa\\evidence\\enterprise\\enterprise-production-observations-template-2026-06-22.json"
+        "production/qa/evidence/enterprise/enterprise-production-observations-template-2026-06-22.json"
     ]
     assert "build_enterprise_production_validation_evidence.py" in handoff["AUTH-prod"]["build_or_run_command"]
     assert handoff["S017-006"]["input_templates"] == [
-        "production\\qa\\evidence\\manual\\screen-reader-observations-template-2026-06-22.json"
+        "production/qa/evidence/manual/screen-reader-observations-template-2026-06-22.json"
     ]
     assert "build_screen_reader_evidence.py" in handoff["S017-006"]["build_or_run_command"]
     assert handoff["S017-007"]["input_templates"] == [
-        "production\\qa\\evidence\\sdk\\sdk-release-decisions-template-2026-06-22.json"
+        "production/qa/evidence/sdk/sdk-release-decisions-template-2026-06-22.json"
     ]
     assert "build_sdk_release_approval_evidence.py" in handoff["S017-007"]["build_or_run_command"]
 

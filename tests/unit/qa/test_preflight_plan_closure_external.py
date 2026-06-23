@@ -41,7 +41,7 @@ def test_preflight_plan_closure_external_accepts_valid_handoff_workspace(tmp_pat
     payload = build_preflight(manifest_path=MANIFEST, handoff_workspace=workspace)
 
     assert payload["infrastructure_ready"] is True
-    assert payload["handoff_workspace"] == str(workspace)
+    assert _norm(payload["handoff_workspace"]) == _norm(str(workspace))
     assert not any(error.startswith("handoff:") for error in payload["infrastructure_errors"])
     assert any("workspace draft input not ready" in blocker for blocker in payload["external_blockers"])
 
@@ -717,3 +717,7 @@ def _write_valid_draft(prepared: dict) -> None:
 
 def _gold_cases() -> list[dict]:
     return json.loads(GOLD_CASES.read_text(encoding="utf-8"))
+
+
+def _norm(value: str) -> str:
+    return value.replace("\\", "/")

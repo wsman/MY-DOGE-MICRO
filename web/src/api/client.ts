@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { DogeClient } from 'doge-sdk'
+import { DogeClient } from '../../../packages/doge-sdk-typescript/src/client'
 
 const api = axios.create({
   baseURL: '/api',

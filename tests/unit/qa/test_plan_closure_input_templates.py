@@ -98,7 +98,7 @@ def test_manifest_handoff_input_templates_exist_and_are_json_or_jsonl():
 
     assert templates
     for template in templates:
-        path = ROOT / template
+        path = ROOT / template.replace("\\", "/")
         assert path.exists()
         if path.suffix == ".json":
             json.loads(path.read_text(encoding="utf-8"))

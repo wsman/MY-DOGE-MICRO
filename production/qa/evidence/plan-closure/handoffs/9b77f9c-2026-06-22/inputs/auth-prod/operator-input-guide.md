@@ -11,14 +11,14 @@ evidence outputs in this handoff workspace.
 - Required result: `passed`
 - Current status: `open` / `not_run`
 - Close condition: result must be passed; failed evidence remains open
-- Completed evidence belongs in: `production\qa\evidence\enterprise\enterprise-production-validation-2026-06-22.json`
-- Strict validator: `.\.venv\Scripts\python.exe scripts\validate_enterprise_production_validation_evidence.py production\qa\evidence\enterprise\enterprise-production-validation-2026-06-22.json`
-- Builder/runner: `.\.venv\Scripts\python.exe scripts\build_enterprise_production_validation_evidence.py --observations production\qa\evidence\enterprise\enterprise-production-observations-YYYY-MM-DD.json --output production\qa\evidence\enterprise\enterprise-production-validation-YYYY-MM-DD.json --created-at "YYYY-MM-DDTHH:MM:SSZ"`
+- Completed evidence belongs in: `production/qa/evidence/enterprise/enterprise-production-validation-2026-06-22.json`
+- Strict validator: `.\.venv\Scripts\python.exe scripts\validate_enterprise_production_validation_evidence.py production/qa/evidence/enterprise/enterprise-production-validation-2026-06-22.json`
+- Builder/runner: `.\.venv\Scripts\python.exe scripts\build_enterprise_production_validation_evidence.py --observations production/qa/evidence/enterprise/enterprise-production-observations-YYYY-MM-DD.json --output production/qa/evidence/enterprise/enterprise-production-validation-YYYY-MM-DD.json --created-at "YYYY-MM-DDTHH:MM:SSZ"`
 
 ## Fill Before Running
 
-- Edit `production\qa\evidence\plan-closure\handoffs\9b77f9c-2026-06-22\inputs\auth-prod\enterprise-production-observations-draft-2026-06-22.json` prepared from `production\qa\evidence\enterprise\enterprise-production-observations-template-2026-06-22.json` (action: `preserved_existing_template_draft`, differs_from_source_template: `False`).
-- Required input ref: `production\qa\evidence\enterprise\enterprise-production-observations-YYYY-MM-DD.json`
+- Edit `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/inputs/auth-prod/enterprise-production-observations-draft-2026-06-22.json` prepared from `production/qa/evidence/enterprise/enterprise-production-observations-template-2026-06-22.json` (action: `preserved_existing_template_draft`, differs_from_source_template: `False`).
+- Required input ref: `production/qa/evidence/enterprise/enterprise-production-observations-YYYY-MM-DD.json`
 - Replace operator value placeholders: `$createdAt`
 
 ## Operator Focus

@@ -31,45 +31,45 @@ HANDOFFS = {
         "input_refs": ["env:DOGE_LIVE_KIMI=1", "env:MOONSHOT_API_KEY", "optional:env:DOGE_LIVE_KIMI_AGENT_SDK=1"],
         "build_or_run_command": (
             ".\\.venv\\Scripts\\python.exe scripts\\run_kimi_live_smoke.py "
-            "--output-dir production\\qa\\evidence\\live"
+            "--output-dir production/qa/evidence/live"
         ),
-        "output_ref": "production\\qa\\evidence\\live\\kimi-live-smoke-2026-06-22.json",
+        "output_ref": "production/qa/evidence/live/kimi-live-smoke-2026-06-22.json",
         "close_condition": "result must be passed; blocked evidence remains open",
     },
     "S017-003": {
         "kind": "evidence_builder",
-        "input_templates": ["production\\qa\\evidence\\provider\\provider-decisions-template-2026-06-22.json"],
-        "input_refs": ["production\\qa\\evidence\\provider\\provider-decisions-YYYY-MM-DD.json"],
+        "input_templates": ["production/qa/evidence/provider/provider-decisions-template-2026-06-22.json"],
+        "input_refs": ["production/qa/evidence/provider/provider-decisions-YYYY-MM-DD.json"],
         "build_or_run_command": (
             ".\\.venv\\Scripts\\python.exe scripts\\build_financial_provider_approval_evidence.py "
-            "--decisions production\\qa\\evidence\\provider\\provider-decisions-YYYY-MM-DD.json "
-            "--output production\\qa\\evidence\\provider\\financial-provider-approval-YYYY-MM-DD.json "
+            "--decisions production/qa/evidence/provider/provider-decisions-YYYY-MM-DD.json "
+            "--output production/qa/evidence/provider/financial-provider-approval-YYYY-MM-DD.json "
             "--created-at \"YYYY-MM-DDTHH:MM:SSZ\""
         ),
-        "output_ref": "production\\qa\\evidence\\provider\\financial-provider-approval-YYYY-MM-DD.json",
+        "output_ref": "production/qa/evidence/provider/financial-provider-approval-YYYY-MM-DD.json",
         "close_condition": "result must be approved; needs_revision/rejected evidence remains open",
     },
     "W3-live": {
         "kind": "evidence_builder",
         "input_templates": [
-            "production\\qa\\evidence\\eval\\live-kimi-observations-template-2026-06-22.json",
-            "production\\qa\\evidence\\eval\\approved-thresholds-template-2026-06-22.json",
-            "production\\qa\\evidence\\eval\\material-manifest-template-2026-06-22.json",
-            "production\\qa\\evidence\\eval\\label-manifest-template-2026-06-22.json",
-            "production\\qa\\evidence\\eval\\trend-history-template-2026-06-22.jsonl",
+            "production/qa/evidence/eval/live-kimi-observations-template-2026-06-22.json",
+            "production/qa/evidence/eval/approved-thresholds-template-2026-06-22.json",
+            "production/qa/evidence/eval/material-manifest-template-2026-06-22.json",
+            "production/qa/evidence/eval/label-manifest-template-2026-06-22.json",
+            "production/qa/evidence/eval/trend-history-template-2026-06-22.jsonl",
         ],
         "input_refs": [
-            "production\\qa\\evidence\\eval\\live-kimi-observations-redacted.json",
-            "production\\qa\\evidence\\eval\\approved-thresholds.json",
-            "production\\qa\\evidence\\eval\\material-manifest-approved.json",
-            "production\\qa\\evidence\\eval\\label-manifest-approved.json",
-            "production\\qa\\evidence\\eval\\trend-history.jsonl",
+            "production/qa/evidence/eval/live-kimi-observations-redacted.json",
+            "production/qa/evidence/eval/approved-thresholds.json",
+            "production/qa/evidence/eval/material-manifest-approved.json",
+            "production/qa/evidence/eval/label-manifest-approved.json",
+            "production/qa/evidence/eval/trend-history.jsonl",
         ],
         "build_or_run_command": (
             ".\\.venv\\Scripts\\python.exe scripts\\build_analyst_benchmark_evidence.py "
-            "--observations production\\qa\\evidence\\eval\\live-kimi-observations-redacted.json "
-            "--thresholds production\\qa\\evidence\\eval\\approved-thresholds.json "
-            "--output production\\qa\\evidence\\eval\\analyst-benchmark-YYYY-MM-DD.json "
+            "--observations production/qa/evidence/eval/live-kimi-observations-redacted.json "
+            "--thresholds production/qa/evidence/eval/approved-thresholds.json "
+            "--output production/qa/evidence/eval/analyst-benchmark-YYYY-MM-DD.json "
             "--material-manifest-ref production/qa/evidence/eval/material-manifest-approved.json "
             "--label-manifest-ref production/qa/evidence/eval/label-manifest-approved.json "
             "--label-policy-ref docs/progress/financial-eval-gold-set.md "
@@ -78,48 +78,48 @@ HANDOFFS = {
             "--analyst-role research-qa-analyst --analyst-initials \"<initials>\" "
             "--reviewed-at \"YYYY-MM-DDTHH:MM:SSZ\""
         ),
-        "output_ref": "production\\qa\\evidence\\eval\\analyst-benchmark-YYYY-MM-DD.json",
+        "output_ref": "production/qa/evidence/eval/analyst-benchmark-YYYY-MM-DD.json",
         "close_condition": "result must be passed; failed evidence remains open",
     },
     "AUTH-prod": {
         "kind": "evidence_builder",
         "input_templates": [
-            "production\\qa\\evidence\\enterprise\\enterprise-production-observations-template-2026-06-22.json"
+            "production/qa/evidence/enterprise/enterprise-production-observations-template-2026-06-22.json"
         ],
-        "input_refs": ["production\\qa\\evidence\\enterprise\\enterprise-production-observations-YYYY-MM-DD.json"],
+        "input_refs": ["production/qa/evidence/enterprise/enterprise-production-observations-YYYY-MM-DD.json"],
         "build_or_run_command": (
             ".\\.venv\\Scripts\\python.exe scripts\\build_enterprise_production_validation_evidence.py "
-            "--observations production\\qa\\evidence\\enterprise\\enterprise-production-observations-YYYY-MM-DD.json "
-            "--output production\\qa\\evidence\\enterprise\\enterprise-production-validation-YYYY-MM-DD.json "
+            "--observations production/qa/evidence/enterprise/enterprise-production-observations-YYYY-MM-DD.json "
+            "--output production/qa/evidence/enterprise/enterprise-production-validation-YYYY-MM-DD.json "
             "--created-at \"YYYY-MM-DDTHH:MM:SSZ\""
         ),
-        "output_ref": "production\\qa\\evidence\\enterprise\\enterprise-production-validation-YYYY-MM-DD.json",
+        "output_ref": "production/qa/evidence/enterprise/enterprise-production-validation-YYYY-MM-DD.json",
         "close_condition": "result must be passed; failed evidence remains open",
     },
     "S017-006": {
         "kind": "evidence_builder",
-        "input_templates": ["production\\qa\\evidence\\manual\\screen-reader-observations-template-2026-06-22.json"],
-        "input_refs": ["production\\qa\\evidence\\manual\\screen-reader-observations-YYYY-MM-DD.json"],
+        "input_templates": ["production/qa/evidence/manual/screen-reader-observations-template-2026-06-22.json"],
+        "input_refs": ["production/qa/evidence/manual/screen-reader-observations-YYYY-MM-DD.json"],
         "build_or_run_command": (
             ".\\.venv\\Scripts\\python.exe scripts\\build_screen_reader_evidence.py "
-            "--observations production\\qa\\evidence\\manual\\screen-reader-observations-YYYY-MM-DD.json "
-            "--output production\\qa\\evidence\\manual\\research-agent-screen-reader-manual-YYYY-MM-DD.json "
+            "--observations production/qa/evidence/manual/screen-reader-observations-YYYY-MM-DD.json "
+            "--output production/qa/evidence/manual/research-agent-screen-reader-manual-YYYY-MM-DD.json "
             "--created-at \"YYYY-MM-DDTHH:MM:SSZ\""
         ),
-        "output_ref": "production\\qa\\evidence\\manual\\research-agent-screen-reader-manual-YYYY-MM-DD.json",
+        "output_ref": "production/qa/evidence/manual/research-agent-screen-reader-manual-YYYY-MM-DD.json",
         "close_condition": "result must be passed; failed evidence remains open",
     },
     "S017-007": {
         "kind": "evidence_builder",
-        "input_templates": ["production\\qa\\evidence\\sdk\\sdk-release-decisions-template-2026-06-22.json"],
-        "input_refs": ["production\\qa\\evidence\\sdk\\sdk-release-decisions-approved.json"],
+        "input_templates": ["production/qa/evidence/sdk/sdk-release-decisions-template-2026-06-22.json"],
+        "input_refs": ["production/qa/evidence/sdk/sdk-release-decisions-approved.json"],
         "build_or_run_command": (
             ".\\.venv\\Scripts\\python.exe scripts\\build_sdk_release_approval_evidence.py "
-            "--decisions production\\qa\\evidence\\sdk\\sdk-release-decisions-approved.json "
-            "--output production\\qa\\evidence\\sdk\\sdk-release-approval-YYYY-MM-DD.json "
+            "--decisions production/qa/evidence/sdk/sdk-release-decisions-approved.json "
+            "--output production/qa/evidence/sdk/sdk-release-approval-YYYY-MM-DD.json "
             "--created-at \"YYYY-MM-DDTHH:MM:SSZ\""
         ),
-        "output_ref": "production\\qa\\evidence\\sdk\\sdk-release-approval-YYYY-MM-DD.json",
+        "output_ref": "production/qa/evidence/sdk/sdk-release-approval-YYYY-MM-DD.json",
         "close_condition": "result must be approved; needs_revision/rejected evidence remains open",
     },
 }

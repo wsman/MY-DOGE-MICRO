@@ -1,4 +1,4 @@
-import { DogeApiError } from 'doge-sdk'
+import { DogeApiError } from '../../../packages/doge-sdk-typescript/src/run'
 
 export interface ImportedPortfolio {
   portfolio_id: string

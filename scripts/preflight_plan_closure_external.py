@@ -242,7 +242,7 @@ def _extract_script(command: str) -> str | None:
     match = SCRIPT_RE.search(command)
     if not match:
         return None
-    return match.group(0).replace("/", "\\")
+    return match.group(0).replace("\\", "/")
 
 
 def _path_check(value: str | None) -> dict[str, Any]:
@@ -957,9 +957,9 @@ def _display_path(path: Path | None) -> str | None:
     if path is None:
         return None
     try:
-        return str(path.resolve().relative_to(ROOT.resolve()))
+        return path.resolve().relative_to(ROOT.resolve()).as_posix()
     except ValueError:
-        return str(path)
+        return path.as_posix()
 
 
 def main(argv: list[str] | None = None) -> int:

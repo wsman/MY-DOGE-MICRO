@@ -52,7 +52,7 @@ GATES = [
         ),
         strict_command=(
             ".\\.venv\\Scripts\\python.exe scripts\\validate_kimi_live_smoke_evidence.py "
-            "production\\qa\\evidence\\live\\kimi-live-smoke-2026-06-22.json"
+            "production/qa/evidence/live/kimi-live-smoke-2026-06-22.json"
         ),
     ),
     EvidenceGate(
@@ -69,7 +69,7 @@ GATES = [
         ),
         strict_command=(
             ".\\.venv\\Scripts\\python.exe scripts\\validate_financial_provider_approval_evidence.py "
-            "production\\qa\\evidence\\provider\\financial-provider-approval-template-2026-06-22.json"
+            "production/qa/evidence/provider/financial-provider-approval-template-2026-06-22.json"
         ),
         completed_glob="financial-provider-approval-*.json",
     ),
@@ -87,7 +87,7 @@ GATES = [
         ),
         strict_command=(
             ".\\.venv\\Scripts\\python.exe scripts\\validate_analyst_benchmark_evidence.py "
-            "production\\qa\\evidence\\eval\\analyst-benchmark-template-2026-06-22.json"
+            "production/qa/evidence/eval/analyst-benchmark-template-2026-06-22.json"
         ),
         completed_glob="analyst-benchmark-*.json",
     ),
@@ -105,7 +105,7 @@ GATES = [
         ),
         strict_command=(
             ".\\.venv\\Scripts\\python.exe scripts\\validate_enterprise_production_validation_evidence.py "
-            "production\\qa\\evidence\\enterprise\\enterprise-production-validation-template-2026-06-22.json"
+            "production/qa/evidence/enterprise/enterprise-production-validation-template-2026-06-22.json"
         ),
         completed_glob="enterprise-production-validation-*.json",
     ),
@@ -123,7 +123,7 @@ GATES = [
         ),
         strict_command=(
             ".\\.venv\\Scripts\\python.exe scripts\\validate_screen_reader_evidence.py "
-            "production\\qa\\evidence\\manual\\research-agent-screen-reader-manual-template-2026-06-22.json"
+            "production/qa/evidence/manual/research-agent-screen-reader-manual-template-2026-06-22.json"
         ),
         completed_glob="research-agent-screen-reader-manual-*.json",
     ),
@@ -141,7 +141,7 @@ GATES = [
         ),
         strict_command=(
             ".\\.venv\\Scripts\\python.exe scripts\\validate_sdk_release_approval_evidence.py "
-            "production\\qa\\evidence\\sdk\\sdk-release-approval-template-2026-06-22.json"
+            "production/qa/evidence/sdk/sdk-release-approval-template-2026-06-22.json"
         ),
         completed_glob="sdk-release-approval-*.json",
     ),
@@ -167,7 +167,7 @@ def validate_all(*, allow_open: bool = False) -> dict[str, Any]:
         "acceptable": acceptable,
         "summary": summary,
         "posture": {
-            "runtime_maturity": str(RUNTIME_MATURITY.relative_to(ROOT)),
+            "runtime_maturity": _display_path(RUNTIME_MATURITY),
             "production_ready_false": "production_ready: false" in _runtime_text(),
             "stable_declaration_forbidden": "stable_declaration: forbidden" in _runtime_text(),
             "errors": posture_errors,
@@ -251,9 +251,9 @@ def _strict_command(gate: EvidenceGate, evidence_path: str | None) -> str:
 
 def _display_path(path: Path) -> str:
     try:
-        return str(path.relative_to(ROOT))
+        return path.resolve().relative_to(ROOT.resolve()).as_posix()
     except ValueError:
-        return str(path)
+        return path.as_posix()
 
 
 def _validate_non_production_posture() -> list[str]:

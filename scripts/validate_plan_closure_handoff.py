@@ -387,17 +387,24 @@ def _validate_prepared_inputs(
             if _looks_like_completed_evidence(target_path.name):
                 errors.append(f"{task_id}: prepared input looks like completed evidence: {target_path.name}")
             prepared_sha256 = _sha256_file(target_path)
-            if prepared.get("prepared_input_sha256") != prepared_sha256:
-                errors.append(f"{task_id}: prepared_input_sha256 does not match prepared input: {target}")
             if source_path.exists():
                 differs = prepared_sha256 != _sha256_file(source_path)
-                if prepared.get("differs_from_source_template") is not differs:
-                    errors.append(f"{task_id}: differs_from_source_template does not match file hashes: {target}")
                 action = prepared.get("action")
+                copied_for_operator_edit = action == "copied_template_for_operator_edit"
+                if prepared.get("prepared_input_sha256") != prepared_sha256 and not (
+                    copied_for_operator_edit and differs
+                ):
+                    errors.append(f"{task_id}: prepared_input_sha256 does not match prepared input: {target}")
+                if prepared.get("differs_from_source_template") is not differs and not (
+                    copied_for_operator_edit and differs
+                ):
+                    errors.append(f"{task_id}: differs_from_source_template does not match file hashes: {target}")
                 if action == "preserved_existing_operator_draft" and not differs:
                     errors.append(f"{task_id}: preserved_existing_operator_draft requires a draft that differs from the source template")
-                if action in {"copied_template_for_operator_edit", "preserved_existing_template_draft"} and differs:
+                if action == "preserved_existing_template_draft" and differs:
                     errors.append(f"{task_id}: {action} requires a draft that still matches the source template")
+            elif prepared.get("prepared_input_sha256") != prepared_sha256:
+                errors.append(f"{task_id}: prepared_input_sha256 does not match prepared input: {target}")
     return errors
 
 
