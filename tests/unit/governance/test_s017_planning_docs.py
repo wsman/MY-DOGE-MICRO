@@ -346,10 +346,10 @@ def test_platform_shell_defaultization_keeps_rollback_and_alpha_boundary():
 
 def test_case_centered_p0_local_completion_audit_tracks_remote_ci_gap():
     audit = _read("docs/archive/audits/case-centered-p0-local-completion-audit-2026-06-24.md")
-    plan = _read(r"C:\Users\Aby\.claude\plans\main-quizzical-quilt.md")
 
     assert "case-centered P0 implementation is locally complete and verified" in audit
     assert "The only remaining Definition-of-Done gate is remote exact-SHA CI evidence" in audit
+    assert r"C:\Users\Aby\.claude\plans\main-quizzical-quilt.md" in audit
     assert "approval_region: true" in audit
     assert "Platform Shell default entry" in audit
     assert "Platform Shell rollback" in audit
@@ -357,7 +357,7 @@ def test_case_centered_p0_local_completion_audit_tracks_remote_ci_gap():
     assert "15 files, 91 tests passed" in audit
     assert "locally verified" in audit
     assert "production readiness" in audit
-    assert "Remote exact-SHA CI evidence for the new HEAD" in plan
+    assert "Exact-SHA remote CI evidence for implementation SHA" in audit
 
 
 def test_external_gate_next_action_audit_covers_open_closure_gates():
