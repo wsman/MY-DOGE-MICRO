@@ -12,13 +12,13 @@ import os
 from fastapi import Header, HTTPException, Request
 
 from doge.config import Settings, get_settings
-from doge.bootstrap import build_app_container
+from doge.interfaces.api import factories
+from doge.interfaces.api.container import app_container as _container
 from doge.core.ports.metadata import ITickerMetadataSource
 from doge.core.ports.repository import IReportRepository, ISchemaBrowser, IStockRepository, INoteRepository
 from doge.core.ports.tdx_server_list import ITDXServerList
 from doge.infrastructure.auth import DenyAllEnterpriseAuthProvider, build_enterprise_auth_provider
 
-_container = build_app_container()
 _research_agent_runtime = None
 _persisted_research_agent_runtime = None
 _event_bus = None
@@ -112,9 +112,7 @@ def get_event_bus():
     """Provide the in-process event bus for daemon/v1 streams."""
     global _event_bus
     if _event_bus is None:
-        from doge.application.agent.event_bus import EventBus
-
-        _event_bus = EventBus()
+        _event_bus = factories.build_event_bus()
     return _event_bus
 
 
@@ -179,9 +177,7 @@ def get_platform_repository():
 
 def get_portfolio_import_service():
     """Provide the CSV portfolio import service."""
-    from doge.application.services.portfolio_import_service import PortfolioImportService
-
-    return PortfolioImportService(get_portfolio_repository())
+    return factories.build_portfolio_import_service(get_portfolio_repository())
 
 
 def get_enterprise_governance_repository():
@@ -225,9 +221,7 @@ def get_runtime_outbox_publisher():
     """Provide the optional transactional outbox publisher loop."""
     global _runtime_outbox_publisher
     if _runtime_outbox_publisher is None:
-        from doge.application.agent.outbox_publisher import OutboxPublisher
-
-        _runtime_outbox_publisher = OutboxPublisher(
+        _runtime_outbox_publisher = factories.build_runtime_outbox_publisher(
             _container.runtime.build_runtime_outbox_repository(),
             get_event_bus(),
         )
@@ -252,15 +246,13 @@ def get_daemon_worker():
     """Provide the singleton daemon worker."""
     global _worker
     if _worker is None:
-        from doge.application.agent.worker import AsyncioWorker
-
         settings = get_settings()
-        _worker = AsyncioWorker(
-            get_persisted_research_agent_runtime(),
-            get_agent_session_repository(),
-            get_run_queue(),
-            get_idempotency_store(),
-            get_agent_unit_of_work(),
+        _worker = factories.build_daemon_worker(
+            runtime=get_persisted_research_agent_runtime(),
+            session_repository=get_agent_session_repository(),
+            run_queue=get_run_queue(),
+            idempotency_store=get_idempotency_store(),
+            unit_of_work=get_agent_unit_of_work(),
             auto_start=settings.daemon.process_role != "api",
         )
     return _worker

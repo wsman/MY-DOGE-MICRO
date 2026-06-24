@@ -45,14 +45,18 @@ class TestCompositionRootLocation:
         assert isinstance(container.gateway, bootstrap_pkg.GatewayContainer)
 
     def test_api_deps_uses_bootstrap_container(self):
-        """API deps should wire through bootstrap containers, not the mega facade."""
+        """API deps wire through the bootstrap-backed API container, not the mega facade."""
+        from doge.interfaces.api import container as api_container
         from doge.interfaces.api import deps
 
-        source = Path(inspect.getfile(deps)).read_text(encoding="utf-8")
-
-        assert "from doge.bootstrap import build_app_container" in source
-        assert "app_composition" not in source
-        assert "from doge import application as" not in source
+        deps_source = Path(inspect.getfile(deps)).read_text(encoding="utf-8")
+        container_source = Path(inspect.getfile(api_container)).read_text(encoding="utf-8")
+        # deps reaches the container through the dedicated API container module,
+        # which owns the bootstrap-backed AppContainer singleton.
+        assert "from doge.interfaces.api.container" in deps_source
+        assert "from doge.bootstrap import build_app_container" in container_source
+        assert "app_composition" not in deps_source
+        assert "from doge import application as" not in deps_source
 
     def test_use_case_modules_do_not_import_infrastructure(self):
         """Use cases import only ports, services, and contracts."""
