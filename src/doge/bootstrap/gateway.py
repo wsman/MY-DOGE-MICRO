@@ -15,7 +15,12 @@ from doge.application.agent.tool_service import ToolApplicationService
 from doge.application.capabilities.executors import DisabledCodeExecutor, SubprocessCodeExecutor
 from doge.application.use_cases.generate_industry_report import GenerateIndustryReportUseCase
 from doge.application.use_cases.generate_macro_report import GenerateMacroReportUseCase
+from doge.application.use_cases.generate_market_overview import GenerateMarketOverviewUseCase
+from doge.application.use_cases.generate_anomaly_report import GenerateAnomalyReportUseCase
+from doge.application.use_cases.generate_catalog import GenerateCatalogUseCase
 from doge.application.use_cases.manage_notes import ManageNotesUseCase
+from doge.application.use_cases.populate_stock_names import PopulateStockNamesUseCase
+from doge.application.use_cases.query_ticker import QueryTickerUseCase
 from doge.application.use_cases.scan_market import ScanMarketUseCase
 from doge.bootstrap.runtime import RuntimeContainer
 from doge.config import get_settings
@@ -221,6 +226,64 @@ class GatewayContainer:
                 evidence_repository=runtime.build_agent_evidence_repository(),
                 parser=LocalDocumentParser(),
             ),
+        )
+
+    # ── Pure use-case factories (default adapter wiring) ──
+
+    def build_query_ticker_use_case(self, stock_repo=None, note_repo=None, metadata_source=None) -> QueryTickerUseCase:
+        return QueryTickerUseCase(
+            stock_repo if stock_repo is not None else self.build_stock_repository(),
+            note_repo if note_repo is not None else self.build_note_repository(),
+            metadata_source if metadata_source is not None else self.build_metadata_source(),
+        )
+
+    def build_generate_market_overview_use_case(
+        self,
+        view_repo=None,
+        breadth_service=None,
+        ranking_service=None,
+        anomaly_service=None,
+    ) -> GenerateMarketOverviewUseCase:
+        return GenerateMarketOverviewUseCase(
+            view_repo if view_repo is not None else self.build_view_repository(),
+            breadth_service if breadth_service is not None else self.build_breadth_service(),
+            ranking_service if ranking_service is not None else self.build_ranking_service(),
+            anomaly_service if anomaly_service is not None else self.build_anomaly_service(),
+        )
+
+    def build_generate_anomaly_report_use_case(
+        self,
+        view_repo=None,
+        anomaly_service=None,
+    ) -> GenerateAnomalyReportUseCase:
+        return GenerateAnomalyReportUseCase(
+            view_repo if view_repo is not None else self.build_view_repository(),
+            anomaly_service if anomaly_service is not None else self.build_anomaly_service(),
+        )
+
+    def build_catalog_use_case(self, schema_browser=None, view_service=None) -> GenerateCatalogUseCase:
+        return GenerateCatalogUseCase(
+            schema_browser if schema_browser is not None else self.build_schema_browser(),
+            view_service if view_service is not None else self.build_view_service(),
+        )
+
+    def build_populate_stock_names_use_case(
+        self,
+        stock_repo=None,
+        name_repo=None,
+        metadata_source=None,
+    ) -> PopulateStockNamesUseCase:
+        return PopulateStockNamesUseCase(
+            stock_repo if stock_repo is not None else self.build_stock_repository(),
+            name_repo if name_repo is not None else self.build_stock_name_repository(),
+            metadata_source if metadata_source is not None else self.build_metadata_source(),
+        )
+
+    def build_page_extraction_service(self) -> PageExtractionService:
+        runtime = RuntimeContainer(self.db_path)
+        return PageExtractionService(
+            evidence_repository=runtime.build_agent_evidence_repository(),
+            parser=LocalDocumentParser(),
         )
 
     # ── Product / tool-service factories (back the agent tool registry) ──

@@ -8,10 +8,32 @@ import doge.bootstrap as bootstrap_pkg
 
 
 class TestCompositionRootLocation:
-    def test_application_composition_imports_infrastructure(self):
-        """doge.application.composition remains the compatibility wiring site."""
+    def test_application_composition_does_not_import_infrastructure(self):
+        """P1B: doge.application.composition is a thin shim with no infra imports."""
         source = Path(inspect.getfile(app_comp)).read_text(encoding="utf-8")
-        assert "from doge.infrastructure" in source
+        assert "from doge.infrastructure" not in source
+        assert "import doge.infrastructure" not in source
+
+    def test_application_composition_factories_delegate_to_containers(self):
+        """P1B: every public factory delegates through a bootstrap container helper."""
+        source = Path(inspect.getfile(app_comp)).read_text(encoding="utf-8")
+        # The shim must route through one of the three container collaborators,
+        # not construct adapters directly.
+        assert "_runtime_container" in source
+        assert "_gateway_container" in source
+        assert "_workspace_container" in source
+        # No direct adapter instantiation remains in the compatibility shim.
+        for forbidden in (
+            "SQLiteSessionRepository(",
+            "SQLitePlatformRepository(",
+            "SQLiteEnterpriseGovernanceRepository(",
+            "SQLitePortfolioRepository(",
+            "LocalDocumentParser(",
+            "demo_portfolio(",
+            "DuckDBMarketViewRepository(",
+            "DuckDBStockRepository(",
+        ):
+            assert forbidden not in source, f"composition shim must not construct {forbidden}"
 
     def test_bootstrap_exports_typed_containers(self):
         """doge.bootstrap is the new typed container entry point."""

@@ -191,17 +191,23 @@ class _RaisingAfterResponses(FakeMarketViewRepository):
 
 
 # ---------------------------------------------------------------------------
-# Composition root owns the infrastructure import
+# Bootstrap containers own the infrastructure import (composition is a shim)
 # ---------------------------------------------------------------------------
-def test_composition_root_is_the_single_infra_import_site():
-    """The application composition module imports infrastructure; services do not."""
+def test_bootstrap_owns_infrastructure_imports():
+    """P1B: bootstrap containers import infrastructure; composition and services do not."""
     import doge.application.composition as comp
+    from doge.bootstrap import gateway, runtime, workspace
 
     comp_source = Path(inspect.getfile(comp)).read_text(encoding="utf-8")
-    assert "from doge.infrastructure" in comp_source, (
-        "doge.application.composition should own the single infrastructure import "
-        "for the view-backed services"
+    assert "from doge.infrastructure" not in comp_source, (
+        "doge.application.composition must be a thin shim with no infrastructure imports"
     )
+    # The bootstrap containers are the sanctioned wiring sites.
+    for mod in (gateway, runtime, workspace):
+        source = Path(inspect.getfile(mod)).read_text(encoding="utf-8")
+        assert "from doge.infrastructure" in source, (
+            f"{mod.__name__} should own infrastructure wiring for the view-backed services"
+        )
     # The 4 service modules still import none.
     for module_name in SERVICE_MODULES.values():
         mod = importlib.import_module(module_name)
