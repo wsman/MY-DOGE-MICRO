@@ -138,12 +138,26 @@ def test_runtime_container_leaf_factories_build_expected_adapters(tmp_path) -> N
     assert isinstance(container.build_agent_unit_of_work(), SQLiteAgentUnitOfWork)
 
 
-def test_workspace_container_factories_do_not_delegate_to_composition() -> None:
+def test_workspace_container_factories_do_not_delegate_to_application_composition() -> None:
+    """P2B: WorkspaceContainer may delegate to its own bounded-context
+    composition root (doge.platform.workspace.composition) but must not
+    delegate to the legacy application mega-composition."""
     for method_name in _WORKSPACE_FACTORIES:
         source = inspect.getsource(getattr(WorkspaceContainer, method_name))
 
-        assert "composition." not in source
+        assert "application.composition" not in source
         assert "_composition()" not in source
+
+
+def test_workspace_container_delegates_service_factories_to_composition_root() -> None:
+    """P2B: research-case + workflow service construction delegates to the
+    bounded-context composition root instead of being constructed inline."""
+    for method_name in ("build_research_case_service", "build_workflow_service"):
+        source = inspect.getsource(getattr(WorkspaceContainer, method_name))
+
+        assert "composition.build_" in source, (
+            f"{method_name} must delegate to doge.platform.workspace.composition"
+        )
 
 
 def test_gateway_container_factories_do_not_delegate_to_composition() -> None:

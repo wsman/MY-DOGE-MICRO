@@ -9,6 +9,7 @@ from doge.bootstrap.runtime import RuntimeContainer
 from doge.infrastructure.database.enterprise_governance import SQLiteEnterpriseGovernanceRepository
 from doge.infrastructure.database.platform_repository import SQLitePlatformRepository
 from doge.infrastructure.database.portfolio_repository import SQLitePortfolioRepository, demo_portfolio
+from doge.platform.workspace import composition
 from doge.platform.workspace.application import ResearchCaseService, WorkflowService
 
 
@@ -39,7 +40,7 @@ class WorkspaceContainer:
         capability_registry_enabled: bool = True,
     ) -> ResearchCaseService:
         runtime_container = RuntimeContainer(self.db_path)
-        return ResearchCaseService(
+        return composition.build_research_case_service(
             repo or self.build_platform_repository(),
             governance or self.build_enterprise_governance_repository(),
             runtime or runtime_container.build_persisted_research_agent_runtime(),
@@ -50,7 +51,7 @@ class WorkspaceContainer:
         )
 
     def build_workflow_service(self, *, repo=None, governance=None) -> WorkflowService:
-        return WorkflowService(
+        return composition.build_workflow_service(
             repo or self.build_platform_repository(),
             governance or self.build_enterprise_governance_repository(),
         )
