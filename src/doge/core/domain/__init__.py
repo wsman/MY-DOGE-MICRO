@@ -14,6 +14,8 @@ from .evidence_models import EvidenceRecord
 from .page_models import DocumentPage
 from .portfolio_models import Portfolio, PortfolioHolding
 from .claim_models import CitationRecord, ClaimRecord
+from .run_execution_context import RunExecutionContext, WorkflowRunContext
+from .tool_descriptor import ToolDescriptor
 
 __all__ = [
     "OHLCV",
@@ -36,4 +38,7 @@ __all__ = [
     "PortfolioHolding",
     "CitationRecord",
     "ClaimRecord",
+    "RunExecutionContext",
+    "ToolDescriptor",
+    "WorkflowRunContext",
 ]

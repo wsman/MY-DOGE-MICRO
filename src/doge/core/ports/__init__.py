@@ -34,8 +34,10 @@ from doge.core.ports.agent_runtime import IResearchAgentRuntime
 from doge.core.ports.cache import ITickerNameCache
 from doge.core.ports.capability_provider import ICapabilityProvider
 from doge.core.ports.claim_repository import IClaimRepository
+from doge.core.ports.code_executor import ExecutionResult, ICodeExecutor
 from doge.core.ports.data_source import IMarketDataSource
 from doge.core.ports.event_publisher import IEventPublisher
+from doge.core.ports.event_subscriber import IEventSubscriber
 from doge.core.ports.file_scanner import ITdxFileScanner
 from doge.core.ports.idempotency_store import IIdempotencyStore
 from doge.core.ports.llm import ILLMClient
@@ -55,6 +57,7 @@ from doge.core.ports.repository import (
     IStockRepository,
     StorageWriteError,
 )
+from doge.core.ports.runtime_transaction import IOutboxRepository, IRuntimeTransaction, IRuntimeTransactionFactory
 from doge.core.ports.secrets import ISecretProvider
 from doge.core.ports.unit_of_work import IAgentUnitOfWork
 from doge.core.ports.worker_queue import IRunQueue
@@ -71,6 +74,7 @@ __all__ = [
     "IArtifactRepository",
     "ICapabilityProvider",
     "IClaimRepository",
+    "ICodeExecutor",
     "ICompanyAnnouncementRepository",
     "IConsensusEstimateRepository",
     "IDocumentRepository",
@@ -87,6 +91,7 @@ __all__ = [
     "IEnterpriseGovernanceRepository",
     "IEventPublisher",
     "IEventRepository",
+    "IEventSubscriber",
     "IIdempotencyStore",
     "ILLMClient",
     "IMarketDataSource",
@@ -97,8 +102,11 @@ __all__ = [
     "INoteRepository",
     "IPlatformRepository",
     "IPortfolioRepository",
+    "IOutboxRepository",
     "IReportRepository",
     "IResearchAgentRuntime",
+    "IRuntimeTransaction",
+    "IRuntimeTransactionFactory",
     "IRunQueue",
     "IRunRepository",
     "IRiskFactorSource",
@@ -115,6 +123,7 @@ __all__ = [
     "IVectorStore",
     "VectorRecord",
     "VectorSearchResult",
+    "ExecutionResult",
     "RoutingDecision",
     "TDXServer",
     "StorageWriteError",

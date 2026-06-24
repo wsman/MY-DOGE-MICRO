@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
-import urllib.request
 from dataclasses import asdict, is_dataclass
 from typing import Any
 
@@ -79,8 +78,8 @@ def cmd_session(args) -> None:
 
 def _cmd_gateway_session(args) -> None:
     if getattr(args, "list", False):
-        payload = _daemon_request(args, "GET", f"/v1/sessions?limit={args.limit}")
-        for session in payload.get("sessions", []):
+        sessions = _gateway_list_sessions(args, limit=args.limit)
+        for session in sessions:
             print(
                 f"{session.get('session_id')}\t{session.get('title')}\t"
                 f"turns={len(session.get('turns', []))}\tupdated={session.get('updated_at', '-')}"
@@ -90,7 +89,7 @@ def _cmd_gateway_session(args) -> None:
     resume_id = getattr(args, "resume", None)
     if resume_id:
         try:
-            session = _daemon_request(args, "GET", f"/v1/sessions/{resume_id}")
+            session = _gateway_get_session(args, resume_id)
         except Exception as exc:  # noqa: BLE001 - CLI emits concise operator message
             print(f"gateway_session_error={exc}", file=sys.stderr)
             sys.exit(1)
@@ -126,7 +125,7 @@ def _cmd_gateway_session(args) -> None:
             )
         return
 
-    session = _daemon_request(args, "POST", "/v1/sessions", {"title": args.title})
+    session = _gateway_create_session(args, title=args.title)
     print(f"session_id={session.get('session_id')}")
     print(f"title={session.get('title')}")
 
@@ -154,7 +153,10 @@ def _interactive_loop(
             return
         if line == "/new":
             if mode == "gateway":
-                session = _daemon_request(_GatewayArgs(daemon_url=daemon_url, api_token=api_token), "POST", "/v1/sessions", {"title": "Research session"})
+                session = _gateway_create_session(
+                    _GatewayArgs(daemon_url=daemon_url, api_token=api_token),
+                    title="Research session",
+                )
                 session_id = session["session_id"]
             else:
                 session = composition.build_create_session_use_case().execute()
@@ -170,8 +172,17 @@ def _interactive_loop(
         if line.startswith("/attach "):
             path = line.split(maxsplit=1)[1]
             try:
-                document = composition.build_file_upload_service().register_path(path)
+                if mode == "gateway":
+                    document = _gateway_upload_document(
+                        _GatewayArgs(daemon_url=daemon_url, api_token=api_token),
+                        path,
+                    )
+                else:
+                    document = composition.build_file_upload_service().register_path(path)
             except FileUploadError as exc:
+                print(f"attach_error={exc}")
+                continue
+            except Exception as exc:  # noqa: BLE001 - gateway SDK errors are operator-facing
                 print(f"attach_error={exc}")
                 continue
             doc_id = document["document_id"]
@@ -279,28 +290,11 @@ def _resolve_embedded_approval(run_id: str, approval_id: str, approved: bool):
 
 
 def _resolve_gateway_approval(args, run_id: str, approval_id: str, approved: bool) -> None:
-    payload = _daemon_request(
-        args,
-        "POST",
-        f"/v1/runs/{run_id}/approvals/{approval_id}",
-        {"approved": approved},
-    )
+    payload = _gateway_resolve_approval(args, run_id, approval_id, approved)
     status = payload.get("status") or payload.get("run", {}).get("status") or payload.get("status_code")
     print(f"gateway_approval_resolved run_id={run_id} approval_id={approval_id} approved={str(approved).lower()}")
     if status:
         print(f"status={status}")
-
-
-def _daemon_request(args, method: str, path: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
-    url = f"{args.daemon_url.rstrip('/')}{path}"
-    data = json.dumps(body).encode("utf-8") if body is not None else None
-    request = urllib.request.Request(url, data=data, method=method)
-    if body is not None:
-        request.add_header("Content-Type", "application/json")
-    if getattr(args, "api_token", None):
-        request.add_header("Authorization", f"Bearer {args.api_token}")
-    with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310 - operator-provided daemon URL
-        return json.loads(response.read().decode("utf-8"))
 
 
 def _gateway_create_turn(
@@ -312,15 +306,62 @@ def _gateway_create_turn(
     document_ids: list[str] | None = None,
     portfolio_id: str | None = None,
 ) -> str:
-    payload = {
-        "message": message,
-        "market": market,
-        "document_ids": document_ids or [],
-        "portfolio_id": portfolio_id,
-        "model_policy": {"execution_profile": "financial_research"},
-    }
-    response = _daemon_request(args, "POST", f"/v1/sessions/{session_id}/turns", payload)
-    return response["run_id"]
+    return _with_gateway_client(
+        args,
+        lambda client: client.sessions.create_turn(
+            session_id,
+            message,
+            market=market,
+            document_ids=document_ids or [],
+            portfolio_id=portfolio_id,
+            model_policy={"execution_profile": "financial_research"},
+        ),
+    )
+
+
+def _gateway_list_sessions(args, *, limit: int) -> list[dict[str, Any]]:
+    return _with_gateway_client(args, lambda client: client.sessions.list(limit=limit))
+
+
+def _gateway_create_session(args, *, title: str) -> dict[str, Any]:
+    return _with_gateway_client(args, lambda client: client.sessions.create(title=title).data)
+
+
+def _gateway_get_session(args, session_id: str) -> dict[str, Any]:
+    return _with_gateway_client(args, lambda client: client.sessions.get(session_id).data)
+
+
+def _gateway_resolve_approval(args, run_id: str, approval_id: str, approved: bool) -> dict[str, Any]:
+    return _with_gateway_client(args, lambda client: client.runs.approve(run_id, approval_id, approved))
+
+
+def _gateway_upload_document(args, path: str) -> dict[str, Any]:
+    return _with_gateway_client(args, lambda client: client.documents.upload_path(path))
+
+
+def _with_gateway_client(args, operation):
+    client = _gateway_client(args)
+    try:
+        return operation(client)
+    finally:
+        client.close()
+
+
+def _gateway_client(args):
+    DogeClient = _load_doge_client()
+    return DogeClient(
+        base_url=getattr(args, "daemon_url", "http://127.0.0.1:8901"),
+        api_token=getattr(args, "api_token", None),
+    )
+
+
+def _load_doge_client():
+    try:
+        from doge_sdk import DogeClient
+
+        return DogeClient
+    except ModuleNotFoundError as exc:
+        raise RuntimeError("gateway mode requires the doge-sdk Python package") from exc
 
 
 def _print_pending_approvals(run, *, session_id: str, mode: str) -> None:

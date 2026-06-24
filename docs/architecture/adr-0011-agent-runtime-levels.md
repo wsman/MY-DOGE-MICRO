@@ -52,8 +52,14 @@ MY-DOGE defines three runtime levels:
 - Level 3: SDK/platform clients with Python first, TypeScript second, and a
   backend port for Direct Kimi API, scripted demo, and future Kimi Agent SDK.
 
-All levels share the same kernel concepts: session, turn, run, event, tool,
-model, artifact, approval.
+All levels share the same kernel concepts: session, turn, run, execution
+context, event, tool, model, artifact, approval.
+
+`RunExecutionContext` is the typed boundary for one runtime step. It carries
+the validated `ModelPolicy`, trusted identity snapshot, request id, and
+workflow/template metadata so model routing, context building, tool execution,
+and audit metadata do not need to infer execution context from ad hoc
+`ModelPolicy` fields.
 
 ## Consequences
 
@@ -61,6 +67,8 @@ model, artifact, approval.
   state.
 - CLI and daemon paths must use repository-backed runtime code instead of the
   in-memory demo adapter.
+- Runtime code should pass `RunExecutionContext` explicitly through model
+  routing, prompt/context assembly, tool execution, and audit seams.
 - Web feature additions are frozen until the v1 runtime contract has satisfied
   the required maturity gates.
 

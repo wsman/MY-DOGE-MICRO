@@ -9,9 +9,9 @@ Sprint 016 upgrades the registry into an enterprise-governed tool surface:
 | Category | Examples | Rule |
 |---|---|---|
 | Read-only | `query_stock`, `stock_overview`, `market_breadth`, `lookup_evidence`, `get_financial_statements`, `get_company_announcements` | Auto-call when entitled |
-| Analytical | `portfolio_risk`, `scenario_analysis`, `validate_financial_claims`, `calculate_financial_ratios`, `run_sql_query`, `run_python_analysis` | Auto-call with trace |
+| Analytical | `portfolio_risk`, `scenario_analysis`, `validate_financial_claims`, `calculate_financial_ratios`, `run_sql_query` | Auto-call with trace |
 | Generative | `generate_industry_report`, `screen_compliance_risk` | Draft generation only |
-| High-risk | `request_approval`, `publish_investment_memo`, `propose_portfolio_rebalance` | Requires approval |
+| High-risk | `request_approval`, `run_python_analysis`, `publish_investment_memo`, `propose_portfolio_rebalance` | Requires approval |
 | Forbidden | automatic trading, automatic credit approval, automatic punishment | Not registered for automation |
 
 ## Portfolio Exposure
@@ -57,8 +57,12 @@ fallback for deterministic local validation.
 
 - `run_sql_query` accepts read-only `SELECT`/`WITH` statements and returns safe
   generic errors.
-- `run_python_analysis` runs in a short-lived subprocess with timeout and a
-  small denylist. This is not a production sandbox.
+- `run_python_analysis` is default-off and executes only through the
+  `ICodeExecutor` port. The default `DisabledCodeExecutor` returns a
+  deterministic disabled error. `DOGE_FEATURE_PYTHON_ANALYSIS_ENABLED=1` plus
+  `DOGE_PYTHON_ANALYSIS_EXECUTOR=subprocess` preserves the previous local demo
+  subprocess behavior with timeout and a small denylist. This is not a
+  production sandbox.
 
-Production deployments must replace demo execution with hardened isolation and
-database authorization.
+Production deployments must keep Python analysis disabled until demo execution
+is replaced with hardened isolation and database authorization.

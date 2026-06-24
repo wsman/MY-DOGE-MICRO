@@ -12,6 +12,7 @@ def test_v1_stream_supports_last_event_id_reconnect(tmp_path, monkeypatch):
     reset_settings()
     deps._persisted_research_agent_runtime = None
     deps._event_bus = None
+    deps._event_subscriber = None
     deps._worker = None
     deps._run_queue = None
     deps._idempotency_store = None

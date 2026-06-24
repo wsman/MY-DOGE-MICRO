@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS runs (
     document_ids TEXT,
     portfolio_id TEXT,
     model_policy TEXT,
+    identity_snapshot TEXT,
     status TEXT NOT NULL,
     cancel_requested_at TEXT,
     created_at TEXT NOT NULL,
@@ -49,6 +50,25 @@ CREATE TABLE IF NOT EXISTS events (
     created_at TEXT NOT NULL,
     UNIQUE(run_id, sequence)
 );
+
+CREATE TABLE IF NOT EXISTS runtime_outbox (
+    outbox_id TEXT PRIMARY KEY,
+    event_id TEXT NOT NULL UNIQUE,
+    run_id TEXT NOT NULL,
+    sequence INTEGER NOT NULL,
+    payload TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    worker_id TEXT,
+    leased_at TEXT,
+    published_at TEXT,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_runtime_outbox_status_created
+ON runtime_outbox(status, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_runtime_outbox_run_sequence
+ON runtime_outbox(run_id, sequence);
 
 CREATE TABLE IF NOT EXISTS artifacts (
     artifact_id TEXT PRIMARY KEY,
@@ -192,6 +212,10 @@ CREATE TABLE IF NOT EXISTS run_queue (
     queue_id INTEGER PRIMARY KEY AUTOINCREMENT,
     run_id TEXT NOT NULL,
     status TEXT NOT NULL,
+    worker_id TEXT,
+    leased_at TEXT,
+    lease_expires_at TEXT,
+    attempt_count INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

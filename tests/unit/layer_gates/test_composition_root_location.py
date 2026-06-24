@@ -4,13 +4,33 @@ import inspect
 from pathlib import Path
 
 import doge.application.composition as app_comp
+import doge.bootstrap as bootstrap_pkg
 
 
 class TestCompositionRootLocation:
     def test_application_composition_imports_infrastructure(self):
-        """doge.application.composition is the canonical infrastructure-wiring site."""
+        """doge.application.composition remains the compatibility wiring site."""
         source = Path(inspect.getfile(app_comp)).read_text(encoding="utf-8")
         assert "from doge.infrastructure" in source
+
+    def test_bootstrap_exports_typed_containers(self):
+        """doge.bootstrap is the new typed container entry point."""
+        assert "build_app_container" in bootstrap_pkg.__all__
+        container = bootstrap_pkg.build_app_container()
+
+        assert isinstance(container.runtime, bootstrap_pkg.RuntimeContainer)
+        assert isinstance(container.workspace, bootstrap_pkg.WorkspaceContainer)
+        assert isinstance(container.gateway, bootstrap_pkg.GatewayContainer)
+
+    def test_api_deps_uses_bootstrap_container(self):
+        """API deps should wire through bootstrap containers, not the mega facade."""
+        from doge.interfaces.api import deps
+
+        source = Path(inspect.getfile(deps)).read_text(encoding="utf-8")
+
+        assert "from doge.bootstrap import build_app_container" in source
+        assert "app_composition" not in source
+        assert "from doge import application as" not in source
 
     def test_use_case_modules_do_not_import_infrastructure(self):
         """Use cases import only ports, services, and contracts."""

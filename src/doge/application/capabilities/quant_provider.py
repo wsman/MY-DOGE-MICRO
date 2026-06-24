@@ -3,16 +3,15 @@
 from __future__ import annotations
 
 import json
-import subprocess
-import sys
 from typing import Any
 
+from doge.application.capabilities.executors import DisabledCodeExecutor
 from doge.application.capabilities.tool_utils import (
     ServiceFactory,
     looks_mutating_sql,
     resolve,
-    unsafe_python,
 )
+from doge.core.ports.code_executor import ICodeExecutor
 
 
 class QuantToolProvider:
@@ -23,9 +22,11 @@ class QuantToolProvider:
         *,
         view_service_factory: ServiceFactory | None = None,
         view_repository_factory: ServiceFactory | None = None,
+        code_executor: ICodeExecutor | None = None,
     ) -> None:
         self._view_service_factory = view_service_factory
         self._view_repository_factory = view_repository_factory
+        self._code_executor = code_executor or DisabledCodeExecutor()
 
     def tool_methods(self) -> dict[str, Any]:
         return {
@@ -50,23 +51,13 @@ class QuantToolProvider:
             return {"ok": False, "error": "SQL query failed."}
 
     def run_python_analysis(self, code: str, timeout: float = 5.0) -> dict[str, Any]:
-        if unsafe_python(code):
-            return {"ok": False, "error": "Code uses disallowed operations in the demo sandbox."}
-        try:
-            completed = subprocess.run(
-                [sys.executable, "-I", "-c", code],
-                text=True,
-                capture_output=True,
-                timeout=max(1.0, min(float(timeout), 10.0)),
-                check=False,
-            )
-        except subprocess.TimeoutExpired:
-            return {"ok": False, "error": "Python analysis timed out."}
+        result = self._code_executor.execute(code, timeout)
         return {
-            "ok": completed.returncode == 0,
-            "stdout": completed.stdout[-4000:],
-            "stderr": completed.stderr[-2000:] if completed.returncode else "",
-            "returncode": completed.returncode,
+            "ok": result.ok,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "returncode": result.returncode,
+            "error": result.error,
         }
 
     def _view_service(self):

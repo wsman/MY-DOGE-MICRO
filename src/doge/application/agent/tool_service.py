@@ -9,10 +9,12 @@ from doge.application.capabilities.fundamental_provider import FundamentalToolPr
 from doge.application.capabilities.market_provider import MarketToolProvider
 from doge.application.capabilities.portfolio_provider import PortfolioToolProvider
 from doge.application.capabilities.publishing_provider import PublishingToolProvider
+from doge.application.capabilities.executors import DisabledCodeExecutor
 from doge.application.capabilities.quant_provider import QuantToolProvider
 from doge.application.capabilities.registry import ToolExecutionProviderRegistry
 from doge.application.capabilities.research_provider import ResearchToolProvider
 from doge.application.capabilities.tool_utils import ServiceFactory
+from doge.core.ports.code_executor import ICodeExecutor
 
 
 class ToolApplicationService:
@@ -37,11 +39,13 @@ class ToolApplicationService:
         consensus_estimate_repository_factory: ServiceFactory | None = None,
         industry_classification_source_factory: ServiceFactory | None = None,
         view_repository_factory: ServiceFactory | None = None,
+        code_executor: ICodeExecutor | None = None,
         use_capability_providers: bool = True,
         execution_provider_registry: ToolExecutionProviderRegistry | None = None,
     ) -> None:
         # `use_capability_providers` is retained as a compatibility parameter.
         # Provider Registry is now the single execution path.
+        self._code_executor = code_executor or DisabledCodeExecutor()
         self._execution_provider_registry = execution_provider_registry or self._build_execution_provider_registry(
             stock_service_factory=stock_service_factory,
             ranking_service_factory=ranking_service_factory,
@@ -59,11 +63,26 @@ class ToolApplicationService:
             consensus_estimate_repository_factory=consensus_estimate_repository_factory,
             industry_classification_source_factory=industry_classification_source_factory,
             view_repository_factory=view_repository_factory,
+            code_executor=self._code_executor,
         )
 
     def execution_provider_method_names(self) -> tuple[str, ...]:
         """Return provider-backed method names for parity tests and diagnostics."""
         return self._execution_provider_registry.method_names()
+
+    def python_analysis_capability_status(self) -> dict[str, Any]:
+        """Return capability metadata for the Python analysis executor."""
+        available = bool(getattr(self._code_executor, "available", False))
+        metadata: dict[str, Any] = {
+            "executor": str(getattr(self._code_executor, "executor_name", "unknown")),
+        }
+        disabled_reason = getattr(self._code_executor, "disabled_reason", None)
+        if disabled_reason:
+            metadata["disabled_reason"] = str(disabled_reason)
+        return {
+            "status": "available" if available else "disabled",
+            "metadata": metadata,
+        }
 
     def _build_execution_provider_registry(
         self,
@@ -84,6 +103,7 @@ class ToolApplicationService:
         consensus_estimate_repository_factory: ServiceFactory | None,
         industry_classification_source_factory: ServiceFactory | None,
         view_repository_factory: ServiceFactory | None,
+        code_executor: ICodeExecutor,
     ) -> ToolExecutionProviderRegistry:
         return ToolExecutionProviderRegistry([
             MarketToolProvider(
@@ -112,6 +132,7 @@ class ToolApplicationService:
             QuantToolProvider(
                 view_service_factory=view_service_factory,
                 view_repository_factory=view_repository_factory,
+                code_executor=code_executor,
             ),
             ComplianceToolProvider(),
             PublishingToolProvider(),

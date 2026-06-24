@@ -17,8 +17,28 @@ class IRunQueue(ABC):
         ...
 
     @abstractmethod
+    def claim_atomic(self, worker_id: str, lease_seconds: int) -> str | None:
+        """Atomically claim one queued or expired run for a worker."""
+        ...
+
+    @abstractmethod
+    def heartbeat(self, worker_id: str, run_id: str, lease_seconds: int) -> None:
+        """Extend an active claim lease for the owning worker."""
+        ...
+
+    @abstractmethod
+    def release_claim(self, run_id: str, worker_id: str, final_status: str) -> None:
+        """Release an active claim by appending its final queue status."""
+        ...
+
+    @abstractmethod
+    def recover_stalled_leases(self, lease_timeout_seconds: int) -> list[str]:
+        """Requeue expired running claims and return their run IDs."""
+        ...
+
+    @abstractmethod
     def list_pending(self) -> list[str]:
-        """Return run IDs whose latest queue status is queued or running."""
+        """Return run IDs whose latest queue status is queued."""
         ...
 
     @abstractmethod

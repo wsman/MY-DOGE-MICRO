@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import re
 import time
+from pathlib import Path
 from typing import Any, AsyncIterator, Awaitable, Callable, Iterator
 from uuid import uuid4
 
@@ -151,6 +152,23 @@ class DocumentsResource:
 
     def create(self, filename: str, content: str = "") -> dict[str, Any]:
         return self._root._request("POST", "/v1/documents", json={"filename": filename, "content": content})
+
+    def upload_bytes(
+        self,
+        filename: str,
+        payload: bytes,
+        *,
+        content_type: str = "application/octet-stream",
+    ) -> dict[str, Any]:
+        return self._root._request(
+            "POST",
+            "/v1/documents",
+            files={"file": (filename, payload, content_type)},
+        )
+
+    def upload_path(self, path: str | Path, *, content_type: str = "application/octet-stream") -> dict[str, Any]:
+        source = Path(path)
+        return self.upload_bytes(source.name, source.read_bytes(), content_type=content_type)
 
     def list(self, limit: int = 100) -> list[dict[str, Any]]:
         return self._root._request("GET", "/v1/documents", params={"limit": limit})["documents"]
@@ -548,6 +566,23 @@ class AsyncDocumentsResource:
 
     async def create(self, filename: str, content: str = "") -> dict[str, Any]:
         return await self._root._request("POST", "/v1/documents", json={"filename": filename, "content": content})
+
+    async def upload_bytes(
+        self,
+        filename: str,
+        payload: bytes,
+        *,
+        content_type: str = "application/octet-stream",
+    ) -> dict[str, Any]:
+        return await self._root._request(
+            "POST",
+            "/v1/documents",
+            files={"file": (filename, payload, content_type)},
+        )
+
+    async def upload_path(self, path: str | Path, *, content_type: str = "application/octet-stream") -> dict[str, Any]:
+        source = Path(path)
+        return await self.upload_bytes(source.name, source.read_bytes(), content_type=content_type)
 
     async def list(self, limit: int = 100) -> list[dict[str, Any]]:
         return (await self._root._request("GET", "/v1/documents", params={"limit": limit}))["documents"]

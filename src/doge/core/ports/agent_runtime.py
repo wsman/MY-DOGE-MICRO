@@ -54,3 +54,7 @@ class IResearchAgentRuntime(ABC):
     @abstractmethod
     async def finalize_cancelled(self, run_id: str) -> AgentRun:
         ...
+
+    @abstractmethod
+    async def record_failure(self, run_id: str, message: str) -> AgentRun:
+        ...

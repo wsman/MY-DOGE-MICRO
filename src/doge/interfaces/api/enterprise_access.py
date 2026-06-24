@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from fastapi import HTTPException, Request
 
-from doge.core.domain.enterprise_context import EnterpriseContext
+from doge.core.domain.enterprise_context import (
+    IDENTITY_SNAPSHOT_KEYS,
+    EnterpriseContext,
+    IdentitySnapshot,
+)
 from doge.core.ports.enterprise_governance import (
     ApprovalActorDecision,
     EnterpriseAclGrant,
@@ -220,31 +224,44 @@ def trusted_model_policy(
     governance: IEnterpriseGovernanceRepository,
     base_policy: dict,
 ) -> dict:
-    """Merge trusted enterprise identity/ACL context into a run model policy."""
+    """Return model execution policy with any untrusted identity fields removed."""
 
-    policy = dict(base_policy)
+    return {
+        key: value
+        for key, value in dict(base_policy).items()
+        if key not in IDENTITY_SNAPSHOT_KEYS
+    }
+
+
+def trusted_identity_snapshot(
+    request: Request,
+    governance: IEnterpriseGovernanceRepository,
+) -> IdentitySnapshot | None:
+    """Capture trusted enterprise identity/ACL context for a run."""
+
     if not is_enterprise_request(request):
-        return policy
+        return None
     context = enterprise_context(request)
-    policy["tenant_id"] = context.tenant_id
-    policy["user_hash"] = context.user_hash
-    policy["role"] = context.role
-    policy["data_classification"] = context.data_classification
-    policy["project_id"] = context.project_id
-    policy["request_id"] = request_id(request)
-    policy["document_acl"] = sorted(
-        _merge_inline_and_persistent(context.document_acl, governance, context, "document", "read")
+    return IdentitySnapshot(
+        tenant_id=context.tenant_id,
+        user_hash=context.user_hash,
+        role=context.role,
+        data_classification=context.data_classification,
+        project_id=context.project_id,
+        request_id=request_id(request),
+        document_acl=tuple(sorted(
+            _merge_inline_and_persistent(context.document_acl, governance, context, "document", "read")
+        )),
+        portfolio_permission=tuple(sorted(
+            _merge_inline_and_persistent(context.portfolio_permission, governance, context, "portfolio", "read")
+        )),
+        tool_entitlement=tuple(sorted(
+            _merge_inline_and_persistent(context.tool_entitlement, governance, context, "tool", "execute")
+        )),
+        approval_authority=tuple(sorted(
+            _merge_inline_and_persistent(context.approval_authority, governance, context, "approval", "approve")
+        )),
     )
-    policy["portfolio_permission"] = sorted(
-        _merge_inline_and_persistent(context.portfolio_permission, governance, context, "portfolio", "read")
-    )
-    policy["tool_entitlement"] = sorted(
-        _merge_inline_and_persistent(context.tool_entitlement, governance, context, "tool", "execute")
-    )
-    policy["approval_authority"] = sorted(
-        _merge_inline_and_persistent(context.approval_authority, governance, context, "approval", "approve")
-    )
-    return policy
 
 
 def _merge_inline_and_persistent(

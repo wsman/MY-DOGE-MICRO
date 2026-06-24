@@ -1,6 +1,7 @@
 from doge.application.agent.context_builder import ContextBuilder
 from doge.core.domain.agent_models import AgentRun, AgentSession, AgentTurn
 from doge.core.domain.document_models import Document, DocumentStatus
+from doge.core.domain.run_execution_context import RunExecutionContext
 from doge.infrastructure.database.agent_repositories import (
     SQLiteArtifactRepository,
     SQLiteDocumentRepository,
@@ -85,3 +86,16 @@ def test_context_builder_includes_kimi_image_file_part(tmp_path):
     parts = structured_messages[0].content
     assert parts[1].type == "image"
     assert parts[1].file_id == "file-image-1"
+
+
+def test_context_builder_uses_run_execution_context_template_prompt():
+    run = AgentRun.create(
+        workflow="investment_research",
+        question="review",
+        model_policy={"template_id": "tpl-1", "template_slug": "earnings-review"},
+    )
+    execution_context = RunExecutionContext.from_run(run)
+
+    messages = ContextBuilder().build(run, [], execution_context=execution_context)
+
+    assert "Workflow template: earnings-review." in messages[0].content

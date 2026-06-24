@@ -21,6 +21,7 @@ class IAgentUnitOfWork(ABC):
         document_ids: list[str] | None = None,
         portfolio_id: str | None = "portfolio-demo",
         model_policy: dict[str, Any] | None = None,
+        identity_snapshot: dict[str, Any] | None = None,
         idempotency_key: str | None = None,
     ) -> str:
         """Create a run, append the session turn, queue it, and return run_id."""

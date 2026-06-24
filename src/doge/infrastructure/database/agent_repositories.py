@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +20,7 @@ from doge.core.domain.agent_models import (
     RunStatus,
     utc_now,
 )
+from doge.core.domain.enterprise_context import IdentitySnapshot
 from doge.core.domain.model_policy import ModelPolicy
 from doge.core.domain.document_models import Document, DocumentStatus
 from doge.core.ports.agent_repository import (
@@ -31,7 +33,12 @@ from doge.core.ports.agent_repository import (
 )
 from doge.core.ports.idempotency_store import IIdempotencyStore
 from doge.core.ports.worker_queue import IRunQueue
+from doge.infrastructure.database.migration_runner import apply_context_migrations
 from doge.infrastructure.database.sqlite import SQLiteConnection
+from doge.infrastructure.database.tenant_guard import (
+    guard_existing_tenant,
+    resolve_tenant_id,
+)
 
 
 def _schema_path() -> Path:
@@ -44,94 +51,12 @@ def bootstrap_agent_schema(db_path: Path | str | None = None) -> None:
     sql = _schema_path().read_text(encoding="utf-8")
     with sqlite3.connect(str(path)) as conn:
         conn.executescript(sql)
-        _migrate_idempotency_key_scope(conn)
-        _migrate_documents_metadata(conn)
-        _migrate_tenant_partition_columns(conn)
+        apply_context_migrations(conn)
         conn.execute(
             "INSERT OR IGNORE INTO schema_migrations(name, applied_at) VALUES (?, ?)",
             ("agent_schema_v1", utc_now()),
         )
         conn.commit()
-
-
-def _migrate_idempotency_key_scope(conn: sqlite3.Connection) -> None:
-    columns = conn.execute("PRAGMA table_info(idempotency_keys)").fetchall()
-    pk_columns = [row[1] for row in columns if row[5]]
-    if pk_columns in (["key", "scope"], ["scope", "key"]):
-        return
-    conn.execute("ALTER TABLE idempotency_keys RENAME TO idempotency_keys_legacy")
-    conn.execute(
-        """
-        CREATE TABLE idempotency_keys (
-            key TEXT NOT NULL,
-            scope TEXT NOT NULL,
-            run_id TEXT NOT NULL,
-            created_at TEXT NOT NULL,
-            PRIMARY KEY(key, scope)
-        )
-        """
-    )
-    conn.execute(
-        """
-        INSERT OR IGNORE INTO idempotency_keys(key, scope, run_id, created_at)
-        SELECT key, scope, run_id, created_at FROM idempotency_keys_legacy
-        """
-    )
-    conn.execute("DROP TABLE idempotency_keys_legacy")
-
-
-def _migrate_documents_metadata(conn: sqlite3.Connection) -> None:
-    columns = {row[1] for row in conn.execute("PRAGMA table_info(documents)").fetchall()}
-    additions = {
-        "original_filename": "TEXT",
-        "file_hash": "TEXT",
-        "mime_type": "TEXT",
-        "size_bytes": "INTEGER",
-        "storage_path": "TEXT",
-        "kimi_file_id": "TEXT",
-        "kimi_file_purpose": "TEXT",
-        "parsing_status": "TEXT NOT NULL DEFAULT 'registered'",
-        "parser_error": "TEXT",
-        "updated_at": "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
-    }
-    for column, ddl in additions.items():
-        if column not in columns:
-            conn.execute(f"ALTER TABLE documents ADD COLUMN {column} {ddl}")
-    conn.execute(
-        """
-        UPDATE documents
-        SET original_filename = COALESCE(original_filename, filename),
-            parsing_status = CASE
-                WHEN parsing_status IS NULL OR parsing_status = '' THEN
-                    CASE WHEN status = 'ready' THEN 'parsed' ELSE COALESCE(status, 'registered') END
-                ELSE parsing_status
-            END,
-            status = CASE
-                WHEN status = 'ready' THEN 'parsed'
-                ELSE COALESCE(status, parsing_status, 'registered')
-            END,
-            updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP)
-        """
-    )
-
-
-def _migrate_tenant_partition_columns(conn: sqlite3.Connection) -> None:
-    for table in (
-        "sessions",
-        "turns",
-        "runs",
-        "events",
-        "artifacts",
-        "approvals",
-        "documents",
-        "document_pages",
-        "document_chunks",
-        "evidence_records",
-        "portfolios",
-    ):
-        columns = {row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
-        if "tenant_id" not in columns:
-            conn.execute(f"ALTER TABLE {table} ADD COLUMN tenant_id TEXT")
 
 
 class _BaseAgentRepository:
@@ -146,8 +71,15 @@ class _BaseAgentRepository:
 
 class SQLiteSessionRepository(_BaseAgentRepository, ISessionRepository):
     def save(self, session: AgentSession, tenant_id: str | None = None) -> None:
-        effective_tenant_id = tenant_id if tenant_id is not None else session.tenant_id
+        effective_tenant_id = resolve_tenant_id(session.tenant_id, tenant_id)
         with self._connect() as conn:
+            guard_existing_tenant(
+                conn,
+                table="sessions",
+                key_column="session_id",
+                key_value=session.session_id,
+                tenant_id=effective_tenant_id,
+            )
             conn.execute(
                 """
                 INSERT INTO sessions(session_id, tenant_id, title, created_at, updated_at)
@@ -161,7 +93,7 @@ class SQLiteSessionRepository(_BaseAgentRepository, ISessionRepository):
             )
             conn.execute("DELETE FROM turns WHERE session_id = ?", (session.session_id,))
             for turn in session.turns:
-                turn_tenant_id = turn.tenant_id if turn.tenant_id is not None else effective_tenant_id
+                turn_tenant_id = resolve_tenant_id(turn.tenant_id, effective_tenant_id)
                 conn.execute(
                     """
                     INSERT INTO turns(turn_id, session_id, tenant_id, user_message, run_id, created_at)
@@ -230,16 +162,23 @@ class SQLiteSessionRepository(_BaseAgentRepository, ISessionRepository):
 
 class SQLiteRunRepository(_BaseAgentRepository, IRunRepository):
     def save(self, run: AgentRun, tenant_id: str | None = None) -> None:
-        effective_tenant_id = tenant_id if tenant_id is not None else _tenant_id_from_run(run)
+        effective_tenant_id = resolve_tenant_id(_tenant_id_from_run(run), tenant_id)
         with self._connect() as conn:
+            guard_existing_tenant(
+                conn,
+                table="runs",
+                key_column="run_id",
+                key_value=run.run_id,
+                tenant_id=effective_tenant_id,
+            )
             conn.execute(
                 """
                 INSERT INTO runs(
                     run_id, tenant_id, session_id, workflow, question, market, language,
-                    document_ids, portfolio_id, model_policy, status,
+                    document_ids, portfolio_id, model_policy, identity_snapshot, status,
                     cancel_requested_at, created_at, updated_at, schema_version
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(run_id) DO UPDATE SET
                     tenant_id = excluded.tenant_id,
                     session_id = excluded.session_id,
@@ -250,6 +189,7 @@ class SQLiteRunRepository(_BaseAgentRepository, IRunRepository):
                     document_ids = excluded.document_ids,
                     portfolio_id = excluded.portfolio_id,
                     model_policy = excluded.model_policy,
+                    identity_snapshot = excluded.identity_snapshot,
                     status = excluded.status,
                     cancel_requested_at = excluded.cancel_requested_at,
                     updated_at = excluded.updated_at,
@@ -266,6 +206,7 @@ class SQLiteRunRepository(_BaseAgentRepository, IRunRepository):
                     json.dumps(run.document_ids, ensure_ascii=False),
                     run.portfolio_id,
                     json.dumps(_model_policy_to_dict(run.model_policy), ensure_ascii=False),
+                    _identity_snapshot_json(run.identity_snapshot),
                     run.status.value,
                     run.cancel_requested_at,
                     run.created_at,
@@ -315,32 +256,33 @@ class SQLiteRunRepository(_BaseAgentRepository, IRunRepository):
 class SQLiteEventRepository(_BaseAgentRepository, IEventRepository):
     def append(self, event: AgentEvent, tenant_id: str | None = None) -> AgentEvent:
         with self._connect() as conn:
-            effective_tenant_id = tenant_id if tenant_id is not None else _tenant_id_for_run(conn, event.run_id)
-            if event.sequence <= 0:
-                row = conn.execute(
-                    "SELECT COALESCE(MAX(sequence), 0) + 1 AS next_sequence FROM events WHERE run_id = ?",
-                    (event.run_id,),
-                ).fetchone()
-                event.sequence = int(row["next_sequence"])
-            conn.execute(
-                """
-                INSERT OR REPLACE INTO events(
-                    event_id, tenant_id, run_id, event_type, payload, sequence, schema_version, created_at
+            try:
+                conn.execute("BEGIN IMMEDIATE")
+                effective_tenant_id = resolve_tenant_id(_tenant_id_for_run(conn, event.run_id), tenant_id)
+                if event.sequence <= 0:
+                    event.sequence = _next_event_sequence(conn, event.run_id)
+                conn.execute(
+                    """
+                    INSERT INTO events(
+                        event_id, tenant_id, run_id, event_type, payload, sequence, schema_version, created_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        event.event_id,
+                        effective_tenant_id,
+                        event.run_id,
+                        event.event_type.value,
+                        json.dumps(event.payload, ensure_ascii=False),
+                        event.sequence,
+                        event.schema_version,
+                        event.created_at,
+                    ),
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    event.event_id,
-                    effective_tenant_id,
-                    event.run_id,
-                    event.event_type.value,
-                    json.dumps(event.payload, ensure_ascii=False),
-                    event.sequence,
-                    event.schema_version,
-                    event.created_at,
-                ),
-            )
-            conn.commit()
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
         return event
 
     def list_for_run(self, run_id: str, after_sequence: int = 0, tenant_id: str | None = None) -> list[AgentEvent]:
@@ -361,7 +303,14 @@ class SQLiteEventRepository(_BaseAgentRepository, IEventRepository):
 class SQLiteArtifactRepository(_BaseAgentRepository, IArtifactRepository):
     def save(self, artifact: AgentArtifact, tenant_id: str | None = None) -> None:
         with self._connect() as conn:
-            effective_tenant_id = tenant_id if tenant_id is not None else _tenant_id_for_run(conn, artifact.run_id)
+            effective_tenant_id = resolve_tenant_id(_tenant_id_for_run(conn, artifact.run_id), tenant_id)
+            guard_existing_tenant(
+                conn,
+                table="artifacts",
+                key_column="artifact_id",
+                key_value=artifact.artifact_id,
+                tenant_id=effective_tenant_id,
+            )
             conn.execute(
                 """
                 INSERT INTO artifacts(artifact_id, tenant_id, run_id, kind, title, content, data, created_at)
@@ -402,7 +351,14 @@ class SQLiteArtifactRepository(_BaseAgentRepository, IArtifactRepository):
 class SQLiteApprovalRepository(_BaseAgentRepository, IApprovalRepository):
     def save(self, approval: AgentApproval, tenant_id: str | None = None) -> None:
         with self._connect() as conn:
-            effective_tenant_id = tenant_id if tenant_id is not None else _tenant_id_for_run(conn, approval.run_id)
+            effective_tenant_id = resolve_tenant_id(_tenant_id_for_run(conn, approval.run_id), tenant_id)
+            guard_existing_tenant(
+                conn,
+                table="approvals",
+                key_column="approval_id",
+                key_value=approval.approval_id,
+                tenant_id=effective_tenant_id,
+            )
             conn.execute(
                 """
                 INSERT INTO approvals(approval_id, tenant_id, run_id, action, risk_level, status, created_at, resolved_at)
@@ -453,7 +409,15 @@ class SQLiteApprovalRepository(_BaseAgentRepository, IApprovalRepository):
 class SQLiteDocumentRepository(_BaseAgentRepository, IDocumentRepository):
     def save(self, document: Document | dict[str, Any]) -> None:
         record = _document_to_record(document)
+        record["tenant_id"] = resolve_tenant_id(record.get("tenant_id"))
         with self._connect() as conn:
+            guard_existing_tenant(
+                conn,
+                table="documents",
+                key_column="document_id",
+                key_value=record["document_id"],
+                tenant_id=record["tenant_id"],
+            )
             conn.execute(
                 """
                 INSERT INTO documents(
@@ -539,12 +503,147 @@ class SQLiteRunQueue(_BaseAgentRepository, IRunQueue):
         self.append_status(run_id, "queued")
 
     def dequeue(self) -> str | None:
-        pending = self.list_pending()
-        if not pending:
-            return None
-        run_id = pending[0]
-        self.append_status(run_id, "running")
-        return run_id
+        return self.claim_atomic("legacy-worker", lease_seconds=30)
+
+    def claim_atomic(self, worker_id: str, lease_seconds: int) -> str | None:
+        now = utc_now()
+        lease_expires_at = _seconds_from_now(lease_seconds)
+        with self._connect() as conn:
+            try:
+                conn.execute("BEGIN IMMEDIATE")
+                row = conn.execute(
+                    """
+                    SELECT q.*
+                    FROM run_queue q
+                    JOIN (
+                        SELECT run_id, MAX(queue_id) AS max_queue_id
+                        FROM run_queue
+                        GROUP BY run_id
+                    ) latest
+                    ON q.run_id = latest.run_id AND q.queue_id = latest.max_queue_id
+                    WHERE q.status = 'queued'
+                       OR (q.status = 'running' AND (q.lease_expires_at IS NULL OR q.lease_expires_at <= ?))
+                    ORDER BY q.queue_id ASC
+                    LIMIT 1
+                    """,
+                    (now,),
+                ).fetchone()
+                if row is None:
+                    conn.commit()
+                    return None
+                attempt_count = int(_row_value(row, "attempt_count") or 0) + 1
+                conn.execute(
+                    """
+                    INSERT INTO run_queue(
+                        run_id, status, worker_id, leased_at, lease_expires_at,
+                        attempt_count, created_at, updated_at
+                    )
+                    VALUES (?, 'running', ?, ?, ?, ?, ?, ?)
+                    """,
+                    (row["run_id"], worker_id, now, lease_expires_at, attempt_count, now, now),
+                )
+                conn.commit()
+                return row["run_id"]
+            except Exception:
+                conn.rollback()
+                raise
+
+    def heartbeat(self, worker_id: str, run_id: str, lease_seconds: int) -> None:
+        now = utc_now()
+        lease_expires_at = _seconds_from_now(lease_seconds)
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE run_queue
+                SET leased_at = ?, lease_expires_at = ?, updated_at = ?
+                WHERE queue_id = (
+                    SELECT queue_id FROM run_queue
+                    WHERE run_id = ?
+                    ORDER BY queue_id DESC
+                    LIMIT 1
+                )
+                AND run_id = ?
+                AND status = 'running'
+                AND worker_id = ?
+                """,
+                (now, lease_expires_at, now, run_id, run_id, worker_id),
+            )
+            conn.commit()
+
+    def release_claim(self, run_id: str, worker_id: str, final_status: str) -> None:
+        now = utc_now()
+        with self._connect() as conn:
+            try:
+                conn.execute("BEGIN IMMEDIATE")
+                row = conn.execute(
+                    """
+                    SELECT * FROM run_queue
+                    WHERE run_id = ?
+                    ORDER BY queue_id DESC
+                    LIMIT 1
+                    """,
+                    (run_id,),
+                ).fetchone()
+                if row is None or row["status"] != "running" or row["worker_id"] != worker_id:
+                    conn.commit()
+                    return
+                conn.execute(
+                    """
+                    INSERT INTO run_queue(
+                        run_id, status, worker_id, attempt_count, created_at, updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (run_id, final_status, worker_id, int(row["attempt_count"] or 0), now, now),
+                )
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
+
+    def recover_stalled_leases(self, lease_timeout_seconds: int) -> list[str]:
+        now = utc_now()
+        stale_before = _seconds_ago(lease_timeout_seconds)
+        recovered: list[str] = []
+        with self._connect() as conn:
+            try:
+                conn.execute("BEGIN IMMEDIATE")
+                rows = conn.execute(
+                    """
+                    SELECT q.*
+                    FROM run_queue q
+                    JOIN (
+                        SELECT run_id, MAX(queue_id) AS max_queue_id
+                        FROM run_queue
+                        GROUP BY run_id
+                    ) latest
+                    ON q.run_id = latest.run_id AND q.queue_id = latest.max_queue_id
+                    WHERE q.status = 'running'
+                      AND (
+                        q.lease_expires_at IS NULL
+                        OR q.lease_expires_at <= ?
+                        OR q.leased_at <= ?
+                      )
+                    ORDER BY q.queue_id ASC
+                    """,
+                    (now, stale_before),
+                ).fetchall()
+                for row in rows:
+                    recovered.append(row["run_id"])
+                    conn.execute(
+                        """
+                        INSERT INTO run_queue(
+                            run_id, status, attempt_count, created_at, updated_at
+                        )
+                        VALUES (?, 'queued', ?, ?, ?)
+                        """,
+                        (row["run_id"], int(row["attempt_count"] or 0), now, now),
+                    )
+                conn.commit()
+                return recovered
+            except Exception:
+                conn.rollback()
+                raise
 
     def list_pending(self) -> list[str]:
         with self._connect() as conn:
@@ -558,20 +657,31 @@ class SQLiteRunQueue(_BaseAgentRepository, IRunQueue):
                     GROUP BY run_id
                 ) latest
                 ON q.run_id = latest.run_id AND q.queue_id = latest.max_queue_id
-                WHERE q.status IN ('queued', 'running')
+                WHERE q.status = 'queued'
                 ORDER BY q.queue_id ASC
                 """
             ).fetchall()
             return [row["run_id"] for row in rows]
 
     def append_status(self, run_id: str, status: str) -> None:
+        now = utc_now()
         with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT attempt_count FROM run_queue
+                WHERE run_id = ?
+                ORDER BY queue_id DESC
+                LIMIT 1
+                """,
+                (run_id,),
+            ).fetchone()
+            attempt_count = int(row["attempt_count"] or 0) if row else 0
             conn.execute(
                 """
-                INSERT INTO run_queue(run_id, status, created_at, updated_at)
-                VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                INSERT INTO run_queue(run_id, status, attempt_count, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?)
                 """,
-                (run_id, status),
+                (run_id, status, attempt_count, now, now),
             )
             conn.commit()
 
@@ -607,6 +717,7 @@ class SQLiteIdempotencyStore(_BaseAgentRepository, IIdempotencyStore):
 
 def _row_to_run(conn: sqlite3.Connection, row: sqlite3.Row) -> AgentRun:
     tenant_id = _row_value(row, "tenant_id")
+    policy_payload = json.loads(row["model_policy"] or "{}")
     run = AgentRun(
         run_id=row["run_id"],
         workflow=row["workflow"],
@@ -616,7 +727,8 @@ def _row_to_run(conn: sqlite3.Connection, row: sqlite3.Row) -> AgentRun:
         language=row["language"],
         document_ids=json.loads(row["document_ids"] or "[]"),
         portfolio_id=row["portfolio_id"],
-        model_policy=ModelPolicy.from_dict(json.loads(row["model_policy"] or "{}")),
+        model_policy=ModelPolicy.from_dict(policy_payload),
+        identity_snapshot=_identity_snapshot_from_row(row, policy_payload),
         status=RunStatus(row["status"]),
         cancel_requested_at=row["cancel_requested_at"],
         schema_version=row["schema_version"] or "1.0",
@@ -657,23 +769,43 @@ def _row_value(row: sqlite3.Row, key: str) -> Any:
 
 
 def _tenant_id_from_run(run: AgentRun) -> str | None:
-    policy = ModelPolicy.from_dict(run.model_policy)
-    tenant_id = policy.tenant_id or policy.extra.get("tenant_id")
-    return str(tenant_id) if tenant_id else None
+    if run.identity_snapshot is not None:
+        return run.identity_snapshot.tenant_id
+    return None
 
 
 def _tenant_id_for_run(conn: sqlite3.Connection, run_id: str) -> str | None:
-    row = conn.execute("SELECT tenant_id, model_policy FROM runs WHERE run_id = ?", (run_id,)).fetchone()
+    row = conn.execute("SELECT tenant_id, model_policy, identity_snapshot FROM runs WHERE run_id = ?", (run_id,)).fetchone()
     if row is None:
         return None
     tenant_id = _row_value(row, "tenant_id")
     if tenant_id:
         return str(tenant_id)
     try:
-        policy = ModelPolicy.from_dict(json.loads(row["model_policy"] or "{}"))
+        policy_payload = json.loads(row["model_policy"] or "{}")
     except Exception:
-        return None
-    return policy.tenant_id or policy.extra.get("tenant_id")
+        policy_payload = {}
+    identity_snapshot = _identity_snapshot_from_row(row, policy_payload)
+    if identity_snapshot is not None:
+        return identity_snapshot.tenant_id
+    legacy = IdentitySnapshot.from_mapping(policy_payload)
+    return legacy.tenant_id if legacy is not None else None
+
+
+def _next_event_sequence(conn: sqlite3.Connection, run_id: str) -> int:
+    row = conn.execute(
+        "SELECT COALESCE(MAX(sequence), 0) + 1 AS next_sequence FROM events WHERE run_id = ?",
+        (run_id,),
+    ).fetchone()
+    return int(row["next_sequence"])
+
+
+def _seconds_from_now(seconds: int) -> str:
+    return (datetime.now(timezone.utc) + timedelta(seconds=seconds)).isoformat()
+
+
+def _seconds_ago(seconds: int) -> str:
+    return (datetime.now(timezone.utc) - timedelta(seconds=seconds)).isoformat()
 
 
 def _row_to_event(row: sqlite3.Row) -> AgentEvent:
@@ -714,6 +846,23 @@ def _row_to_approval(row: sqlite3.Row) -> AgentApproval:
 
 def _model_policy_to_dict(policy: Any) -> dict[str, Any]:
     return ModelPolicy.from_dict(policy).to_dict()
+
+
+def _identity_snapshot_json(snapshot: IdentitySnapshot | dict[str, Any] | None) -> str | None:
+    normalized = IdentitySnapshot.from_mapping(snapshot)
+    if normalized is None:
+        return None
+    return json.dumps(normalized.to_dict(), ensure_ascii=False)
+
+
+def _identity_snapshot_from_row(row: sqlite3.Row, policy_payload: dict[str, Any]) -> IdentitySnapshot | None:
+    raw = _row_value(row, "identity_snapshot")
+    if raw:
+        try:
+            return IdentitySnapshot.from_mapping(json.loads(raw))
+        except Exception:
+            return None
+    return IdentitySnapshot.from_mapping(policy_payload)
 
 
 def _document_to_record(document: Document | dict[str, Any]) -> dict[str, Any]:

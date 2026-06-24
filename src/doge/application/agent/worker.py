@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import suppress
 from typing import Any
+from uuid import uuid4
 
 from doge.core.domain.agent_models import AgentRun, RunStatus
 from doge.core.ports.agent_repository import ISessionRepository
@@ -24,12 +25,18 @@ class AsyncioWorker:
         run_queue: IRunQueue,
         idempotency_store: IIdempotencyStore,
         unit_of_work: IAgentUnitOfWork | None = None,
+        worker_id: str | None = None,
+        lease_seconds: int = 30,
+        heartbeat_interval_seconds: float | None = None,
     ) -> None:
         self._runtime = runtime
         self._sessions = sessions
         self._run_queue = run_queue
         self._idempotency = idempotency_store
         self._unit_of_work = unit_of_work
+        self._worker_id = worker_id or f"worker-{uuid4().hex[:12]}"
+        self._lease_seconds = lease_seconds
+        self._heartbeat_interval_seconds = heartbeat_interval_seconds or max(1.0, lease_seconds / 3)
         self._queue: asyncio.Queue[str] = asyncio.Queue()
         self._queued_run_ids: set[str] = set()
         self._active_tasks: dict[str, asyncio.Task[AgentRun]] = {}
@@ -45,6 +52,7 @@ class AsyncioWorker:
     def recover(self) -> None:
         if self._recovered:
             return
+        self._run_queue.recover_stalled_leases(self._lease_seconds)
         for run_id in self._run_queue.list_pending():
             self._enqueue_local(run_id)
         self._recovered = True
@@ -71,6 +79,7 @@ class AsyncioWorker:
         document_ids: list[str] | None = None,
         portfolio_id: str | None = "portfolio-demo",
         model_policy: dict[str, Any] | None = None,
+        identity_snapshot: dict[str, Any] | None = None,
         idempotency_key: str | None = None,
     ) -> str:
         if self._unit_of_work is None:
@@ -85,6 +94,7 @@ class AsyncioWorker:
             document_ids=document_ids or [],
             portfolio_id=portfolio_id,
             model_policy=model_policy or {"max_tool_rounds": 8},
+            identity_snapshot=identity_snapshot,
             idempotency_key=idempotency_key,
         )
         run = self._runtime.get_run(run_id)
@@ -119,15 +129,20 @@ class AsyncioWorker:
 
     async def _process_loop(self) -> None:
         while True:
-            run_id = await self._queue.get()
+            signal_run_id = await self._queue.get()
+            run_id: str | None = None
+            heartbeat_task: asyncio.Task | None = None
             try:
-                self._queued_run_ids.discard(run_id)
-                self._run_queue.append_status(run_id, "running")
+                self._queued_run_ids.discard(signal_run_id)
+                run_id = self._run_queue.claim_atomic(self._worker_id, self._lease_seconds)
+                if run_id is None:
+                    continue
+                heartbeat_task = asyncio.create_task(self._heartbeat_loop(run_id))
                 task = asyncio.create_task(self._runtime.run_to_pause_or_completion(run_id))
                 self._active_tasks[run_id] = task
                 try:
                     run = await task
-                    self._run_queue.append_status(run_id, _queue_status_for_run(run))
+                    self._run_queue.release_claim(run_id, self._worker_id, _queue_status_for_run(run))
                 except asyncio.CancelledError:
                     if self._stopping:
                         task.cancel()
@@ -135,11 +150,17 @@ class AsyncioWorker:
                             await task
                         raise
                     run = await self._runtime.finalize_cancelled(run_id)
-                    self._run_queue.append_status(run_id, _queue_status_for_run(run))
+                    self._run_queue.release_claim(run_id, self._worker_id, _queue_status_for_run(run))
                 finally:
                     self._active_tasks.pop(run_id, None)
-            except Exception:
-                self._run_queue.append_status(run_id, "failed")
+                    if heartbeat_task is not None:
+                        heartbeat_task.cancel()
+                        with suppress(asyncio.CancelledError):
+                            await heartbeat_task
+            except Exception as exc:
+                if run_id is not None:
+                    await _record_runtime_failure(self._runtime, run_id, str(exc))
+                    self._run_queue.release_claim(run_id, self._worker_id, "failed")
             finally:
                 self._queue.task_done()
 
@@ -158,6 +179,11 @@ class AsyncioWorker:
         self._queued_run_ids.add(run_id)
         await self._queue.put(run_id)
 
+    async def _heartbeat_loop(self, run_id: str) -> None:
+        while True:
+            await asyncio.sleep(self._heartbeat_interval_seconds)
+            self._run_queue.heartbeat(self._worker_id, run_id, self._lease_seconds)
+
 
 def _queue_status_for_run(run: AgentRun) -> str:
     if run.status == RunStatus.FAILED:
@@ -165,3 +191,11 @@ def _queue_status_for_run(run: AgentRun) -> str:
     if run.status == RunStatus.CANCELLED:
         return "cancelled"
     return "done"
+
+
+async def _record_runtime_failure(runtime: IResearchAgentRuntime, run_id: str, message: str) -> None:
+    record_failure = getattr(runtime, "record_failure", None)
+    if record_failure is None:
+        return
+    with suppress(Exception):
+        await record_failure(run_id, message)

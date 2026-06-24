@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, fields
 from typing import Any
 
+from doge.core.domain.enterprise_context import IdentitySnapshot
 from doge.core.domain.model_policy import ModelPolicy
 from doge.core.domain.platform_models import WorkflowTemplate
 
@@ -43,10 +44,6 @@ def build_template_run_request(
         "template_version": template.current_version,
         "template_name": template.name,
     }
-    if tenant_id is not None and not merged_policy.get("tenant_id"):
-        merged_policy["tenant_id"] = tenant_id
-    if user_hash is not None and not merged_policy.get("user_hash"):
-        merged_policy["user_hash"] = user_hash
     policy = ModelPolicy.from_dict(merged_policy)
     metadata = {
         "template_id": template.template_id,
@@ -59,7 +56,7 @@ def build_template_run_request(
         "evidence_policy": dict(template.evidence_policy or {}),
         "output_contract": dict(template.output_contract or {}),
     }
-    return {
+    request = {
         "workflow": run_input.workflow or template.slug or "investment_research",
         "question": run_input.question or template.run_instructions or template.name,
         "session_id": run_input.session_id,
@@ -70,6 +67,12 @@ def build_template_run_request(
         "model_policy": policy.to_dict(),
         "template": metadata,
     }
+    if tenant_id is not None or user_hash is not None:
+        request["identity_snapshot"] = IdentitySnapshot(
+            tenant_id=tenant_id or "local",
+            user_hash=user_hash or "local-user",
+        ).to_dict()
+    return request
 
 
 def validate_template_inputs(template: WorkflowTemplate, inputs: dict[str, Any] | None) -> list[dict[str, Any]]:

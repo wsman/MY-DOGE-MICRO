@@ -193,7 +193,7 @@ class TestApiRouterForbiddenPatterns:
         assert hits == [], f"forbidden DB pattern in src/api: {hits}"
 
     def test_api_deps_py_is_sanctioned_infra_site(self):
-        """deps.py is allowed to import infrastructure via composition.py.
+        """deps.py is allowed to import infrastructure via bootstrap containers.
 
         The gate above would already fail if deps.py imported sqlite3/duckdb
         directly; this test documents that deps.py is the intended seam.

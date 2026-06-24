@@ -12,6 +12,7 @@ from doge.core.domain.page_models import DocumentPage
 from doge.core.ports.evidence_repository import IEvidenceRepository
 from doge.infrastructure.database.agent_repositories import bootstrap_agent_schema
 from doge.infrastructure.database.sqlite import SQLiteConnection
+from doge.infrastructure.database.tenant_guard import guard_existing_tenant, require_same_tenant, resolve_tenant_id
 
 
 class SQLiteEvidenceRepository(IEvidenceRepository):
@@ -27,7 +28,14 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
 
     def save_page(self, page: DocumentPage, tenant_id: str | None = None) -> None:
         with self._connect() as conn:
-            effective_tenant_id = tenant_id if tenant_id is not None else _tenant_id_for_document(conn, page.document_id)
+            effective_tenant_id = resolve_tenant_id(_tenant_id_for_document(conn, page.document_id), tenant_id)
+            guard_existing_tenant(
+                conn,
+                table="document_pages",
+                key_column="page_id",
+                key_value=page.page_id,
+                tenant_id=effective_tenant_id,
+            )
             conn.execute(
                 """
                 INSERT INTO document_pages(
@@ -70,7 +78,14 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
 
     def save_chunk(self, chunk: DocumentChunk, tenant_id: str | None = None) -> None:
         with self._connect() as conn:
-            effective_tenant_id = tenant_id if tenant_id is not None else _tenant_id_for_document(conn, chunk.document_id)
+            effective_tenant_id = resolve_tenant_id(_tenant_id_for_document(conn, chunk.document_id), tenant_id)
+            guard_existing_tenant(
+                conn,
+                table="document_chunks",
+                key_column="chunk_id",
+                key_value=chunk.chunk_id,
+                tenant_id=effective_tenant_id,
+            )
             conn.execute(
                 """
                 INSERT INTO document_chunks(
@@ -131,10 +146,24 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
 
     def save_evidence(self, evidence: EvidenceRecord, tenant_id: str | None = None) -> None:
         with self._connect() as conn:
-            effective_tenant_id = (
-                tenant_id
-                if tenant_id is not None
-                else _tenant_id_for_run(conn, evidence.run_id) or _tenant_id_for_document(conn, evidence.document_id)
+            run_tenant_id = _tenant_id_for_run(conn, evidence.run_id)
+            document_tenant_id = _tenant_id_for_document(conn, evidence.document_id)
+            if run_tenant_id is not None and document_tenant_id is not None:
+                require_same_tenant(
+                    run_tenant_id,
+                    document_tenant_id,
+                    resource=f"evidence source {evidence.evidence_id}",
+                )
+            effective_tenant_id = resolve_tenant_id(
+                run_tenant_id or document_tenant_id,
+                tenant_id,
+            )
+            guard_existing_tenant(
+                conn,
+                table="evidence_records",
+                key_column="evidence_id",
+                key_value=evidence.evidence_id,
+                tenant_id=effective_tenant_id,
             )
             conn.execute(
                 """

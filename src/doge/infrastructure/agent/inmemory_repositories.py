@@ -78,8 +78,8 @@ class InMemoryEventRepository(IEventRepository):
         events = self._store.events.setdefault(event.run_id, [])
         if event.sequence <= 0:
             event.sequence = max((item.sequence for item in events), default=0) + 1
-        else:
-            events = [item for item in events if item.sequence != event.sequence]
+        elif any(item.sequence == event.sequence for item in events):
+            raise ValueError(f"duplicate event sequence for run {event.run_id}: {event.sequence}")
         events.append(deepcopy(event))
         events.sort(key=lambda item: item.sequence)
         self._store.events[event.run_id] = events

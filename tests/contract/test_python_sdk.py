@@ -282,6 +282,30 @@ def test_python_sdk_documents_get():
     assert document["document_id"] == "doc-1"
 
 
+def test_python_sdk_documents_upload_path_uses_multipart(tmp_path):
+    source = tmp_path / "report.txt"
+    source.write_text("alpha beta", encoding="utf-8")
+    seen = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["method"] = request.method
+        seen["path"] = request.url.path
+        seen["content_type"] = request.headers.get("content-type")
+        seen["body"] = request.content
+        return httpx.Response(200, json={"document_id": "doc-upload", "filename": "report.txt"})
+
+    client = DogeClient(base_url="http://testserver", transport=httpx.MockTransport(handler))
+
+    document = client.documents.upload_path(source, content_type="text/plain")
+
+    assert document["document_id"] == "doc-upload"
+    assert seen["method"] == "POST"
+    assert seen["path"] == "/v1/documents"
+    assert seen["content_type"].startswith("multipart/form-data")
+    assert b'report.txt' in seen["body"]
+    assert b"alpha beta" in seen["body"]
+
+
 def test_python_sdk_run_summary_platform_and_capability_resources():
     seen = {}
 

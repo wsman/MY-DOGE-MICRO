@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
+from doge.core.domain.enterprise_context import IDENTITY_SNAPSHOT_KEYS
+
 
 @dataclass(frozen=True)
 class ModelPolicy:
@@ -27,8 +29,6 @@ class ModelPolicy:
     response_schema: dict[str, Any] | None = None
     prompt_cache_key: str | None = None
     run_budget_usd: float | None = None
-    tenant_id: str | None = None
-    user_hash: str | None = None
     extra: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
@@ -50,10 +50,12 @@ class ModelPolicy:
             "response_schema",
             "prompt_cache_key",
             "run_budget_usd",
-            "tenant_id",
-            "user_hash",
         }
-        extra = {key: value for key, value in payload.items() if key not in known}
+        extra = {
+            key: value
+            for key, value in payload.items()
+            if key not in known and key not in IDENTITY_SNAPSHOT_KEYS
+        }
         policy = cls(
             execution_profile=str(payload.get("execution_profile") or cls.execution_profile),
             max_tool_rounds=_coerce_int(payload.get("max_tool_rounds"), cls.max_tool_rounds),
@@ -68,8 +70,6 @@ class ModelPolicy:
             response_schema=payload.get("response_schema") if isinstance(payload.get("response_schema"), dict) else None,
             prompt_cache_key=_coerce_optional_str(payload.get("prompt_cache_key")),
             run_budget_usd=_coerce_optional_float(payload.get("run_budget_usd")),
-            tenant_id=_coerce_optional_str(payload.get("tenant_id")),
-            user_hash=_coerce_optional_str(payload.get("user_hash")),
             extra=extra,
         )
         policy.validate()
@@ -91,8 +91,6 @@ class ModelPolicy:
             "response_schema": self.response_schema,
             "prompt_cache_key": self.prompt_cache_key,
             "run_budget_usd": self.run_budget_usd,
-            "tenant_id": self.tenant_id,
-            "user_hash": self.user_hash,
         })
         return {key: value for key, value in data.items() if value is not None}
 

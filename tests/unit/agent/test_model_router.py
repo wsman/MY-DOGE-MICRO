@@ -4,7 +4,9 @@ import pytest
 
 from doge.application.agent.model_router import ModelRouter
 from doge.core.domain.agent_models import AgentRun
+from doge.core.domain.enterprise_context import IdentitySnapshot
 from doge.core.domain.model_policy import ModelPolicy
+from doge.core.domain.run_execution_context import RunExecutionContext, WorkflowRunContext
 
 
 class DocumentRepo:
@@ -65,3 +67,22 @@ def test_model_router_accepts_web_research_profile():
 
     assert decision.model == "kimi-k2.6"
     assert decision.thinking_enabled is True
+
+
+def test_model_router_uses_execution_context_identity_for_safety_identifier():
+    run = AgentRun.create(workflow="investment_research", question="q")
+    execution_context = RunExecutionContext(
+        run_id=run.run_id,
+        question=run.question,
+        model_policy=ModelPolicy(),
+        identity_snapshot=IdentitySnapshot(tenant_id="tenant-a", user_hash="user-a"),
+        workflow=WorkflowRunContext(workflow=run.workflow),
+    )
+
+    decision = ModelRouter(settings=_settings()).route(
+        run,
+        ModelPolicy(),
+        execution_context=execution_context,
+    )
+
+    assert decision.safety_identifier == "user-a"

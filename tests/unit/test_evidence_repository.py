@@ -1,6 +1,11 @@
+import pytest
+
+from doge.core.domain.agent_models import AgentRun
+from doge.core.domain.enterprise_context import IdentitySnapshot
 from doge.core.domain.evidence_models import EvidenceRecord
 from doge.core.domain.page_models import DocumentPage
 from doge.application.services.page_extraction_service import ChunkingService
+from doge.infrastructure.database.agent_repositories import SQLiteDocumentRepository, SQLiteRunRepository
 from doge.infrastructure.database.evidence_repository import SQLiteEvidenceRepository
 
 
@@ -77,3 +82,30 @@ def test_evidence_repository_filters_pages_chunks_and_evidence_by_tenant(tmp_pat
     assert repository.get_evidence(evidence_b.evidence_id, tenant_id="tenant-a") is None
     assert repository.list_evidence(run_id="run-a", tenant_id="tenant-a") == [evidence_a]
     assert repository.list_evidence(document_id="doc-b", tenant_id="tenant-a") == []
+
+
+def test_evidence_repository_rejects_cross_tenant_parent_mismatch(tmp_path):
+    db = tmp_path / "agent_state.db"
+    documents = SQLiteDocumentRepository(db)
+    runs = SQLiteRunRepository(db)
+    repository = SQLiteEvidenceRepository(db)
+    documents.save({"document_id": "doc-a", "tenant_id": "tenant-a", "filename": "a.txt", "content": "alpha"})
+    run = AgentRun.create(
+        workflow="investment_research",
+        question="q",
+        identity_snapshot=IdentitySnapshot(tenant_id="tenant-a", user_hash="user-a"),
+    )
+    runs.save(run)
+    page = DocumentPage.create(document_id="doc-a", page_number=1, text="Tenant A text.")
+    chunk = ChunkingService().chunk_page(page)[0]
+    evidence = EvidenceRecord.create(
+        chunk=chunk,
+        claim="a",
+        support_snippet="Tenant A",
+        run_id=run.run_id,
+    )
+
+    with pytest.raises(ValueError, match="tenant mismatch"):
+        repository.save_page(page, tenant_id="tenant-b")
+    with pytest.raises(ValueError, match="tenant mismatch"):
+        repository.save_evidence(evidence, tenant_id="tenant-b")

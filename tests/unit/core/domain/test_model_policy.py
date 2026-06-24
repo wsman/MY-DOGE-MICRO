@@ -11,6 +11,24 @@ def test_model_policy_defaults_and_roundtrip_unknown_fields():
     assert policy.to_dict()["custom_flag"] == "kept"
 
 
+def test_model_policy_strips_identity_snapshot_fields():
+    policy = ModelPolicy.from_dict({
+        "tenant_id": "tenant-a",
+        "user_hash": "user-a",
+        "role": "analyst",
+        "request_id": "req-1",
+        "custom_flag": "kept",
+    })
+
+    payload = policy.to_dict()
+
+    assert "tenant_id" not in payload
+    assert "user_hash" not in payload
+    assert "role" not in payload
+    assert "request_id" not in payload
+    assert payload["custom_flag"] == "kept"
+
+
 def test_model_policy_accepts_existing_instance():
     policy = ModelPolicy(execution_profile="quant_code")
 

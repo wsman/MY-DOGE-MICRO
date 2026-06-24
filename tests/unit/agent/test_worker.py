@@ -15,6 +15,18 @@ class FakeRunQueue:
     def dequeue(self):
         return self.pending.pop(0) if self.pending else None
 
+    def claim_atomic(self, worker_id: str, lease_seconds: int):
+        return self.pending.pop(0) if self.pending else None
+
+    def heartbeat(self, worker_id: str, run_id: str, lease_seconds: int) -> None:
+        self.statuses.append((run_id, "heartbeat"))
+
+    def release_claim(self, run_id: str, worker_id: str, final_status: str) -> None:
+        self.statuses.append((run_id, final_status))
+
+    def recover_stalled_leases(self, lease_timeout_seconds: int):
+        return []
+
     def list_pending(self):
         return list(self.pending)
 

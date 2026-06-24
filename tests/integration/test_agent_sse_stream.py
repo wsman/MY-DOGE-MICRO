@@ -1,10 +1,13 @@
 import json
+import threading
 import time
 
 from fastapi.testclient import TestClient
 
 from doge.application.composition import build_research_agent_runtime
 from doge.config import reset_settings
+from doge.core.domain.agent_models import AgentEvent, AgentRun, EventType, RunStatus
+from doge.infrastructure.database.agent_repositories import SQLiteEventRepository, SQLiteRunRepository
 from doge.interfaces.api import deps
 from doge.interfaces.api.main import app
 
@@ -15,6 +18,7 @@ def _reset_agent_deps(monkeypatch, tmp_path):
     deps._research_agent_runtime = None
     deps._persisted_research_agent_runtime = None
     deps._event_bus = None
+    deps._event_subscriber = None
     deps._worker = None
     deps._run_queue = None
     deps._idempotency_store = None
@@ -114,3 +118,38 @@ def test_sse_stream_live_run_closes_after_terminal_event(tmp_path, monkeypatch):
 
     assert events
     assert events[-1]["event_type"] in {"approval_requested", "artifact_created", "error", "run_cancelled"}
+
+
+def test_v1_stream_receives_sqlite_events_without_event_bus_publish(tmp_path, monkeypatch):
+    _reset_agent_deps(monkeypatch, tmp_path)
+    db = tmp_path / "agent_state.db"
+    runs = SQLiteRunRepository(db)
+    events = SQLiteEventRepository(db)
+    run = AgentRun.create(workflow="investment_research", question="Separate process", run_id="run-cross-process")
+    run.status = RunStatus.RUNNING
+    runs.save(run)
+
+    def complete_from_separate_repository():
+        time.sleep(0.05)
+        loaded = runs.get(run.run_id)
+        assert loaded is not None
+        loaded.status = RunStatus.COMPLETED
+        runs.save(loaded)
+        events.append(AgentEvent(
+            event_id="evt-cross-process-terminal",
+            run_id=run.run_id,
+            event_type=EventType.ARTIFACT_CREATED,
+            payload={"artifact_id": "art-cross-process", "kind": "memo", "title": "Memo"},
+        ))
+
+    writer = threading.Thread(target=complete_from_separate_repository)
+    writer.start()
+    try:
+        with TestClient(app) as client:
+            with client.stream("GET", f"/v1/runs/{run.run_id}/stream") as resp:
+                assert resp.status_code == 200
+                streamed = _collect_data_events(resp)
+    finally:
+        writer.join(timeout=1)
+
+    assert [event["event_type"] for event in streamed] == ["artifact_created"]

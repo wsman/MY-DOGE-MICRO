@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from doge.application.agent.tool_service import ToolApplicationService
+from doge.core.domain.tool_descriptor import ToolDescriptor
 from doge.core.domain.tool_policy import ToolCategory
 from doge.core.ports.tool_entitlement import IToolEntitlementChecker
 
@@ -38,6 +39,7 @@ class ToolRegistry:
         entitlement_checker: IToolEntitlementChecker | None = None,
         context: Any = None,
     ) -> None:
+        self._descriptors: dict[str, ToolDescriptor] = {}
         self._tools: dict[str, Callable[..., ToolResult]] = {}
         self._categories: dict[str, ToolCategory] = {}
         self._entitlement = entitlement_checker or _DefaultEntitlementChecker()
@@ -46,16 +48,33 @@ class ToolRegistry:
 
     def register(
         self,
-        schema: dict[str, Any],
+        schema: dict[str, Any] | ToolDescriptor,
         func: Callable[..., ToolResult],
         category: ToolCategory | str | None = None,
     ) -> None:
+        descriptor = schema if isinstance(schema, ToolDescriptor) else None
+        if descriptor is not None:
+            schema = descriptor.to_schema()
         name = schema["function"]["name"]
         resolved_category = _category(category or schema.get("x-doge-category") or ToolCategory.READ_ONLY)
         schema["x-doge-category"] = resolved_category.value
+        if descriptor is None:
+            descriptor = ToolDescriptor.from_schema(schema, category=resolved_category)
+        self._descriptors[name] = descriptor
         self.schemas.append(schema)
         self._tools[name] = func
         self._categories[name] = resolved_category
+
+    def descriptor_for(self, name: str) -> ToolDescriptor | None:
+        """Return the canonical descriptor for a registered tool."""
+
+        return self._descriptors.get(name)
+
+    def descriptors(self) -> tuple[ToolDescriptor, ...]:
+        """Return registered descriptors in schema order."""
+
+        names = [schema.get("function", {}).get("name", "") for schema in self.schemas]
+        return tuple(self._descriptors[name] for name in names if name in self._descriptors)
 
     def schemas_for_context(self, context: Any = None) -> list[dict[str, Any]]:
         effective_context = self._context if context is None else context
@@ -74,12 +93,22 @@ class ToolRegistry:
         for schema in self.schemas_for_context(effective_context):
             name = schema.get("function", {}).get("name", "")
             category = self._categories.get(name, ToolCategory.READ_ONLY)
+            descriptor = self._descriptors.get(name)
             records.append({
                 "tool_name": name,
-                "description": schema.get("function", {}).get("description", ""),
+                "description": (
+                    descriptor.description if descriptor is not None
+                    else schema.get("function", {}).get("description", "")
+                ),
                 "category": category.value,
                 "risk_level": _risk_level(category),
+                "status": descriptor.status if descriptor is not None else schema.get("x-doge-status", "available"),
                 "requires_approval": self._entitlement.requires_approval(effective_context, name, category),
+                "metadata": (
+                    descriptor.capability_metadata()
+                    if descriptor is not None
+                    else dict(schema.get("x-doge-metadata", {}))
+                ),
             })
         return records
 
@@ -132,20 +161,18 @@ def _schema(
     required: list[str] | None = None,
     *,
     category: ToolCategory = ToolCategory.READ_ONLY,
-) -> dict[str, Any]:
-    return {
-        "type": "function",
-        "x-doge-category": category.value,
-        "function": {
-            "name": name,
-            "description": description,
-            "parameters": {
-                "type": "object",
-                "properties": properties,
-                "required": required or [],
-            },
-        },
-    }
+    status: str = "available",
+    metadata: dict[str, Any] | None = None,
+) -> ToolDescriptor:
+    return ToolDescriptor(
+        name=name,
+        description=description,
+        properties=properties,
+        required=tuple(required or ()),
+        category=category,
+        status=status,
+        metadata=metadata or {},
+    )
 
 
 def build_default_tool_registry(
@@ -332,10 +359,11 @@ def build_default_tool_registry(
         "sql": {"type": "string"},
         "readonly": {"type": "boolean"},
     }, ["sql"], category=ToolCategory.ANALYTICAL), run_sql_query)
+    python_analysis_status = service.python_analysis_capability_status()
     registry.register(_schema("run_python_analysis", "Run bounded demo Python analysis.", {
         "code": {"type": "string"},
         "timeout": {"type": "number", "minimum": 1, "maximum": 10},
-    }, ["code"], category=ToolCategory.ANALYTICAL), run_python_analysis)
+    }, ["code"], category=ToolCategory.HIGH_RISK, **python_analysis_status), run_python_analysis)
     registry.register(_schema("screen_compliance_risk", "Screen text for compliance risk phrases.", {
         "text": {"type": "string"},
     }, ["text"], category=ToolCategory.ANALYTICAL), screen_compliance_risk)

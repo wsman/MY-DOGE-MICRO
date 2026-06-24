@@ -86,7 +86,12 @@ def test_phase_b_package_markers_import_cleanly() -> None:
     import doge.shared
 
     assert doge.adapters.__all__ == []
-    assert doge.bootstrap.__all__ == []
+    assert {
+        "AppContainer",
+        "GatewayContainer",
+        "RuntimeContainer",
+        "WorkspaceContainer",
+    }.issubset(set(doge.bootstrap.__all__))
     assert doge.entrypoints.__all__ == []
     assert doge.platform.__all__ == []
     assert doge.products.__all__ == []

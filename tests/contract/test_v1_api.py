@@ -13,6 +13,7 @@ def _reset_agent_deps(monkeypatch, tmp_path):
     reset_settings()
     deps._persisted_research_agent_runtime = None
     deps._event_bus = None
+    deps._event_subscriber = None
     deps._worker = None
     deps._run_queue = None
     deps._idempotency_store = None

@@ -9,6 +9,7 @@ from doge.core.domain.portfolio_models import Portfolio, PortfolioHolding
 from doge.core.ports.portfolio_repository import IPortfolioRepository
 from doge.infrastructure.database.agent_repositories import bootstrap_agent_schema
 from doge.infrastructure.database.sqlite import SQLiteConnection
+from doge.infrastructure.database.tenant_guard import guard_existing_tenant, resolve_tenant_id
 
 
 class SQLitePortfolioRepository(IPortfolioRepository):
@@ -21,7 +22,15 @@ class SQLitePortfolioRepository(IPortfolioRepository):
         return self._connection.connect()
 
     def save(self, portfolio: Portfolio, tenant_id: str | None = None) -> None:
+        effective_tenant_id = resolve_tenant_id(tenant_id)
         with self._connect() as conn:
+            guard_existing_tenant(
+                conn,
+                table="portfolios",
+                key_column="portfolio_id",
+                key_value=portfolio.portfolio_id,
+                tenant_id=effective_tenant_id,
+            )
             conn.execute(
                 """
                 INSERT INTO portfolios(portfolio_id, tenant_id, name, updated_at)
@@ -31,7 +40,7 @@ class SQLitePortfolioRepository(IPortfolioRepository):
                     name = excluded.name,
                     updated_at = excluded.updated_at
                 """,
-                (portfolio.portfolio_id, tenant_id, portfolio.name),
+                (portfolio.portfolio_id, effective_tenant_id, portfolio.name),
             )
             conn.execute("DELETE FROM portfolio_holdings WHERE portfolio_id = ?", (portfolio.portfolio_id,))
             for holding in portfolio.holdings:

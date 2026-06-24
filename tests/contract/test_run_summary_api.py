@@ -6,6 +6,7 @@ from doge.application.use_cases.run_summary import BuildRunSummary
 from doge.config.settings import FeatureConfig
 from doge.core.domain.agent_models import AgentArtifact, AgentRun, RunStatus
 from doge.core.domain.evidence_models import EvidenceRecord
+from doge.core.domain.enterprise_context import IdentitySnapshot
 from doge.core.domain.model_policy import ModelPolicy
 from doge.core.ports.enterprise_auth import AuthenticatedPrincipal
 from doge.infrastructure.database.enterprise_governance import SQLiteEnterpriseGovernanceRepository
@@ -94,7 +95,8 @@ class _Runtime:
             workflow="investment_research",
             question="Analyze",
             run_id="run-1",
-            model_policy=ModelPolicy(tenant_id="tenant-a", user_hash="user-a"),
+            model_policy=ModelPolicy(),
+            identity_snapshot=IdentitySnapshot(tenant_id="tenant-a", user_hash="user-a"),
         )
         self.run.status = RunStatus.COMPLETED
         self.artifact = AgentArtifact(

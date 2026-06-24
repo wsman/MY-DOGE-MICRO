@@ -379,7 +379,9 @@ class APIConfig:
 
     The default remains loopback-only with permissive CORS. Non-loopback bind is
     a deliberate promotion gate and requires enterprise auth, explicit CORS
-    origins, and TLS termination acknowledgement.
+    origins, and TLS termination acknowledgement. Legacy ``/api/*`` business
+    routers are local-demo compatibility surfaces only; enterprise and
+    non-loopback deployments fail closed by not mounting them.
     """
 
     bind_host: str = field(default_factory=lambda: os.environ.get("DOGE_BIND_HOST") or "127.0.0.1")
@@ -389,6 +391,9 @@ class APIConfig:
     allow_remote_bind: bool = field(default_factory=lambda: _env_bool("DOGE_ALLOW_REMOTE_BIND", False))
     tls_termination_required: bool = field(
         default_factory=lambda: _env_bool("DOGE_API_TLS_TERMINATION_REQUIRED", False)
+    )
+    enterprise_disable_legacy: bool = field(
+        default_factory=lambda: _env_bool("DOGE_API_ENTERPRISE_DISABLE_LEGACY", True)
     )
 
 
@@ -494,6 +499,30 @@ FEATURE_LIFECYCLES: dict[str, FeatureLifecycle] = {
         ),
         rollback_criterion="restore default False if capability discovery, redaction, or provider parity regresses",
     ),
+    "runtime_outbox_publisher": FeatureLifecycle(
+        env_var="DOGE_FEATURE_RUNTIME_OUTBOX_PUBLISHER",
+        introduced="P0-03 runtime transaction/outbox remediation; C:\\Users\\Aby\\.claude\\plans\\my-doge-micro-main-2ffdb66-piped-donut.md",
+        current_default=False,
+        target_default_on="after P0-05 replaces in-process EventBus correctness with cross-process subscriber coverage",
+        target_removal="one release cycle after SSE and daemon event delivery no longer depend on immediate publish",
+        replacement_behavior="runtime events are delivered from the transactional outbox publisher by default",
+        regression_commands=(
+            "python -m pytest tests/unit/agent/test_runtime_transaction.py tests/integration/test_agent_sse_stream.py -q",
+        ),
+        rollback_criterion="restore default False if event delivery duplicates or misses runtime events",
+    ),
+    "python_analysis_enabled": FeatureLifecycle(
+        env_var="DOGE_FEATURE_PYTHON_ANALYSIS_ENABLED",
+        introduced="P0-07 Python analysis executor boundary; C:\\Users\\Aby\\.claude\\plans\\my-doge-micro-main-2ffdb66-piped-donut.md",
+        current_default=False,
+        target_default_on="never for enterprise deployments without a hardened non-subprocess executor",
+        target_removal="after Python analysis is replaced by a hardened container or WASM executor with approval workflow evidence",
+        replacement_behavior="Python analysis tools execute only through an operator-selected hardened code executor",
+        regression_commands=(
+            "python -m pytest tests/unit/capabilities/test_code_executor.py tests/unit/agent/test_tool_registry.py tests/unit/use_cases/test_capability_registry.py -q",
+        ),
+        rollback_criterion="restore default False and disabled executor if Python analysis can execute without explicit operator enablement",
+    ),
 }
 
 
@@ -512,6 +541,15 @@ class FeatureConfig:
     )
     capability_registry: bool = field(
         default_factory=lambda: _env_bool("DOGE_FEATURE_CAPABILITY_REGISTRY", False)
+    )
+    runtime_outbox_publisher: bool = field(
+        default_factory=lambda: _env_bool("DOGE_FEATURE_RUNTIME_OUTBOX_PUBLISHER", False)
+    )
+    python_analysis_enabled: bool = field(
+        default_factory=lambda: _env_bool("DOGE_FEATURE_PYTHON_ANALYSIS_ENABLED", False)
+    )
+    python_analysis_executor: str = field(
+        default_factory=lambda: (os.environ.get("DOGE_PYTHON_ANALYSIS_EXECUTOR") or "disabled").strip().lower()
     )
 
 

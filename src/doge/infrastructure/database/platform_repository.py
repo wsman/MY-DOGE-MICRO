@@ -22,6 +22,11 @@ from doge.core.domain.platform_models import (
 from doge.core.ports.platform_repository import IPlatformRepository
 from doge.infrastructure.database.agent_repositories import bootstrap_agent_schema
 from doge.infrastructure.database.sqlite import SQLiteConnection
+from doge.infrastructure.database.tenant_guard import (
+    guard_existing_tenant,
+    require_same_tenant,
+    resolve_tenant_id,
+)
 
 
 class SQLitePlatformRepository(IPlatformRepository):
@@ -34,7 +39,15 @@ class SQLitePlatformRepository(IPlatformRepository):
         return self._connection.connect()
 
     def save_workspace(self, workspace: Workspace) -> None:
+        effective_tenant_id = resolve_tenant_id(workspace.tenant_id)
         with self._connect() as conn:
+            guard_existing_tenant(
+                conn,
+                table="workspaces",
+                key_column="workspace_id",
+                key_value=workspace.workspace_id,
+                tenant_id=effective_tenant_id,
+            )
             conn.execute(
                 """
                 INSERT INTO workspaces(
@@ -53,7 +66,7 @@ class SQLitePlatformRepository(IPlatformRepository):
                 """,
                 (
                     workspace.workspace_id,
-                    workspace.tenant_id,
+                    effective_tenant_id,
                     workspace.name,
                     workspace.description,
                     workspace.status,
@@ -75,6 +88,21 @@ class SQLitePlatformRepository(IPlatformRepository):
 
     def save_project(self, project: Project) -> None:
         with self._connect() as conn:
+            workspace_tenant_id = _tenant_id_for(conn, "workspaces", "workspace_id", project.workspace_id)
+            effective_tenant_id = resolve_tenant_id(project.tenant_id or workspace_tenant_id)
+            if workspace_tenant_id is not None:
+                require_same_tenant(
+                    workspace_tenant_id,
+                    effective_tenant_id,
+                    resource=f"project workspace {project.workspace_id}",
+                )
+            guard_existing_tenant(
+                conn,
+                table="projects",
+                key_column="project_id",
+                key_value=project.project_id,
+                tenant_id=effective_tenant_id,
+            )
             conn.execute(
                 """
                 INSERT INTO projects(
@@ -95,7 +123,7 @@ class SQLitePlatformRepository(IPlatformRepository):
                 """,
                 (
                     project.project_id,
-                    project.tenant_id,
+                    effective_tenant_id,
                     project.workspace_id,
                     project.name,
                     project.description,
@@ -125,6 +153,21 @@ class SQLitePlatformRepository(IPlatformRepository):
 
     def save_case(self, research_case: ResearchCase) -> None:
         with self._connect() as conn:
+            project_tenant_id = _tenant_id_for(conn, "projects", "project_id", research_case.project_id)
+            effective_tenant_id = resolve_tenant_id(research_case.tenant_id or project_tenant_id)
+            if project_tenant_id is not None:
+                require_same_tenant(
+                    project_tenant_id,
+                    effective_tenant_id,
+                    resource=f"research case project {research_case.project_id}",
+                )
+            guard_existing_tenant(
+                conn,
+                table="research_cases",
+                key_column="case_id",
+                key_value=research_case.case_id,
+                tenant_id=effective_tenant_id,
+            )
             conn.execute(
                 """
                 INSERT INTO research_cases(
@@ -145,7 +188,7 @@ class SQLitePlatformRepository(IPlatformRepository):
                 """,
                 (
                     research_case.case_id,
-                    research_case.tenant_id,
+                    effective_tenant_id,
                     research_case.project_id,
                     research_case.title,
                     research_case.thesis,
@@ -183,6 +226,10 @@ class SQLitePlatformRepository(IPlatformRepository):
     ) -> CaseRunLink:
         now = utc_now()
         with self._connect() as conn:
+            effective_tenant_id = resolve_tenant_id(
+                _tenant_id_for(conn, "research_cases", "case_id", case_id),
+                tenant_id,
+            )
             conn.execute(
                 """
                 INSERT INTO research_case_runs(case_id, run_id, tenant_id, link_type, linked_at)
@@ -191,7 +238,7 @@ class SQLitePlatformRepository(IPlatformRepository):
                     tenant_id = excluded.tenant_id,
                     link_type = excluded.link_type
                 """,
-                (case_id, run_id, tenant_id, link_type, now),
+                (case_id, run_id, effective_tenant_id, link_type, now),
             )
             row = conn.execute(
                 "SELECT * FROM research_case_runs WHERE case_id = ? AND run_id = ?",
@@ -209,6 +256,10 @@ class SQLitePlatformRepository(IPlatformRepository):
     ) -> WorkflowTemplateRunLink:
         now = utc_now()
         with self._connect() as conn:
+            effective_tenant_id = resolve_tenant_id(
+                _tenant_id_for(conn, "workflow_templates", "template_id", template_id),
+                tenant_id,
+            )
             conn.execute(
                 """
                 INSERT INTO workflow_template_runs(template_id, run_id, tenant_id, linked_at)
@@ -216,7 +267,7 @@ class SQLitePlatformRepository(IPlatformRepository):
                 ON CONFLICT(template_id, run_id) DO UPDATE SET
                     tenant_id = excluded.tenant_id
                 """,
-                (template_id, run_id, tenant_id, now),
+                (template_id, run_id, effective_tenant_id, now),
             )
             row = conn.execute(
                 "SELECT * FROM workflow_template_runs WHERE template_id = ? AND run_id = ?",
@@ -226,7 +277,15 @@ class SQLitePlatformRepository(IPlatformRepository):
         return WorkflowTemplateRunLink.from_mapping(dict(row))
 
     def save_workflow_template(self, template: WorkflowTemplate) -> None:
+        effective_tenant_id = resolve_tenant_id(template.tenant_id)
         with self._connect() as conn:
+            guard_existing_tenant(
+                conn,
+                table="workflow_templates",
+                key_column="template_id",
+                key_value=template.template_id,
+                tenant_id=effective_tenant_id,
+            )
             conn.execute(
                 """
                 INSERT INTO workflow_templates(
@@ -252,7 +311,7 @@ class SQLitePlatformRepository(IPlatformRepository):
                 """,
                 (
                     template.template_id,
-                    template.tenant_id,
+                    effective_tenant_id,
                     template.slug,
                     template.name,
                     template.description,
@@ -283,6 +342,17 @@ class SQLitePlatformRepository(IPlatformRepository):
 
     def save_case_asset(self, link: CaseAssetLink) -> None:
         with self._connect() as conn:
+            effective_tenant_id = resolve_tenant_id(
+                _tenant_id_for(conn, "research_cases", "case_id", link.case_id),
+                link.tenant_id,
+            )
+            guard_existing_tenant(
+                conn,
+                table="case_assets",
+                key_column="asset_link_id",
+                key_value=link.asset_link_id,
+                tenant_id=effective_tenant_id,
+            )
             conn.execute(
                 """
                 INSERT INTO case_assets(
@@ -303,7 +373,7 @@ class SQLitePlatformRepository(IPlatformRepository):
                 (
                     link.asset_link_id,
                     link.case_id,
-                    link.tenant_id,
+                    effective_tenant_id,
                     link.asset_type,
                     link.asset_id,
                     link.asset_name,
@@ -347,6 +417,17 @@ class SQLitePlatformRepository(IPlatformRepository):
 
     def save_workflow_execution(self, execution: WorkflowExecution) -> None:
         with self._connect() as conn:
+            effective_tenant_id = resolve_tenant_id(
+                _tenant_id_for(conn, "research_cases", "case_id", execution.case_id),
+                execution.tenant_id,
+            )
+            guard_existing_tenant(
+                conn,
+                table="workflow_executions",
+                key_column="execution_id",
+                key_value=execution.execution_id,
+                tenant_id=effective_tenant_id,
+            )
             conn.execute(
                 """
                 INSERT INTO workflow_executions(
@@ -370,7 +451,7 @@ class SQLitePlatformRepository(IPlatformRepository):
                 (
                     execution.execution_id,
                     execution.case_id,
-                    execution.tenant_id,
+                    effective_tenant_id,
                     execution.template_id,
                     execution.template_slug,
                     execution.template_version,
@@ -438,6 +519,17 @@ class SQLitePlatformRepository(IPlatformRepository):
 
     def save_case_decision(self, decision: CaseDecision) -> None:
         with self._connect() as conn:
+            effective_tenant_id = resolve_tenant_id(
+                _tenant_id_for(conn, "research_cases", "case_id", decision.case_id),
+                decision.tenant_id,
+            )
+            guard_existing_tenant(
+                conn,
+                table="case_decisions",
+                key_column="decision_id",
+                key_value=decision.decision_id,
+                tenant_id=effective_tenant_id,
+            )
             conn.execute(
                 """
                 INSERT INTO case_decisions(
@@ -456,7 +548,7 @@ class SQLitePlatformRepository(IPlatformRepository):
                 (
                     decision.decision_id,
                     decision.case_id,
-                    decision.tenant_id,
+                    effective_tenant_id,
                     decision.decision_type,
                     decision.rationale,
                     decision.actor_hash,
@@ -528,3 +620,8 @@ def _json(value: dict[str, Any]) -> str:
 
 def _json_value(value: Any) -> str:
     return json.dumps(value if value is not None else [], ensure_ascii=False)
+
+
+def _tenant_id_for(conn, table: str, key: str, value: str) -> str | None:
+    row = conn.execute(f"SELECT tenant_id FROM {table} WHERE {key} = ?", (value,)).fetchone()
+    return row["tenant_id"] if row and row["tenant_id"] else None

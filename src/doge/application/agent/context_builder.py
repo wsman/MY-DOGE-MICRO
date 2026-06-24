@@ -7,6 +7,7 @@ import json
 from doge.core.domain.chunk_models import DocumentChunk
 from doge.core.domain.agent_models import AgentEvent, AgentRun, EventType
 from doge.core.domain.enterprise_context import EnterpriseContext
+from doge.core.domain.run_execution_context import RunExecutionContext
 from doge.core.ports.agent_model import AgentContentPart, AgentMessage
 from doge.core.ports.agent_repository import IRunRepository, ISessionRepository
 from doge.core.ports.document_repository import IDocumentRepository
@@ -45,12 +46,15 @@ class ContextBuilder:
         events: list[AgentEvent],
         *,
         enterprise_context: EnterpriseContext | None = None,
+        execution_context: RunExecutionContext | None = None,
     ) -> list[AgentMessage]:
-        context = enterprise_context or self._enterprise_context
+        context = enterprise_context or (
+            execution_context.enterprise_context if execution_context is not None else None
+        ) or self._enterprise_context
         messages = [
             AgentMessage(
                 role="system",
-                content=self._system_prompt(context),
+                content=self._system_prompt(context, execution_context),
             ),
         ]
         document_ids = self._authorized_document_ids(run.document_ids, context)
@@ -81,12 +85,19 @@ class ContextBuilder:
                 ))
         return messages
 
-    def _system_prompt(self, context: EnterpriseContext | None) -> str:
+    def _system_prompt(
+        self,
+        context: EnterpriseContext | None,
+        execution_context: RunExecutionContext | None = None,
+    ) -> str:
         prompt = (
             "You are MY-DOGE Enterprise Research Copilot. Use tools for "
             "material numbers, preserve citations, and request approval "
             "for high-risk publication actions."
         )
+        if execution_context is not None and execution_context.workflow.template_id:
+            template_label = execution_context.workflow.template_slug or execution_context.workflow.template_id
+            prompt += f" Workflow template: {template_label}."
         if context is not None:
             prompt += (
                 f" Data classification: {context.data_classification}. "

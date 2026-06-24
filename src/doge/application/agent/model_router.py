@@ -6,6 +6,7 @@ from doge.config.settings import Settings, get_settings
 from doge.core.domain.agent_models import AgentRun
 from doge.core.domain.execution_profile import ExecutionProfile, ProfileRegistry
 from doge.core.domain.model_policy import ModelPolicy
+from doge.core.domain.run_execution_context import RunExecutionContext
 from doge.core.ports.document_repository import IDocumentRepository
 from doge.core.ports.model_router import RoutingDecision
 
@@ -22,8 +23,15 @@ class ModelRouter:
         self._settings = settings or get_settings()
         self._documents = document_repository
 
-    def route(self, run: AgentRun, policy: ModelPolicy) -> RoutingDecision:
-        profile_id = _infer_profile(run, policy)
+    def route(
+        self,
+        run: AgentRun,
+        policy: ModelPolicy,
+        *,
+        execution_context: RunExecutionContext | None = None,
+    ) -> RoutingDecision:
+        policy = execution_context.model_policy if execution_context is not None else policy
+        profile_id = _infer_profile(run, policy, execution_context)
         spec = ProfileRegistry.get(profile_id)
         model = getattr(self._settings.kimi, spec.model_setting)
         model_family = policy.model_family or _model_family(model, spec.backend)
@@ -48,6 +56,11 @@ class ModelRouter:
         prompt_cache_key = policy.prompt_cache_key
         if not prompt_cache_key and getattr(self._settings.kimi, "prompt_cache_enabled", False):
             prompt_cache_key = run.session_id or run.run_id
+        identity_snapshot = (
+            execution_context.identity_snapshot
+            if execution_context is not None
+            else run.identity_snapshot
+        )
         return RoutingDecision(
             backend=spec.backend,
             model=model,
@@ -56,7 +69,7 @@ class ModelRouter:
             max_completion_tokens=max_completion_tokens,
             response_format=response_format,
             prompt_cache_key=prompt_cache_key,
-            safety_identifier=policy.user_hash,
+            safety_identifier=identity_snapshot.user_hash if identity_snapshot is not None else None,
             run_budget_usd=policy.run_budget_usd or getattr(self._settings.kimi, "run_budget_usd", 0.0) or None,
             preserve_reasoning_content=model_family == "k2.7-code",
             files_purpose=files_purpose,
@@ -92,10 +105,16 @@ def _purpose_from_mime(mime_type: str | None) -> str | None:
     return None
 
 
-def _infer_profile(run: AgentRun, policy: ModelPolicy) -> str:
+def _infer_profile(
+    run: AgentRun,
+    policy: ModelPolicy,
+    execution_context: RunExecutionContext | None = None,
+) -> str:
     if policy.execution_profile != ExecutionProfile.FINANCIAL_RESEARCH.value:
         return policy.execution_profile
-    text = f"{run.workflow} {run.question}".lower()
+    workflow = execution_context.workflow.workflow if execution_context is not None else run.workflow
+    question = execution_context.question if execution_context is not None else run.question
+    text = f"{workflow} {question}".lower()
     if any(token in text for token in ("python", "pandas", "notebook")):
         return ExecutionProfile.PYTHON_ANALYSIS.value
     if any(token in text for token in ("sql", "duckdb", "query")):

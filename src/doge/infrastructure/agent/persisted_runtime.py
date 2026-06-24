@@ -50,3 +50,6 @@ class PersistedResearchAgentRuntime(IResearchAgentRuntime):
 
     async def finalize_cancelled(self, run_id: str) -> AgentRun:
         return await self._kernel.finalize_cancelled(run_id)
+
+    async def record_failure(self, run_id: str, message: str) -> AgentRun:
+        return await self._kernel.record_failure(run_id, message)

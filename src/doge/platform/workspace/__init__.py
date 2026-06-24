@@ -17,11 +17,14 @@ from doge.core.domain.platform_models import (
 from doge.core.domain.workflow_template import TemplateRunInput, build_template_run_request
 from doge.core.ports.capability_provider import ICapabilityProvider
 from doge.core.ports.platform_repository import IPlatformRepository
-from doge.platform.workspace.service import (
+from doge.platform.workspace.application import (
     CaseAssetCreate,
+    CaseAssetService,
     CaseDecisionCreate,
+    CaseDecisionService,
     CaseExecutionCreate,
     CaseExecutionCreateResult,
+    CaseExecutionService,
     CaseRunCreate,
     CaseRunCreateResult,
     PlatformAccessDeniedError,
@@ -41,11 +44,14 @@ __all__ = [
     "BuildCapabilityRegistry",
     "BUILTIN_TEMPLATES",
     "CaseAssetCreate",
+    "CaseAssetService",
     "CaseAssetLink",
     "CaseDecision",
     "CaseDecisionCreate",
+    "CaseDecisionService",
     "CaseExecutionCreate",
     "CaseExecutionCreateResult",
+    "CaseExecutionService",
     "CaseRunCreate",
     "CaseRunCreateResult",
     "CaseRunLink",

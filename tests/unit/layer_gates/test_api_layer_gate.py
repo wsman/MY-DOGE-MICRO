@@ -35,7 +35,7 @@ class TestApiLayerGate:
                 )
 
     def test_api_routers_do_not_import_deprecated_core_services_composition(self):
-        """Routers must use doge.application.composition, not the deprecated shim."""
+        """Routers must use deps/bootstrap seams, not the deprecated shim."""
         import doge.interfaces.api.routers as routers_pkg
 
         pkg_path = Path(inspect.getfile(routers_pkg)).parent

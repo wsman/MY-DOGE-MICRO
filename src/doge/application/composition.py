@@ -64,6 +64,8 @@ from doge.infrastructure.database.claim_repository import SQLiteClaimRepository
 from doge.infrastructure.database.portfolio_repository import SQLitePortfolioRepository, demo_portfolio
 from doge.infrastructure.database.platform_repository import SQLitePlatformRepository
 from doge.infrastructure.database.sqlite_uow import SQLiteAgentUnitOfWork
+from doge.infrastructure.database.sqlite_runtime_transaction import SQLiteOutboxRepository, SQLiteRuntimeTransactionFactory
+from doge.infrastructure.database.event_subscriber import SQLiteEventSubscriber
 from doge.infrastructure.database.sqlite_storage import SQLiteStorageRepository
 from doge.infrastructure.data_source.tdx_file_scanner import TDXFileScanner
 from doge.infrastructure.data_source.tdx_server_list import ConfigTDXServerList
@@ -116,6 +118,7 @@ from doge.application.agent.context_builder import ContextBuilder
 from doge.application.agent.model_router import ModelRouter
 from doge.application.agent.tool_service import ToolApplicationService
 from doge.application.agent.tools import build_default_tool_registry as _build_tool_registry
+from doge.application.capabilities.executors import DisabledCodeExecutor, SubprocessCodeExecutor
 from doge.application.services.file_upload_service import FileUploadService
 from doge.application.services.page_extraction_service import PageExtractionService
 from doge.application.services.rag_service import RAGService
@@ -123,7 +126,7 @@ from doge.application.services.portfolio_service import PortfolioService, RiskSe
 from doge.application.services.citation_service import CitationService
 from doge.application.services.claim_validation_service import ClaimValidationService
 from doge.config import get_settings
-from doge.platform.workspace.service import ResearchCaseService, WorkflowService
+from doge.platform.workspace.application import ResearchCaseService, WorkflowService
 
 
 # ── Low-level service factories (migrated from doge.core.services.composition) ──
@@ -345,7 +348,18 @@ def build_agent_runtime_kernel(model=None, tool_registry=None, event_publisher=N
         model_router=build_model_router(document_repository=repos["documents"]),
         agent_backends=build_agent_backends(secret_provider),
         governance_repository=repos["governance"],
+        runtime_transaction_factory=SQLiteRuntimeTransactionFactory(db_path),
     )
+
+
+def build_runtime_outbox_repository(db_path=None):
+    """Build the persisted runtime event outbox repository."""
+    return SQLiteOutboxRepository(db_path)
+
+
+def build_event_subscriber(db_path=None, *, poll_interval_seconds: float = 0.1):
+    """Build the persisted runtime event subscriber."""
+    return SQLiteEventSubscriber(db_path, poll_interval_seconds=poll_interval_seconds)
 
 
 def build_model_router(document_repository=None) -> ModelRouter:
@@ -464,6 +478,11 @@ def build_platform_repository(db_path=None):
     return SQLitePlatformRepository(db_path)
 
 
+def build_enterprise_governance_repository(db_path=None):
+    """Build the enterprise ACL and audit repository."""
+    return SQLiteEnterpriseGovernanceRepository(db_path)
+
+
 def build_research_case_service(
     runtime=None,
     repo=None,
@@ -476,7 +495,7 @@ def build_research_case_service(
     if repo is None:
         repo = build_platform_repository(db_path)
     if governance is None:
-        governance = SQLiteEnterpriseGovernanceRepository(db_path)
+        governance = build_enterprise_governance_repository(db_path)
     if runtime is None:
         runtime = build_persisted_research_agent_runtime(db_path=db_path)
     return ResearchCaseService(
@@ -544,8 +563,20 @@ def build_tool_application_service(db_path=None) -> ToolApplicationService:
         consensus_estimate_repository_factory=build_consensus_estimate_repository,
         industry_classification_source_factory=build_industry_classification_source,
         view_repository_factory=lambda: build_view_repository(read_only=True),
+        code_executor=build_python_analysis_executor(settings),
         use_capability_providers=True,
     )
+
+
+def build_python_analysis_executor(settings=None):
+    """Build the explicitly configured Python analysis executor."""
+    settings = settings or get_settings()
+    if not settings.features.python_analysis_enabled:
+        return DisabledCodeExecutor()
+    executor = settings.features.python_analysis_executor
+    if executor == "subprocess":
+        return SubprocessCodeExecutor()
+    return DisabledCodeExecutor()
 
 
 def build_default_tool_registry(entitlement_checker=None, context=None, db_path=None):

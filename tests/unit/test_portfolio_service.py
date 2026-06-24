@@ -1,3 +1,5 @@
+import pytest
+
 from doge.application.services.portfolio_service import PortfolioService, RiskService, ScenarioService
 from doge.core.domain.portfolio_models import Portfolio, PortfolioHolding
 from doge.infrastructure.database.portfolio_repository import SQLitePortfolioRepository, demo_portfolio
@@ -33,6 +35,14 @@ def test_portfolio_repository_filters_by_tenant(tmp_path):
     assert repo.get("p1", tenant_id="tenant-a") is not None
     assert repo.get("p2", tenant_id="tenant-a") is None
     assert repo.get("p2").name == "Tenant B"
+
+
+def test_portfolio_repository_rejects_cross_tenant_overwrite(tmp_path):
+    repo = SQLitePortfolioRepository(tmp_path / "agent_state.db")
+    repo.save(Portfolio(portfolio_id="p1", name="Tenant A", holdings=[]), tenant_id="tenant-a")
+
+    with pytest.raises(ValueError, match="tenant mismatch"):
+        repo.save(Portfolio(portfolio_id="p1", name="Tenant B", holdings=[]), tenant_id="tenant-b")
 
 
 def test_portfolio_service_groups_exposure(tmp_path):

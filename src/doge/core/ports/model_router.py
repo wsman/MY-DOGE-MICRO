@@ -7,6 +7,7 @@ from typing import Any, Protocol
 
 from doge.core.domain.agent_models import AgentRun
 from doge.core.domain.model_policy import ModelPolicy
+from doge.core.domain.run_execution_context import RunExecutionContext
 
 
 @dataclass(frozen=True)
@@ -27,5 +28,11 @@ class RoutingDecision:
 
 
 class IModelRouter(Protocol):
-    def route(self, run: AgentRun, policy: ModelPolicy) -> RoutingDecision:
+    def route(
+        self,
+        run: AgentRun,
+        policy: ModelPolicy,
+        *,
+        execution_context: RunExecutionContext | None = None,
+    ) -> RoutingDecision:
         ...

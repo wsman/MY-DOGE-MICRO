@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from doge.core.domain.agent_models import AgentRun, AgentSession, RunStatus
+from doge.core.domain.enterprise_context import IdentitySnapshot
 from doge.core.domain.model_policy import ModelPolicy
 from doge.core.ports.enterprise_auth import AuthenticatedPrincipal
 from doge.core.ports.enterprise_governance import EnterpriseAclGrant, EnterpriseAuditEvent
@@ -26,12 +27,24 @@ class _Provider:
 
 
 class _Worker:
+    def __init__(self) -> None:
+        self.enqueued: list[dict] = []
+
+    async def enqueue_run(self, session_id: str, message: str, **kwargs):
+        self.enqueued.append({
+            "session_id": session_id,
+            "message": message,
+            **kwargs,
+        })
+        return "run-created"
+
     async def resolve_approval(self, run_id: str, approval_id: str, approved: bool):
         return AgentRun(
             run_id=run_id,
             workflow="investment_research",
             question="approve",
-            model_policy=ModelPolicy(tenant_id="tenant-a", user_hash="user-a"),
+            model_policy=ModelPolicy(),
+            identity_snapshot=IdentitySnapshot(tenant_id="tenant-a", user_hash="user-a"),
             status=RunStatus.QUEUED if approved else RunStatus.AWAITING_APPROVAL,
         )
 
@@ -47,7 +60,8 @@ class _Runtime:
             run_id=run_id,
             workflow="investment_research",
             question="approve",
-            model_policy=ModelPolicy(tenant_id=self._tenant_id, user_hash="user-a"),
+            model_policy=ModelPolicy(),
+            identity_snapshot=IdentitySnapshot(tenant_id=self._tenant_id, user_hash="user-a"),
         )
 
 
@@ -219,6 +233,37 @@ def test_enterprise_session_routes_apply_tenant_partition(tmp_path):
     assert listed.status_code == 200
     assert [item["session_id"] for item in listed.json()["sessions"]] == [session_a.session_id]
     assert hidden.status_code == 404
+
+
+def test_enterprise_turn_creation_uses_trusted_identity_snapshot(tmp_path):
+    governance = SQLiteEnterpriseGovernanceRepository(tmp_path / "agent.db")
+    session_repository = SQLiteSessionRepository(tmp_path / "agent.db")
+    session = AgentSession.create("Tenant A", tenant_id="tenant-a")
+    session_repository.save(session)
+    worker = _Worker()
+    app = _app(tmp_path, governance, session_repository=session_repository, worker=worker)
+
+    with TestClient(app) as client:
+        response = client.post(
+            f"/v1/sessions/{session.session_id}/turns",
+            headers=_headers("req-trusted"),
+            json={
+                "message": "Analyze",
+                "portfolio_id": None,
+                "model_policy": {
+                    "tenant_id": "tenant-spoofed",
+                    "user_hash": "user-spoofed",
+                    "request_id": "req-spoofed",
+                    "max_tool_rounds": 3,
+                },
+            },
+        )
+
+    assert response.status_code == 202
+    assert worker.enqueued[0]["model_policy"] == {"max_tool_rounds": 3}
+    assert worker.enqueued[0]["identity_snapshot"]["tenant_id"] == "tenant-a"
+    assert worker.enqueued[0]["identity_snapshot"]["user_hash"] == "user-a"
+    assert worker.enqueued[0]["identity_snapshot"]["request_id"] == "req-trusted"
 
 
 def test_enterprise_audit_route_exports_only_current_tenant(tmp_path):
@@ -457,6 +502,7 @@ def _app(
     document_repository: SQLiteDocumentRepository | None = None,
     session_repository: SQLiteSessionRepository | None = None,
     portfolio_repository: SQLitePortfolioRepository | None = None,
+    worker: _Worker | None = None,
     tenant_id: str = "tenant-a",
     runtime_tenant_id: str | None = None,
     roles: tuple[str, ...] = ("portfolio_manager",),
@@ -499,7 +545,7 @@ def _app(
     app.dependency_overrides[deps.get_persisted_research_agent_runtime] = lambda: _Runtime(
         tenant_id=runtime_tenant_id or tenant_id
     )
-    app.dependency_overrides[deps.get_daemon_worker] = lambda: _Worker()
+    app.dependency_overrides[deps.get_daemon_worker] = lambda: worker or _Worker()
     return app
 
 

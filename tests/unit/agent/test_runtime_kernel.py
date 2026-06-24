@@ -2,6 +2,7 @@ import pytest
 
 from doge.application.agent.runtime_kernel import RuntimeKernel
 from doge.application.agent.tools import ToolRegistry, ToolResult
+from doge.platform.runtime.services import ModelExecutionResult
 from doge.core.domain.agent_models import EventType, RunStatus
 from doge.core.ports.enterprise_governance import EnterpriseAclGrant
 from doge.core.ports.agent_model import AgentMessage, AgentResponse
@@ -241,6 +242,19 @@ class StockToolCallModel:
         )
 
 
+class ExecutionContextCaptureService:
+    def __init__(self):
+        self.execution_context = None
+
+    async def execute(self, **kwargs):
+        self.execution_context = kwargs["execution_context"]
+        return ModelExecutionResult(
+            response=AgentResponse(message=AgentMessage(role="assistant", content="done")),
+            routing=None,
+            routing_payload={},
+        )
+
+
 @pytest.mark.asyncio
 async def test_kernel_cancel_completed_run_is_idempotent(tmp_path):
     kernel = _kernel(tmp_path)
@@ -424,13 +438,43 @@ async def test_kernel_filters_enterprise_tool_schemas_by_persistent_acl(tmp_path
     )
     run = await kernel.create_run({
         "question": "Analyze AAPL",
-        "model_policy": _enterprise_policy(),
+        "identity_snapshot": _enterprise_identity(),
     })
 
     await kernel.step(run.run_id)
 
     assert [schema["function"]["name"] for schema in model.tools] == ["stock_overview"]
     assert "model_route" in [event.event_type for event in governance.list_audit_events("tenant-a")]
+
+
+@pytest.mark.asyncio
+async def test_kernel_passes_run_execution_context_to_model_execution(tmp_path):
+    db = tmp_path / "agent_state.db"
+    capture = ExecutionContextCaptureService()
+    kernel = RuntimeKernel(
+        model=ScriptedAgentModel(),
+        tool_registry=_registry(),
+        run_repository=SQLiteRunRepository(db),
+        event_repository=SQLiteEventRepository(db),
+        artifact_repository=SQLiteArtifactRepository(db),
+        approval_repository=SQLiteApprovalRepository(db),
+        model_execution_service=capture,
+    )
+    run = await kernel.create_run({
+        "question": "Analyze AAPL",
+        "identity_snapshot": _enterprise_identity(),
+        "model_policy": {
+            "template_id": "tpl-1",
+            "template_slug": "earnings-review",
+        },
+    })
+
+    await kernel.step(run.run_id)
+
+    assert capture.execution_context is not None
+    assert capture.execution_context.request_id == "req-runtime"
+    assert capture.execution_context.workflow.template_id == "tpl-1"
+    assert capture.execution_context.workflow.template_slug == "earnings-review"
 
 
 @pytest.mark.asyncio
@@ -448,7 +492,7 @@ async def test_kernel_denies_enterprise_tool_call_without_persistent_acl(tmp_pat
     )
     run = await kernel.create_run({
         "question": "Analyze AAPL",
-        "model_policy": _enterprise_policy(),
+        "identity_snapshot": _enterprise_identity(),
     })
 
     stepped = await kernel.step(run.run_id)
@@ -475,7 +519,7 @@ async def test_kernel_allows_enterprise_tool_call_with_persistent_acl(tmp_path):
     )
     run = await kernel.create_run({
         "question": "Analyze AAPL",
-        "model_policy": _enterprise_policy(),
+        "identity_snapshot": _enterprise_identity(),
     })
 
     stepped = await kernel.step(run.run_id)
@@ -486,7 +530,7 @@ async def test_kernel_allows_enterprise_tool_call_with_persistent_acl(tmp_path):
     assert "tool_execute" in [event.event_type for event in governance.list_audit_events("tenant-a")]
 
 
-def _enterprise_policy() -> dict:
+def _enterprise_identity() -> dict:
     return {
         "tenant_id": "tenant-a",
         "user_hash": "user-a",

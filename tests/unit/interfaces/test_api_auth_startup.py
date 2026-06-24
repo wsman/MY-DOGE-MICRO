@@ -121,6 +121,19 @@ def test_remote_bind_allows_enterprise_strict_cors_and_tls_acknowledgement():
     api_main._validate_api_remote_bind_startup(settings, provider, "0.0.0.0")
 
 
+def test_legacy_api_mounts_only_for_local_loopback():
+    local = Settings(auth=AuthConfig(mode="local_demo"), api=APIConfig(bind_host="127.0.0.1"))
+    enterprise = Settings(
+        auth=AuthConfig(mode="enterprise", static_bearer_token="secret-token"),
+        api=APIConfig(bind_host="127.0.0.1"),
+    )
+    remote_local = Settings(auth=AuthConfig(mode="local_demo"), api=APIConfig(bind_host="0.0.0.0"))
+
+    assert api_main._should_mount_legacy_api(local) is True
+    assert api_main._should_mount_legacy_api(enterprise) is False
+    assert api_main._should_mount_legacy_api(remote_local) is False
+
+
 class _SecretProvider:
     def __init__(self, values):
         self._values = values

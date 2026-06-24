@@ -1,6 +1,9 @@
 from doge.application.agent.tool_service import ToolApplicationService
 from doge.application.agent.tools import ToolRegistry, build_default_tool_registry
+from doge.application.capabilities.executors import SubprocessCodeExecutor
 from doge.core.domain.enterprise_context import EnterpriseContext
+from doge.core.domain.tool_descriptor import ToolDescriptor
+from doge.core.domain.tool_policy import ToolCategory
 
 
 def test_unknown_tool_returns_structured_error():
@@ -49,6 +52,79 @@ def test_default_registry_marks_high_risk_tools():
 
     assert categories["publish_investment_memo"] == "high_risk"
     assert categories["propose_portfolio_rebalance"] == "high_risk"
+    assert categories["run_python_analysis"] == "high_risk"
+
+
+def test_default_registry_schemas_are_generated_from_tool_descriptors():
+    registry = build_default_tool_registry()
+    schemas = {schema["function"]["name"]: schema for schema in registry.schemas}
+    descriptor = registry.descriptor_for("run_python_analysis")
+
+    assert descriptor is not None
+    assert descriptor.category == ToolCategory.HIGH_RISK
+    assert descriptor.provider == "tool_application_service"
+    assert descriptor.method_name == "run_python_analysis"
+    assert descriptor.to_schema() == schemas["run_python_analysis"]
+    assert {item.name for item in registry.descriptors()} == set(schemas)
+
+
+def test_registry_keeps_legacy_schema_registration_descriptor_compatible():
+    registry = ToolRegistry()
+    legacy_schema = {
+        "type": "function",
+        "function": {
+            "name": "legacy_tool",
+            "description": "Legacy schema path.",
+            "parameters": {
+                "type": "object",
+                "properties": {"value": {"type": "string"}},
+                "required": ["value"],
+            },
+        },
+    }
+    registry.register(
+        legacy_schema,
+        lambda value: None,
+        category=ToolCategory.READ_ONLY,
+    )
+
+    descriptor = registry.descriptor_for("legacy_tool")
+
+    assert descriptor == ToolDescriptor(
+        name="legacy_tool",
+        description="Legacy schema path.",
+        properties={"value": {"type": "string"}},
+        required=("value",),
+        category=ToolCategory.READ_ONLY,
+    )
+
+
+def test_python_analysis_tool_is_disabled_by_default_but_visible_for_capability_discovery():
+    registry = build_default_tool_registry()
+    schemas = {schema["function"]["name"]: schema for schema in registry.schemas}
+
+    assert schemas["run_python_analysis"]["x-doge-status"] == "disabled"
+    assert {
+        "executor": "disabled",
+        "disabled_reason": "Python analysis execution is disabled by configuration.",
+    }.items() <= schemas["run_python_analysis"]["x-doge-metadata"].items()
+
+    result = registry.execute("run_python_analysis", {"code": "print('ok')"})
+
+    assert result.ok is False
+    assert result.error == "Python analysis execution is disabled by configuration."
+    assert result.data["approval_required"] is True
+
+
+def test_python_analysis_tool_can_use_explicit_subprocess_demo_executor():
+    service = ToolApplicationService(code_executor=SubprocessCodeExecutor())
+    registry = build_default_tool_registry(service=service)
+
+    result = registry.execute("run_python_analysis", {"code": "print('ok')"})
+
+    assert result.ok is True
+    assert result.data["stdout"].strip() == "ok"
+    assert result.data["approval_required"] is True
 
 
 def test_high_risk_tool_execution_still_requires_approval():

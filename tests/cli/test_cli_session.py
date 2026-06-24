@@ -128,13 +128,21 @@ def test_cli_gateway_approval_prints_resolution_path(monkeypatch, capsys):
 def test_cli_gateway_interactive_posts_turn_to_daemon(monkeypatch, capsys):
     captured = []
 
-    def fake_daemon_request(args, method, path, body=None):
-        captured.append((method, path, body))
-        return {"run_id": "run-gateway"}
+    class FakeSessions:
+        def create_turn(self, session_id, message, **kwargs):
+            captured.append((session_id, message, kwargs))
+            return "run-gateway"
+
+    class FakeGatewayClient:
+        def __init__(self):
+            self.sessions = FakeSessions()
+
+        def close(self):
+            captured.append(("closed",))
 
     lines = iter(["Analyze AAPL", "/exit"])
     monkeypatch.setattr("builtins.input", lambda _prompt="": next(lines))
-    monkeypatch.setattr(session_command, "_daemon_request", fake_daemon_request)
+    monkeypatch.setattr(session_command, "_gateway_client", lambda args: FakeGatewayClient())
     monkeypatch.setattr(
         session_command.composition,
         "build_execute_run_use_case",
@@ -145,9 +153,101 @@ def test_cli_gateway_interactive_posts_turn_to_daemon(monkeypatch, capsys):
 
     out = capsys.readouterr().out
     assert "run_id=run-gateway status=accepted" in out
-    assert captured[0][0] == "POST"
-    assert captured[0][1] == "/v1/sessions/ses-cli/turns"
+    assert captured[0][0] == "ses-cli"
+    assert captured[0][1] == "Analyze AAPL"
     assert captured[0][2]["model_policy"]["execution_profile"] == "financial_research"
+    assert captured[-1] == ("closed",)
+
+
+def test_cli_gateway_session_commands_use_sdk_client(monkeypatch, capsys):
+    calls = []
+
+    class FakeSession:
+        data = {"session_id": "ses-gateway", "title": "SDK Gateway", "turns": [], "updated_at": "now"}
+
+    class FakeSessions:
+        def create(self, title):
+            calls.append(("create", title))
+            return FakeSession()
+
+        def list(self, limit):
+            calls.append(("list", limit))
+            return [FakeSession.data]
+
+    class FakeRuns:
+        def approve(self, run_id, approval_id, approved):
+            calls.append(("approve", run_id, approval_id, approved))
+            return {"status": "queued"}
+
+    class FakeGatewayClient:
+        def __init__(self):
+            self.sessions = FakeSessions()
+            self.runs = FakeRuns()
+
+        def close(self):
+            calls.append(("closed",))
+
+    monkeypatch.setattr(session_command, "_gateway_client", lambda args: FakeGatewayClient())
+
+    args = SimpleNamespace(
+        list=False,
+        resume=None,
+        title="SDK Gateway",
+        limit=20,
+        daemon_url="http://127.0.0.1:8901",
+        api_token="test-token",
+    )
+    session_command._cmd_gateway_session(args)
+    session_command._cmd_gateway_session(SimpleNamespace(**{**args.__dict__, "list": True}))
+    session_command._resolve_gateway_approval(args, "run-1", "appr-1", True)
+
+    out = capsys.readouterr().out
+    assert "session_id=ses-gateway" in out
+    assert "gateway_approval_resolved run_id=run-1 approval_id=appr-1 approved=true" in out
+    assert ("create", "SDK Gateway") in calls
+    assert ("list", 20) in calls
+    assert ("approve", "run-1", "appr-1", True) in calls
+    assert calls.count(("closed",)) == 3
+
+
+def test_cli_gateway_attach_uses_sdk_document_upload(tmp_path, monkeypatch, capsys):
+    source = tmp_path / "report.txt"
+    source.write_text("alpha beta", encoding="utf-8")
+    captured = []
+
+    class FakeDocuments:
+        def upload_path(self, path):
+            captured.append(("upload_path", path))
+            return {"document_id": "doc-gateway", "filename": "report.txt", "parsing_status": "parsed"}
+
+    class FakeSessions:
+        def create_turn(self, session_id, message, **kwargs):
+            captured.append((session_id, message, kwargs))
+            return "run-gateway"
+
+    class FakeGatewayClient:
+        def __init__(self):
+            self.documents = FakeDocuments()
+            self.sessions = FakeSessions()
+
+        def close(self):
+            captured.append(("closed",))
+
+    lines = iter([f"/attach {source}", "Analyze attached", "/exit"])
+    monkeypatch.setattr("builtins.input", lambda _prompt="": next(lines))
+    monkeypatch.setattr(session_command, "_gateway_client", lambda args: FakeGatewayClient())
+    monkeypatch.setattr(
+        session_command.composition,
+        "build_file_upload_service",
+        lambda: (_ for _ in ()).throw(AssertionError("gateway attach must use SDK")),
+    )
+
+    session_command._interactive_loop("ses-cli", "us", mode="gateway")
+
+    out = capsys.readouterr().out
+    assert "attached=doc-gateway" in out
+    assert captured[0] == ("upload_path", str(source))
+    assert captured[2][2]["document_ids"] == ["doc-gateway"]
 
 
 def test_cli_attach_registers_real_file_and_passes_document_id(tmp_path, monkeypatch, capsys):

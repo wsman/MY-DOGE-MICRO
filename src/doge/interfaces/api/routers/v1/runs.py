@@ -10,10 +10,10 @@ from sse_starlette.sse import EventSourceResponse
 
 from doge.application.use_cases.run_summary import BuildRunSummary, redact_inaccessible_citations
 from doge.application.agent.worker import AsyncioWorker
-from doge.application.agent.event_bus import EventBus
 from doge.core.domain.agent_models import AgentRun, RunStatus
 from doge.core.ports.agent_runtime import IResearchAgentRuntime
 from doge.core.ports.enterprise_governance import IEnterpriseGovernanceRepository
+from doge.core.ports.event_subscriber import IEventSubscriber
 from doge.interfaces.api import deps
 from doge.interfaces.api.enterprise_access import (
     append_audit,
@@ -90,35 +90,32 @@ async def stream_run(
     run_id: str,
     last_event_id: str | None = Header(default=None, alias="Last-Event-ID"),
     runtime: IResearchAgentRuntime = Depends(deps.get_persisted_research_agent_runtime),
-    bus: EventBus = Depends(deps.get_event_bus),
+    subscriber: IEventSubscriber = Depends(deps.get_event_subscriber),
 ):
-    _authorized_run(request, runtime, run_id)
+    authorized = _authorized_run(request, runtime, run_id)
     try:
         after_sequence = int(last_event_id or "0")
     except ValueError:
         after_sequence = 0
 
     async def generator():
-        for event in runtime.list_events(run_id):
-            if event.sequence <= after_sequence:
-                continue
-            yield {
-                "id": str(event.sequence),
-                "event": event.event_type.value,
-                "data": json.dumps(serialize(event), ensure_ascii=False),
-            }
-        run = runtime.get_run(run_id)
-        if run and run.status in _STREAM_CLOSE_STATUSES:
+        run = runtime.get_run(run_id) or authorized
+        terminal_at_start = run.status in _STREAM_CLOSE_STATUSES
+        initial_max_sequence = _max_event_sequence_after(runtime, run_id, after_sequence)
+        if terminal_at_start and initial_max_sequence <= after_sequence:
             return
-        async for event in bus.subscribe(run_id):
+        async for event in subscriber.subscribe(run_id, after_sequence=after_sequence):
             yield {
                 "id": str(event.sequence),
                 "event": event.event_type.value,
                 "data": json.dumps(serialize(event), ensure_ascii=False),
             }
             run = runtime.get_run(run_id)
-            if run and run.status in _STREAM_CLOSE_STATUSES and event.event_type.value in _STREAM_CLOSE_EVENTS:
-                return
+            if run and run.status in _STREAM_CLOSE_STATUSES:
+                if terminal_at_start and event.sequence >= initial_max_sequence:
+                    return
+                if not terminal_at_start and event.event_type.value in _STREAM_CLOSE_EVENTS:
+                    return
 
     return EventSourceResponse(generator())
 
@@ -233,10 +230,13 @@ def _authorized_run(request: Request, runtime: IResearchAgentRuntime, run_id: st
     if run is None:
         raise HTTPException(404, "run not found")
     if is_enterprise_request(request):
-        tenant_id = run.model_policy.tenant_id or run.model_policy.extra.get("tenant_id")
-        if tenant_id != enterprise_context(request).tenant_id:
+        if _run_tenant_id(run) != enterprise_context(request).tenant_id:
             raise HTTPException(404, "run not found")
     return run
+
+
+def _max_event_sequence_after(runtime: IResearchAgentRuntime, run_id: str, after_sequence: int) -> int:
+    return max((event.sequence for event in runtime.list_events(run_id) if event.sequence > after_sequence), default=after_sequence)
 
 
 def _build_authorized_summary(
@@ -258,3 +258,9 @@ def _build_authorized_summary(
     )
     allowed = filter_accessible_resource_ids(request, governance, "document", document_ids, "read")
     return redact_inaccessible_citations(result, allowed)
+
+
+def _run_tenant_id(run: AgentRun) -> str | None:
+    if run.identity_snapshot is not None:
+        return run.identity_snapshot.tenant_id
+    return None

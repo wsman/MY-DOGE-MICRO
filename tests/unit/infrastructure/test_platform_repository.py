@@ -1,3 +1,5 @@
+import pytest
+
 from doge.core.domain.platform_models import (
     CaseAssetLink,
     CaseDecision,
@@ -27,6 +29,27 @@ def test_platform_repository_persists_object_hierarchy_and_idempotent_run_links(
     assert repo.list_cases(project_id=project.project_id, tenant_id="tenant-a") == [case]
     assert first.case_id == second.case_id == case.case_id
     assert first.run_id == second.run_id == "run-1"
+
+
+def test_platform_repository_defaults_local_tenant(tmp_path):
+    repo = SQLitePlatformRepository(tmp_path / "agent.db")
+    workspace = Workspace.create(name="Local Research")
+
+    repo.save_workspace(workspace)
+
+    saved = repo.get_workspace(workspace.workspace_id, tenant_id="local")
+    assert saved is not None
+    assert saved.tenant_id == "local"
+
+
+def test_platform_repository_rejects_cross_tenant_child_writes(tmp_path):
+    repo = SQLitePlatformRepository(tmp_path / "agent.db")
+    workspace = Workspace.create(name="Tenant A", tenant_id="tenant-a")
+    repo.save_workspace(workspace)
+    project = Project.create(workspace_id=workspace.workspace_id, name="Wrong tenant", tenant_id="tenant-b")
+
+    with pytest.raises(ValueError, match="tenant mismatch"):
+        repo.save_project(project)
 
 
 def test_platform_repository_persists_workflow_templates(tmp_path):

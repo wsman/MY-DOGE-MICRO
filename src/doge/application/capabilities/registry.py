@@ -68,6 +68,17 @@ class FeatureCapabilityProvider:
                 _feature_status(self._settings.features.capability_registry),
                 metadata=_feature_metadata("capability_registry"),
             ),
+            capability(
+                "feature.python_analysis_enabled",
+                "tool",
+                "Python Analysis Execution",
+                _python_analysis_feature_status(self._settings),
+                risk_level="high",
+                metadata={
+                    **_feature_metadata("python_analysis_enabled"),
+                    "executor": self._settings.features.python_analysis_executor,
+                },
+            ),
         ]
 
 
@@ -135,12 +146,13 @@ class ToolRegistryCapabilityProvider:
                 f"tool.{record['tool_name']}",
                 "tool",
                 str(record["tool_name"]),
-                "available",
+                str(record["status"]),
                 risk_level=str(record["risk_level"]),
                 requires_approval=bool(record["requires_approval"]),
                 metadata={
                     "category": record["category"],
                     "description": record["description"],
+                    **dict(record.get("metadata", {})),
                 },
             )
             for record in self._registry.capability_records_for_context(context)
@@ -181,6 +193,12 @@ def provider_capability(capability_id: str, name: str, configured: bool) -> dict
 
 def _feature_status(enabled: bool) -> str:
     return "available" if enabled else "disabled"
+
+
+def _python_analysis_feature_status(settings: Settings) -> str:
+    if settings.features.python_analysis_enabled and settings.features.python_analysis_executor != "disabled":
+        return "available"
+    return "disabled"
 
 
 def _feature_metadata(feature_name: str) -> dict[str, Any]:

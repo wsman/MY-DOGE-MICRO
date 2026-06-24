@@ -8,6 +8,7 @@ from enum import Enum
 from typing import Any, Optional
 from uuid import uuid4
 
+from doge.core.domain.enterprise_context import IdentitySnapshot
 from doge.core.domain.model_policy import ModelPolicy
 
 
@@ -139,6 +140,7 @@ class AgentRun:
     document_ids: list[str] = field(default_factory=list)
     portfolio_id: Optional[str] = None
     model_policy: ModelPolicy = field(default_factory=ModelPolicy)
+    identity_snapshot: IdentitySnapshot | None = None
     status: RunStatus = RunStatus.CREATED
     events: list[AgentEvent] = field(default_factory=list)
     artifacts: list[AgentArtifact] = field(default_factory=list)
@@ -161,6 +163,7 @@ class AgentRun:
         document_ids: Optional[list[str]] = None,
         portfolio_id: Optional[str] = None,
         model_policy: Optional[dict[str, Any] | ModelPolicy] = None,
+        identity_snapshot: Optional[dict[str, Any] | IdentitySnapshot] = None,
     ) -> "AgentRun":
         return cls(
             run_id=run_id or f"run-{uuid4().hex[:12]}",
@@ -172,6 +175,10 @@ class AgentRun:
             document_ids=document_ids or [],
             portfolio_id=portfolio_id,
             model_policy=ModelPolicy.from_dict(model_policy),
+            identity_snapshot=(
+                IdentitySnapshot.from_mapping(identity_snapshot)
+                or IdentitySnapshot.from_mapping(model_policy if isinstance(model_policy, dict) else None)
+            ),
         )
 
     def add_event(self, event_type: EventType, payload: Optional[dict[str, Any]] = None) -> AgentEvent:
@@ -180,7 +187,6 @@ class AgentRun:
             run_id=self.run_id,
             event_type=event_type,
             payload=payload or {},
-            sequence=len(self.events) + 1,
         )
         self.events.append(event)
         self.updated_at = utc_now()

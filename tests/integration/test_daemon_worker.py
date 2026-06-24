@@ -22,6 +22,7 @@ def _reset(monkeypatch, tmp_path):
     reset_settings()
     deps._persisted_research_agent_runtime = None
     deps._event_bus = None
+    deps._event_subscriber = None
     deps._worker = None
     deps._run_queue = None
     deps._idempotency_store = None
@@ -260,5 +261,54 @@ async def test_cancel_run_aborts_active_model_and_ends_cancelled(tmp_path, monke
         assert EventType.MODEL_RESPONSE not in event_types
         cancelled_at = event_types.index(EventType.RUN_CANCELLED)
         assert event_types[cancelled_at + 1:] == []
+    finally:
+        await worker.stop()
+
+
+@pytest.mark.asyncio
+async def test_worker_exception_records_failed_run_and_error_event(tmp_path, monkeypatch):
+    db = tmp_path / "agent_state.db"
+    monkeypatch.setenv("DOGE_AGENT_DB", str(db))
+    reset_settings()
+
+    class FailingModel:
+        async def chat(
+            self,
+            messages: list[AgentMessage],
+            *,
+            tools: list[dict[str, Any]] | None = None,
+            tool_choice: str | None = None,
+            max_tokens: int = 16384,
+            stream: bool = True,
+        ) -> AsyncIterator[AgentResponse]:
+            raise RuntimeError("model exploded")
+            yield AgentResponse(message=AgentMessage(role="assistant", content="unreachable"))
+
+    sessions = SQLiteSessionRepository(db)
+    session = AgentSession.create("Worker failure")
+    sessions.save(session)
+    runtime = build_persisted_research_agent_runtime(
+        model=FailingModel(),
+        tool_registry=ToolRegistry(),
+        db_path=db,
+    )
+    worker = AsyncioWorker(
+        runtime,
+        sessions,
+        SQLiteRunQueue(db),
+        SQLiteIdempotencyStore(db),
+        build_agent_unit_of_work(db),
+        worker_id="worker-failure-test",
+    )
+
+    try:
+        run_id = await worker.enqueue_run(session.session_id, "Fail this run")
+        await asyncio.wait_for(worker._queue.join(), timeout=3)
+
+        run = runtime.get_run(run_id)
+        assert run is not None
+        assert run.status == RunStatus.FAILED
+        assert run.events[-1].event_type == EventType.ERROR
+        assert "model exploded" in run.events[-1].payload["message"]
     finally:
         await worker.stop()

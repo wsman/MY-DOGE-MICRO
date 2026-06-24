@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from doge.config import get_settings
 from doge.core.domain.agent_models import AgentEvent, AgentRun, AgentTurn, EventType, RunStatus, utc_now
+from doge.core.domain.enterprise_context import IdentitySnapshot
 from doge.core.domain.model_policy import ModelPolicy
 from doge.core.ports.event_publisher import IEventPublisher
 from doge.core.ports.unit_of_work import IAgentUnitOfWork
@@ -44,6 +45,7 @@ class SQLiteAgentUnitOfWork(IAgentUnitOfWork):
         document_ids: list[str] | None = None,
         portfolio_id: str | None = "portfolio-demo",
         model_policy: dict[str, Any] | None = None,
+        identity_snapshot: dict[str, Any] | None = None,
         idempotency_key: str | None = None,
     ) -> str:
         run_id = f"run-{uuid4().hex[:12]}"
@@ -68,8 +70,9 @@ class SQLiteAgentUnitOfWork(IAgentUnitOfWork):
                     document_ids=document_ids or [],
                     portfolio_id=portfolio_id,
                     model_policy=model_policy or {"max_tool_rounds": 8},
+                    identity_snapshot=_identity_snapshot_from_inputs(identity_snapshot, model_policy),
                 )
-                tenant_id = _tenant_id_from_policy(run.model_policy)
+                tenant_id = _tenant_id_from_run(run)
                 created_event = run.add_event(EventType.RUN_CREATED, {"question": run.question, "workflow": run.workflow})
                 run.status = RunStatus.QUEUED
                 run.updated_at = utc_now()
@@ -85,7 +88,9 @@ class SQLiteAgentUnitOfWork(IAgentUnitOfWork):
                     ),
                 )
                 self._insert_event(conn, created_event, tenant_id=tenant_id)
+                self._insert_outbox(conn, created_event)
                 self._insert_event(conn, queued_event, tenant_id=tenant_id)
+                self._insert_outbox(conn, queued_event)
                 self._insert_queue_status(conn, run.run_id, "queued")
                 self._touch_session(conn, session_id)
                 conn.commit()
@@ -132,10 +137,10 @@ class SQLiteAgentUnitOfWork(IAgentUnitOfWork):
             """
             INSERT INTO runs(
                 run_id, tenant_id, session_id, workflow, question, market, language,
-                document_ids, portfolio_id, model_policy, status,
+                document_ids, portfolio_id, model_policy, identity_snapshot, status,
                 cancel_requested_at, created_at, updated_at, schema_version
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 run.run_id,
@@ -148,6 +153,7 @@ class SQLiteAgentUnitOfWork(IAgentUnitOfWork):
                 _json_dumps(run.document_ids),
                 run.portfolio_id,
                 _json_dumps(ModelPolicy.from_dict(run.model_policy).to_dict()),
+                _json_dumps(run.identity_snapshot.to_dict()) if run.identity_snapshot is not None else None,
                 run.status.value,
                 run.cancel_requested_at,
                 run.created_at,
@@ -166,6 +172,8 @@ class SQLiteAgentUnitOfWork(IAgentUnitOfWork):
         )
 
     def _insert_event(self, conn: sqlite3.Connection, event: AgentEvent, *, tenant_id: str | None = None) -> None:
+        if event.sequence <= 0:
+            event.sequence = _next_event_sequence(conn, event.run_id)
         conn.execute(
             """
             INSERT INTO events(event_id, tenant_id, run_id, event_type, payload, sequence, schema_version, created_at)
@@ -180,6 +188,22 @@ class SQLiteAgentUnitOfWork(IAgentUnitOfWork):
                 event.sequence,
                 event.schema_version,
                 event.created_at,
+            ),
+        )
+
+    def _insert_outbox(self, conn: sqlite3.Connection, event: AgentEvent) -> None:
+        conn.execute(
+            """
+            INSERT INTO runtime_outbox(outbox_id, event_id, run_id, sequence, payload, status, created_at)
+            VALUES (?, ?, ?, ?, ?, 'pending', ?)
+            """,
+            (
+                f"outbox-{uuid4().hex[:12]}",
+                event.event_id,
+                event.run_id,
+                event.sequence,
+                _event_payload(event),
+                utc_now(),
             ),
         )
 
@@ -202,7 +226,38 @@ def _json_dumps(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
-def _tenant_id_from_policy(policy: Any) -> str | None:
-    normalized = ModelPolicy.from_dict(policy)
-    tenant_id = normalized.tenant_id or normalized.extra.get("tenant_id")
-    return str(tenant_id) if tenant_id else None
+def _event_payload(event: AgentEvent) -> str:
+    return _json_dumps({
+        "event_id": event.event_id,
+        "run_id": event.run_id,
+        "event_type": event.event_type.value,
+        "payload": event.payload,
+        "sequence": event.sequence,
+        "schema_version": event.schema_version,
+        "created_at": event.created_at,
+    })
+
+
+def _identity_snapshot_from_inputs(
+    identity_snapshot: dict[str, Any] | None,
+    model_policy: dict[str, Any] | None,
+) -> IdentitySnapshot | None:
+    normalized = IdentitySnapshot.from_mapping(identity_snapshot)
+    if normalized is not None:
+        return normalized
+    return IdentitySnapshot.from_mapping(model_policy)
+
+
+def _tenant_id_from_run(run: AgentRun) -> str | None:
+    if run.identity_snapshot is not None:
+        return run.identity_snapshot.tenant_id
+    legacy = IdentitySnapshot.from_mapping(ModelPolicy.from_dict(run.model_policy).extra)
+    return legacy.tenant_id if legacy is not None and legacy.tenant_id != "local" else None
+
+
+def _next_event_sequence(conn: sqlite3.Connection, run_id: str) -> int:
+    row = conn.execute(
+        "SELECT COALESCE(MAX(sequence), 0) + 1 AS next_sequence FROM events WHERE run_id = ?",
+        (run_id,),
+    ).fetchone()
+    return int(row["next_sequence"])

@@ -1,6 +1,10 @@
 import sqlite3
+from concurrent.futures import ThreadPoolExecutor
 
-from doge.core.domain.agent_models import AgentRun, AgentSession, EventType
+import pytest
+
+from doge.core.domain.agent_models import AgentEvent, AgentRun, AgentSession, EventType
+from doge.core.domain.enterprise_context import IdentitySnapshot
 from doge.infrastructure.database.agent_repositories import (
     SQLiteApprovalRepository,
     SQLiteArtifactRepository,
@@ -40,6 +44,51 @@ def test_sqlite_event_repository_sequence_order(tmp_path):
     loaded = events.list_for_run(run.run_id)
 
     assert [event.payload["n"] for event in loaded] == [1, 2]
+
+
+def test_sqlite_event_repository_allocates_sequence_atomically(tmp_path):
+    db = tmp_path / "agent_state.db"
+    run = AgentRun.create(workflow="investment_research", question="q")
+    SQLiteRunRepository(db).save(run)
+
+    def append_once(index):
+        event = AgentEvent(
+            event_id=f"evt-{index}",
+            run_id=run.run_id,
+            event_type=EventType.TOOL_RESULT,
+            payload={"n": index},
+        )
+        return SQLiteEventRepository(db).append(event).sequence
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        sequences = list(executor.map(append_once, range(8)))
+
+    loaded = SQLiteEventRepository(db).list_for_run(run.run_id)
+
+    assert sorted(sequences) == list(range(1, 9))
+    assert [event.sequence for event in loaded] == list(range(1, 9))
+
+
+def test_sqlite_event_repository_rejects_duplicate_sequence_without_replace(tmp_path):
+    db = tmp_path / "agent_state.db"
+    run = AgentRun.create(workflow="investment_research", question="q")
+    SQLiteRunRepository(db).save(run)
+    events = SQLiteEventRepository(db)
+    original = run.add_event(EventType.RUN_CREATED, {"n": 1})
+    duplicate = AgentEvent(
+        event_id="evt-duplicate",
+        run_id=run.run_id,
+        event_type=EventType.ERROR,
+        payload={"n": 99},
+        sequence=1,
+    )
+    events.append(original)
+
+    with pytest.raises(sqlite3.IntegrityError):
+        events.append(duplicate)
+
+    loaded = events.list_for_run(run.run_id)
+    assert [event.payload["n"] for event in loaded] == [1]
 
 
 def test_sqlite_artifact_repository_roundtrip(tmp_path):
@@ -83,13 +132,13 @@ def test_sqlite_runtime_repositories_filter_by_tenant(tmp_path):
         workflow="investment_research",
         question="a",
         session_id=session_a.session_id,
-        model_policy={"tenant_id": "tenant-a"},
+        identity_snapshot=IdentitySnapshot(tenant_id="tenant-a", user_hash="user-a"),
     )
     run_b = AgentRun.create(
         workflow="investment_research",
         question="b",
         session_id=session_b.session_id,
-        model_policy={"tenant_id": "tenant-b"},
+        identity_snapshot=IdentitySnapshot(tenant_id="tenant-b", user_hash="user-b"),
     )
     runs.save(run_a)
     runs.save(run_b)
@@ -124,6 +173,45 @@ def test_sqlite_runtime_repositories_filter_by_tenant(tmp_path):
     assert [item.approval_id for item in approvals.list_for_run(run_a.run_id, tenant_id="tenant-a")] == [
         approval_a.approval_id
     ]
+
+
+def test_sqlite_runtime_repositories_reject_cross_tenant_writes(tmp_path):
+    db = tmp_path / "agent_state.db"
+    sessions = SQLiteSessionRepository(db)
+    runs = SQLiteRunRepository(db)
+    events = SQLiteEventRepository(db)
+    artifacts = SQLiteArtifactRepository(db)
+    approvals = SQLiteApprovalRepository(db)
+
+    session = AgentSession.create("Tenant A", tenant_id="tenant-a")
+    sessions.save(session)
+    run = AgentRun.create(
+        workflow="investment_research",
+        question="q",
+        session_id=session.session_id,
+        identity_snapshot=IdentitySnapshot(tenant_id="tenant-a", user_hash="user-a"),
+    )
+    runs.save(run)
+
+    with pytest.raises(ValueError, match="tenant mismatch"):
+        sessions.save(session, tenant_id="tenant-b")
+    with pytest.raises(ValueError, match="tenant mismatch"):
+        runs.save(run, tenant_id="tenant-b")
+    with pytest.raises(ValueError, match="tenant mismatch"):
+        events.append(run.add_event(EventType.RUN_CREATED, {}), tenant_id="tenant-b")
+    with pytest.raises(ValueError, match="tenant mismatch"):
+        artifacts.save(run.add_artifact("memo", "Memo", "content"), tenant_id="tenant-b")
+    with pytest.raises(ValueError, match="tenant mismatch"):
+        approvals.save(run.add_approval("publish", "high"), tenant_id="tenant-b")
+
+
+def test_sqlite_document_repository_rejects_cross_tenant_overwrite(tmp_path):
+    db = tmp_path / "agent_state.db"
+    repo = SQLiteDocumentRepository(db)
+    repo.save({"document_id": "doc-a", "tenant_id": "tenant-a", "filename": "a.txt", "content": "alpha"})
+
+    with pytest.raises(ValueError, match="tenant mismatch"):
+        repo.save({"document_id": "doc-a", "tenant_id": "tenant-b", "filename": "b.txt", "content": "beta"})
 
 
 def test_bootstrap_adds_tenant_columns_to_legacy_agent_tables(tmp_path):

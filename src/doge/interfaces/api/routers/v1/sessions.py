@@ -17,6 +17,7 @@ from doge.interfaces.api.enterprise_access import (
     ensure_resource_access,
     enterprise_context,
     is_enterprise_request,
+    trusted_identity_snapshot,
     trusted_model_policy,
 )
 from doge.interfaces.api.routers.v1._common import serialize
@@ -93,6 +94,11 @@ async def create_turn(
         document_ids=body.document_ids,
         portfolio_id=body.portfolio_id,
         model_policy=trusted_model_policy(request, governance, body.model_policy),
+        identity_snapshot=(
+            snapshot.to_dict()
+            if (snapshot := trusted_identity_snapshot(request, governance)) is not None
+            else None
+        ),
         idempotency_key=idempotency_key,
     )
     append_audit(

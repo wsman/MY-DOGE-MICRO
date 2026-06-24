@@ -37,6 +37,7 @@ from doge.interfaces.api.routers.v1 import sessions as v1_sessions
 from doge.interfaces.api.routers.v1 import tools as v1_tools
 
 logger = logging.getLogger("doge.api")
+_LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
 
 # Module-global project root — derived from Settings, monkeypatchable in tests.
 _PROJECT_ROOT = str(get_settings().project_root)
@@ -45,11 +46,17 @@ _PROJECT_ROOT = str(get_settings().project_root)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     worker = deps.get_daemon_worker()
+    outbox_publisher = None
+    if get_settings().features.runtime_outbox_publisher:
+        outbox_publisher = deps.get_runtime_outbox_publisher()
+        outbox_publisher.start()
     worker.start()
     try:
         yield
     finally:
         await worker.stop()
+        if outbox_publisher is not None:
+            await outbox_publisher.stop()
 
 
 app = FastAPI(title="MY-DOGE API", version="0.1.0", lifespan=lifespan)
@@ -142,37 +149,67 @@ async def _unhandled_exception_handler(request, exc: Exception):
 # S002-011 owns any follow-on ADR-0007 promotion-gate decisions.
 
 
-# ── 注册路由 ─────────────────────────────────────────
-app.include_router(scan.router,   prefix="/api/scan",     tags=["scan"])
-app.include_router(data.router,   prefix="/api/data",     tags=["data"])
-app.include_router(notes.router,  prefix="/api/notes",    tags=["notes"])
-app.include_router(macro.router,  prefix="/api/macro",    tags=["macro"])
-app.include_router(analysis.router, prefix="/api/analysis", tags=["analysis"])
-app.include_router(config.router, prefix="/api/config",   tags=["config"])
-app.include_router(agent.router, prefix="/api/agent", tags=["agent"])
-app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
-app.include_router(v1_sessions.router, prefix="/v1", tags=["v1-sessions"])
-app.include_router(v1_runs.router, prefix="/v1", tags=["v1-runs"])
-app.include_router(v1_documents.router, prefix="/v1", tags=["v1-documents"])
-app.include_router(v1_portfolios.router, prefix="/v1", tags=["v1-portfolios"])
-app.include_router(v1_platform.router, prefix="/v1", tags=["v1-platform"])
-app.include_router(v1_tools.router, prefix="/v1", tags=["v1-tools"])
-app.include_router(v1_audit.router, prefix="/v1", tags=["v1-audit"])
-app.include_router(v1_enterprise.router, prefix="/v1", tags=["v1-enterprise"])
-app.include_router(v1_health.router, tags=["health"])
-
-
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
 
 
-@app.get("/api/stats")
 async def stats(
     browser: ISchemaBrowser = Depends(deps.get_schema_browser),
 ):
     """数据库概览统计"""
     return browser.database_stats()
+
+
+def _configured_bind_host(settings) -> str:
+    return os.environ.get("DOGE_BIND_HOST") or settings.api.bind_host
+
+
+def _should_mount_legacy_api(settings, host: str | None = None) -> bool:
+    """Return whether local-demo legacy ``/api/*`` routers should be mounted."""
+
+    host = host or _configured_bind_host(settings)
+    if settings.auth.mode == "enterprise":
+        if not settings.api.enterprise_disable_legacy:
+            logger.warning("DOGE_API_ENTERPRISE_DISABLE_LEGACY=0 ignored in enterprise mode")
+        return False
+    if host not in _LOOPBACK_HOSTS:
+        return False
+    return True
+
+
+def _register_legacy_api_routes(target_app: FastAPI, settings) -> None:
+    """Mount legacy local-demo routers only when the deployment is loopback local."""
+
+    if not _should_mount_legacy_api(settings):
+        logger.info("legacy /api routers disabled for auth_mode=%s", settings.auth.mode)
+        return
+    target_app.include_router(scan.router, prefix="/api/scan", tags=["scan"])
+    target_app.include_router(data.router, prefix="/api/data", tags=["data"])
+    target_app.include_router(notes.router, prefix="/api/notes", tags=["notes"])
+    target_app.include_router(macro.router, prefix="/api/macro", tags=["macro"])
+    target_app.include_router(analysis.router, prefix="/api/analysis", tags=["analysis"])
+    target_app.include_router(config.router, prefix="/api/config", tags=["config"])
+    target_app.include_router(agent.router, prefix="/api/agent", tags=["agent"])
+    target_app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
+    target_app.add_api_route("/api/stats", stats, methods=["GET"])
+
+
+def _register_v1_routes(target_app: FastAPI) -> None:
+    target_app.include_router(v1_sessions.router, prefix="/v1", tags=["v1-sessions"])
+    target_app.include_router(v1_runs.router, prefix="/v1", tags=["v1-runs"])
+    target_app.include_router(v1_documents.router, prefix="/v1", tags=["v1-documents"])
+    target_app.include_router(v1_portfolios.router, prefix="/v1", tags=["v1-portfolios"])
+    target_app.include_router(v1_platform.router, prefix="/v1", tags=["v1-platform"])
+    target_app.include_router(v1_tools.router, prefix="/v1", tags=["v1-tools"])
+    target_app.include_router(v1_audit.router, prefix="/v1", tags=["v1-audit"])
+    target_app.include_router(v1_enterprise.router, prefix="/v1", tags=["v1-enterprise"])
+    target_app.include_router(v1_health.router, tags=["health"])
+
+
+# ── 注册路由 ─────────────────────────────────────────
+_register_legacy_api_routes(app, _settings)
+_register_v1_routes(app)
 
 
 # ── ADR-0007 strengthened-loopback-guarantee (S004-005) ──
@@ -181,7 +218,6 @@ async def stats(
 # rather than implicit on the hardcoded default: a non-loopback bind (via
 # ``DOGE_BIND_HOST``) is rejected — CORS allow-list hardening + auth are required
 # first (see ADR-0007 Promotion gate).
-_LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
 
 
 def _validate_api_remote_bind_startup(settings, auth_provider, host: str) -> None:
@@ -219,7 +255,7 @@ def _resolve_bind_host(settings=None, auth_provider=None) -> str:
     """
     settings = settings or _settings
     auth_provider = _auth_provider if auth_provider is None else auth_provider
-    host = os.environ.get("DOGE_BIND_HOST") or settings.api.bind_host
+    host = _configured_bind_host(settings)
     if host in _LOOPBACK_HOSTS:
         return host
     try:

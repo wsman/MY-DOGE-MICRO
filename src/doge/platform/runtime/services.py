@@ -15,6 +15,7 @@ from doge.core.domain.agent_models import AgentEvent, AgentRun, EventType
 from doge.core.domain.enterprise_context import EnterpriseContext
 from doge.core.domain.execution_profile import ProfileRegistry
 from doge.core.domain.model_policy import ModelPolicy
+from doge.core.domain.run_execution_context import RunExecutionContext
 from doge.core.ports.agent_backend import IAgentBackend
 from doge.core.ports.agent_model import IAgentModel
 from doge.core.ports.enterprise_governance import EnterpriseAuditEvent, IEnterpriseGovernanceRepository
@@ -54,14 +55,16 @@ class ModelExecutionService:
         policy: ModelPolicy,
         messages: list[Any],
         tool_schemas_for: Callable[[RoutingDecision | None], list[dict[str, Any]]],
+        enterprise_context: EnterpriseContext | None = None,
+        execution_context: RunExecutionContext | None = None,
     ) -> ModelExecutionResult:
         profile = ProfileRegistry.get(policy.execution_profile)
         if policy.web_search_enabled or (policy.web_search_enabled is None and profile.web_search_enabled):
             stage = self._web_search_stage or WebSearchStage(self._model)
             messages = await stage.execute(messages, run.question)
-        routing = self._model_router.route(run, policy) if self._model_router is not None else None
+        routing = self._route_model(run, policy, execution_context)
         tool_schemas = tool_schemas_for(routing)
-        chat_kwargs = self._chat_kwargs(run, policy, routing, tool_schemas)
+        chat_kwargs = self._chat_kwargs(run, policy, routing, tool_schemas, enterprise_context, execution_context)
         chat_stream = self._chat_stream(messages, routing, chat_kwargs)
         response = await self._response_assembler.assemble(chat_stream)
         return ModelExecutionResult(
@@ -71,13 +74,29 @@ class ModelExecutionService:
             budget_exceeded=budget_exceeded(getattr(response, "usage", None) or {}, routing),
         )
 
+    def _route_model(
+        self,
+        run: AgentRun,
+        policy: ModelPolicy,
+        execution_context: RunExecutionContext | None,
+    ) -> RoutingDecision | None:
+        if self._model_router is None:
+            return None
+        parameters = inspect.signature(self._model_router.route).parameters
+        if "execution_context" in parameters:
+            return self._model_router.route(run, policy, execution_context=execution_context)
+        return self._model_router.route(run, policy)
+
     def _chat_kwargs(
         self,
         run: AgentRun,
         policy: ModelPolicy,
         routing: RoutingDecision | None,
         tool_schemas: list[dict[str, Any]],
+        enterprise_context: EnterpriseContext | None,
+        execution_context: RunExecutionContext | None,
     ) -> dict[str, Any]:
+        safety_identifier = enterprise_context.user_hash if enterprise_context is not None else None
         chat_kwargs: dict[str, Any] = {
             "tools": tool_schemas,
             "tool_choice": "auto",
@@ -86,13 +105,19 @@ class ModelExecutionService:
             "stream": policy.stream,
             "response_format": None,
             "prompt_cache_key": None,
-            "safety_identifier": policy.user_hash,
+            "safety_identifier": safety_identifier,
             "request_metadata": {
                 "run_id": run.run_id,
                 "workflow": run.workflow,
                 "execution_profile": policy.execution_profile,
             },
         }
+        if execution_context is not None and execution_context.workflow.template_id:
+            chat_kwargs["request_metadata"].update({
+                "template_id": execution_context.workflow.template_id,
+                "template_slug": execution_context.workflow.template_slug,
+                "template_version": execution_context.workflow.template_version,
+            })
         if routing is not None and self._model_accepts_routing_kwargs():
             chat_kwargs.update({
                 "model": routing.model,
@@ -101,7 +126,7 @@ class ModelExecutionService:
                 "max_completion_tokens": routing.max_completion_tokens,
                 "response_format": routing.response_format,
                 "prompt_cache_key": routing.prompt_cache_key,
-                "safety_identifier": routing.safety_identifier or policy.user_hash,
+                "safety_identifier": routing.safety_identifier or safety_identifier,
             })
         return chat_kwargs
 

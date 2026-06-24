@@ -46,10 +46,12 @@ def test_run_queue_latest_status_drives_pending_list(tmp_path):
     queue = SQLiteRunQueue(db)
 
     queue.enqueue("run-1")
-    queue.append_status("run-1", "running")
     assert queue.list_pending() == ["run-1"]
 
-    queue.append_status("run-1", "done")
+    assert queue.claim_atomic("worker-a", lease_seconds=30) == "run-1"
+    assert queue.list_pending() == []
+
+    queue.release_claim("run-1", "worker-a", "done")
     assert queue.list_pending() == []
 
 
