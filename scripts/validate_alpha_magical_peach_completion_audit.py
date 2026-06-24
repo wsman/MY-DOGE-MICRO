@@ -14,7 +14,7 @@ from scripts.validate_plan_closure_gate import validate_all
 
 
 AUDIT = ROOT / "docs" / "archive" / "audits" / "alpha-magical-peach-completion-audit-2026-06-23.md"
-PLAN = Path(r"C:\Users\Aby\.claude\plans\alpha-magical-peach.md")
+PLAN = Path.home() / ".claude" / "plans" / "alpha-magical-peach.md"
 MATURITY = ROOT / "docs" / "progress" / "runtime-maturity.yaml"
 MANIFEST = ROOT / "production" / "qa" / "evidence" / "plan-closure" / "9b77f9c-external-closure-manifest.json"
 SOURCE_PLAN = r"C:\Users\Aby\.claude\plans\alpha-magical-peach.md"
@@ -172,8 +172,6 @@ def _validate_gate_state(
 def _validate_source_plan(plan_text: str, errors: list[str]) -> None:
     required_plan_snippets = [
         "docs/archive/audits/alpha-magical-peach-completion-audit-2026-06-23.md",
-        "- [ ] Remote CI success is linked for the repaired target SHA",
-        "- [ ] Remote CI success is linked for the target HEAD",
         "scripts\\close_alpha_remote_ci_gate.py",
         "scripts\\validate_alpha_maturity_honesty.py",
         "scripts\\validate_alpha_pre_commit_readiness.py",
@@ -184,13 +182,19 @@ def _validate_source_plan(plan_text: str, errors: list[str]) -> None:
     for snippet in required_plan_snippets:
         if snippet not in plan_text:
             errors.append(f"source plan missing required Alpha/remote-CI snippet: {snippet}")
-    forbidden_plan_snippets = [
-        "- [x] Remote CI success is linked for the repaired target SHA",
-        "- [x] Remote CI success is linked for the target HEAD",
-    ]
-    for snippet in forbidden_plan_snippets:
-        if snippet in plan_text:
-            errors.append(f"source plan must not mark remote CI complete: {snippet}")
+    # Each remote CI checklist item may be pending ([ ]) or legitimately closed
+    # ([x]) once exact-SHA CI evidence passes; either checkbox state is accepted.
+    # The closed state itself (success URL + evidence consistency) is governed by
+    # validate_alpha_final_closure.py, so this snapshot validator does not freeze
+    # the checkbox state.
+    for label in ("repaired target SHA", "target HEAD"):
+        if (
+            f"- [ ] Remote CI success is linked for the {label}" not in plan_text
+            and f"- [x] Remote CI success is linked for the {label}" not in plan_text
+        ):
+            errors.append(
+                f"source plan must reference {label} remote CI as pending ([ ]) or closed ([x])"
+            )
 
 
 def _validate_maturity(maturity_text: str, errors: list[str]) -> None:

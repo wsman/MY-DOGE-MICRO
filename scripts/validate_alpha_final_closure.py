@@ -17,7 +17,7 @@ from scripts.validate_alpha_remote_ci_success import (
 from scripts.validate_plan_closure_gate import validate_all
 
 
-PLAN = Path(r"C:\Users\Aby\.claude\plans\alpha-magical-peach.md")
+PLAN = Path.home() / ".claude" / "plans" / "alpha-magical-peach.md"
 MATURITY = ROOT / "docs" / "progress" / "runtime-maturity.yaml"
 
 

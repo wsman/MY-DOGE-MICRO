@@ -14,7 +14,7 @@ from scripts.validate_plan_closure_gate import validate_all
 
 
 PACKAGE = ROOT / "docs" / "archive" / "audits" / "alpha-magical-peach-pre-remote-ci-package-2026-06-23.md"
-PLAN = Path(r"C:\Users\Aby\.claude\plans\alpha-magical-peach.md")
+PLAN = Path.home() / ".claude" / "plans" / "alpha-magical-peach.md"
 MATURITY = ROOT / "docs" / "progress" / "runtime-maturity.yaml"
 
 FALLBACK_PLAN_TEXT = """
@@ -169,11 +169,20 @@ def _validate_plan_refs(plan_text: str, errors: list[str]) -> None:
         "scripts\\validate_alpha_commit_scope.py",
         "scripts\\validate_alpha_maturity_honesty.py",
         "scripts\\validate_alpha_pre_commit_readiness.py",
-        "- [ ] Remote CI success is linked for the target HEAD",
     ]
     for snippet in required_plan_refs:
         if snippet not in plan_text:
             errors.append(f"source plan missing required pre-remote-CI ref: {snippet}")
+    # The target-HEAD remote CI checklist item may be pending ([ ]) or legitimately
+    # closed ([x]) once exact-SHA CI evidence passes; either checkbox state is
+    # accepted. The closed state itself is governed by validate_alpha_final_closure.py.
+    if (
+        "- [ ] Remote CI success is linked for the target HEAD" not in plan_text
+        and "- [x] Remote CI success is linked for the target HEAD" not in plan_text
+    ):
+        errors.append(
+            "source plan must reference target-HEAD remote CI as pending ([ ]) or closed ([x])"
+        )
 
 
 def _validate_payload_paths(

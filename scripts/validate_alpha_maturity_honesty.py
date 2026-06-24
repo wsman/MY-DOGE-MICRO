@@ -9,7 +9,7 @@ from typing import Mapping
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PLAN = Path(r"C:\Users\Aby\.claude\plans\alpha-magical-peach.md")
+PLAN = Path.home() / ".claude" / "plans" / "alpha-magical-peach.md"
 PLAN_FILE_ID = str(PLAN)
 
 FALLBACK_PLAN_TEXT = """

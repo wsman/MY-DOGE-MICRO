@@ -51,7 +51,7 @@ def test_alpha_magical_peach_completion_audit_rejects_missing_open_gate_id():
     assert any("audit missing open external gate id: S017-007" in error for error in errors)
 
 
-def test_alpha_magical_peach_completion_audit_rejects_checked_remote_ci_plan_item():
+def test_alpha_magical_peach_completion_audit_accepts_closed_remote_ci_plan_item():
     plan_text = FALLBACK_PLAN_TEXT.replace(
         "- [ ] Remote CI success is linked for the target HEAD",
         "- [x] Remote CI success is linked for the target HEAD",
@@ -64,16 +64,11 @@ def test_alpha_magical_peach_completion_audit_rejects_checked_remote_ci_plan_ite
         manifest=json.loads(MANIFEST.read_text(encoding="utf-8")),
     )
 
-    assert any(
-        "source plan missing required Alpha/remote-CI snippet: "
-        "- [ ] Remote CI success is linked for the target HEAD" in error
-        for error in errors
-    )
-    assert any(
-        "source plan must not mark remote CI complete: "
-        "- [x] Remote CI success is linked for the target HEAD" in error
-        for error in errors
-    )
+    # A closed target-HEAD remote CI checklist item is a legitimate state once
+    # exact-SHA CI evidence passes; the snapshot validator must accept either
+    # checkbox state rather than freeze the plan in the pending phase.
+    assert all("target HEAD remote CI as pending" not in error for error in errors)
+    assert all("must not mark remote CI complete" not in error for error in errors)
 
 
 def test_alpha_magical_peach_completion_audit_cli():
