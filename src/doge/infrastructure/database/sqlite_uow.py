@@ -11,6 +11,7 @@ from doge.config import get_settings
 from doge.core.domain.agent_models import AgentEvent, AgentRun, AgentTurn, EventType, RunStatus, utc_now
 from doge.core.domain.enterprise_context import IdentitySnapshot
 from doge.core.domain.model_policy import ModelPolicy
+from doge.core.domain.run_execution_context import WorkflowRunContext
 from doge.core.ports.event_publisher import IEventPublisher
 from doge.core.ports.unit_of_work import IAgentUnitOfWork
 from doge.infrastructure.database.agent_repositories import bootstrap_agent_schema
@@ -137,10 +138,10 @@ class SQLiteAgentUnitOfWork(IAgentUnitOfWork):
             """
             INSERT INTO runs(
                 run_id, tenant_id, session_id, workflow, question, market, language,
-                document_ids, portfolio_id, model_policy, identity_snapshot, status,
+                document_ids, portfolio_id, model_policy, workflow_context, identity_snapshot, status,
                 cancel_requested_at, created_at, updated_at, schema_version
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 run.run_id,
@@ -153,6 +154,7 @@ class SQLiteAgentUnitOfWork(IAgentUnitOfWork):
                 _json_dumps(run.document_ids),
                 run.portfolio_id,
                 _json_dumps(ModelPolicy.from_dict(run.model_policy).to_dict()),
+                _workflow_context_json(run.workflow_context),
                 _json_dumps(run.identity_snapshot.to_dict()) if run.identity_snapshot is not None else None,
                 run.status.value,
                 run.cancel_requested_at,
@@ -236,6 +238,19 @@ def _event_payload(event: AgentEvent) -> str:
         "schema_version": event.schema_version,
         "created_at": event.created_at,
     })
+
+
+def _workflow_context_json(workflow_context: Any) -> str | None:
+    if workflow_context is None:
+        return None
+    if isinstance(workflow_context, WorkflowRunContext):
+        payload = workflow_context.to_dict()
+    elif isinstance(workflow_context, dict):
+        resolved = WorkflowRunContext.from_mapping(workflow_context)
+        payload = resolved.to_dict() if resolved is not None else dict(workflow_context)
+    else:
+        return None
+    return _json_dumps(payload)
 
 
 def _identity_snapshot_from_inputs(

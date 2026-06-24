@@ -38,7 +38,16 @@ class _Worker:
         })
         return "run-created"
 
-    async def resolve_approval(self, run_id: str, approval_id: str, approved: bool):
+    async def resolve_approval(
+        self,
+        run_id: str,
+        approval_id: str,
+        approved: bool,
+        *,
+        scope=None,
+        tenant_id: str | None = None,
+    ):
+        assert getattr(scope, "tenant_id", tenant_id) == "tenant-a"
         return AgentRun(
             run_id=run_id,
             workflow="investment_research",
@@ -53,8 +62,14 @@ class _Runtime:
     def __init__(self, tenant_id: str = "tenant-a") -> None:
         self._tenant_id = tenant_id
 
-    def get_run(self, run_id: str):
+    def get_run(self, scope, run_id: str | None = None, *, tenant_id: str | None = None):
+        if run_id is None:
+            run_id = scope
+            scope = None
+        requested_tenant_id = getattr(scope, "tenant_id", tenant_id)
         if run_id != "run-1":
+            return None
+        if requested_tenant_id is not None and requested_tenant_id != self._tenant_id:
             return None
         return AgentRun(
             run_id=run_id,

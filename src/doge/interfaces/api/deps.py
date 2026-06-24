@@ -234,18 +234,34 @@ def get_runtime_outbox_publisher():
     return _runtime_outbox_publisher
 
 
+def get_daemon_readiness_probe():
+    """Provide the daemon readiness probe for API health routes."""
+
+    from doge.infrastructure.database.readiness import SQLiteRuntimeReadinessProbe
+
+    return SQLiteRuntimeReadinessProbe(settings=get_settings())
+
+
+def get_existing_daemon_worker():
+    """Return the daemon worker only if this process already created it."""
+
+    return _worker
+
+
 def get_daemon_worker():
     """Provide the singleton daemon worker."""
     global _worker
     if _worker is None:
         from doge.application.agent.worker import AsyncioWorker
 
+        settings = get_settings()
         _worker = AsyncioWorker(
             get_persisted_research_agent_runtime(),
             get_agent_session_repository(),
             get_run_queue(),
             get_idempotency_store(),
             get_agent_unit_of_work(),
+            auto_start=settings.daemon.process_role != "api",
         )
     return _worker
 

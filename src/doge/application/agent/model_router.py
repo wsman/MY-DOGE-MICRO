@@ -46,7 +46,13 @@ class ModelRouter:
                 "kimi-k2.7-code does not support thinking_enabled=False; "
                 "thinking must remain enabled or omitted"
             )
-        files_purpose = self._purpose_for_documents(run.document_ids) or spec.files_purpose
+        identity_snapshot = (
+            execution_context.identity_snapshot
+            if execution_context is not None
+            else run.identity_snapshot
+        )
+        tenant_id = identity_snapshot.tenant_id if identity_snapshot is not None else None
+        files_purpose = self._purpose_for_documents(run.document_ids, tenant_id=tenant_id) or spec.files_purpose
         max_completion_tokens = policy.max_completion_tokens or getattr(
             self._settings.kimi,
             "max_completion_tokens",
@@ -56,11 +62,6 @@ class ModelRouter:
         prompt_cache_key = policy.prompt_cache_key
         if not prompt_cache_key and getattr(self._settings.kimi, "prompt_cache_enabled", False):
             prompt_cache_key = run.session_id or run.run_id
-        identity_snapshot = (
-            execution_context.identity_snapshot
-            if execution_context is not None
-            else run.identity_snapshot
-        )
         return RoutingDecision(
             backend=spec.backend,
             model=model,
@@ -77,12 +78,12 @@ class ModelRouter:
             extra_body={},
         )
 
-    def _purpose_for_documents(self, document_ids: list[str]) -> str | None:
+    def _purpose_for_documents(self, document_ids: list[str], *, tenant_id: str | None = None) -> str | None:
         if self._documents is None:
             return None
         purposes: list[str] = []
         for document_id in document_ids:
-            document = self._documents.get(document_id)
+            document = self._documents.get(document_id, tenant_id=tenant_id)
             if not document:
                 continue
             purpose = document.get("kimi_file_purpose") or _purpose_from_mime(document.get("mime_type"))

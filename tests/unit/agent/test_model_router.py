@@ -12,8 +12,10 @@ from doge.core.domain.run_execution_context import RunExecutionContext, Workflow
 class DocumentRepo:
     def __init__(self, documents):
         self._documents = documents
+        self.tenant_id = None
 
-    def get(self, document_id):
+    def get(self, document_id, tenant_id=None):
+        self.tenant_id = tenant_id
         return self._documents.get(document_id)
 
 
@@ -86,3 +88,28 @@ def test_model_router_uses_execution_context_identity_for_safety_identifier():
     )
 
     assert decision.safety_identifier == "user-a"
+
+
+def test_model_router_passes_identity_tenant_to_document_lookup():
+    run = AgentRun.create(
+        workflow="investment_research",
+        question="q",
+        document_ids=["doc-image"],
+    )
+    documents = DocumentRepo({"doc-image": {"mime_type": "image/png"}})
+    execution_context = RunExecutionContext(
+        run_id=run.run_id,
+        question=run.question,
+        model_policy=ModelPolicy(),
+        identity_snapshot=IdentitySnapshot(tenant_id="tenant-a", user_hash="user-a"),
+        workflow=WorkflowRunContext(workflow=run.workflow),
+    )
+
+    decision = ModelRouter(settings=_settings(), document_repository=documents).route(
+        run,
+        ModelPolicy(),
+        execution_context=execution_context,
+    )
+
+    assert decision.files_purpose == "image"
+    assert documents.tenant_id == "tenant-a"

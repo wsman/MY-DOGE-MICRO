@@ -11,8 +11,10 @@ from doge.config import get_settings
 from doge.core.domain.agent_models import AgentApproval, AgentArtifact, AgentEvent, AgentRun, EventType, utc_now
 from doge.core.domain.enterprise_context import IdentitySnapshot
 from doge.core.domain.model_policy import ModelPolicy
+from doge.core.domain.run_execution_context import WorkflowRunContext
 from doge.core.ports.runtime_transaction import IOutboxRepository, IRuntimeTransaction, IRuntimeTransactionFactory
 from doge.infrastructure.database.agent_repositories import bootstrap_agent_schema
+from doge.infrastructure.database.tenant_guard import LOCAL_TENANT_ID, resolve_tenant_id
 
 
 class SQLiteRuntimeTransactionFactory(IRuntimeTransactionFactory):
@@ -38,10 +40,10 @@ class SQLiteRuntimeTransaction(IRuntimeTransaction):
             """
             INSERT INTO runs(
                 run_id, tenant_id, session_id, workflow, question, market, language,
-                document_ids, portfolio_id, model_policy, identity_snapshot, status,
+                document_ids, portfolio_id, model_policy, workflow_context, identity_snapshot, status,
                 cancel_requested_at, created_at, updated_at, schema_version
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(run_id) DO UPDATE SET
                 tenant_id = excluded.tenant_id,
                 session_id = excluded.session_id,
@@ -52,6 +54,7 @@ class SQLiteRuntimeTransaction(IRuntimeTransaction):
                 document_ids = excluded.document_ids,
                 portfolio_id = excluded.portfolio_id,
                 model_policy = excluded.model_policy,
+                workflow_context = excluded.workflow_context,
                 identity_snapshot = excluded.identity_snapshot,
                 status = excluded.status,
                 cancel_requested_at = excluded.cancel_requested_at,
@@ -69,6 +72,7 @@ class SQLiteRuntimeTransaction(IRuntimeTransaction):
                 _json_dumps(run.document_ids),
                 run.portfolio_id,
                 _json_dumps(ModelPolicy.from_dict(run.model_policy).to_dict()),
+                _workflow_context_json(run.workflow_context),
                 _identity_snapshot_json(run.identity_snapshot),
                 run.status.value,
                 run.cancel_requested_at,
@@ -268,10 +272,23 @@ def _identity_snapshot_json(snapshot: IdentitySnapshot | dict[str, Any] | None) 
     return _json_dumps(normalized.to_dict())
 
 
+def _workflow_context_json(workflow_context: Any) -> str | None:
+    if workflow_context is None:
+        return None
+    if isinstance(workflow_context, WorkflowRunContext):
+        payload = workflow_context.to_dict()
+    elif isinstance(workflow_context, dict):
+        resolved = WorkflowRunContext.from_mapping(workflow_context)
+        payload = resolved.to_dict() if resolved is not None else dict(workflow_context)
+    else:
+        return None
+    return _json_dumps(payload)
+
+
 def _tenant_id_from_run(run: AgentRun) -> str | None:
     if run.identity_snapshot is None:
-        return None
-    return run.identity_snapshot.tenant_id
+        return LOCAL_TENANT_ID
+    return resolve_tenant_id(run.identity_snapshot.tenant_id)
 
 
 def _tenant_id_for_run(conn: sqlite3.Connection, run_id: str) -> str | None:
@@ -279,7 +296,7 @@ def _tenant_id_for_run(conn: sqlite3.Connection, run_id: str) -> str | None:
     if row is None:
         return None
     tenant_id = row["tenant_id"]
-    return str(tenant_id) if tenant_id else None
+    return str(tenant_id) if tenant_id else LOCAL_TENANT_ID
 
 
 def _next_event_sequence(conn: sqlite3.Connection, run_id: str) -> int:

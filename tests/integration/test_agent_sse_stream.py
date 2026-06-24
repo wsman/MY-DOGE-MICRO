@@ -104,7 +104,7 @@ def test_sse_stream_completed_run_with_last_event_id_replays_from_checkpoint(tmp
 
     assert events
     assert all(event["sequence"] > checkpoint for event in events)
-    assert len(events) == len(all_events) - checkpoint
+    assert len(events) == len([event for event in all_events if event["sequence"] > checkpoint])
 
 
 def test_sse_stream_live_run_closes_after_terminal_event(tmp_path, monkeypatch):

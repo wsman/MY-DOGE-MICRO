@@ -12,6 +12,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from doge.core.ports.agent_runtime import IResearchAgentRuntime
 from doge.interfaces.api import deps
+from doge.shared.scope import TenantScope
 
 router = APIRouter()
 
@@ -53,7 +54,7 @@ async def get_run(
     run_id: str,
     runtime: IResearchAgentRuntime = Depends(deps.get_research_agent_runtime),
 ):
-    run = runtime.get_run(run_id)
+    run = runtime.get_run(TenantScope.local(), run_id)
     if run is None:
         raise HTTPException(404, "run not found")
     return _serialize(run)
@@ -65,7 +66,7 @@ async def get_events(
     runtime: IResearchAgentRuntime = Depends(deps.get_research_agent_runtime),
 ):
     try:
-        return {"events": _serialize(runtime.list_events(run_id))}
+        return {"events": _serialize(runtime.list_events(TenantScope.local(), run_id))}
     except KeyError:
         raise HTTPException(404, "run not found")
 
@@ -77,7 +78,7 @@ async def stream_events(
 ):
     async def event_generator():
         try:
-            async for event in runtime.stream_events(run_id):
+            async for event in runtime.stream_events(TenantScope.local(), run_id):
                 yield {
                     "event": "agent_event",
                     "data": json.dumps(_serialize(event), ensure_ascii=False),
@@ -96,7 +97,7 @@ async def get_artifacts(
     run_id: str,
     runtime: IResearchAgentRuntime = Depends(deps.get_research_agent_runtime),
 ):
-    run = runtime.get_run(run_id)
+    run = runtime.get_run(TenantScope.local(), run_id)
     if run is None:
         raise HTTPException(404, "run not found")
     return {"artifacts": _serialize(run.artifacts)}
@@ -107,7 +108,7 @@ async def get_approvals(
     run_id: str,
     runtime: IResearchAgentRuntime = Depends(deps.get_research_agent_runtime),
 ):
-    run = runtime.get_run(run_id)
+    run = runtime.get_run(TenantScope.local(), run_id)
     if run is None:
         raise HTTPException(404, "run not found")
     return {"approvals": _serialize(run.approvals)}
@@ -120,7 +121,7 @@ async def resolve_approval(
     _body: ApprovalRequest,
     runtime: IResearchAgentRuntime = Depends(deps.get_research_agent_runtime),
 ):
-    if runtime.get_run(run_id) is None:
+    if runtime.get_run(TenantScope.local(), run_id) is None:
         raise HTTPException(404, "run not found")
     raise HTTPException(
         409,

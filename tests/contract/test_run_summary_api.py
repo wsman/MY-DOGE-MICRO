@@ -108,13 +108,17 @@ class _Runtime:
             data={"claims": [{"claim_id": "claim-1", "text": "Revenue grew 12%.", "status": "supported"}]},
         )
 
-    def get_run(self, run_id):
+    def get_run(self, scope, run_id=None):
+        if run_id is None:
+            run_id = scope
         return self.run if run_id == "run-1" else None
 
-    def list_events(self, run_id):
+    def list_events(self, scope, run_id=None):
         return []
 
-    def list_artifacts(self, run_id):
+    def list_artifacts(self, scope, run_id=None):
+        if run_id is None:
+            run_id = scope
         return [self.artifact] if run_id == "run-1" else []
 
 

@@ -24,6 +24,7 @@ from doge.interfaces.api.enterprise_access import (
     record_approval_actor,
 )
 from doge.interfaces.api.routers.v1._common import serialize
+from doge.shared.scope import TenantScope
 
 router = APIRouter(dependencies=[Depends(deps.require_api_token)])
 _STREAM_CLOSE_STATUSES = {
@@ -65,9 +66,10 @@ async def cancel_run(
     runtime: IResearchAgentRuntime = Depends(deps.get_persisted_research_agent_runtime),
     worker: AsyncioWorker = Depends(deps.get_daemon_worker),
 ):
+    scope = _request_scope(request)
     _authorized_run(request, runtime, run_id)
     try:
-        return serialize(await worker.cancel_run(run_id))
+        return serialize(await worker.cancel_run(run_id, scope=scope))
     except KeyError:
         raise HTTPException(404, "run not found")
 
@@ -79,8 +81,12 @@ async def get_events(
     after_sequence: int = 0,
     runtime: IResearchAgentRuntime = Depends(deps.get_persisted_research_agent_runtime),
 ):
+    scope = _request_scope(request)
     _authorized_run(request, runtime, run_id)
-    events = [event for event in runtime.list_events(run_id) if event.sequence > after_sequence]
+    events = [
+        event for event in runtime.list_events(scope, run_id)
+        if event.sequence > after_sequence
+    ]
     return {"events": serialize(events)}
 
 
@@ -92,6 +98,7 @@ async def stream_run(
     runtime: IResearchAgentRuntime = Depends(deps.get_persisted_research_agent_runtime),
     subscriber: IEventSubscriber = Depends(deps.get_event_subscriber),
 ):
+    scope = _request_scope(request)
     authorized = _authorized_run(request, runtime, run_id)
     try:
         after_sequence = int(last_event_id or "0")
@@ -99,9 +106,14 @@ async def stream_run(
         after_sequence = 0
 
     async def generator():
-        run = runtime.get_run(run_id) or authorized
+        run = runtime.get_run(scope, run_id) or authorized
         terminal_at_start = run.status in _STREAM_CLOSE_STATUSES
-        initial_max_sequence = _max_event_sequence_after(runtime, run_id, after_sequence)
+        initial_max_sequence = _max_event_sequence_after(
+            runtime,
+            run_id,
+            after_sequence,
+            scope=scope,
+        )
         if terminal_at_start and initial_max_sequence <= after_sequence:
             return
         async for event in subscriber.subscribe(run_id, after_sequence=after_sequence):
@@ -110,7 +122,7 @@ async def stream_run(
                 "event": event.event_type.value,
                 "data": json.dumps(serialize(event), ensure_ascii=False),
             }
-            run = runtime.get_run(run_id)
+            run = runtime.get_run(scope, run_id)
             if run and run.status in _STREAM_CLOSE_STATUSES:
                 if terminal_at_start and event.sequence >= initial_max_sequence:
                     return
@@ -126,8 +138,9 @@ async def get_artifacts(
     run_id: str,
     runtime: IResearchAgentRuntime = Depends(deps.get_persisted_research_agent_runtime),
 ):
+    scope = _request_scope(request)
     _authorized_run(request, runtime, run_id)
-    return {"artifacts": serialize(runtime.list_artifacts(run_id))}
+    return {"artifacts": serialize(runtime.list_artifacts(scope, run_id))}
 
 
 @router.get("/runs/{run_id}/summary", dependencies=[Depends(_require_run_summary_api)])
@@ -216,9 +229,10 @@ async def resolve_approval(
     governance: IEnterpriseGovernanceRepository = Depends(deps.get_enterprise_governance_repository),
 ):
     try:
+        scope = _request_scope(request)
         _authorized_run(request, runtime, run_id)
         ensure_approval_authority(request, governance, approval_id)
-        run = await worker.resolve_approval(run_id, approval_id, body.approved)
+        run = await worker.resolve_approval(run_id, approval_id, body.approved, scope=scope)
         record_approval_actor(request, governance, approval_id, run_id, body.approved)
         return serialize(run)
     except KeyError as exc:
@@ -226,7 +240,7 @@ async def resolve_approval(
 
 
 def _authorized_run(request: Request, runtime: IResearchAgentRuntime, run_id: str) -> AgentRun:
-    run = runtime.get_run(run_id)
+    run = runtime.get_run(_request_scope(request), run_id)
     if run is None:
         raise HTTPException(404, "run not found")
     if is_enterprise_request(request):
@@ -235,8 +249,21 @@ def _authorized_run(request: Request, runtime: IResearchAgentRuntime, run_id: st
     return run
 
 
-def _max_event_sequence_after(runtime: IResearchAgentRuntime, run_id: str, after_sequence: int) -> int:
-    return max((event.sequence for event in runtime.list_events(run_id) if event.sequence > after_sequence), default=after_sequence)
+def _max_event_sequence_after(
+    runtime: IResearchAgentRuntime,
+    run_id: str,
+    after_sequence: int,
+    *,
+    scope: TenantScope,
+) -> int:
+    return max(
+        (
+            event.sequence
+            for event in runtime.list_events(scope, run_id)
+            if event.sequence > after_sequence
+        ),
+        default=after_sequence,
+    )
 
 
 def _build_authorized_summary(
@@ -264,3 +291,16 @@ def _run_tenant_id(run: AgentRun) -> str | None:
     if run.identity_snapshot is not None:
         return run.identity_snapshot.tenant_id
     return None
+
+
+def _request_tenant_id(request: Request) -> str | None:
+    if not is_enterprise_request(request):
+        return None
+    return enterprise_context(request).tenant_id
+
+
+def _request_scope(request: Request) -> TenantScope:
+    if not is_enterprise_request(request):
+        return TenantScope.local()
+    context = enterprise_context(request)
+    return TenantScope.enterprise(context.tenant_id, context.user_hash)

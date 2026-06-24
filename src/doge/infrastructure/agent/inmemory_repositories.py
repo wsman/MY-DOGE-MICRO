@@ -38,33 +38,39 @@ class InMemoryRunRepository(IRunRepository):
 
     def get(self, run_id: str, tenant_id: str | None = None) -> AgentRun | None:
         run = self._store.runs.get(run_id)
-        if run is None:
+        if run is None or not _matches_tenant(_tenant_id_from_run(run), tenant_id):
             return None
         hydrated = deepcopy(run)
-        hydrated.events = deepcopy(self._store.events.get(run_id, []))
-        hydrated.artifacts = deepcopy(self._store.artifacts.get(run_id, []))
+        hydrated.events = deepcopy(InMemoryEventRepository(self._store).list_for_run(run_id, tenant_id=tenant_id))
+        hydrated.artifacts = deepcopy(InMemoryArtifactRepository(self._store).list_for_run(run_id, tenant_id=tenant_id))
         hydrated.approvals = [
             deepcopy(approval)
-            for approval in self._store.approvals.values()
-            if approval.run_id == run_id
+            for approval in InMemoryApprovalRepository(self._store).list_for_run(run_id, tenant_id=tenant_id)
         ]
         hydrated.approvals.sort(key=lambda item: item.created_at)
         return hydrated
 
     def list_by_session(self, session_id: str, tenant_id: str | None = None) -> list[AgentRun]:
-        runs = [run for run in self._store.runs.values() if run.session_id == session_id]
+        runs = [
+            run for run in self._store.runs.values()
+            if run.session_id == session_id and _matches_tenant(_tenant_id_from_run(run), tenant_id)
+        ]
         hydrated: list[AgentRun] = []
         for run in sorted(runs, key=lambda item: item.created_at):
-            loaded = self.get(run.run_id)
+            loaded = self.get(run.run_id, tenant_id=tenant_id)
             if loaded is not None:
                 hydrated.append(loaded)
         return hydrated
 
     def list_recent(self, limit: int = 20, tenant_id: str | None = None) -> list[AgentRun]:
-        runs = sorted(self._store.runs.values(), key=lambda item: item.updated_at, reverse=True)[:limit]
+        runs = [
+            run for run in self._store.runs.values()
+            if _matches_tenant(_tenant_id_from_run(run), tenant_id)
+        ]
+        runs = sorted(runs, key=lambda item: item.updated_at, reverse=True)[:limit]
         hydrated: list[AgentRun] = []
         for run in runs:
-            loaded = self.get(run.run_id)
+            loaded = self.get(run.run_id, tenant_id=tenant_id)
             if loaded is not None:
                 hydrated.append(loaded)
         return hydrated
@@ -75,6 +81,9 @@ class InMemoryEventRepository(IEventRepository):
         self._store = store or _InMemoryAgentStore()
 
     def append(self, event: AgentEvent, tenant_id: str | None = None) -> AgentEvent:
+        run = self._store.runs.get(event.run_id)
+        if run is not None and not _matches_tenant(_tenant_id_from_run(run), tenant_id):
+            raise PermissionError("event tenant mismatch")
         events = self._store.events.setdefault(event.run_id, [])
         if event.sequence <= 0:
             event.sequence = max((item.sequence for item in events), default=0) + 1
@@ -91,6 +100,9 @@ class InMemoryEventRepository(IEventRepository):
         after_sequence: int = 0,
         tenant_id: str | None = None,
     ) -> list[AgentEvent]:
+        run = self._store.runs.get(run_id)
+        if run is not None and not _matches_tenant(_tenant_id_from_run(run), tenant_id):
+            return []
         return [
             deepcopy(event)
             for event in self._store.events.get(run_id, [])
@@ -103,6 +115,9 @@ class InMemoryArtifactRepository(IArtifactRepository):
         self._store = store or _InMemoryAgentStore()
 
     def save(self, artifact: AgentArtifact, tenant_id: str | None = None) -> None:
+        run = self._store.runs.get(artifact.run_id)
+        if run is not None and not _matches_tenant(_tenant_id_from_run(run), tenant_id):
+            raise PermissionError("artifact tenant mismatch")
         artifacts = [
             item
             for item in self._store.artifacts.get(artifact.run_id, [])
@@ -113,6 +128,9 @@ class InMemoryArtifactRepository(IArtifactRepository):
         self._store.artifacts[artifact.run_id] = artifacts
 
     def list_for_run(self, run_id: str, tenant_id: str | None = None) -> list[AgentArtifact]:
+        run = self._store.runs.get(run_id)
+        if run is not None and not _matches_tenant(_tenant_id_from_run(run), tenant_id):
+            return []
         return deepcopy(self._store.artifacts.get(run_id, []))
 
 
@@ -121,13 +139,23 @@ class InMemoryApprovalRepository(IApprovalRepository):
         self._store = store or _InMemoryAgentStore()
 
     def save(self, approval: AgentApproval, tenant_id: str | None = None) -> None:
+        run = self._store.runs.get(approval.run_id)
+        if run is not None and not _matches_tenant(_tenant_id_from_run(run), tenant_id):
+            raise PermissionError("approval tenant mismatch")
         self._store.approvals[approval.approval_id] = deepcopy(approval)
 
     def get(self, approval_id: str, tenant_id: str | None = None) -> AgentApproval | None:
         approval = self._store.approvals.get(approval_id)
+        if approval is not None:
+            run = self._store.runs.get(approval.run_id)
+            if run is not None and not _matches_tenant(_tenant_id_from_run(run), tenant_id):
+                return None
         return deepcopy(approval) if approval is not None else None
 
     def list_for_run(self, run_id: str, tenant_id: str | None = None) -> list[AgentApproval]:
+        run = self._store.runs.get(run_id)
+        if run is not None and not _matches_tenant(_tenant_id_from_run(run), tenant_id):
+            return []
         approvals = [item for item in self._store.approvals.values() if item.run_id == run_id]
         approvals.sort(key=lambda item: item.created_at)
         return deepcopy(approvals)
@@ -141,3 +169,15 @@ def build_inmemory_repositories() -> dict[str, object]:
         "artifacts": InMemoryArtifactRepository(store),
         "approvals": InMemoryApprovalRepository(store),
     }
+
+
+def _tenant_id_from_run(run: AgentRun) -> str | None:
+    if run.identity_snapshot is None:
+        return None
+    return run.identity_snapshot.tenant_id
+
+
+def _matches_tenant(record_tenant_id: str | None, requested_tenant_id: str | None) -> bool:
+    if requested_tenant_id is None:
+        return True
+    return (record_tenant_id or "local") == (requested_tenant_id or "local")

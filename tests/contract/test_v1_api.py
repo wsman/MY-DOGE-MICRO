@@ -8,6 +8,7 @@ from doge.interfaces.api.main import app
 
 
 def _reset_agent_deps(monkeypatch, tmp_path):
+    monkeypatch.delenv("DOGE_PROCESS_ROLE", raising=False)
     monkeypatch.setenv("DOGE_AGENT_DB", str(tmp_path / "agent_state.db"))
     monkeypatch.setenv("DOGE_DOCUMENT_STORAGE_DIR", str(tmp_path / "documents"))
     reset_settings()
@@ -18,6 +19,7 @@ def _reset_agent_deps(monkeypatch, tmp_path):
     deps._run_queue = None
     deps._idempotency_store = None
     deps._agent_unit_of_work = None
+    deps._runtime_outbox_publisher = None
     deps._file_upload_service = None
     deps._enterprise_governance_repository = None
 
@@ -54,6 +56,46 @@ def test_optional_api_token_auth(tmp_path, monkeypatch):
         assert client.get("/v1/sessions").status_code == 401
         assert client.get("/v1/sessions", headers={"Authorization": "Bearer secret"}).status_code == 200
     monkeypatch.delenv("DOGE_API_TOKEN")
+
+
+def test_health_ready_reports_daemon_subsystems(tmp_path, monkeypatch):
+    _reset_agent_deps(monkeypatch, tmp_path)
+    with TestClient(app) as client:
+        response = client.get("/health/ready")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ready"
+    assert body["process_role"] == "all"
+    assert set(body["checks"]) == {
+        "database",
+        "migration_version",
+        "queue_depth",
+        "worker_heartbeat",
+        "outbox_backlog",
+        "document_storage",
+        "model_provider_configuration",
+    }
+    assert body["checks"]["worker_heartbeat"]["loop_running"] is True
+    assert body["checks"]["model_provider_configuration"]["provider"] == "kimi"
+
+
+def test_api_process_role_lifespan_does_not_start_worker(tmp_path, monkeypatch):
+    _reset_agent_deps(monkeypatch, tmp_path)
+    monkeypatch.setenv("DOGE_PROCESS_ROLE", "api")
+    reset_settings()
+    with TestClient(app) as client:
+        response = client.get("/health/ready")
+
+    try:
+        assert response.status_code == 200
+        body = response.json()
+        assert body["process_role"] == "api"
+        assert body["checks"]["worker_heartbeat"]["mode"] == "external"
+        assert deps._worker is None
+    finally:
+        monkeypatch.delenv("DOGE_PROCESS_ROLE", raising=False)
+        reset_settings()
 
 
 def test_v1_post_turns_reuses_idempotency_key(tmp_path, monkeypatch):

@@ -45,16 +45,21 @@ _PROJECT_ROOT = str(get_settings().project_root)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    worker = deps.get_daemon_worker()
+    settings = get_settings()
+    process_role = settings.daemon.process_role
+    worker = None
     outbox_publisher = None
-    if get_settings().features.runtime_outbox_publisher:
-        outbox_publisher = deps.get_runtime_outbox_publisher()
-        outbox_publisher.start()
-    worker.start()
+    if process_role in {"all", "worker"}:
+        worker = deps.get_daemon_worker()
+        if settings.features.runtime_outbox_publisher:
+            outbox_publisher = deps.get_runtime_outbox_publisher()
+            outbox_publisher.start()
+        worker.start()
     try:
         yield
     finally:
-        await worker.stop()
+        if worker is not None:
+            await worker.stop()
         if outbox_publisher is not None:
             await outbox_publisher.stop()
 

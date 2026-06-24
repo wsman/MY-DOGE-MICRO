@@ -309,6 +309,9 @@ async def test_worker_exception_records_failed_run_and_error_event(tmp_path, mon
         assert run is not None
         assert run.status == RunStatus.FAILED
         assert run.events[-1].event_type == EventType.ERROR
-        assert "model exploded" in run.events[-1].payload["message"]
+        assert run.events[-1].payload["message"] == "runtime failure"
+        assert run.events[-1].payload["error"]["code"] == "runtime_failure"
+        assert run.events[-1].payload["error"]["internal_reference"].startswith("err-")
+        assert "model exploded" not in repr(run.events[-1].payload)
     finally:
         await worker.stop()

@@ -9,6 +9,7 @@ from doge.core.domain.agent_models import AgentRun
 from doge.core.domain.model_policy import ModelPolicy
 from doge.core.ports.agent_repository import ISessionRepository
 from doge.core.ports.agent_runtime import IResearchAgentRuntime
+from doge.shared.scope import TenantScope
 
 
 class ExecuteRun:
@@ -47,4 +48,4 @@ class ResumeRun:
         self._runtime = runtime
 
     def execute(self, run_id: str) -> AgentRun | None:
-        return self._runtime.get_run(run_id)
+        return self._runtime.get_run(TenantScope.local(), run_id)

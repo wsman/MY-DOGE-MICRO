@@ -66,6 +66,7 @@ def _migrations() -> tuple[Migration, ...]:
         Migration("portfolio", "local_tenant_backfill", _migrate_portfolio_local_tenant_backfill),
         Migration("workspace", "local_tenant_backfill", _migrate_workspace_local_tenant_backfill),
         Migration("runtime", "run_identity_snapshot", _migrate_run_identity_snapshot),
+        Migration("runtime", "run_workflow_context", _migrate_run_workflow_context),
         Migration("runtime", "runtime_outbox", _migrate_runtime_outbox),
         Migration("runtime", "run_queue_leases", _migrate_run_queue_leases),
     )
@@ -217,6 +218,11 @@ def _backfill_local_tenant(conn: sqlite3.Connection, tables: Iterable[str]) -> N
 def _migrate_run_identity_snapshot(conn: sqlite3.Connection) -> None:
     if "identity_snapshot" not in _columns(conn, "runs"):
         conn.execute("ALTER TABLE runs ADD COLUMN identity_snapshot TEXT")
+
+
+def _migrate_run_workflow_context(conn: sqlite3.Connection) -> None:
+    if "workflow_context" not in _columns(conn, "runs"):
+        conn.execute("ALTER TABLE runs ADD COLUMN workflow_context TEXT")
 
 
 def _migrate_runtime_outbox(conn: sqlite3.Connection) -> None:

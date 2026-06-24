@@ -22,6 +22,7 @@ from doge.core.domain.agent_models import (
 )
 from doge.core.domain.enterprise_context import IdentitySnapshot
 from doge.core.domain.model_policy import ModelPolicy
+from doge.core.domain.run_execution_context import WorkflowRunContext
 from doge.core.domain.document_models import Document, DocumentStatus
 from doge.core.ports.agent_repository import (
     IApprovalRepository,
@@ -175,10 +176,10 @@ class SQLiteRunRepository(_BaseAgentRepository, IRunRepository):
                 """
                 INSERT INTO runs(
                     run_id, tenant_id, session_id, workflow, question, market, language,
-                    document_ids, portfolio_id, model_policy, identity_snapshot, status,
+                    document_ids, portfolio_id, model_policy, workflow_context, identity_snapshot, status,
                     cancel_requested_at, created_at, updated_at, schema_version
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(run_id) DO UPDATE SET
                     tenant_id = excluded.tenant_id,
                     session_id = excluded.session_id,
@@ -189,6 +190,7 @@ class SQLiteRunRepository(_BaseAgentRepository, IRunRepository):
                     document_ids = excluded.document_ids,
                     portfolio_id = excluded.portfolio_id,
                     model_policy = excluded.model_policy,
+                    workflow_context = excluded.workflow_context,
                     identity_snapshot = excluded.identity_snapshot,
                     status = excluded.status,
                     cancel_requested_at = excluded.cancel_requested_at,
@@ -206,6 +208,7 @@ class SQLiteRunRepository(_BaseAgentRepository, IRunRepository):
                     json.dumps(run.document_ids, ensure_ascii=False),
                     run.portfolio_id,
                     json.dumps(_model_policy_to_dict(run.model_policy), ensure_ascii=False),
+                    _workflow_context_json(run.workflow_context),
                     _identity_snapshot_json(run.identity_snapshot),
                     run.status.value,
                     run.cancel_requested_at,
@@ -728,6 +731,7 @@ def _row_to_run(conn: sqlite3.Connection, row: sqlite3.Row) -> AgentRun:
         document_ids=json.loads(row["document_ids"] or "[]"),
         portfolio_id=row["portfolio_id"],
         model_policy=ModelPolicy.from_dict(policy_payload),
+        workflow_context=_workflow_context_from_row(row),
         identity_snapshot=_identity_snapshot_from_row(row, policy_payload),
         status=RunStatus(row["status"]),
         cancel_requested_at=row["cancel_requested_at"],
@@ -846,6 +850,29 @@ def _row_to_approval(row: sqlite3.Row) -> AgentApproval:
 
 def _model_policy_to_dict(policy: Any) -> dict[str, Any]:
     return ModelPolicy.from_dict(policy).to_dict()
+
+
+def _workflow_context_json(workflow_context: Any) -> str | None:
+    if workflow_context is None:
+        return None
+    if isinstance(workflow_context, WorkflowRunContext):
+        payload = workflow_context.to_dict()
+    elif isinstance(workflow_context, dict):
+        resolved = WorkflowRunContext.from_mapping(workflow_context)
+        payload = resolved.to_dict() if resolved is not None else dict(workflow_context)
+    else:
+        return None
+    return json.dumps(payload, ensure_ascii=False)
+
+
+def _workflow_context_from_row(row: sqlite3.Row) -> WorkflowRunContext | None:
+    raw = _row_value(row, "workflow_context")
+    if not raw:
+        return None
+    try:
+        return WorkflowRunContext.from_mapping(json.loads(raw))
+    except (TypeError, json.JSONDecodeError):
+        return None
 
 
 def _identity_snapshot_json(snapshot: IdentitySnapshot | dict[str, Any] | None) -> str | None:

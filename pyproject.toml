@@ -35,6 +35,8 @@ cn = ["akshare"]
 [project.scripts]
 doge = "doge.interfaces.cli.main:main"
 doged = "doge.interfaces.daemon.main:main"
+doged-api = "doge.interfaces.daemon.main:main_api"
+doged-worker = "doge.interfaces.daemon.main:main_worker"
 
 [tool.setuptools.packages.find]
 where = ["src"]

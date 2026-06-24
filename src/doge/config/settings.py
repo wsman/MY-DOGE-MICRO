@@ -74,6 +74,16 @@ def _env_csv(name: str, default: tuple[str, ...] = ()) -> tuple[str, ...]:
     return tuple(item.strip() for item in env.split(",") if item.strip())
 
 
+def _env_choice(name: str, default: str, choices: tuple[str, ...]) -> str:
+    """Read an env var constrained to a small operator-facing choice set."""
+    value = os.environ.get(name) or default
+    normalized = value.strip().lower()
+    if normalized not in choices:
+        joined = ", ".join(choices)
+        raise ValueError(f"{name} must be one of: {joined}")
+    return normalized
+
+
 def _env_json_tuple(name: str, default: tuple[str, ...] = ()) -> tuple[str, ...]:
     """Read a JSON string array env var as a tuple of strings."""
     env = os.environ.get(name)
@@ -398,6 +408,14 @@ class APIConfig:
 
 
 @dataclass(frozen=True)
+class DaemonConfig:
+    """Loopback daemon gateway defaults."""
+
+    port: int = field(default_factory=lambda: _env_int("DOGE_DAEMON_PORT", 8901))
+    process_role: str = field(default_factory=lambda: _env_choice("DOGE_PROCESS_ROLE", "all", ("api", "worker", "all")))
+
+
+@dataclass(frozen=True)
 class AuditConfig:
     """Enterprise audit retention settings.
 
@@ -569,6 +587,7 @@ class Settings:
     documents: DocumentConfig = field(default_factory=DocumentConfig)
     auth: AuthConfig = field(default_factory=AuthConfig)
     api: APIConfig = field(default_factory=APIConfig)
+    daemon: DaemonConfig = field(default_factory=DaemonConfig)
     audit: AuditConfig = field(default_factory=AuditConfig)
     secrets: SecretConfig = field(default_factory=SecretConfig)
     features: FeatureConfig = field(default_factory=FeatureConfig)

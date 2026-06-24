@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS runs (
     document_ids TEXT,
     portfolio_id TEXT,
     model_policy TEXT,
+    workflow_context TEXT,
     identity_snapshot TEXT,
     status TEXT NOT NULL,
     cancel_requested_at TEXT,

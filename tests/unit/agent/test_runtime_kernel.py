@@ -242,6 +242,24 @@ class StockToolCallModel:
         )
 
 
+class FailingToolCallModel:
+    async def chat(self, messages, **kwargs):
+        yield AgentResponse(
+            message=AgentMessage(
+                role="assistant",
+                content="",
+                tool_calls=[{
+                    "id": "tool-secret",
+                    "type": "function",
+                    "function": {
+                        "name": "secret_tool",
+                        "arguments": "{}",
+                    },
+                }],
+            )
+        )
+
+
 class ExecutionContextCaptureService:
     def __init__(self):
         self.execution_context = None
@@ -478,6 +496,26 @@ async def test_kernel_passes_run_execution_context_to_model_execution(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_kernel_filters_runtime_access_by_tenant(tmp_path):
+    kernel = _kernel(tmp_path)
+    run = await kernel.create_run({
+        "question": "Analyze AAPL",
+        "session_id": "ses-tenant",
+        "identity_snapshot": _enterprise_identity(),
+    })
+
+    assert kernel.get_run(run.run_id, tenant_id="tenant-a") is not None
+    assert kernel.get_run(run.run_id, tenant_id="tenant-b") is None
+    assert len(kernel.list_events(run.run_id, tenant_id="tenant-a")) == 1
+    assert kernel.list_events(run.run_id, tenant_id="tenant-b") == []
+    assert [item.run_id for item in kernel.list_runs("ses-tenant", tenant_id="tenant-a")] == [run.run_id]
+    assert kernel.list_runs("ses-tenant", tenant_id="tenant-b") == []
+
+    with pytest.raises(KeyError):
+        await kernel.cancel_run(run.run_id, tenant_id="tenant-b")
+
+
+@pytest.mark.asyncio
 async def test_kernel_denies_enterprise_tool_call_without_persistent_acl(tmp_path):
     db = tmp_path / "agent_state.db"
     governance = SQLiteEnterpriseGovernanceRepository(db)
@@ -501,6 +539,62 @@ async def test_kernel_denies_enterprise_tool_call_without_persistent_acl(tmp_pat
     assert tool_results[-1].payload["result"]["ok"] is False
     assert tool_results[-1].payload["result"]["error"] == "tool not permitted"
     assert "tool_denied" in [event.event_type for event in governance.list_audit_events("tenant-a")]
+
+
+@pytest.mark.asyncio
+async def test_kernel_redacts_tool_error_before_persisting_event(tmp_path):
+    db = tmp_path / "agent_state.db"
+    registry = ToolRegistry()
+
+    def secret_tool() -> ToolResult:
+        raise RuntimeError("provider leaked Authorization: Bearer sk-liveSecret123 and MOONSHOT_API_KEY=sk-key")
+
+    registry.register(_schema("secret_tool"), lambda **_: secret_tool())
+    kernel = RuntimeKernel(
+        model=FailingToolCallModel(),
+        tool_registry=registry,
+        run_repository=SQLiteRunRepository(db),
+        event_repository=SQLiteEventRepository(db),
+        artifact_repository=SQLiteArtifactRepository(db),
+        approval_repository=SQLiteApprovalRepository(db),
+    )
+    run = await kernel.create_run({"question": "Analyze AAPL"})
+
+    stepped = await kernel.step(run.run_id)
+
+    result = [
+        event.payload["result"]
+        for event in stepped.events
+        if event.event_type == EventType.TOOL_RESULT
+    ][-1]
+    assert result["ok"] is False
+    assert result["error"] == "tool execution failed"
+    assert result["safe_error"]["code"] == "tool_execution_failed"
+    assert result["safe_error"]["message"] == "tool execution failed"
+    assert result["safe_error"]["internal_reference"].startswith("err-")
+    assert "sk-liveSecret123" not in repr(result)
+    assert "sk-key" not in repr(result)
+
+
+@pytest.mark.asyncio
+async def test_kernel_redacts_failure_message_before_persisting_error_event(tmp_path):
+    kernel = _kernel(tmp_path)
+    run = await kernel.create_run({"question": "Analyze AAPL"})
+
+    failed = await kernel.record_failure(
+        run.run_id,
+        "worker failed with Authorization: Bearer sk-liveSecret123 and DOGE_API_TOKEN=sk-token",
+    )
+
+    error = [event for event in failed.events if event.event_type == EventType.ERROR][-1]
+    message = error.payload["message"]
+    assert failed.status == RunStatus.FAILED
+    assert message == "runtime failure"
+    assert error.payload["error"]["code"] == "runtime_failure"
+    assert error.payload["error"]["message"] == "runtime failure"
+    assert error.payload["error"]["internal_reference"].startswith("err-")
+    assert "sk-liveSecret123" not in repr(error.payload)
+    assert "sk-token" not in repr(error.payload)
 
 
 @pytest.mark.asyncio

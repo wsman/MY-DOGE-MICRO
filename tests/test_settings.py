@@ -53,11 +53,16 @@ DOGE_FEATURE_VARS = [
     "DOGE_PYTHON_ANALYSIS_EXECUTOR",
 ]
 
+DOGE_DAEMON_VARS = [
+    "DOGE_DAEMON_PORT",
+    "DOGE_PROCESS_ROLE",
+]
+
 
 @pytest.fixture(autouse=True)
 def _clean_env_and_cache(monkeypatch):
     """Strip DOGE_* path vars and reset the singleton before every test."""
-    for var in DOGE_PATH_VARS + DOGE_FEATURE_VARS:
+    for var in DOGE_PATH_VARS + DOGE_FEATURE_VARS + DOGE_DAEMON_VARS:
         monkeypatch.delenv(var, raising=False)
     reset_settings()
     yield
@@ -251,6 +256,28 @@ class TestKnownConstants:
         assert yf.max_retries == 3
         assert yf.retry_delay == 5.0
         assert yf.period_days == 120
+
+    def test_daemon_process_role_defaults_to_all(self):
+        assert get_settings().daemon.process_role == "all"
+
+    def test_daemon_process_role_accepts_explicit_api(self, monkeypatch):
+        monkeypatch.setenv("DOGE_PROCESS_ROLE", "api")
+        reset_settings()
+
+        try:
+            assert get_settings().daemon.process_role == "api"
+        finally:
+            reset_settings()
+
+    def test_daemon_process_role_rejects_unknown_value(self, monkeypatch):
+        monkeypatch.setenv("DOGE_PROCESS_ROLE", "scheduler")
+        reset_settings()
+
+        try:
+            with pytest.raises(ValueError, match="DOGE_PROCESS_ROLE"):
+                get_settings()
+        finally:
+            reset_settings()
 
 
 class TestFeatureLifecycle:

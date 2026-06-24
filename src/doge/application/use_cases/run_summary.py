@@ -9,6 +9,7 @@ from doge.application.services.financial_eval_service import FinancialEvalServic
 from doge.core.domain.agent_models import AgentArtifact, AgentEvent, AgentRun, RunStatus
 from doge.core.ports.agent_runtime import IResearchAgentRuntime
 from doge.core.ports.evidence_repository import IEvidenceRepository
+from doge.shared.scope import TenantScope
 
 _TERMINAL_STATUSES = {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED}
 
@@ -27,8 +28,9 @@ class BuildRunSummary:
         self._eval_service = eval_service or FinancialEvalService()
 
     def build(self, run: AgentRun, *, tenant_id: str | None = None) -> dict[str, Any]:
-        events = self._runtime.list_events(run.run_id)
-        artifacts = self._runtime.list_artifacts(run.run_id)
+        scope = TenantScope.from_tenant_id(tenant_id)
+        events = self._runtime.list_events(scope, run.run_id)
+        artifacts = self._runtime.list_artifacts(scope, run.run_id)
         evidence = self._list_evidence(run.run_id, tenant_id=tenant_id)
         artifact = _latest_artifact(artifacts)
         summary = _summary_for(run, artifact, events)

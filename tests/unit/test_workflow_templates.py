@@ -39,8 +39,11 @@ def test_template_run_request_merges_policy_and_preserves_metadata():
     assert request["model_policy"]["max_tool_rounds"] == 3
     assert request["model_policy"]["max_tokens"] == 4096
     assert request["model_policy"]["web_search_enabled"] is True
-    assert request["model_policy"]["template_id"] == template.template_id
-    assert request["model_policy"]["template_slug"] == "earnings-review"
+    assert "template_id" not in request["model_policy"]
+    assert "template_slug" not in request["model_policy"]
+    assert request["workflow_context"]["template_id"] == template.template_id
+    assert request["workflow_context"]["template_slug"] == "earnings-review"
+    assert request["workflow_context"]["template_metadata"]["inputs"] == {"ticker": "NVDA"}
     assert "tenant_id" not in request["model_policy"]
     assert "user_hash" not in request["model_policy"]
     assert request["identity_snapshot"]["tenant_id"] == "tenant-a"

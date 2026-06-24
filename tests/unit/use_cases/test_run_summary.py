@@ -72,10 +72,14 @@ class _Runtime:
         self._events = events
         self._artifacts = artifacts
 
-    def list_events(self, run_id):
+    def list_events(self, scope, run_id=None, *, tenant_id=None):
+        assert getattr(scope, "tenant_id", "local") == "local"
+        assert run_id == "run-1"
         return self._events
 
-    def list_artifacts(self, run_id):
+    def list_artifacts(self, scope, run_id=None, *, tenant_id=None):
+        assert getattr(scope, "tenant_id", "local") == "local"
+        assert run_id == "run-1"
         return self._artifacts
 
 

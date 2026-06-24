@@ -34,6 +34,7 @@ def test_context_migration_registry_declares_context_ownership():
         "portfolio:local_tenant_backfill",
         "workspace:local_tenant_backfill",
         "runtime:run_identity_snapshot",
+        "runtime:run_workflow_context",
         "runtime:runtime_outbox",
         "runtime:run_queue_leases",
     }.issubset(keys)
@@ -138,10 +139,11 @@ def test_bootstrap_upgrades_legacy_agent_database_with_context_migrations(tmp_pa
             "portfolio:local_tenant_backfill",
             "workspace:local_tenant_backfill",
             "runtime:run_identity_snapshot",
+            "runtime:run_workflow_context",
             "runtime:runtime_outbox",
             "runtime:run_queue_leases",
         }.issubset(applied)
-        assert len(applied) == 11
+        assert len(applied) == 12
 
 
 def test_bootstrap_backfills_legacy_null_tenants_to_local(tmp_path):

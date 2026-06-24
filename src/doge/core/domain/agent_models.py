@@ -140,6 +140,7 @@ class AgentRun:
     document_ids: list[str] = field(default_factory=list)
     portfolio_id: Optional[str] = None
     model_policy: ModelPolicy = field(default_factory=ModelPolicy)
+    workflow_context: Any | None = None
     identity_snapshot: IdentitySnapshot | None = None
     status: RunStatus = RunStatus.CREATED
     events: list[AgentEvent] = field(default_factory=list)
@@ -163,6 +164,7 @@ class AgentRun:
         document_ids: Optional[list[str]] = None,
         portfolio_id: Optional[str] = None,
         model_policy: Optional[dict[str, Any] | ModelPolicy] = None,
+        workflow_context: Any | None = None,
         identity_snapshot: Optional[dict[str, Any] | IdentitySnapshot] = None,
     ) -> "AgentRun":
         return cls(
@@ -175,6 +177,7 @@ class AgentRun:
             document_ids=document_ids or [],
             portfolio_id=portfolio_id,
             model_policy=ModelPolicy.from_dict(model_policy),
+            workflow_context=workflow_context,
             identity_snapshot=(
                 IdentitySnapshot.from_mapping(identity_snapshot)
                 or IdentitySnapshot.from_mapping(model_policy if isinstance(model_policy, dict) else None)

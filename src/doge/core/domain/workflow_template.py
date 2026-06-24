@@ -8,6 +8,7 @@ from typing import Any
 from doge.core.domain.enterprise_context import IdentitySnapshot
 from doge.core.domain.model_policy import ModelPolicy
 from doge.core.domain.platform_models import WorkflowTemplate
+from doge.core.domain.run_execution_context import WorkflowRunContext
 
 
 @dataclass(frozen=True)
@@ -39,12 +40,26 @@ def build_template_run_request(
     merged_policy = {
         **template_policy,
         **(run_input.model_policy or {}),
-        "template_id": template.template_id,
-        "template_slug": template.slug,
-        "template_version": template.current_version,
-        "template_name": template.name,
     }
     policy = ModelPolicy.from_dict(merged_policy)
+    workflow_context = WorkflowRunContext(
+        workflow=run_input.workflow or template.slug or "investment_research",
+        template_id=template.template_id,
+        template_slug=template.slug,
+        template_version=template.current_version,
+        template_name=template.name,
+        template_metadata={
+            "template_id": template.template_id,
+            "slug": template.slug,
+            "name": template.name,
+            "version": template.current_version,
+            "inputs": dict(run_input.inputs or {}),
+            "input_keys": sorted(str(key) for key in (run_input.inputs or {}).keys()),
+            "tool_policy": dict(template.tool_policy or {}),
+            "evidence_policy": dict(template.evidence_policy or {}),
+            "output_contract": dict(template.output_contract or {}),
+        },
+    )
     metadata = {
         "template_id": template.template_id,
         "slug": template.slug,
@@ -57,7 +72,7 @@ def build_template_run_request(
         "output_contract": dict(template.output_contract or {}),
     }
     request = {
-        "workflow": run_input.workflow or template.slug or "investment_research",
+        "workflow": workflow_context.workflow,
         "question": run_input.question or template.run_instructions or template.name,
         "session_id": run_input.session_id,
         "market": run_input.market or "us",
@@ -65,6 +80,7 @@ def build_template_run_request(
         "document_ids": list(run_input.document_ids or []),
         "portfolio_id": run_input.portfolio_id,
         "model_policy": policy.to_dict(),
+        "workflow_context": workflow_context.to_dict(),
         "template": metadata,
     }
     if tenant_id is not None or user_hash is not None:

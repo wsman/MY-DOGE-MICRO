@@ -36,6 +36,8 @@ from doge.platform.runtime.services import (
     ModelExecutionService,
     ToolExecutionService,
 )
+from doge.shared.errors import SafeError
+from doge.shared.scope import TenantScope
 
 
 class _NoopEventPublisher:
@@ -99,7 +101,7 @@ class RuntimeKernel:
         )
         self._artifact_evaluation = artifact_evaluation_service or ArtifactEvaluationService()
 
-    async def create_run(self, request: dict[str, Any]) -> AgentRun:
+    async def create_run(self, request: dict[str, Any], *, tenant_id: str | None = None) -> AgentRun:
         model_policy_payload = request.get("model_policy")
         run = AgentRun.create(
             workflow=request.get("workflow", "investment_research"),
@@ -110,6 +112,7 @@ class RuntimeKernel:
             document_ids=list(request.get("document_ids", [])),
             portfolio_id=request.get("portfolio_id"),
             model_policy=ModelPolicy.from_dict(model_policy_payload),
+            workflow_context=request.get("workflow_context"),
             identity_snapshot=_identity_snapshot_from_request(request, model_policy_payload),
         )
         payload = {"question": run.question, "workflow": run.workflow}
@@ -117,14 +120,14 @@ class RuntimeKernel:
         if isinstance(template, dict):
             payload["template"] = template
         await self._record_transition(run, events=[(EventType.RUN_CREATED, payload)], save_run=True)
-        return self._hydrate(run.run_id)
+        return self._hydrate(run.run_id, tenant_id=tenant_id)
 
-    async def run_to_pause_or_completion(self, run_id: str) -> AgentRun:
-        run = self._require_run(run_id)
+    async def run_to_pause_or_completion(self, run_id: str, *, tenant_id: str | None = None) -> AgentRun:
+        run = self._require_run(run_id, tenant_id=tenant_id)
         policy = ModelPolicy.from_dict(run.model_policy)
         max_rounds = policy.max_tool_rounds
         for _ in range(max_rounds):
-            run = await self.step(run_id)
+            run = await self.step(run_id, tenant_id=tenant_id)
             if run.status in {
                 RunStatus.AWAITING_APPROVAL,
                 RunStatus.CANCELLED,
@@ -132,11 +135,19 @@ class RuntimeKernel:
                 RunStatus.FAILED,
             }:
                 return run
-        await self._fail(run, "max tool rounds exceeded")
-        return self._hydrate(run_id)
+        await self._fail(run, "max tool rounds exceeded", code="max_tool_rounds_exceeded")
+        return self._hydrate(run_id, tenant_id=tenant_id)
 
-    async def queue_run(self, run_id: str, reason: str = "queued") -> AgentRun:
-        run = self._require_run(run_id)
+    async def queue_run(
+        self,
+        scope: TenantScope | str | None,
+        run_id: str | None = None,
+        reason: str = "queued",
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun:
+        resolved_scope, resolved_run_id, resolved_reason = _queue_args(scope, run_id, reason, tenant_id=tenant_id)
+        run = self._require_run(resolved_run_id, tenant_id=resolved_scope.tenant_id)
         if run.status == RunStatus.QUEUED:
             return run
         if run.status in {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED}:
@@ -144,24 +155,24 @@ class RuntimeKernel:
         await self._record_transition(
             run,
             status=RunStatus.QUEUED,
-            events=[(EventType.RUN_QUEUED, {"reason": reason})],
+            events=[(EventType.RUN_QUEUED, {"reason": resolved_reason})],
         )
-        return self._hydrate(run_id)
+        return self._hydrate(resolved_run_id, tenant_id=resolved_scope.tenant_id)
 
-    async def step(self, run_id: str) -> AgentRun:
-        run = self._require_run(run_id)
+    async def step(self, run_id: str, *, tenant_id: str | None = None) -> AgentRun:
+        run = self._require_run(run_id, tenant_id=tenant_id)
         if run.status in {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED}:
             return run
         if run.status == RunStatus.CANCELLING:
-            return await self._mark_cancelled(run)
+            return await self._mark_cancelled(run, tenant_id=tenant_id)
 
         await self._record_transition(run, status=RunStatus.RUNNING)
-        run = self._require_run(run_id)
+        run = self._require_run(run_id, tenant_id=tenant_id)
         execution_context = RunExecutionContext.from_run(run)
         policy = execution_context.model_policy
-        tenant_id = _tenant_id_for_run(run)
+        effective_tenant_id = tenant_id or _tenant_id_for_run(run)
         enterprise_context = execution_context.enterprise_context
-        events = self._events.list_for_run(run.run_id, tenant_id=tenant_id)
+        events = self._events.list_for_run(run.run_id, tenant_id=effective_tenant_id)
         messages = self._context_builder.build(
             run,
             events,
@@ -189,12 +200,12 @@ class RuntimeKernel:
             request_id=execution_context.request_id,
         )
         response = model_result.response
-        run = self._require_run(run_id)
+        run = self._require_run(run_id, tenant_id=tenant_id)
         if run.status == RunStatus.CANCELLING:
-            return await self._mark_cancelled(run)
+            return await self._mark_cancelled(run, tenant_id=tenant_id)
         if response is None:
-            await self._fail(run, "model unavailable")
-            return self._hydrate(run.run_id)
+            await self._fail(run, "model unavailable", code="model_unavailable")
+            return self._hydrate(run.run_id, tenant_id=tenant_id)
 
         await self._record_transition(
             run,
@@ -206,14 +217,14 @@ class RuntimeKernel:
             })],
         )
         if model_result.budget_exceeded:
-            await self._fail(run, "run budget exceeded")
-            return self._hydrate(run.run_id)
+            await self._fail(run, "run budget exceeded", code="run_budget_exceeded")
+            return self._hydrate(run.run_id, tenant_id=tenant_id)
 
         if response.message.tool_calls:
             for call in response.message.tool_calls:
-                run = self._require_run(run_id)
+                run = self._require_run(run_id, tenant_id=tenant_id)
                 if run.status == RunStatus.CANCELLING:
-                    return await self._mark_cancelled(run)
+                    return await self._mark_cancelled(run, tenant_id=tenant_id)
                 function = call.get("function", {})
                 name = function.get("name", "")
                 arguments = function.get("arguments", "{}")
@@ -227,15 +238,18 @@ class RuntimeKernel:
                     timeout_seconds=float(timeout) if timeout else None,
                     request_id=execution_context.request_id,
                 )
-                run = self._require_run(run_id)
+                run = self._require_run(run_id, tenant_id=tenant_id)
                 if run.status == RunStatus.CANCELLING:
-                    return await self._mark_cancelled(run)
-                result_payload = {
+                    return await self._mark_cancelled(run, tenant_id=tenant_id)
+                result_payload: dict[str, Any] = {
                     "ok": result.ok,
                     "name": result.name,
                     "data": result.data,
                     "error": result.error,
                 }
+                safe_error = _tool_safe_error_payload(result)
+                if safe_error is not None:
+                    result_payload["safe_error"] = safe_error
                 await self._record_transition(
                     run,
                     events=[(EventType.TOOL_RESULT, {
@@ -259,12 +273,12 @@ class RuntimeKernel:
                             "risk_level": approval.risk_level,
                         })],
                     )
-                    return self._hydrate(run.run_id)
+                    return self._hydrate(run.run_id, tenant_id=tenant_id)
             await self._record_transition(run, status=RunStatus.RUNNING)
-            return self._hydrate(run.run_id)
+            return self._hydrate(run.run_id, tenant_id=tenant_id)
 
         content = self._artifact_evaluation.artifact_content(response.message.content)
-        events = self._events.list_for_run(run.run_id, tenant_id=tenant_id)
+        events = self._events.list_for_run(run.run_id, tenant_id=effective_tenant_id)
         artifact = run.add_artifact(
             kind="investment_memo",
             title="Investment Committee Memo",
@@ -281,93 +295,162 @@ class RuntimeKernel:
                 "title": artifact.title,
             })],
         )
-        return self._hydrate(run.run_id)
+        return self._hydrate(run.run_id, tenant_id=tenant_id)
 
-    async def resolve_approval(self, run_id: str, approval_id: str, approved: bool) -> AgentRun:
-        run = self._require_run(run_id)
-        tenant_id = _tenant_id_for_run(run)
-        approval = self._approvals.get(approval_id, tenant_id=tenant_id)
-        if approval is None or approval.run_id != run_id:
-            raise KeyError(f"approval not found: {approval_id}")
-        approval.status = "approved" if approved else "denied"
+    async def resolve_approval(
+        self,
+        scope: TenantScope | str | None,
+        run_id: str | None = None,
+        approval_id: str | bool | None = None,
+        approved: bool = True,
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun:
+        resolved_scope, resolved_run_id, resolved_approval_id, resolved_approved = _approval_args(
+            scope,
+            run_id,
+            approval_id,
+            approved,
+            tenant_id=tenant_id,
+        )
+        run = self._require_run(resolved_run_id, tenant_id=resolved_scope.tenant_id)
+        approval = self._approvals.get(resolved_approval_id, tenant_id=resolved_scope.tenant_id)
+        if approval is None or approval.run_id != resolved_run_id:
+            raise KeyError(f"approval not found: {resolved_approval_id}")
+        approval.status = "approved" if resolved_approved else "denied"
         approval.resolved_at = utc_now()
-        if not approved:
+        if not resolved_approved:
             await self._record_transition(
                 run,
                 status=RunStatus.FAILED,
                 approvals=[approval],
                 events=[(EventType.APPROVAL_RESOLVED, {
-                    "approval_id": approval_id,
-                    "approved": approved,
+                    "approval_id": resolved_approval_id,
+                    "approved": resolved_approved,
                 })],
             )
-            return self._hydrate(run_id)
+            return self._hydrate(resolved_run_id, tenant_id=resolved_scope.tenant_id)
         await self._record_transition(
             run,
             status=RunStatus.QUEUED,
             approvals=[approval],
             events=[
                 (EventType.APPROVAL_RESOLVED, {
-                    "approval_id": approval_id,
-                    "approved": approved,
+                    "approval_id": resolved_approval_id,
+                    "approved": resolved_approved,
                 }),
                 (EventType.RUN_QUEUED, {"reason": "approval_resolved"}),
             ],
         )
-        return self._hydrate(run_id)
+        return self._hydrate(resolved_run_id, tenant_id=resolved_scope.tenant_id)
 
-    async def cancel_run(self, run_id: str) -> AgentRun:
-        run = self._require_run(run_id)
+    async def cancel_run(
+        self,
+        scope: TenantScope | str | None,
+        run_id: str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun:
+        resolved_scope, resolved_run_id = _run_args(scope, run_id, tenant_id=tenant_id)
+        run = self._require_run(resolved_run_id, tenant_id=resolved_scope.tenant_id)
         if run.status in {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED}:
             return run
         run.cancel_requested_at = utc_now()
         if run.status != RunStatus.CANCELLING:
             await self._record_transition(run, status=RunStatus.CANCELLING)
-            run = self._require_run(run_id)
+            run = self._require_run(resolved_run_id, tenant_id=resolved_scope.tenant_id)
         else:
             await self._record_transition(run, save_run=True)
-        return self._hydrate(run_id)
+        return self._hydrate(resolved_run_id, tenant_id=resolved_scope.tenant_id)
 
-    async def finalize_cancelled(self, run_id: str) -> AgentRun:
-        run = self._require_run(run_id)
+    async def finalize_cancelled(
+        self,
+        scope: TenantScope | str | None,
+        run_id: str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun:
+        resolved_scope, resolved_run_id = _run_args(scope, run_id, tenant_id=tenant_id)
+        run = self._require_run(resolved_run_id, tenant_id=resolved_scope.tenant_id)
         if run.status in {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED}:
             return run
-        return await self._mark_cancelled(run)
+        return await self._mark_cancelled(run, tenant_id=resolved_scope.tenant_id)
 
-    async def record_failure(self, run_id: str, message: str) -> AgentRun:
-        run = self._require_run(run_id)
+    async def record_failure(
+        self,
+        scope: TenantScope | str | None,
+        run_id: str | None = None,
+        message: str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun:
+        resolved_scope, resolved_run_id, _raw_message = _failure_args(scope, run_id, message, tenant_id=tenant_id)
+        run = self._require_run(resolved_run_id, tenant_id=resolved_scope.tenant_id)
         if run.status in {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED}:
             return run
-        await self._fail(run, message)
-        return self._hydrate(run_id)
+        await self._fail(run, "runtime failure", code="runtime_failure")
+        return self._hydrate(resolved_run_id, tenant_id=resolved_scope.tenant_id)
 
-    def get_run(self, run_id: str) -> AgentRun | None:
-        return self._runs.get(run_id)
+    def get_run(
+        self,
+        scope: TenantScope | str | None,
+        run_id: str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun | None:
+        resolved_scope, resolved_run_id = _run_args(scope, run_id, tenant_id=tenant_id)
+        return self._runs.get(resolved_run_id, tenant_id=resolved_scope.tenant_id)
 
-    def list_events(self, run_id: str) -> list[AgentEvent]:
-        return self._events.list_for_run(run_id)
+    def list_events(
+        self,
+        scope: TenantScope | str | None,
+        run_id: str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> list[AgentEvent]:
+        resolved_scope, resolved_run_id = _run_args(scope, run_id, tenant_id=tenant_id)
+        return self._events.list_for_run(resolved_run_id, tenant_id=resolved_scope.tenant_id)
 
-    def list_runs(self, session_id: str | None = None, limit: int = 20) -> list[AgentRun]:
-        if session_id:
-            return self._runs.list_by_session(session_id)
-        return self._runs.list_recent(limit)
+    def list_runs(
+        self,
+        scope: TenantScope | str | None = None,
+        session_id: str | None = None,
+        limit: int = 20,
+        *,
+        tenant_id: str | None = None,
+    ) -> list[AgentRun]:
+        resolved_scope, resolved_session_id = _list_runs_args(scope, session_id, tenant_id=tenant_id)
+        if resolved_session_id:
+            return self._runs.list_by_session(resolved_session_id, tenant_id=resolved_scope.tenant_id)
+        return self._runs.list_recent(limit, tenant_id=resolved_scope.tenant_id)
 
-    def list_artifacts(self, run_id: str):
-        return self._artifacts.list_for_run(run_id)
+    def list_artifacts(
+        self,
+        scope: TenantScope | str | None,
+        run_id: str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ):
+        resolved_scope, resolved_run_id = _run_args(scope, run_id, tenant_id=tenant_id)
+        return self._artifacts.list_for_run(resolved_run_id, tenant_id=resolved_scope.tenant_id)
 
-    async def _mark_cancelled(self, run: AgentRun) -> AgentRun:
+    async def _mark_cancelled(self, run: AgentRun, *, tenant_id: str | None = None) -> AgentRun:
         await self._record_transition(
             run,
             status=RunStatus.CANCELLED,
             events=[(EventType.RUN_CANCELLED, {"cancelled": True})],
         )
-        return self._hydrate(run.run_id)
+        return self._hydrate(run.run_id, tenant_id=tenant_id)
 
-    async def _fail(self, run: AgentRun, message: str) -> None:
+    async def _fail(self, run: AgentRun, message: str, *, code: str = "runtime_failure") -> None:
+        safe_error = SafeError.create(code, message)
         await self._record_transition(
             run,
             status=RunStatus.FAILED,
-            events=[(EventType.ERROR, {"message": message})],
+            events=[(EventType.ERROR, {
+                "message": safe_error.public_message,
+                "error": safe_error.to_event_payload(),
+            })],
         )
 
     async def _record_transition(
@@ -407,14 +490,14 @@ class RuntimeKernel:
             await self._publisher.publish(event)
         return persisted_events
 
-    def _require_run(self, run_id: str) -> AgentRun:
-        run = self._runs.get(run_id)
+    def _require_run(self, run_id: str, *, tenant_id: str | None = None) -> AgentRun:
+        run = self._runs.get(run_id, tenant_id=tenant_id)
         if run is None:
             raise KeyError(f"run not found: {run_id}")
         return run
 
-    def _hydrate(self, run_id: str) -> AgentRun:
-        return self._require_run(run_id)
+    def _hydrate(self, run_id: str, *, tenant_id: str | None = None) -> AgentRun:
+        return self._require_run(run_id, tenant_id=tenant_id)
 
 
 def _identity_snapshot_from_request(request: dict[str, Any], model_policy_payload: Any) -> IdentitySnapshot | None:
@@ -428,6 +511,96 @@ def _tenant_id_for_run(run: AgentRun) -> str | None:
     if run.identity_snapshot is None:
         return None
     return run.identity_snapshot.tenant_id
+
+
+def _run_args(
+    scope: TenantScope | str | None,
+    run_id: str | None,
+    *,
+    tenant_id: str | None = None,
+) -> tuple[TenantScope, str]:
+    if isinstance(scope, TenantScope):
+        if run_id is None:
+            raise TypeError("run_id is required")
+        return scope, run_id
+    if isinstance(scope, str) and run_id is None:
+        return TenantScope.from_tenant_id(tenant_id), scope
+    if scope is None and run_id is not None:
+        return TenantScope.from_tenant_id(tenant_id), run_id
+    raise TypeError("expected (scope, run_id) or legacy (run_id)")
+
+
+def _list_runs_args(
+    scope: TenantScope | str | None,
+    session_id: str | None,
+    *,
+    tenant_id: str | None = None,
+) -> tuple[TenantScope, str | None]:
+    if isinstance(scope, TenantScope):
+        return scope, session_id
+    if isinstance(scope, str):
+        return TenantScope.from_tenant_id(tenant_id), scope
+    return TenantScope.from_tenant_id(tenant_id), session_id
+
+
+def _queue_args(
+    scope: TenantScope | str | None,
+    run_id: str | None,
+    reason: str,
+    *,
+    tenant_id: str | None = None,
+) -> tuple[TenantScope, str, str]:
+    if isinstance(scope, TenantScope):
+        if run_id is None:
+            raise TypeError("run_id is required")
+        return scope, run_id, reason
+    if isinstance(scope, str):
+        if run_id is not None and reason == "queued":
+            return TenantScope.from_tenant_id(tenant_id), scope, run_id
+        return TenantScope.from_tenant_id(tenant_id), scope, reason
+    raise TypeError("expected (scope, run_id) or legacy (run_id)")
+
+
+def _approval_args(
+    scope: TenantScope | str | None,
+    run_id: str | None,
+    approval_id: str | bool | None,
+    approved: bool,
+    *,
+    tenant_id: str | None = None,
+) -> tuple[TenantScope, str, str, bool]:
+    if isinstance(scope, TenantScope):
+        if run_id is None or not isinstance(approval_id, str):
+            raise TypeError("run_id and approval_id are required")
+        return scope, run_id, approval_id, approved
+    if isinstance(scope, str) and isinstance(run_id, str) and isinstance(approval_id, bool):
+        return TenantScope.from_tenant_id(tenant_id), scope, run_id, approval_id
+    raise TypeError("expected (scope, run_id, approval_id, approved) or legacy (run_id, approval_id, approved)")
+
+
+def _failure_args(
+    scope: TenantScope | str | None,
+    run_id: str | None,
+    message: str | None,
+    *,
+    tenant_id: str | None = None,
+) -> tuple[TenantScope, str, str]:
+    if isinstance(scope, TenantScope):
+        if run_id is None or message is None:
+            raise TypeError("run_id and message are required")
+        return scope, run_id, message
+    if isinstance(scope, str) and run_id is not None and message is None:
+        return TenantScope.from_tenant_id(tenant_id), scope, run_id
+    raise TypeError("expected (scope, run_id, message) or legacy (run_id, message)")
+
+
+def _tool_safe_error_payload(result: Any) -> dict[str, str] | None:
+    safe_error = getattr(result, "safe_error", None)
+    if safe_error is not None:
+        return dict(safe_error)
+    if not getattr(result, "error", None):
+        return None
+    return SafeError.create("tool_execution_failed", str(result.error)).to_event_payload()
 
 
 class _RepositoryRuntimeTransactionFactory(IRuntimeTransactionFactory):
