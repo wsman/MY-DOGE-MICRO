@@ -1,6 +1,13 @@
 from doge.application.agent.tool_service import ToolApplicationService
-from doge.application.agent.tools import ToolRegistry, build_default_tool_registry
+from doge.application.agent.tools import ToolRegistry, ToolResult, build_default_tool_registry
+from doge.application.capabilities.compliance_provider import ComplianceToolProvider
 from doge.application.capabilities.executors import SubprocessCodeExecutor
+from doge.application.capabilities.fundamental_provider import FundamentalToolProvider
+from doge.application.capabilities.market_provider import MarketToolProvider
+from doge.application.capabilities.portfolio_provider import PortfolioToolProvider
+from doge.application.capabilities.publishing_provider import PublishingToolProvider
+from doge.application.capabilities.quant_provider import QuantToolProvider
+from doge.application.capabilities.research_provider import ResearchToolProvider
 from doge.core.domain.enterprise_context import EnterpriseContext
 from doge.core.domain.tool_descriptor import ToolDescriptor
 from doge.core.domain.tool_policy import ToolCategory
@@ -11,6 +18,33 @@ def test_unknown_tool_returns_structured_error():
 
     assert result.ok is False
     assert result.error == "unknown tool"
+
+
+def test_tool_exception_error_is_redacted_before_returning_trace_data():
+    registry = ToolRegistry()
+
+    def failing_tool() -> ToolResult:
+        raise RuntimeError("upstream failed with Authorization: Bearer sk-liveSecret123 and MOONSHOT_API_KEY=sk-key")
+
+    registry.register({
+        "type": "function",
+        "function": {
+            "name": "failing_tool",
+            "description": "Fails with a secret-shaped message.",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    }, failing_tool)
+
+    result = registry.execute("failing_tool", {})
+
+    assert result.ok is False
+    assert result.error == "tool execution failed"
+    assert result.safe_error is not None
+    assert result.safe_error["code"] == "tool_execution_failed"
+    assert result.safe_error["message"] == "tool execution failed"
+    assert result.safe_error["internal_reference"].startswith("err-")
+    assert "sk-liveSecret123" not in repr(result)
+    assert "sk-key" not in repr(result)
 
 
 def test_default_registry_contains_core_demo_tools():
@@ -66,6 +100,30 @@ def test_default_registry_schemas_are_generated_from_tool_descriptors():
     assert descriptor.method_name == "run_python_analysis"
     assert descriptor.to_schema() == schemas["run_python_analysis"]
     assert {item.name for item in registry.descriptors()} == set(schemas)
+
+
+def test_default_registry_uses_provider_owned_descriptors():
+    service = ToolApplicationService()
+    registry = build_default_tool_registry(service=service)
+
+    assert {item.name for item in service.tool_descriptors()} == {
+        schema["function"]["name"] for schema in registry.schemas
+    }
+
+
+def test_tool_provider_descriptors_match_execution_methods():
+    providers = [
+        MarketToolProvider(),
+        PortfolioToolProvider(),
+        ResearchToolProvider(),
+        FundamentalToolProvider(),
+        QuantToolProvider(),
+        ComplianceToolProvider(),
+        PublishingToolProvider(),
+    ]
+
+    for provider in providers:
+        assert {item.name for item in provider.tool_descriptors()} == set(provider.tool_methods())
 
 
 def test_registry_keeps_legacy_schema_registration_descriptor_compatible():

@@ -9,7 +9,7 @@ from dataclasses import asdict, is_dataclass
 from enum import Enum
 from typing import Any
 
-from doge.application import composition
+from doge.bootstrap import build_workspace_container
 from doge.platform.workspace import (
     CaseDecisionCreate,
     CaseExecutionCreate,
@@ -20,7 +20,7 @@ from doge.platform.workspace import (
 
 def cmd_case(args) -> None:
     """List, show, preflight, execute, review, or decide a research case."""
-    service = composition.build_research_case_service()
+    service = _workspace_container().build_research_case_service()
     context = PlatformRequestContext()
     try:
         if args.case_cmd == "list":
@@ -158,3 +158,7 @@ def _serialize(obj: Any) -> Any:
     if isinstance(obj, dict):
         return {key: _serialize(value) for key, value in obj.items()}
     return obj
+
+
+def _workspace_container():
+    return build_workspace_container()

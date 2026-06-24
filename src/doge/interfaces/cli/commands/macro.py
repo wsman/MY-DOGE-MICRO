@@ -2,8 +2,8 @@
 
 import sys
 
-from doge.application.composition import build_generate_macro_report_use_case
 from doge.application.contracts.request import GenerateMacroReportRequest
+from doge.bootstrap import build_gateway_container
 from doge.interfaces.cli.constants import EXIT_NO_DATA, MACRO_API_KEY_HINT_EN, MACRO_FAIL_PREFIX
 
 
@@ -27,3 +27,11 @@ def cmd_macro(args) -> None:
 
     print(response.content)
     sys.exit(0)
+
+
+def _gateway_container():
+    return build_gateway_container()
+
+
+def build_generate_macro_report_use_case():
+    return _gateway_container().build_generate_macro_report_use_case()

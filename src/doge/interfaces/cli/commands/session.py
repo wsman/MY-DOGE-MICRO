@@ -8,9 +8,10 @@ import sys
 from dataclasses import asdict, is_dataclass
 from typing import Any
 
-from doge.application import composition
 from doge.application.services.file_upload_service import FileUploadError
+from doge.bootstrap import build_gateway_container, build_runtime_container
 from doge.core.security import redact_secrets
+from doge.shared.scope import TenantScope
 
 
 def cmd_session(args) -> None:
@@ -20,14 +21,14 @@ def cmd_session(args) -> None:
         return
 
     if getattr(args, "list", False):
-        sessions = composition.build_list_sessions_use_case().execute(limit=args.limit)
+        sessions = _runtime_container().build_list_sessions_use_case().execute(limit=args.limit)
         for session in sessions:
             print(f"{session.session_id}\t{session.title}\tturns={len(session.turns)}\tupdated={session.updated_at}")
         return
 
     resume_id = getattr(args, "resume", None)
     if resume_id:
-        session = composition.build_resume_session_use_case().execute(resume_id)
+        session = _runtime_container().build_resume_session_use_case().execute(resume_id)
         if session is None:
             print(f"session not found: {resume_id}", file=sys.stderr)
             sys.exit(1)
@@ -48,7 +49,7 @@ def cmd_session(args) -> None:
             return
         message = getattr(args, "message", None)
         if message:
-            run = asyncio.run(composition.build_execute_run_use_case().execute(
+            run = asyncio.run(_runtime_container().build_execute_run_use_case().execute(
                 message,
                 session_id=session.session_id,
                 market=args.market,
@@ -71,7 +72,7 @@ def cmd_session(args) -> None:
             )
         return
 
-    session = composition.build_create_session_use_case().execute(title=args.title)
+    session = _runtime_container().build_create_session_use_case().execute(title=args.title)
     print(f"session_id={session.session_id}")
     print(f"title={session.title}")
 
@@ -159,7 +160,7 @@ def _interactive_loop(
                 )
                 session_id = session["session_id"]
             else:
-                session = composition.build_create_session_use_case().execute()
+                session = _runtime_container().build_create_session_use_case().execute()
                 session_id = session.session_id
             last_run_id = None
             print(f"session_id={session_id}")
@@ -178,7 +179,7 @@ def _interactive_loop(
                         path,
                     )
                 else:
-                    document = composition.build_file_upload_service().register_path(path)
+                    document = _gateway_container().build_file_upload_service().register_path(path)
             except FileUploadError as exc:
                 print(f"attach_error={exc}")
                 continue
@@ -198,7 +199,7 @@ def _interactive_loop(
             print(f"portfolio={portfolio_id}")
             continue
         if line == "/tools":
-            registry = composition.build_default_tool_registry()
+            registry = _runtime_container().build_default_tool_registry()
             print("\n".join(schema["function"]["name"] for schema in registry.schemas))
             continue
         if line == "/trace":
@@ -245,7 +246,7 @@ def _interactive_loop(
             print(f"run_id={run_id} status=accepted")
             print(f"stream_via=GET /v1/runs/{run_id}/stream")
             continue
-        run = asyncio.run(composition.build_execute_run_use_case().execute(
+        run = asyncio.run(_runtime_container().build_execute_run_use_case().execute(
             line,
             session_id=session_id,
             market=market,
@@ -261,7 +262,7 @@ def _print_last_run(run_id: str | None, *, field: str) -> None:
     if run_id is None:
         print("no active run")
         return
-    run = composition.build_resume_run_use_case().execute(run_id)
+    run = _runtime_container().build_resume_run_use_case().execute(run_id)
     if run is None:
         print("run not found")
         return
@@ -282,8 +283,8 @@ def _to_cli_payload(item: Any) -> Any:
 
 
 def _resolve_embedded_approval(run_id: str, approval_id: str, approved: bool):
-    runtime = composition.build_persisted_research_agent_runtime()
-    run = asyncio.run(runtime.resolve_approval(run_id, approval_id, approved))
+    runtime = _runtime_container().build_persisted_research_agent_runtime()
+    run = asyncio.run(runtime.resolve_approval(TenantScope.local(), run_id, approval_id, approved))
     if approved:
         run = asyncio.run(runtime.run_to_pause_or_completion(run_id))
     return run
@@ -395,7 +396,7 @@ def _parse_approval_ref(value: str) -> tuple[str | None, str]:
 
 
 def _find_run_for_approval(session, approval_id: str) -> str | None:
-    resume_run = composition.build_resume_run_use_case()
+    resume_run = _runtime_container().build_resume_run_use_case()
     for turn in session.turns:
         if not turn.run_id:
             continue
@@ -411,3 +412,11 @@ class _GatewayArgs:
     def __init__(self, *, daemon_url: str, api_token: str | None) -> None:
         self.daemon_url = daemon_url
         self.api_token = api_token
+
+
+def _runtime_container():
+    return build_runtime_container()
+
+
+def _gateway_container():
+    return build_gateway_container()

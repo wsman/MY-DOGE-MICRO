@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 from doge.config import Settings
 from doge.config.settings import FEATURE_LIFECYCLES
+from doge.core.domain.tool_descriptor import ToolDescriptor
 
 if TYPE_CHECKING:
     from doge.application.agent.tools import ToolRegistry
@@ -18,8 +19,9 @@ class ToolExecutionProviderRegistry:
     """Dispatch table for provider-backed deterministic tool execution."""
 
     def __init__(self, providers: list[Any]) -> None:
+        self._providers = tuple(providers)
         self._methods: dict[str, Any] = {}
-        for provider in providers:
+        for provider in self._providers:
             for method_name, method in provider.tool_methods().items():
                 if method_name in self._methods:
                     raise ValueError(f"Duplicate tool execution provider method: {method_name}")
@@ -32,6 +34,19 @@ class ToolExecutionProviderRegistry:
 
     def method_names(self) -> tuple[str, ...]:
         return tuple(sorted(self._methods))
+
+    def tool_descriptors(self) -> tuple[ToolDescriptor, ...]:
+        descriptors: list[ToolDescriptor] = []
+        names: set[str] = set()
+        for provider in self._providers:
+            for descriptor in getattr(provider, "tool_descriptors", lambda: ())():
+                if descriptor.name in names:
+                    raise ValueError(f"Duplicate tool descriptor: {descriptor.name}")
+                if descriptor.name not in self._methods:
+                    raise ValueError(f"Tool descriptor has no execution method: {descriptor.name}")
+                names.add(descriptor.name)
+                descriptors.append(descriptor)
+        return tuple(descriptors)
 
 
 class FeatureCapabilityProvider:

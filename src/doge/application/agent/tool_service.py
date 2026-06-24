@@ -14,6 +14,7 @@ from doge.application.capabilities.quant_provider import QuantToolProvider
 from doge.application.capabilities.registry import ToolExecutionProviderRegistry
 from doge.application.capabilities.research_provider import ResearchToolProvider
 from doge.application.capabilities.tool_utils import ServiceFactory
+from doge.core.domain.tool_descriptor import ToolDescriptor
 from doge.core.ports.code_executor import ICodeExecutor
 
 
@@ -69,6 +70,10 @@ class ToolApplicationService:
     def execution_provider_method_names(self) -> tuple[str, ...]:
         """Return provider-backed method names for parity tests and diagnostics."""
         return self._execution_provider_registry.method_names()
+
+    def tool_descriptors(self) -> tuple[ToolDescriptor, ...]:
+        """Return provider-owned descriptors for default registry assembly."""
+        return self._execution_provider_registry.tool_descriptors()
 
     def python_analysis_capability_status(self) -> dict[str, Any]:
         """Return capability metadata for the Python analysis executor."""

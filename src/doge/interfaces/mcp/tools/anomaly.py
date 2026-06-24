@@ -1,6 +1,6 @@
 """MCP tool: volume_anomalies."""
 
-from doge.application import composition
+from doge.bootstrap import build_gateway_container
 
 
 def _fmt(columns, rows):
@@ -23,9 +23,13 @@ def _fmt(columns, rows):
 
 async def volume_anomalies(min_ratio: float = 3.0, top: int = 20) -> str:
     try:
-        data = composition.build_tool_application_service().volume_anomalies(min_ratio, top)["rows"]
+        data = build_anomaly_service().anomalies(min_ratio, top)
     except Exception:
         data = []
     if not data:
         return "No anomalies"
     return _fmt(list(data[0].keys()), [list(r.values()) for r in data])
+
+
+def build_anomaly_service():
+    return build_gateway_container().build_anomaly_service()

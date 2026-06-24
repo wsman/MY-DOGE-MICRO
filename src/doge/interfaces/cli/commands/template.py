@@ -8,20 +8,21 @@ from dataclasses import asdict, is_dataclass
 from enum import Enum
 from typing import Any
 
-from doge.application import composition
+from doge.bootstrap import build_workspace_container
 from doge.platform.workspace import PlatformRequestContext, seed_workflow_templates
 
 
 def cmd_template(args) -> None:
     """Seed, list, or show workflow templates."""
-    repo = composition.build_platform_repository()
+    workspace = _workspace_container()
+    repo = workspace.build_platform_repository()
     context = PlatformRequestContext()
     if args.template_cmd == "seed":
         result = seed_workflow_templates(repo, dry_run=args.dry_run)
         _emit(result.to_dict(), json_only=args.json)
         return
 
-    service = composition.build_workflow_service(repo=repo)
+    service = workspace.build_workflow_service(repo=repo)
     if args.template_cmd == "list":
         templates = service.list(context, limit=args.limit)
         _emit({"workflow_templates": [_serialize(template) for template in templates]}, json_only=args.json)
@@ -73,3 +74,7 @@ def _serialize(obj: Any) -> Any:
     if isinstance(obj, dict):
         return {key: _serialize(value) for key, value in obj.items()}
     return obj
+
+
+def _workspace_container():
+    return build_workspace_container()

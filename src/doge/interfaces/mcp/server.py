@@ -25,6 +25,7 @@ from typing import Any, Dict, List
 
 import anyio
 
+from doge.bootstrap import build_app_container
 from doge.config import get_settings
 from doge.interfaces.mcp.tools import (
     query_stock,
@@ -301,6 +302,10 @@ def _serialize(obj: Any) -> Any:
     return obj
 
 
+def _workspace_container():
+    return build_app_container().workspace
+
+
 def _case_execution_request(
     template_id: str,
     *,
@@ -410,21 +415,19 @@ def create_mcp_server():
     @_timed("seed_workflow_templates")
     async def tool_seed_workflow_templates(dry_run: bool = False) -> str:
         """写入内置金融 Workflow Template，供 Case 工作流复用。"""
-        from doge.application import composition
         from doge.platform.workspace import seed_workflow_templates
 
-        result = seed_workflow_templates(composition.build_platform_repository(), dry_run=dry_run)
+        result = seed_workflow_templates(_workspace_container().build_platform_repository(), dry_run=dry_run)
         return _json_result(result.to_dict())
 
     @mcp.tool(name="list_workflow_templates")
     @_timed("list_workflow_templates")
     async def tool_list_workflow_templates(limit: int = 100) -> str:
         """列出可执行的 Workflow Template。"""
-        from doge.application import composition
         from doge.platform.workspace import PlatformRequestContext
 
         n = _validate_int("limit", limit, 1, 500)
-        service = composition.build_workflow_service()
+        service = _workspace_container().build_workflow_service()
         templates = service.list(PlatformRequestContext(), limit=n)
         return _json_result({"workflow_templates": templates})
 
@@ -432,10 +435,9 @@ def create_mcp_server():
     @_timed("show_workflow_template")
     async def tool_show_workflow_template(template_id: str) -> str:
         """查看指定 Workflow Template 的输入、策略和输出契约。"""
-        from doge.application import composition
         from doge.platform.workspace import PlatformRequestContext
 
-        service = composition.build_workflow_service()
+        service = _workspace_container().build_workflow_service()
         template = service.get(PlatformRequestContext(), template_id)
         return _json_result(template)
 
@@ -443,11 +445,10 @@ def create_mcp_server():
     @_timed("list_research_cases")
     async def tool_list_research_cases(project_id: str | None = None, limit: int = 20) -> str:
         """列出 Research Case，作为模板执行入口。"""
-        from doge.application import composition
         from doge.platform.workspace import PlatformRequestContext
 
         n = _validate_int("limit", limit, 1, 500)
-        service = composition.build_research_case_service()
+        service = _workspace_container().build_research_case_service()
         cases = service.list(PlatformRequestContext(), project_id=project_id, limit=n)
         return _json_result({"research_cases": cases})
 
@@ -461,10 +462,9 @@ def create_mcp_server():
         language: str = "en",
     ) -> str:
         """在 Research Case 中预检模板执行所需输入、能力和资产。"""
-        from doge.application import composition
         from doge.platform.workspace import PlatformRequestContext
 
-        service = composition.build_research_case_service()
+        service = _workspace_container().build_research_case_service()
         preflight = service.preflight_template_execution(
             PlatformRequestContext(),
             case_id,
@@ -485,10 +485,9 @@ def create_mcp_server():
         skip_preflight: bool = False,
     ) -> str:
         """在 Research Case 中执行 Workflow Template 并返回 execution/run 信息。"""
-        from doge.application import composition
         from doge.platform.workspace import PlatformRequestContext
 
-        service = composition.build_research_case_service()
+        service = _workspace_container().build_research_case_service()
         result = await service.execute_template(
             PlatformRequestContext(),
             case_id,
@@ -514,10 +513,9 @@ def create_mcp_server():
         source_execution_ids: list[str] | None = None,
     ) -> str:
         """记录 Research Case 的审批、驳回、暂缓或升级决策。"""
-        from doge.application import composition
         from doge.platform.workspace import CaseDecisionCreate, PlatformRequestContext
 
-        service = composition.build_research_case_service()
+        service = _workspace_container().build_research_case_service()
         decision = service.record_decision(
             PlatformRequestContext(),
             case_id,

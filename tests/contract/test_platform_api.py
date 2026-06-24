@@ -97,7 +97,8 @@ def test_research_case_run_can_be_created_from_workflow_template(tmp_path):
     assert runtime.created_requests[0]["model_policy"]["execution_profile"] == "financial_research"
     assert runtime.created_requests[0]["model_policy"]["max_tool_rounds"] == 3
     assert runtime.created_requests[0]["model_policy"]["max_tokens"] == 4096
-    assert runtime.created_requests[0]["model_policy"]["template_slug"] == "earnings-review"
+    assert "template_slug" not in runtime.created_requests[0]["model_policy"]
+    assert runtime.created_requests[0]["workflow_context"]["template_slug"] == "earnings-review"
     assert runtime.created_requests[0]["template"]["inputs"] == {"ticker": "NVDA"}
 
 
@@ -338,30 +339,36 @@ class _Runtime:
             "run-1": AgentRun.create(workflow="investment_research", question="Analyze", run_id="run-1")
         }
 
-    async def create_run(self, request):
+    async def create_run(self, request, *, tenant_id=None):
         self.created_requests.append(request)
         run = AgentRun.create(
             workflow=request.get("workflow", "investment_research"),
             question=request.get("question", "Analyze"),
             run_id=f"run-created-{len(self.created_requests)}",
             model_policy=request.get("model_policy"),
+            workflow_context=request.get("workflow_context"),
+            identity_snapshot=request.get("identity_snapshot"),
         )
         run.add_approval("publish memo", "high")
         self.runs[run.run_id] = run
         return run
 
-    def get_run(self, run_id):
+    def get_run(self, scope, run_id=None, *, tenant_id=None):
+        if run_id is None:
+            run_id = scope
         return self.runs.get(run_id)
 
-    async def run_to_pause_or_completion(self, run_id):
+    async def run_to_pause_or_completion(self, run_id, *, tenant_id=None):
         run = self.runs[run_id]
         run.status = RunStatus.COMPLETED
         return run
 
-    def list_runs(self, session_id=None, limit=20):
+    def list_runs(self, scope=None, session_id=None, limit=20, *, tenant_id=None):
         return list(self.runs.values())[:limit]
 
-    def list_artifacts(self, run_id):
+    def list_artifacts(self, scope, run_id=None, *, tenant_id=None):
+        if run_id is None:
+            run_id = scope
         run = self.runs.get(run_id)
         return list(run.artifacts) if run is not None else []
 
@@ -370,7 +377,7 @@ class _Worker:
     def __init__(self, runtime):
         self._runtime = runtime
 
-    async def enqueue_continuation(self, run_id):
+    async def enqueue_continuation(self, run_id, *, scope=None, tenant_id=None):
         run = self._runtime.runs[run_id]
         run.status = RunStatus.QUEUED
 

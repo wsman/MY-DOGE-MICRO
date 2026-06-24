@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from doge.application.capabilities.tool_utils import ServiceFactory, num, resolve
+from doge.core.domain.tool_descriptor import ToolDescriptor
+from doge.core.domain.tool_policy import ToolCategory
 
 
 class FundamentalToolProvider:
@@ -31,6 +33,57 @@ class FundamentalToolProvider:
             "compare_consensus_estimates": self.compare_consensus_estimates,
             "get_industry_classification": self.get_industry_classification,
         }
+
+    def tool_descriptors(self) -> tuple[ToolDescriptor, ...]:
+        return (
+            ToolDescriptor(
+                name="get_financial_statements",
+                description="Get demo financial statement fields.",
+                properties={
+                    "ticker": {"type": "string"},
+                    "statement_type": {"type": "string", "enum": ["income", "balance", "cashflow"]},
+                    "period": {"type": "string", "enum": ["annual", "quarterly"]},
+                },
+                required=("ticker",),
+                category=ToolCategory.READ_ONLY,
+            ),
+            ToolDescriptor(
+                name="get_company_announcements",
+                description="Search local company announcements/notes.",
+                properties={
+                    "ticker": {"type": "string"},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 20},
+                },
+                required=("ticker",),
+                category=ToolCategory.READ_ONLY,
+            ),
+            ToolDescriptor(
+                name="calculate_financial_ratios",
+                description="Calculate deterministic ratios from supplied fields.",
+                properties={"fields": {"type": "object"}},
+                category=ToolCategory.ANALYTICAL,
+            ),
+            ToolDescriptor(
+                name="compare_consensus_estimates",
+                description="Compare demo consensus estimates.",
+                properties={
+                    "ticker": {"type": "string"},
+                    "metric": {"type": "string"},
+                },
+                required=("ticker",),
+                category=ToolCategory.READ_ONLY,
+            ),
+            ToolDescriptor(
+                name="get_industry_classification",
+                description="Resolve local industry classification metadata.",
+                properties={
+                    "ticker": {"type": "string"},
+                    "market": {"type": "string", "enum": ["cn", "us"]},
+                },
+                required=("ticker",),
+                category=ToolCategory.READ_ONLY,
+            ),
+        )
 
     def get_financial_statements(
         self,

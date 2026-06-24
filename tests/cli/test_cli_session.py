@@ -74,7 +74,8 @@ def test_cli_embedded_approval_continues_run(monkeypatch, capsys):
             )
 
     class FakeRuntime:
-        async def resolve_approval(self, run_id, approval_id, approved):
+        async def resolve_approval(self, scope, run_id, approval_id, approved):
+            assert scope.tenant_id == "local"
             assert (run_id, approval_id, approved) == ("run-cli", "appr-1", True)
             return SimpleNamespace(run_id=run_id, status=SimpleNamespace(value="queued"), artifacts=[], approvals=[])
 
@@ -89,12 +90,15 @@ def test_cli_embedded_approval_continues_run(monkeypatch, capsys):
 
     lines = iter(["Analyze AAPL", "/approve appr-1", "/exit"])
     monkeypatch.setattr("builtins.input", lambda _prompt="": next(lines))
-    monkeypatch.setattr(session_command.composition, "build_execute_run_use_case", lambda: FakeExecuteRun())
-    monkeypatch.setattr(
-        session_command.composition,
-        "build_persisted_research_agent_runtime",
-        lambda: FakeRuntime(),
-    )
+
+    class FakeRuntimeContainer:
+        def build_execute_run_use_case(self):
+            return FakeExecuteRun()
+
+        def build_persisted_research_agent_runtime(self):
+            return FakeRuntime()
+
+    monkeypatch.setattr(session_command, "_runtime_container", lambda: FakeRuntimeContainer())
 
     session_command._interactive_loop("ses-cli", "us")
 
@@ -143,11 +147,12 @@ def test_cli_gateway_interactive_posts_turn_to_daemon(monkeypatch, capsys):
     lines = iter(["Analyze AAPL", "/exit"])
     monkeypatch.setattr("builtins.input", lambda _prompt="": next(lines))
     monkeypatch.setattr(session_command, "_gateway_client", lambda args: FakeGatewayClient())
-    monkeypatch.setattr(
-        session_command.composition,
-        "build_execute_run_use_case",
-        lambda: (_ for _ in ()).throw(AssertionError("gateway mode must not use embedded runtime")),
-    )
+
+    class FailingRuntimeContainer:
+        def build_execute_run_use_case(self):
+            raise AssertionError("gateway mode must not use embedded runtime")
+
+    monkeypatch.setattr(session_command, "_runtime_container", lambda: FailingRuntimeContainer())
 
     session_command._interactive_loop("ses-cli", "us", mode="gateway")
 
@@ -236,11 +241,12 @@ def test_cli_gateway_attach_uses_sdk_document_upload(tmp_path, monkeypatch, caps
     lines = iter([f"/attach {source}", "Analyze attached", "/exit"])
     monkeypatch.setattr("builtins.input", lambda _prompt="": next(lines))
     monkeypatch.setattr(session_command, "_gateway_client", lambda args: FakeGatewayClient())
-    monkeypatch.setattr(
-        session_command.composition,
-        "build_file_upload_service",
-        lambda: (_ for _ in ()).throw(AssertionError("gateway attach must use SDK")),
-    )
+
+    class FailingGatewayContainer:
+        def build_file_upload_service(self):
+            raise AssertionError("gateway attach must use SDK")
+
+    monkeypatch.setattr(session_command, "_gateway_container", lambda: FailingGatewayContainer())
 
     session_command._interactive_loop("ses-cli", "us", mode="gateway")
 
@@ -270,7 +276,12 @@ def test_cli_attach_registers_real_file_and_passes_document_id(tmp_path, monkeyp
 
     lines = iter([f"/attach {source}", "Analyze attached file", "/exit"])
     monkeypatch.setattr("builtins.input", lambda _prompt="": next(lines))
-    monkeypatch.setattr(session_command.composition, "build_execute_run_use_case", lambda: FakeExecuteRun())
+
+    class FakeRuntimeContainer:
+        def build_execute_run_use_case(self):
+            return FakeExecuteRun()
+
+    monkeypatch.setattr(session_command, "_runtime_container", lambda: FakeRuntimeContainer())
 
     session_command._interactive_loop("ses-cli", "us")
 
@@ -311,7 +322,11 @@ def test_cli_trace_and_artifact_output_redacts_sensitive_payloads(monkeypatch, c
             assert run_id == "run-cli"
             return run
 
-    monkeypatch.setattr(session_command.composition, "build_resume_run_use_case", lambda: FakeResumeRun())
+    class FakeRuntimeContainer:
+        def build_resume_run_use_case(self):
+            return FakeResumeRun()
+
+    monkeypatch.setattr(session_command, "_runtime_container", lambda: FakeRuntimeContainer())
 
     session_command._print_last_run("run-cli", field="events")
     session_command._print_last_run("run-cli", field="artifacts")

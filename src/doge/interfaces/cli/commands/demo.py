@@ -4,12 +4,7 @@ import sys
 
 from tabulate import tabulate
 
-from doge.application.composition import (
-    build_anomaly_service,
-    build_breadth_service,
-    build_ranking_service,
-    build_stock_service,
-)
+from doge.bootstrap import build_gateway_container
 from doge.interfaces.cli.constants import DEMO_MACRO_HINT, EXIT_NO_DATA
 from doge.interfaces.cli.formatters import fmt_anomaly_table, fmt_breadth_table, fmt_rsrs_table
 
@@ -64,3 +59,23 @@ def cmd_demo(args) -> None:
 
     print("\nDemo complete. See docs/GETTING_STARTED.md for the full walkthrough.")
     print(DEMO_MACRO_HINT)
+
+
+def _gateway_container():
+    return build_gateway_container()
+
+
+def build_ranking_service():
+    return _gateway_container().build_ranking_service()
+
+
+def build_breadth_service():
+    return _gateway_container().build_breadth_service()
+
+
+def build_anomaly_service():
+    return _gateway_container().build_anomaly_service()
+
+
+def build_stock_service():
+    return _gateway_container().build_stock_service()

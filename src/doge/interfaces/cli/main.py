@@ -13,7 +13,7 @@ Usage:
     doge case list|show|preflight|execute|review|decision
 
 Clean-architecture wiring (ADR-0001 / ADR-0010): each subcommand delegates to
-its read-only service or application use case via ``doge.application.composition``.
+its read-only service or application use case via ``doge.bootstrap`` containers.
 This file contains NO inline SQL and opens NO DuckDB/SQLite connections directly.
 
 Exit codes:

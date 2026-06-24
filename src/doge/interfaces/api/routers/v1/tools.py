@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
 
-from doge.application import composition
 from doge.core.ports.enterprise_governance import IEnterpriseGovernanceRepository
 from doge.interfaces.api import deps
 from doge.interfaces.api.enterprise_access import append_audit, tool_allowed
@@ -17,7 +16,7 @@ async def list_tools(
     request: Request,
     governance: IEnterpriseGovernanceRepository = Depends(deps.get_enterprise_governance_repository),
 ):
-    registry = composition.build_default_tool_registry()
+    registry = deps.get_app_container().runtime.build_default_tool_registry()
     tools = [
         schema
         for schema in registry.schemas

@@ -30,6 +30,7 @@ from doge.core.ports.enterprise_governance import (
     IEnterpriseGovernanceRepository,
 )
 from doge.core.ports.platform_repository import IPlatformRepository
+from doge.shared.scope import TenantScope
 
 
 class PlatformServiceError(Exception):
@@ -71,6 +72,12 @@ class PlatformRequestContext:
     @property
     def user_hash(self) -> str | None:
         return self.enterprise_context.user_hash if self.enterprise_request else None
+
+    @property
+    def tenant_scope(self) -> TenantScope:
+        if not self.enterprise_request:
+            return TenantScope.local()
+        return TenantScope.enterprise(self.enterprise_context.tenant_id, self.enterprise_context.user_hash)
 
 
 @dataclass(frozen=True)
@@ -257,6 +264,16 @@ class ResearchCaseService:
         self._capability_registry = capability_registry
         self._capability_registry_enabled = capability_registry_enabled
         self._access = PlatformAccessService(governance)
+        from doge.platform.workspace.application.asset_service import CaseAssetService
+        from doge.platform.workspace.application.decision_service import CaseDecisionService
+
+        self._asset_service = CaseAssetService(
+            repo,
+            self._access,
+            document_repository=document_repository,
+            portfolio_repository=portfolio_repository,
+        )
+        self._decision_service = CaseDecisionService(repo, self._access)
 
     def list(
         self,
@@ -344,7 +361,7 @@ class ResearchCaseService:
             tenant_id=context.tenant_id,
             user_hash=context.user_hash,
         )
-        run = await self._runtime.create_run(run_request)
+        run = await self._runtime.create_run(run_request, tenant_id=context.tenant_id)
         self._repo.link_workflow_template_run(
             template_id=template.template_id,
             run_id=run.run_id,
@@ -372,7 +389,7 @@ class ResearchCaseService:
         run_id: str,
         link_type: str,
     ) -> CaseRunCreateResult:
-        run = self._runtime.get_run(run_id)
+        run = self._runtime.get_run(context.tenant_scope, run_id)
         if run is None:
             raise PlatformNotFoundError("run not found")
         if context.enterprise_request:
@@ -400,46 +417,13 @@ class ResearchCaseService:
         case_id: str,
         request: CaseAssetCreate,
     ) -> CaseAssetLink:
-        self._require_case(context, case_id, "write")
-        if request.asset_type not in {"document", "portfolio", "url"}:
-            raise PlatformValidationError("unsupported asset_type")
-        if not request.asset_id:
-            raise PlatformValidationError("asset_id required")
-        self._validate_asset_reference(context, request.asset_type, request.asset_id)
-        link = CaseAssetLink.create(
-            case_id=case_id,
-            asset_type=request.asset_type,
-            asset_id=request.asset_id,
-            asset_name=request.asset_name,
-            role=request.role,
-            version=request.version,
-            metadata=request.metadata,
-            tenant_id=context.tenant_id,
-        )
-        self._repo.save_case_asset(link)
-        self._access.audit(
-            context,
-            "case_asset_add",
-            "research_case",
-            case_id,
-            metadata={"asset_link_id": link.asset_link_id, "asset_type": link.asset_type},
-        )
-        return link
+        return self._asset_service.add_case_asset(context, case_id, request)
 
     def list_case_assets(self, context: PlatformRequestContext, case_id: str) -> list[CaseAssetLink]:
-        self._require_case(context, case_id, "read")
-        return self._repo.list_case_assets(case_id, tenant_id=context.tenant_id)
+        return self._asset_service.list_case_assets(context, case_id)
 
     def remove_case_asset(self, context: PlatformRequestContext, case_id: str, asset_link_id: str) -> None:
-        self._require_case(context, case_id, "write")
-        self._repo.delete_case_asset(asset_link_id, tenant_id=context.tenant_id)
-        self._access.audit(
-            context,
-            "case_asset_remove",
-            "research_case",
-            case_id,
-            metadata={"asset_link_id": asset_link_id},
-        )
+        self._asset_service.remove_case_asset(context, case_id, asset_link_id)
 
     def record_decision(
         self,
@@ -447,31 +431,10 @@ class ResearchCaseService:
         case_id: str,
         request: CaseDecisionCreate,
     ) -> CaseDecision:
-        self._require_case(context, case_id, "write")
-        if request.decision_type not in {"approve", "reject", "hold", "escalate"}:
-            raise PlatformValidationError("unsupported decision_type")
-        decision = CaseDecision.create(
-            case_id=case_id,
-            decision_type=request.decision_type,
-            rationale=request.rationale,
-            actor_hash=context.user_hash or "local-user",
-            source_run_ids=request.source_run_ids,
-            source_execution_ids=request.source_execution_ids,
-            tenant_id=context.tenant_id,
-        )
-        self._repo.save_case_decision(decision)
-        self._access.audit(
-            context,
-            "case_decision_record",
-            "research_case",
-            case_id,
-            metadata={"decision_id": decision.decision_id, "decision_type": decision.decision_type},
-        )
-        return decision
+        return self._decision_service.record_decision(context, case_id, request)
 
     def list_case_decisions(self, context: PlatformRequestContext, case_id: str) -> list[CaseDecision]:
-        self._require_case(context, case_id, "read")
-        return self._repo.list_case_decisions(case_id, tenant_id=context.tenant_id)
+        return self._decision_service.list_case_decisions(context, case_id)
 
     def list_workflow_executions_for_case(
         self,
@@ -482,7 +445,7 @@ class ResearchCaseService:
     ) -> list[WorkflowExecution]:
         self._require_case(context, case_id, "read")
         executions = self._repo.list_workflow_executions(case_id, tenant_id=context.tenant_id, limit=limit)
-        return [self._with_current_run_status(item) for item in executions]
+        return [self._with_current_run_status(item, scope=context.tenant_scope) for item in executions]
 
     def get_workflow_execution(
         self,
@@ -494,7 +457,7 @@ class ResearchCaseService:
         execution = self._repo.get_workflow_execution(execution_id, tenant_id=context.tenant_id)
         if execution is None or execution.case_id != case_id:
             raise PlatformNotFoundError("workflow execution not found")
-        return self._with_current_run_status(execution)
+        return self._with_current_run_status(execution, scope=context.tenant_scope)
 
     def preflight_template_execution(
         self,
@@ -574,7 +537,7 @@ class ResearchCaseService:
             tenant_id=context.tenant_id,
             user_hash=context.user_hash,
         )
-        run = await self._runtime.create_run(run_request)
+        run = await self._runtime.create_run(run_request, tenant_id=context.tenant_id)
         execution = WorkflowExecution.create(
             case_id=case_id,
             template_id=template.template_id,
@@ -599,7 +562,7 @@ class ResearchCaseService:
             tenant_id=context.tenant_id,
             link_type="primary",
         )
-        run = await self._dispatch_run(run, worker)
+        run = await self._dispatch_run(context, run, worker)
         execution = self._repo.update_workflow_execution_status(
             execution.execution_id,
             _status_for_run(run),
@@ -627,7 +590,7 @@ class ResearchCaseService:
         latest_run = None
         for execution in executions:
             if execution.run_id:
-                latest_run = self._runtime.get_run(execution.run_id)
+                latest_run = self._runtime.get_run(context.tenant_scope, execution.run_id)
                 if latest_run is not None:
                     break
         approvals = list(getattr(latest_run, "approvals", []) or []) if latest_run is not None else []
@@ -652,7 +615,7 @@ class ResearchCaseService:
                 tenant_id=context.tenant_id,
                 limit=5,
             )
-            hydrated = [self._with_current_run_status(item) for item in executions]
+            hydrated = [self._with_current_run_status(item, scope=context.tenant_scope) for item in executions]
             recent_executions.extend(hydrated)
             if research_case.status == "open" and not hydrated:
                 pending_cases.append({"case": research_case, "reason": "no_recent_execution"})
@@ -661,7 +624,7 @@ class ResearchCaseService:
             for execution in hydrated:
                 if execution.status in {"failed", "cancelled", "preflight_failed"}:
                     failed_or_degraded_runs.append({"execution": execution, "reason": execution.status})
-        recent_runs = self._runtime.list_runs(limit=limit)
+        recent_runs = self._runtime.list_runs(context.tenant_scope, limit=limit)
         pending_approvals = [
             run for run in recent_runs
             if _status_for_run(run) == "awaiting_approval" or any(
@@ -672,7 +635,7 @@ class ResearchCaseService:
         for run in recent_runs:
             if _status_for_run(run) != "completed":
                 continue
-            artifacts = self._runtime.list_artifacts(run.run_id)
+            artifacts = self._runtime.list_artifacts(context.tenant_scope, run.run_id)
             if artifacts:
                 recent_memos.append({"run": run, "artifact": artifacts[-1]})
         recent_executions = sorted(recent_executions, key=lambda item: item.updated_at, reverse=True)[:limit]
@@ -711,14 +674,6 @@ class ResearchCaseService:
             raise PlatformNotFoundError("workflow template not found")
         self._access.ensure(context, "workflow_template", template.template_id, "read")
         return template
-
-    def _validate_asset_reference(self, context: PlatformRequestContext, asset_type: str, asset_id: str) -> None:
-        if asset_type == "document" and self._documents is not None:
-            if self._documents.get(asset_id, tenant_id=context.tenant_id) is None:
-                raise PlatformNotFoundError("document not found")
-        if asset_type == "portfolio" and self._portfolios is not None:
-            if self._portfolios.get(asset_id, tenant_id=context.tenant_id) is None:
-                raise PlatformNotFoundError("portfolio not found")
 
     def _missing_assets(
         self,
@@ -773,16 +728,26 @@ class ResearchCaseService:
             "model_policy": dict(request.model_policy or {}),
         }
 
-    async def _dispatch_run(self, run: AgentRun, worker: Any | None) -> AgentRun:
+    async def _dispatch_run(
+        self,
+        context: PlatformRequestContext,
+        run: AgentRun,
+        worker: Any | None,
+    ) -> AgentRun:
         if worker is not None and hasattr(worker, "enqueue_continuation"):
-            await worker.enqueue_continuation(run.run_id)
-            return self._runtime.get_run(run.run_id) or run
-        return await self._runtime.run_to_pause_or_completion(run.run_id)
+            await worker.enqueue_continuation(run.run_id, scope=context.tenant_scope)
+            return self._runtime.get_run(context.tenant_scope, run.run_id) or run
+        return await self._runtime.run_to_pause_or_completion(run.run_id, tenant_id=context.tenant_id)
 
-    def _with_current_run_status(self, execution: WorkflowExecution) -> WorkflowExecution:
+    def _with_current_run_status(
+        self,
+        execution: WorkflowExecution,
+        *,
+        scope: TenantScope | None = None,
+    ) -> WorkflowExecution:
         if not execution.run_id:
             return execution
-        run = self._runtime.get_run(execution.run_id)
+        run = self._runtime.get_run(scope or TenantScope.local(), execution.run_id)
         if run is None:
             return execution
         status = _status_for_run(run)

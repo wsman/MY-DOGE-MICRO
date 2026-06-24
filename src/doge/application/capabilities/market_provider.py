@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from doge.application.capabilities.tool_utils import ServiceFactory, resolve
+from doge.core.domain.tool_descriptor import ToolDescriptor
+from doge.core.domain.tool_policy import ToolCategory
 
 
 class MarketToolProvider:
@@ -31,6 +33,58 @@ class MarketToolProvider:
             "market_breadth": self.market_breadth,
             "volume_anomalies": self.volume_anomalies,
         }
+
+    def tool_descriptors(self) -> tuple[ToolDescriptor, ...]:
+        return (
+            ToolDescriptor(
+                name="query_stock",
+                description="Query OHLCV rows for a ticker.",
+                properties={
+                    "ticker": {"type": "string"},
+                    "market": {"type": "string", "enum": ["cn", "us"]},
+                    "days": {"type": "integer", "minimum": 1, "maximum": 500},
+                },
+                required=("ticker",),
+                category=ToolCategory.READ_ONLY,
+            ),
+            ToolDescriptor(
+                name="stock_overview",
+                description="Get stock overview.",
+                properties={
+                    "ticker": {"type": "string"},
+                    "market": {"type": "string", "enum": ["cn", "us"]},
+                },
+                required=("ticker",),
+                category=ToolCategory.READ_ONLY,
+            ),
+            ToolDescriptor(
+                name="rsrs_ranking",
+                description="Get RSRS momentum ranking.",
+                properties={
+                    "market": {"type": "string", "enum": ["cn", "us"]},
+                    "top": {"type": "integer", "minimum": 1, "maximum": 100},
+                },
+                category=ToolCategory.READ_ONLY,
+            ),
+            ToolDescriptor(
+                name="market_breadth",
+                description="Get market breadth rows.",
+                properties={
+                    "market": {"type": "string", "enum": ["cn", "us"]},
+                    "days": {"type": "integer", "minimum": 1, "maximum": 30},
+                },
+                category=ToolCategory.READ_ONLY,
+            ),
+            ToolDescriptor(
+                name="volume_anomalies",
+                description="Get volume anomaly rows.",
+                properties={
+                    "min_ratio": {"type": "number", "minimum": 1.0, "maximum": 1000.0},
+                    "top": {"type": "integer", "minimum": 1, "maximum": 100},
+                },
+                category=ToolCategory.READ_ONLY,
+            ),
+        )
 
     def query_stock(self, ticker: str, market: str = "us", days: int = 20) -> dict[str, Any]:
         rows = self._stock_service().query(ticker, market, days)

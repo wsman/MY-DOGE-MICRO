@@ -9,13 +9,13 @@ from dataclasses import asdict, is_dataclass
 from enum import Enum
 from typing import Any
 
-from doge.application import composition
+from doge.bootstrap import build_runtime_container
 
 
 def cmd_run(args) -> None:
     """Execute one persisted research-agent run."""
     try:
-        run = asyncio.run(composition.build_execute_run_use_case().execute(
+        run = asyncio.run(_runtime_container().build_execute_run_use_case().execute(
             args.question,
             session_id=args.session,
             market=args.market,
@@ -56,3 +56,7 @@ def _serialize(obj: Any) -> Any:
     if isinstance(obj, dict):
         return {key: _serialize(value) for key, value in obj.items()}
     return obj
+
+
+def _runtime_container():
+    return build_runtime_container()

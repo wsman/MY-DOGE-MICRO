@@ -133,46 +133,46 @@ from doge.platform.workspace.application import ResearchCaseService, WorkflowSer
 
 def build_view_repository(read_only: bool = True) -> IMarketViewRepository:
     """Construct the default read-only DuckDB market-view repository."""
-    return DuckDBMarketViewRepository(read_only=read_only)
+    return _gateway_container().build_view_repository(read_only=read_only)
 
 
 def build_view_service(
     repo: IMarketViewRepository | None = None,
 ) -> ViewService:
     """Build a :class:`ViewService` with an injected (or default) repository."""
-    return ViewService(repo if repo is not None else build_view_repository())
+    return _gateway_container().build_view_service(repo)
 
 
 def build_stock_repository(read_only: bool = True) -> IStockRepository:
     """Construct the default read-only DuckDB stock repository."""
-    return DuckDBStockRepository()
+    return _gateway_container().build_stock_repository()
 
 
 def build_stock_service(
     repo: IStockRepository | None = None,
 ) -> StockService:
     """Build a :class:`StockService` with an injected (or default) repository."""
-    return StockService(repo if repo is not None else build_stock_repository())
+    return _gateway_container().build_stock_service(repo)
 
 
 def build_report_repository() -> IReportRepository:
     """Construct the default SQLite-backed report repository."""
-    return SQLiteReportRepository()
+    return _gateway_container().build_report_repository()
 
 
 def build_schema_browser() -> ISchemaBrowser:
     """Construct the default SQLite-backed schema browser."""
-    return SQLiteSchemaBrowser()
+    return _gateway_container().build_schema_browser()
 
 
 def build_note_repository() -> INoteRepository:
     """Construct the default SQLite-backed note repository."""
-    return SQLiteNoteRepository()
+    return _gateway_container().build_note_repository()
 
 
 def build_stock_name_repository() -> IStockNameRepository:
     """Construct the default SQLite-backed stock-name repository."""
-    return SQLiteStockNameRepository()
+    return _gateway_container().build_stock_name_repository()
 
 
 def build_metadata_source(
@@ -180,51 +180,51 @@ def build_metadata_source(
     retry_delay: Optional[float] = None,
 ) -> ITickerMetadataSource:
     """Construct the default yfinance-backed ticker metadata source."""
-    return YFinanceMetadataSource(max_retries=max_retries, retry_delay=retry_delay)
+    return _gateway_container().build_metadata_source(
+        max_retries=max_retries,
+        retry_delay=retry_delay,
+    )
 
 
 def build_ranking_service(
     repo: IMarketViewRepository | None = None,
 ) -> RankingService:
     """Build a :class:`RankingService` with an injected (or default) repository."""
-    return RankingService(repo if repo is not None else build_view_repository())
+    return _gateway_container().build_ranking_service(repo)
 
 
 def build_breadth_service(
     repo: IMarketViewRepository | None = None,
 ) -> BreadthService:
     """Build a :class:`BreadthService` with an injected (or default) repository."""
-    return BreadthService(repo if repo is not None else build_view_repository())
+    return _gateway_container().build_breadth_service(repo)
 
 
 def build_anomaly_service(
     repo: IMarketViewRepository | None = None,
 ) -> AnomalyService:
     """Build an :class:`AnomalyService` with an injected (or default) repository."""
-    return AnomalyService(repo if repo is not None else build_view_repository())
+    return _gateway_container().build_anomaly_service(repo)
 
 
 def refresh_views() -> None:
     """Materialize the DuckDB analytical views after a market-data scan."""
-    from doge.infrastructure.database.duckdb import DuckDBConnection
-    DuckDBConnection(read_only=False).refresh_views()
+    _gateway_container().refresh_views()
 
 
 def build_storage_repository() -> SQLiteStorageRepository:
     """Construct the default SQLite single-logical-writer storage repository."""
-    return SQLiteStorageRepository()
+    return _gateway_container().build_storage_repository()
 
 
 def build_tdx_data_source(preferred_server: str | None = None):
     """Construct the default TDX market data source."""
-    from doge.infrastructure.data_source.tdx import TDXDataSource
-
-    return TDXDataSource(preferred_server=preferred_server)
+    return _gateway_container().build_tdx_data_source(preferred_server=preferred_server)
 
 
 def build_tdx_server_list():
     """Construct the configured TDX server-list adapter."""
-    return ConfigTDXServerList()
+    return _gateway_container().build_tdx_server_list()
 
 
 # ── Application use-case factories ──
@@ -246,17 +246,8 @@ def build_scan_market_use_case(
         file_scanner: Defaults to ``TDXFileScanner`` for local .day scans.
         refresh_views_callable: Defaults to :func:`refresh_views`.
     """
-    if stock_repo is None:
-        stock_repo = build_storage_repository()
-    if data_source is None:
-        # Lazy import so this module can be imported without opentdx installed.
-        data_source = build_tdx_data_source()
-    if file_scanner is None:
-        file_scanner = TDXFileScanner()
-    if refresh_views_callable is None:
-        refresh_views_callable = refresh_views
-    return ScanMarketUseCase(
-        stock_repo,
+    return _gateway_container().build_scan_market_use_case(
+        stock_repo=stock_repo,
         data_source=data_source,
         file_scanner=file_scanner,
         refresh_views_callable=refresh_views_callable,
@@ -269,58 +260,31 @@ def build_generate_macro_report_use_case(
     report_repo: IReportRepository | None = None,
 ) -> GenerateMacroReportUseCase:
     """Build a :class:`GenerateMacroReportUseCase` with default adapters."""
-    if view_repo is None:
-        view_repo = build_view_repository()
-    if llm_client is None:
-        llm_client = build_default_text_llm_client()
-    if report_repo is None:
-        report_repo = build_report_repository()
-    return GenerateMacroReportUseCase(view_repo, llm_client, report_repo)
+    return _gateway_container().build_generate_macro_report_use_case(
+        view_repo=view_repo,
+        llm_client=llm_client,
+        report_repo=report_repo,
+    )
 
 
 def build_secret_provider() -> ISecretProvider:
     """Build the configured secret provider."""
-    settings = get_settings()
-    provider = settings.secrets.provider
-    if provider == "env":
-        return EnvSecretProvider()
-    if provider == "process":
-        return ProcessSecretProvider(
-            command=settings.secrets.process_command,
-            timeout_seconds=settings.secrets.process_timeout_seconds,
-            allowed_names=frozenset(settings.secrets.allowed_names),
-        )
-    raise ValueError(f"Unsupported DOGE_SECRET_PROVIDER: {provider}")
+    return _gateway_container().build_secret_provider()
 
 
 def build_kimi_agent_model(secret_provider=None) -> KimiAgentModel:
     """Build the default Kimi agent-capable model adapter."""
-    return KimiAgentModel(secret_provider=secret_provider or build_secret_provider())
+    return _gateway_container().build_kimi_agent_model(secret_provider)
 
 
 def build_default_text_llm_client():
     """Build the default text-generation client for macro/industry use cases."""
-    settings = get_settings()
-    secret_provider = build_secret_provider()
-    if settings.llm.text_provider.lower() == "deepseek":
-        return DeepSeekClient(secret_provider=secret_provider)
-    return KimiTextClient(KimiAgentModel(secret_provider=secret_provider))
+    return _gateway_container().build_default_text_llm_client()
 
 
 def build_agent_repositories(db_path=None):
     """Build all SQLite-backed agent repositories for a shared database path."""
-    return {
-        "sessions": SQLiteSessionRepository(db_path),
-        "runs": SQLiteRunRepository(db_path),
-        "events": SQLiteEventRepository(db_path),
-        "artifacts": SQLiteArtifactRepository(db_path),
-        "approvals": SQLiteApprovalRepository(db_path),
-        "documents": SQLiteDocumentRepository(db_path),
-        "evidence": SQLiteEvidenceRepository(db_path),
-        "run_queue": SQLiteRunQueue(db_path),
-        "idempotency": SQLiteIdempotencyStore(db_path),
-        "governance": SQLiteEnterpriseGovernanceRepository(db_path),
-    }
+    return _runtime_container(db_path).build_agent_repositories()
 
 
 def build_agent_runtime_kernel(model=None, tool_registry=None, event_publisher=None, db_path=None) -> RuntimeKernel:
@@ -354,12 +318,14 @@ def build_agent_runtime_kernel(model=None, tool_registry=None, event_publisher=N
 
 def build_runtime_outbox_repository(db_path=None):
     """Build the persisted runtime event outbox repository."""
-    return SQLiteOutboxRepository(db_path)
+    return _runtime_container(db_path).build_runtime_outbox_repository()
 
 
 def build_event_subscriber(db_path=None, *, poll_interval_seconds: float = 0.1):
     """Build the persisted runtime event subscriber."""
-    return SQLiteEventSubscriber(db_path, poll_interval_seconds=poll_interval_seconds)
+    return _runtime_container(db_path).build_event_subscriber(
+        poll_interval_seconds=poll_interval_seconds,
+    )
 
 
 def build_model_router(document_repository=None) -> ModelRouter:
@@ -418,27 +384,18 @@ def build_industry_analyzer_agent_use_case(runtime=None) -> IndustryAnalyzerAgen
 
 def build_agent_document_repository(db_path=None):
     """Build the default persisted document repository."""
-    return SQLiteDocumentRepository(db_path)
+    return _runtime_container(db_path).build_agent_document_repository()
 
 
 def build_agent_evidence_repository(db_path=None):
     """Build the default persisted page/chunk/evidence repository."""
-    return SQLiteEvidenceRepository(db_path)
+    return _runtime_container(db_path).build_agent_evidence_repository()
 
 
 def build_file_upload_service(db_path=None, kimi_files_client=None):
     """Build the default file upload service for API and CLI attach paths."""
-    settings = get_settings()
-    secret_provider = build_secret_provider()
-    if kimi_files_client is None and secret_provider.get_secret("kimi.api_key"):
-        kimi_files_client = KimiFilesClient(secret_provider=secret_provider)
-    return FileUploadService(
-        build_agent_document_repository(db_path),
-        storage_dir=settings.documents.storage_dir,
-        max_file_bytes=settings.documents.max_file_bytes,
-        parser=LocalDocumentParser(),
+    return _gateway_container(db_path).build_file_upload_service(
         kimi_files_client=kimi_files_client,
-        extraction_service=build_page_extraction_service(db_path),
     )
 
 
@@ -452,17 +409,12 @@ def build_page_extraction_service(db_path=None):
 
 def build_rag_service(db_path=None):
     """Build the local-first RAG service over extracted evidence chunks."""
-    return RAGService(
-        evidence_repository=build_agent_evidence_repository(db_path),
-        embedding_provider=HashingEmbeddingProvider(),
-        vector_store=SQLiteVectorStore(db_path),
-        embedding_cache=SQLiteEmbeddingCache(db_path),
-    )
+    return _gateway_container(db_path).build_rag_service()
 
 
 def build_claim_repository(db_path=None):
     """Build the claim/citation repository."""
-    return SQLiteClaimRepository(db_path)
+    return _gateway_container(db_path).build_claim_repository()
 
 
 def build_portfolio_repository(db_path=None):
@@ -602,17 +554,17 @@ def build_scenario_service(db_path=None):
 
 def build_agent_run_queue(db_path=None):
     """Build the durable run queue adapter."""
-    return SQLiteRunQueue(db_path)
+    return _runtime_container(db_path).build_agent_run_queue()
 
 
 def build_agent_idempotency_store(db_path=None):
     """Build the durable idempotency-key adapter."""
-    return SQLiteIdempotencyStore(db_path)
+    return _runtime_container(db_path).build_agent_idempotency_store()
 
 
 def build_agent_unit_of_work(db_path=None, event_publisher=None):
     """Build the transactional unit of work for agent run enqueue."""
-    return SQLiteAgentUnitOfWork(db_path, event_publisher=event_publisher)
+    return _runtime_container(db_path).build_agent_unit_of_work(event_publisher=event_publisher)
 
 
 def build_create_session_use_case(db_path=None) -> CreateSession:
@@ -669,7 +621,7 @@ def build_manage_notes_use_case(
     note_repo: INoteRepository | None = None,
 ) -> ManageNotesUseCase:
     """Build a :class:`ManageNotesUseCase` with the default note repository."""
-    return ManageNotesUseCase(note_repo if note_repo is not None else build_note_repository())
+    return _gateway_container().build_manage_notes_use_case(note_repo)
 
 
 def build_query_ticker_use_case(
@@ -763,16 +715,26 @@ def build_generate_industry_report_use_case(
     claim_repository=None,
 ) -> GenerateIndustryReportUseCase:
     """Build a :class:`GenerateIndustryReportUseCase` with default adapters."""
-    return GenerateIndustryReportUseCase(
-        ranking_service if ranking_service is not None else build_ranking_service(),
-        llm_client if llm_client is not None else build_default_text_llm_client(),
-        stock_service=stock_service if stock_service is not None else build_stock_service(),
-        rag_service=rag_service if rag_service is not None else build_rag_service(),
-        report_repository=report_repository if report_repository is not None else build_report_repository(),
-        claim_repository=claim_repository if claim_repository is not None else build_claim_repository(),
-        citation_service=CitationService(),
-        claim_validation_service=ClaimValidationService(),
+    return _gateway_container().build_generate_industry_report_use_case(
+        ranking_service=ranking_service,
+        llm_client=llm_client,
+        stock_service=stock_service,
+        rag_service=rag_service,
+        report_repository=report_repository,
+        claim_repository=claim_repository,
     )
+
+
+def _runtime_container(db_path=None):
+    from doge.bootstrap.runtime import build_runtime_container
+
+    return build_runtime_container(db_path)
+
+
+def _gateway_container(db_path=None):
+    from doge.bootstrap.gateway import build_gateway_container
+
+    return build_gateway_container(db_path)
 
 
 def _warn_legacy_composition() -> None:

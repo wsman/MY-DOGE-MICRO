@@ -1,6 +1,6 @@
 import json
 
-from doge.application import composition
+from doge.bootstrap import build_workspace_container
 from doge.config import reset_settings
 from doge.core.domain.platform_models import Project, ResearchCase, Workspace
 from doge.interfaces.cli.main import main
@@ -25,7 +25,7 @@ def test_cli_case_preflight_and_execute_from_template(tmp_path, monkeypatch, cap
     monkeypatch.setenv("DOGE_AGENT_DB", str(tmp_path / "agent_state.db"))
     monkeypatch.setenv("DOGE_FEATURE_WORKFLOW_TEMPLATES", "true")
     reset_settings()
-    repo = composition.build_platform_repository()
+    repo = build_workspace_container().build_platform_repository()
     workspace = Workspace.create(name="Desk")
     project = Project.create(workspace_id=workspace.workspace_id, name="Research")
     case = ResearchCase.create(project_id=project.project_id, title="NVDA earnings")

@@ -28,7 +28,6 @@ from doge.config import get_settings
 from doge.application.contracts.request import ScanMarketRequest
 from doge.core.ports.repository import IStockRepository
 from doge.core.ports.tdx_server_list import ITDXServerList
-from doge.application import refresh_views
 from doge.interfaces.api import deps
 
 logger = logging.getLogger(__name__)
@@ -180,7 +179,7 @@ async def start_scan(
                 # observable on the server side (half of the S002-010
                 # stuck-running concern). The scan still completes.
                 try:
-                    refresh_views()
+                    deps.get_app_container().gateway.refresh_views()
                 except Exception as refresh_err:
                     logger.warning(
                         "DuckDB view refresh failed after %s scan: %s",
@@ -219,9 +218,7 @@ def _run_local_scan(market, tdx_path, db_path, callback, storage_repo):
         callback(0, "no tdx_path provided, skipping local scan")
         return
 
-    from doge.application.composition import build_scan_market_use_case
-
-    uc = build_scan_market_use_case(
+    uc = deps.get_app_container().gateway.build_scan_market_use_case(
         stock_repo=storage_repo,
         data_source=None,
         refresh_views_callable=lambda: None,
@@ -266,13 +263,13 @@ def _load_scan_tickers(market: str, repo: IStockRepository) -> list[str]:
 
 def _run_server_scan(market, body, tickers, callback, storage_repo):
     """Run remote TDX download through the application use case."""
-    from doge.application.composition import build_scan_market_use_case, build_tdx_data_source
+    gateway = deps.get_app_container().gateway
 
     if body.server:
         callback(2, f"using specified server {body.server}")
-    uc = build_scan_market_use_case(
+    uc = gateway.build_scan_market_use_case(
         stock_repo=storage_repo,
-        data_source=build_tdx_data_source(preferred_server=body.server),
+        data_source=gateway.build_tdx_data_source(preferred_server=body.server),
         refresh_views_callable=lambda: None,
     )
     request = ScanMarketRequest(

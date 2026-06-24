@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from doge.core.domain.tool_descriptor import ToolDescriptor
+from doge.core.domain.tool_policy import ToolCategory
+
 
 class PublishingToolProvider:
     """Executes high-risk publishing and portfolio proposal tools."""
@@ -13,6 +16,30 @@ class PublishingToolProvider:
             "publish_investment_memo": self.publish_investment_memo,
             "propose_portfolio_rebalance": self.propose_portfolio_rebalance,
         }
+
+    def tool_descriptors(self) -> tuple[ToolDescriptor, ...]:
+        return (
+            ToolDescriptor(
+                name="publish_investment_memo",
+                description="Request approval to publish an investment memo.",
+                properties={
+                    "memo_id": {"type": "string"},
+                    "distribution_list": {"type": "array", "items": {"type": "string"}},
+                },
+                required=("memo_id",),
+                category=ToolCategory.HIGH_RISK,
+            ),
+            ToolDescriptor(
+                name="propose_portfolio_rebalance",
+                description="Request approval for a proposed rebalance.",
+                properties={
+                    "portfolio_id": {"type": "string"},
+                    "proposed_changes": {"type": "array", "items": {"type": "object"}},
+                },
+                required=("portfolio_id",),
+                category=ToolCategory.HIGH_RISK,
+            ),
+        )
 
     def publish_investment_memo(self, memo_id: str, distribution_list: list[str] | None = None) -> dict[str, Any]:
         return {

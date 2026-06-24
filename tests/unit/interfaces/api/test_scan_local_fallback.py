@@ -10,7 +10,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from doge.application.contracts.request import ScanMarketRequest
+from doge.application.use_cases.scan_market import ScanMarketUseCase
+from doge.bootstrap.gateway import GatewayContainer
 from doge.core.ports.repository import IStockRepository, StorageWriteError
 from doge.interfaces.api.routers import scan as scan_router
 
@@ -83,12 +84,11 @@ def test_run_local_scan_wires_injected_storage_repo(monkeypatch, tmp_path):
         })
     ]
 
-    import doge.application.composition as comp_mod
     monkeypatch.setattr(
-        comp_mod,
+        GatewayContainer,
         "build_scan_market_use_case",
-        lambda stock_repo, data_source=None, file_scanner=None, refresh_views_callable=None: (
-            comp_mod.ScanMarketUseCase(
+        lambda self, stock_repo, data_source=None, file_scanner=None, refresh_views_callable=None: (
+            ScanMarketUseCase(
                 stock_repo=stock_repo,
                 file_scanner=_FakeFileScanner(frames),
                 data_source=None,
@@ -135,12 +135,11 @@ def test_run_local_scan_records_write_failure_without_aborting(monkeypatch, tmp_
         }),
     ]
 
-    import doge.application.composition as comp_mod
     monkeypatch.setattr(
-        comp_mod,
+        GatewayContainer,
         "build_scan_market_use_case",
-        lambda stock_repo, data_source=None, file_scanner=None, refresh_views_callable=None: (
-            comp_mod.ScanMarketUseCase(
+        lambda self, stock_repo, data_source=None, file_scanner=None, refresh_views_callable=None: (
+            ScanMarketUseCase(
                 stock_repo=stock_repo,
                 file_scanner=_FakeFileScanner(frames),
                 data_source=None,

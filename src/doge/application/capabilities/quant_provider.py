@@ -11,6 +11,8 @@ from doge.application.capabilities.tool_utils import (
     looks_mutating_sql,
     resolve,
 )
+from doge.core.domain.tool_descriptor import ToolDescriptor
+from doge.core.domain.tool_policy import ToolCategory
 from doge.core.ports.code_executor import ICodeExecutor
 
 
@@ -33,6 +35,51 @@ class QuantToolProvider:
             "list_views": self.list_views,
             "run_sql_query": self.run_sql_query,
             "run_python_analysis": self.run_python_analysis,
+        }
+
+    def tool_descriptors(self) -> tuple[ToolDescriptor, ...]:
+        python_status = self.python_analysis_capability_status()
+        return (
+            ToolDescriptor(
+                name="list_views",
+                description="List available analytical views.",
+                category=ToolCategory.READ_ONLY,
+            ),
+            ToolDescriptor(
+                name="run_sql_query",
+                description="Run a read-only SQL query against analytical views.",
+                properties={
+                    "sql": {"type": "string"},
+                    "readonly": {"type": "boolean"},
+                },
+                required=("sql",),
+                category=ToolCategory.ANALYTICAL,
+            ),
+            ToolDescriptor(
+                name="run_python_analysis",
+                description="Run bounded demo Python analysis.",
+                properties={
+                    "code": {"type": "string"},
+                    "timeout": {"type": "number", "minimum": 1, "maximum": 10},
+                },
+                required=("code",),
+                category=ToolCategory.HIGH_RISK,
+                status=python_status["status"],
+                metadata=python_status["metadata"],
+            ),
+        )
+
+    def python_analysis_capability_status(self) -> dict[str, Any]:
+        available = bool(getattr(self._code_executor, "available", False))
+        metadata: dict[str, Any] = {
+            "executor": str(getattr(self._code_executor, "executor_name", "unknown")),
+        }
+        disabled_reason = getattr(self._code_executor, "disabled_reason", None)
+        if disabled_reason:
+            metadata["disabled_reason"] = str(disabled_reason)
+        return {
+            "status": "available" if available else "disabled",
+            "metadata": metadata,
         }
 
     def list_views(self) -> dict[str, Any]:

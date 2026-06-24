@@ -2,12 +2,12 @@
 
 import json
 
-from doge.application import composition
+from doge.bootstrap import build_gateway_container
 
 
 async def list_views() -> str:
     try:
-        rows = composition.build_tool_application_service().list_views()["views"]
+        rows = json.loads(build_view_service().list_views())
         if not rows:
             return json.dumps(_fallback_views(), indent=2, ensure_ascii=False)
         return json.dumps(rows, indent=2, ensure_ascii=False)
@@ -26,3 +26,7 @@ def _fallback_views() -> list[dict]:
         "vw_rsrs_ranking_us",
     ]
     return [{"view": name, "rows": 0, "columns": ""} for name in names]
+
+
+def build_view_service():
+    return build_gateway_container().build_view_service()

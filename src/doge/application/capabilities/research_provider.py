@@ -14,6 +14,8 @@ from doge.application.capabilities.tool_utils import (
     is_restricted_context,
     resolve,
 )
+from doge.core.domain.tool_descriptor import ToolDescriptor
+from doge.core.domain.tool_policy import ToolCategory
 
 
 class ResearchToolProvider:
@@ -38,6 +40,44 @@ class ResearchToolProvider:
             "generate_industry_report": self.generate_industry_report,
             "lookup_evidence": self.lookup_evidence,
         }
+
+    def tool_descriptors(self) -> tuple[ToolDescriptor, ...]:
+        return (
+            ToolDescriptor(
+                name="validate_financial_claims",
+                description="Validate a material financial claim.",
+                properties={
+                    "claim": {"type": "string"},
+                    "ticker": {"type": "string"},
+                    "market": {"type": "string", "enum": ["cn", "us"]},
+                },
+                required=("claim", "ticker"),
+                category=ToolCategory.ANALYTICAL,
+            ),
+            ToolDescriptor(
+                name="generate_industry_report",
+                description="Generate an evidence-aware industry report.",
+                properties={
+                    "industry": {"type": "string"},
+                    "market": {"type": "string", "enum": ["cn", "us"]},
+                    "tickers": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                },
+                category=ToolCategory.GENERATIVE,
+            ),
+            ToolDescriptor(
+                name="lookup_evidence",
+                description="Look up source evidence snippets.",
+                properties={
+                    "query": {"type": "string"},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 20},
+                },
+                required=("query",),
+                category=ToolCategory.READ_ONLY,
+            ),
+        )
 
     def validate_financial_claims(
         self,
