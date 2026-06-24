@@ -1,0 +1,188 @@
+"""v1 research-case, case-asset/decision and home-queue routes."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from fastapi import APIRouter, Depends, Request
+from pydantic import BaseModel, Field
+
+from doge.interfaces.api import deps
+from doge.interfaces.api.routers.v1._common import serialize
+from doge.interfaces.api.routers.v1._platform_common import (
+    build_research_case_execution_service,
+    build_research_case_service,
+    platform_context,
+    raise_platform_error,
+    require_platform_objects,
+)
+from doge.platform.workspace import (
+    CaseAssetCreate,
+    CaseDecisionCreate,
+    PlatformServiceError,
+    ResearchCaseService,
+)
+
+router = APIRouter(dependencies=[Depends(deps.require_api_token)])
+
+
+class ResearchCaseCreate(BaseModel):
+    project_id: str
+    title: str = Field(min_length=1, max_length=200)
+    thesis: str = ""
+
+
+class CaseAssetCreateRequest(BaseModel):
+    asset_type: str
+    asset_id: str
+    asset_name: str = ""
+    role: str = "source"
+    version: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class CaseDecisionCreateRequest(BaseModel):
+    decision_type: str
+    rationale: str = ""
+    source_run_ids: list[str] = Field(default_factory=list)
+    source_execution_ids: list[str] = Field(default_factory=list)
+
+
+@router.get("/home-queue", dependencies=[Depends(require_platform_objects)])
+async def get_home_queue(
+    request: Request,
+    limit: int = 20,
+    service: ResearchCaseService = Depends(build_research_case_execution_service),
+):
+    try:
+        return serialize(service.build_home_queue(platform_context(request), limit=limit))
+    except PlatformServiceError as exc:
+        raise_platform_error(exc)
+
+
+@router.get("/research-cases", dependencies=[Depends(require_platform_objects)])
+async def list_research_cases(
+    request: Request,
+    project_id: str | None = None,
+    limit: int = 100,
+    service: ResearchCaseService = Depends(build_research_case_service),
+):
+    try:
+        items = service.list(platform_context(request), project_id=project_id, limit=limit)
+        return {"research_cases": serialize(items)}
+    except PlatformServiceError as exc:
+        raise_platform_error(exc)
+
+
+@router.post("/research-cases", dependencies=[Depends(require_platform_objects)], status_code=201)
+async def create_research_case(
+    request: Request,
+    body: ResearchCaseCreate,
+    service: ResearchCaseService = Depends(build_research_case_service),
+):
+    try:
+        research_case = service.create(
+            platform_context(request),
+            project_id=body.project_id,
+            title=body.title,
+            thesis=body.thesis,
+        )
+        return serialize(research_case)
+    except PlatformServiceError as exc:
+        raise_platform_error(exc)
+
+
+@router.get("/research-cases/{case_id}", dependencies=[Depends(require_platform_objects)])
+async def get_research_case(
+    request: Request,
+    case_id: str,
+    service: ResearchCaseService = Depends(build_research_case_service),
+):
+    try:
+        return serialize(service.get(platform_context(request), case_id))
+    except PlatformServiceError as exc:
+        raise_platform_error(exc)
+
+
+@router.get("/research-cases/{case_id}/assets", dependencies=[Depends(require_platform_objects)])
+async def list_research_case_assets(
+    request: Request,
+    case_id: str,
+    service: ResearchCaseService = Depends(build_research_case_execution_service),
+):
+    try:
+        return {"assets": serialize(service.list_case_assets(platform_context(request), case_id))}
+    except PlatformServiceError as exc:
+        raise_platform_error(exc)
+
+
+@router.post("/research-cases/{case_id}/assets", dependencies=[Depends(require_platform_objects)], status_code=201)
+async def add_research_case_asset(
+    request: Request,
+    case_id: str,
+    body: CaseAssetCreateRequest,
+    service: ResearchCaseService = Depends(build_research_case_execution_service),
+):
+    try:
+        return serialize(service.add_case_asset(
+            platform_context(request),
+            case_id,
+            CaseAssetCreate(
+                asset_type=body.asset_type,
+                asset_id=body.asset_id,
+                asset_name=body.asset_name,
+                role=body.role,
+                version=body.version,
+                metadata=body.metadata,
+            ),
+        ))
+    except PlatformServiceError as exc:
+        raise_platform_error(exc)
+
+
+@router.delete("/research-cases/{case_id}/assets/{asset_link_id}", dependencies=[Depends(require_platform_objects)])
+async def remove_research_case_asset(
+    request: Request,
+    case_id: str,
+    asset_link_id: str,
+    service: ResearchCaseService = Depends(build_research_case_execution_service),
+):
+    try:
+        service.remove_case_asset(platform_context(request), case_id, asset_link_id)
+        return {"status": "deleted", "asset_link_id": asset_link_id}
+    except PlatformServiceError as exc:
+        raise_platform_error(exc)
+
+
+@router.get("/research-cases/{case_id}/decisions", dependencies=[Depends(require_platform_objects)])
+async def list_research_case_decisions(
+    request: Request,
+    case_id: str,
+    service: ResearchCaseService = Depends(build_research_case_execution_service),
+):
+    try:
+        return {"decisions": serialize(service.list_case_decisions(platform_context(request), case_id))}
+    except PlatformServiceError as exc:
+        raise_platform_error(exc)
+
+
+@router.post("/research-cases/{case_id}/decisions", dependencies=[Depends(require_platform_objects)], status_code=201)
+async def record_research_case_decision(
+    request: Request,
+    case_id: str,
+    body: CaseDecisionCreateRequest,
+    service: ResearchCaseService = Depends(build_research_case_execution_service),
+):
+    try:
+        return serialize(service.record_decision(
+            platform_context(request),
+            case_id,
+            CaseDecisionCreate(
+                decision_type=body.decision_type,
+                rationale=body.rationale,
+                source_run_ids=body.source_run_ids,
+                source_execution_ids=body.source_execution_ids,
+            ),
+        ))
+    except PlatformServiceError as exc:
+        raise_platform_error(exc)
