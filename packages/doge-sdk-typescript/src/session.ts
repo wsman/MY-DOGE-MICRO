@@ -37,3 +37,36 @@ export class Session {
     })
   }
 }
+
+export class SessionsResource {
+  private readonly root: DogeClient
+
+  constructor(root: DogeClient) {
+    this.root = root
+  }
+
+  async create(title = 'Research session'): Promise<Session> {
+    const data = await this.root.request<AgentSession>('POST', '/v1/sessions', { title })
+    return new Session(this.root, data)
+  }
+
+  async list(limit = 20): Promise<AgentSession[]> {
+    const payload = await this.root.request<{ sessions: AgentSession[] }>('GET', `/v1/sessions?limit=${limit}`)
+    return payload.sessions
+  }
+
+  async get(sessionId: string): Promise<Session> {
+    const data = await this.root.request<AgentSession>('GET', `/v1/sessions/${sessionId}`)
+    return new Session(this.root, data)
+  }
+
+  async createTurn(sessionId: string, message: string, options: Record<string, unknown> = {}): Promise<string> {
+    const payload = await this.root.request<{ run_id: string }>(
+      'POST',
+      `/v1/sessions/${sessionId}/turns`,
+      { message, ...options },
+      { 'Idempotency-Key': crypto.randomUUID() },
+    )
+    return payload.run_id
+  }
+}

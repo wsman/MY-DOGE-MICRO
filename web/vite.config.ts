@@ -10,7 +10,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@pretext': resolve(__dirname, 'src/vendor/pretext/layout.ts'),
-      'doge-sdk': resolve(__dirname, '../packages/doge-sdk-typescript/src/index.ts'),
     },
   },
   server: {

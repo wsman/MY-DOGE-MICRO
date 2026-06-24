@@ -57,7 +57,6 @@ describe('product navigation routes', () => {
 
     const { default: rollbackRouter } = await import('./index')
     await rollbackRouter.push('/home')
-    await rollbackRouter.isReady()
 
     expect(rollbackRouter.currentRoute.value.path).toBe('/research-agent')
   })

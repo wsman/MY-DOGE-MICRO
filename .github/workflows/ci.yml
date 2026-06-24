@@ -58,14 +58,6 @@ jobs:
         run: npm ci
         working-directory: web
 
-      - name: Test web
-        run: npm test
-        working-directory: web
-
-      - name: Build web
-        run: npm run build
-        working-directory: web
-
       - name: Test TypeScript SDK
         run: npm test
         working-directory: packages/doge-sdk-typescript
@@ -73,3 +65,11 @@ jobs:
       - name: Build TypeScript SDK
         run: npm run build
         working-directory: packages/doge-sdk-typescript
+
+      - name: Test web
+        run: npm test
+        working-directory: web
+
+      - name: Build web
+        run: npm run build
+        working-directory: web

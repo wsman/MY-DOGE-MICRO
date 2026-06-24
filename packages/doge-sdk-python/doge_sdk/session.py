@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from uuid import uuid4
 
 
 class Session:
@@ -42,3 +43,58 @@ class AsyncSession(Session):
         policy = dict(model_policy or {})
         policy.setdefault("execution_profile", execution_profile)
         return await self.create_turn(question, model_policy=policy, **kwargs)
+
+
+class SessionsResource:
+    def __init__(self, root: Any) -> None:
+        self._root = root
+
+    def create(self, title: str = "Research session") -> Session:
+        return Session(self._root, self._root._request("POST", "/v1/sessions", json={"title": title}))
+
+    def list(self, limit: int = 20) -> list[dict[str, Any]]:
+        return self._root._request("GET", "/v1/sessions", params={"limit": limit})["sessions"]
+
+    def get(self, session_id: str) -> Session:
+        return Session(self._root, self._root._request("GET", f"/v1/sessions/{session_id}"))
+
+    def create_turn(self, session_id: str, message: str, idempotency_key: str | None = None, **kwargs: Any) -> str:
+        headers = {"Idempotency-Key": idempotency_key or str(uuid4())}
+        payload = {"message": message, **kwargs}
+        return self._root._request(
+            "POST",
+            f"/v1/sessions/{session_id}/turns",
+            json=payload,
+            headers=headers,
+        )["run_id"]
+
+
+class AsyncSessionsResource:
+    def __init__(self, root: Any) -> None:
+        self._root = root
+
+    async def create(self, title: str = "Research session") -> AsyncSession:
+        payload = await self._root._request("POST", "/v1/sessions", json={"title": title})
+        return AsyncSession(self._root, payload)
+
+    async def list(self, limit: int = 20) -> list[dict[str, Any]]:
+        return (await self._root._request("GET", "/v1/sessions", params={"limit": limit}))["sessions"]
+
+    async def get(self, session_id: str) -> AsyncSession:
+        return AsyncSession(self._root, await self._root._request("GET", f"/v1/sessions/{session_id}"))
+
+    async def create_turn(
+        self,
+        session_id: str,
+        message: str,
+        idempotency_key: str | None = None,
+        **kwargs: Any,
+    ) -> str:
+        headers = {"Idempotency-Key": idempotency_key or str(uuid4())}
+        payload = {"message": message, **kwargs}
+        return (await self._root._request(
+            "POST",
+            f"/v1/sessions/{session_id}/turns",
+            json=payload,
+            headers=headers,
+        ))["run_id"]

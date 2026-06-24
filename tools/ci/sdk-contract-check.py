@@ -141,10 +141,16 @@ def validate() -> list[str]:
     python_surface = _read_all(
         ROOT / "packages" / "doge-sdk-python" / "doge_sdk" / "client.py",
         ROOT / "packages" / "doge-sdk-python" / "doge_sdk" / "session.py",
+        ROOT / "packages" / "doge-sdk-python" / "doge_sdk" / "run.py",
+        ROOT / "packages" / "doge-sdk-python" / "doge_sdk" / "document.py",
+        ROOT / "packages" / "doge-sdk-python" / "doge_sdk" / "platform.py",
     )
     typescript_surface = _read_all(
         ROOT / "packages" / "doge-sdk-typescript" / "src" / "client.ts",
         ROOT / "packages" / "doge-sdk-typescript" / "src" / "session.ts",
+        ROOT / "packages" / "doge-sdk-typescript" / "src" / "run.ts",
+        ROOT / "packages" / "doge-sdk-typescript" / "src" / "document.ts",
+        ROOT / "packages" / "doge-sdk-typescript" / "src" / "platform.ts",
     )
     web_surface = _read_all(
         ROOT / "web" / "src" / "api" / "agent.ts",
