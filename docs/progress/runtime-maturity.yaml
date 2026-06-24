@@ -1,6 +1,18 @@
-generated_at: "2026-06-21"
+generated_at: "2026-06-24"
 stable_declaration: forbidden
 non_runtime_followup_plan: docs/progress/runtime-stability-followup-plan.md
+
+current_exact_sha_probe:
+  head_sha: "625285f067b21a4ee8aa36e83b4565a5fa57bac6"
+  evidence: production/qa/evidence/ci/remote-ci-625285f.json
+  remote_ci_result: failed
+  remote_ci_run_id: 28089385791
+  local_remediation_status: in_progress
+  notes:
+    - "Remote CI for the exact baseline SHA failed in Python checks; the evidence remains non-passing."
+    - "Local remediation fixed the external-plan-path validator fallback, doged status port lookup, README provider drift, TenantScope runtime reads/mutations, SafeError event payloads, AST dependency gates, RuntimeContainer-owned runtime/session factories, WorkspaceContainer-owned repository/case/workflow wiring, GatewayContainer-owned read-side/product factories, migrated session/run/case/template/query CLI, scan API, MCP query/workspace tools, and /v1/tools entrypoints, lazy application package composition compatibility exports, the first behavior-owning workspace asset/decision services, first-class persisted AgentRun workflow_context, provider-owned tool descriptor aggregation, DOGE_PROCESS_ROLE api/worker/all split-role daemon readiness, SDK resource modules, Web package-based SDK imports, and TypeScript SDK/Web tests/build under a temporary Node v24.16.0/npm 11.13.0 toolchain."
+    - "Latest local verification after the gateway/MCP bootstrap migration: full Python regression 1477 passed, 9 skipped, 11 warnings; Gateway/API/CLI slice 107 passed, 1 skipped; MCP slice 92 passed, 1 skipped."
+    - "A future commit containing these fixes still requires successful exact-SHA GitHub Actions evidence before remote CI can be marked passed."
 
 maturity_labels:
   level_1_embedded_cli_session: preview

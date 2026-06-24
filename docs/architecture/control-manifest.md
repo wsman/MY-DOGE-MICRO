@@ -1,6 +1,6 @@
 # Architecture Control Manifest
 
-> **Manifest Version**: 2026-06-23
+> **Manifest Version**: 2026-06-24
 > **Owner**: lead-programmer (architecture); enforced by `/architecture-review`, `/gate-check`, `/story-readiness`, `/story-done`, and CI.
 > **Scope**: MY-DOGE-MICRO — local-first quantitative investment decision-support platform. This manifest is the project's control-plane reference: the quality gates, the BLOCKING vs ADVISORY evidence rules, the ADR lifecycle, the registry-write policy, the forbidden patterns, and the exact verification commands.
 > **How to use**: stories embed this manifest version in their header (`Control Manifest: 2026-06-21`); `/story-done` checks for staleness against this file's header. When a rule changes, bump the version date and re-review open stories.
@@ -13,13 +13,13 @@ From ADR-0001 + `clean-architecture-migration.md §4.3`. This is the invariant e
 
 | Layer | MAY import | MAY NOT import |
 |---|---|---|
-| `src/doge/interfaces/*` (MCP, FastAPI, CLI, GUI, Web) | `core.services`, `config` (for DI wiring) | `sqlite3`, `duckdb`, `ai_analysis`, `micro`, `macro`, `sys.path` mutation |
+| `src/doge/interfaces/*` (MCP, FastAPI, CLI, GUI, Web) | `doge.bootstrap`, public application/platform services, `config` (for DI wiring) | `sqlite3`, `duckdb`, `ai_analysis`, `micro`, `macro`, `sys.path` mutation |
 | `src/doge/core/services/*` | `core.ports`, `core.domain` | `sqlite3`, `duckdb`, `infrastructure`, any framework (`fastapi`, `mcp`, `PyQt6`) |
 | `src/doge/core/ports/*` | stdlib, `core.domain` (optional) | any infrastructure, any framework |
 | `src/doge/infrastructure/*` | `core.ports` (to implement), `config`, drivers (`sqlite3`, `duckdb`, `opentdx`, `yfinance`, `openai`) | `core.services`, `interfaces` |
 | `src/doge/config/*` | stdlib only | any other layer |
 
-**Dependency direction**: interfaces → services → ports ← infrastructure. Never point inward. The four view-backed services now depend on `IMarketViewRepository`; `src/doge/core/services/composition.py` is the single wiring site that imports the DuckDB adapter (ADR-0010 / TR-041).
+**Dependency direction**: interfaces → bootstrap/context public APIs → services → ports ← infrastructure. Never point inward. The four view-backed services depend on `IMarketViewRepository`; `src/doge/bootstrap/*` owns new wiring, while `doge.application.composition` is a compatibility shim for legacy imports (ADR-0010 / TR-041).
 
 ### Required
 
@@ -41,7 +41,7 @@ From ADR-0021 + ADR-0022. These rules govern the transition from the old
 | `src/doge/platform/runtime/*` | Runtime coordination may not directly import product packages. It calls model, tool, artifact, eval, and capability ports. |
 | `src/doge/entrypoints/*` and `src/doge/interfaces/*` | Entrypoints may call application services and bootstrap wiring, but must not open persistence adapters directly. |
 | `src/doge/adapters/*` and `src/doge/infrastructure/*` | Adapters implement ports and must not contain business decisions, approval policy, research semantics, or product orchestration. |
-| `src/doge/bootstrap/*` and composition roots | Only bootstrap/composition roots may wire product contexts, platform services, and concrete adapters together. |
+| `src/doge/bootstrap/*` and compatibility composition roots | Bootstrap owns product/platform/runtime wiring. Compatibility composition roots may delegate to bootstrap but must not gain new factory ownership. |
 | `src/doge/shared/*` | Shared code is limited to primitives such as config, errors, ids, clock, and contracts. It must not grow product workflow logic. |
 
 #### Compatibility and Deprecation Rules
@@ -149,7 +149,7 @@ Proposed  ──►  Accepted  ──►  Superseded
 | 0007 API Surface and CORS | **Accepted** | Strengthened-loopback-guarantee (S004-005/008b); error envelope shipped; allow_origins=['*'] safe under the loopback bind. |
 | 0008 Vue Web Console Architecture | **Accepted** | Build-green, reverse-documented. |
 | 0009 Cache/Metadata Port Split | **Accepted** | Port split realized; real yfinance metadata adapter is follow-on implementation work. |
-| 0010 View-Service Port Injection | **Accepted** | IMarketViewRepository and composition-root wiring are implemented and tested. |
+| 0010 View-Service Port Injection | **Accepted** | IMarketViewRepository and bootstrap-owned wiring are implemented and tested; legacy composition paths remain shims. |
 | 0011 Agent Runtime Levels | **Accepted** | Level 1/2/3 runtime model accepted; maturity claims remain governed by `docs/progress/runtime-maturity.yaml`. |
 | 0012 Enterprise Model Gateway | **Accepted** | Model routing boundary accepted; live Kimi gates remain external runtime/product gates. |
 | 0013 Tool Governance | **Accepted** | Tool entitlement, approval, and high-risk categories accepted. |
@@ -254,6 +254,13 @@ diff <(awk '/^## /{f=0} /Runtime|Backend and Product|Data and Market/{f=1} f' do
 ```bash
 python -m pytest tests/unit/governance/test_s017_planning_docs.py -q
 python -m pytest tests/unit/governance/test_adr_lifecycle_status.py -q
+python -m pytest tests/unit/architecture/test_bootstrap_owns_factories.py -q
+python -m pytest tests/cli/test_cli_session.py tests/cli/test_cli_run.py tests/cli/test_cli_platform_workflow.py tests/unit/architecture/test_bootstrap_owns_factories.py tests/contract/test_v1_api.py -q
+python -m pytest tests/cli/test_cli_session.py tests/cli/test_cli_run.py tests/cli/test_cli_platform_workflow.py tests/unit/architecture/test_bootstrap_owns_factories.py tests/unit/layer_gates/test_composition_root_location.py tests/contract/test_v1_api.py tests/test_mcp_tools.py tests/unit/infrastructure/test_secret_provider.py -q
+python -m pytest tests/unit/architecture/test_context_dependency_graph.py -q
+python -m pytest tests/unit/agent/test_tool_registry.py tests/unit/capabilities -q
+python -m pytest tests/cli/test_doged_cli.py tests/unit/agent/test_worker.py tests/contract/test_v1_api.py -q
+python -m pytest tests/contract/test_python_sdk.py -q
 python -m pytest tests/unit/layer_gates/ -q
 ```
 
@@ -291,4 +298,4 @@ The migration is incremental (ADR-0001). Legacy entrypoints stay live until repl
 
 ---
 
-*Manifest Version 2026-06-23. Re-review and bump this date whenever a rule, gate, ADR status, or verification command changes.*
+*Manifest Version 2026-06-24. Re-review and bump this date whenever a rule, gate, ADR status, or verification command changes.*

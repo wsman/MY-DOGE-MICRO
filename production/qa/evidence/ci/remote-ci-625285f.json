@@ -1,0 +1,23 @@
+{
+  "generated_at": "2026-06-24T11:42:55.029432Z",
+  "head_sha": "625285f067b21a4ee8aa36e83b4565a5fa57bac6",
+  "query_url": "https://api.github.com/repos/wsman/MY-DOGE-MICRO/actions/runs?head_sha=625285f067b21a4ee8aa36e83b4565a5fa57bac6&per_page=20",
+  "repo": "wsman/MY-DOGE-MICRO",
+  "required_workflow_name": "CI",
+  "result": "pending_remote_ci",
+  "runs": [
+    {
+      "conclusion": "failure",
+      "created_at": "2026-06-24T09:37:35Z",
+      "event": "push",
+      "head_sha": "625285f067b21a4ee8aa36e83b4565a5fa57bac6",
+      "html_url": "https://github.com/wsman/MY-DOGE-MICRO/actions/runs/28089385791",
+      "id": 28089385791,
+      "name": "CI",
+      "status": "completed",
+      "updated_at": "2026-06-24T09:39:05Z"
+    }
+  ],
+  "schema": "doge.remote_ci_evidence.v1",
+  "total_count": 1
+}

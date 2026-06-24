@@ -111,6 +111,12 @@ matching dataclass defaults are the source of truth:
 | `MCP_PORT` | `8902` | SSE listen port. |
 | `MCP_TOOL_TIMEOUT` (dataclass: `tool_timeout`) | `30` | Per-tool execution ceiling in seconds. |
 
+### Daemon gateway (`DaemonConfig`, `settings.py:411-415`)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DOGE_DAEMON_PORT` | `8901` | Loopback FastAPI daemon gateway port used by `doged serve`, `doged status`, SDK examples, and Web console defaults. |
+
 ### DeepSeek API key (S002-013 — required for macro / LLM surfaces)
 
 `DEEPSEEK_API_KEY` is the **PRIMARY** key source for the macro strategy engine

@@ -2,9 +2,11 @@ from pathlib import Path
 import subprocess
 import sys
 
+import scripts.validate_piped_donut_pre_remote_ci_package as validator
 from scripts.validate_piped_donut_pre_remote_ci_package import (
     PACKAGE,
     REQUIRED_PAYLOAD_PATHS,
+    _read_plan_text,
     validate,
 )
 
@@ -58,6 +60,16 @@ def test_piped_donut_pre_remote_ci_package_rejects_production_posture_claim():
     errors = validate(text)
 
     assert any("package missing required snippet: production_ready: false" in error for error in errors)
+
+
+def test_piped_donut_pre_remote_ci_package_uses_fallback_plan_when_external_plan_missing(monkeypatch, tmp_path):
+    missing_plan = tmp_path / "missing-piped-donut-plan.md"
+    monkeypatch.setattr(validator, "PLAN", missing_plan)
+
+    text = _read_plan_text(missing_plan)
+
+    assert "docs/progress/my-doge-micro-main-2ffdb66-piped-donut-completion-audit.md" in text
+    assert "scripts/validate_alpha_remote_ci_success.py" in text
 
 
 def test_piped_donut_pre_remote_ci_package_cli():

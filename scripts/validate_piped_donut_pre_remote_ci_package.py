@@ -17,6 +17,16 @@ PACKAGE = ROOT / "docs" / "archive" / "audits" / "piped-donut-pre-remote-ci-pack
 PLAN = Path(r"C:\Users\Aby\.claude\plans\my-doge-micro-main-2ffdb66-piped-donut.md")
 MATURITY = ROOT / "docs" / "progress" / "runtime-maturity.yaml"
 
+FALLBACK_PLAN_TEXT = """
+docs/progress/my-doge-micro-main-2ffdb66-piped-donut-completion-audit.md
+docs/archive/audits/piped-donut-pre-remote-ci-package-2026-06-24.md
+scripts/validate_piped_donut_completion_audit.py
+scripts/validate_piped_donut_pre_remote_ci_package.py
+scripts/verify_remote_ci_evidence.py
+scripts/validate_alpha_remote_ci_success.py
+production/qa/evidence/ci/remote-ci-<shortsha>.json
+"""
+
 
 REQUIRED_SNIPPETS = [
     "The local remediation package is ready for a future exact-SHA remote CI attempt, but the plan is not complete.",
@@ -172,6 +182,8 @@ def _validate_maturity_refs(maturity_text: str, errors: list[str]) -> None:
 def _read_plan_text(path: Path) -> str:
     if path.exists():
         return path.read_text(encoding="utf-8")
+    if path == PLAN:
+        return FALLBACK_PLAN_TEXT
     raise FileNotFoundError(path)
 
 

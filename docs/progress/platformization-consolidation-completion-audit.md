@@ -258,3 +258,135 @@ eval smoke: 7 passed
 This closure does not claim Beta, GA, Stable, enterprise production readiness,
 or external gate completion. Any post-closure commit requires its own exact-SHA
 remote CI evidence before that newer SHA can be called remotely verified.
+
+## Post-Closure SHA Probe - 2026-06-24
+
+The follow-on remediation plan
+`C:\Users\Aby\.claude\plans\my-doge-micro-2026-swift-frost.md` checked the
+newer main-branch target SHA:
+
+```text
+625285f067b21a4ee8aa36e83b4565a5fa57bac6
+```
+
+Remote CI evidence was fetched to:
+
+```text
+production/qa/evidence/ci/remote-ci-625285f.json
+```
+
+This evidence does **not** close the remote-CI gate for `625285f`. GitHub
+Actions run `28089385791` completed with conclusion `failure` in the Python
+checks job. The failing job was caused by the
+`validate_piped_donut_pre_remote_ci_package.py` validator attempting to read an
+operator-local plan path that is absent in Linux CI:
+
+```text
+C:\Users\Aby\.claude\plans\my-doge-micro-main-2ffdb66-piped-donut.md
+```
+
+This is tracked as a Phase 0 remediation item. The project still must capture a
+future exact-SHA successful remote CI run before any newer SHA is called
+remotely verified.
+
+## Swift-Frost Local Remediation Pass - 2026-06-24
+
+The same follow-on plan applied local remediation for the failed CI root cause,
+the first boundary-hardening items, and the first physical-modularization
+slices. This section is local evidence only; it does not convert the failed
+`625285f` remote CI run into a pass.
+
+Implemented locally:
+
+- `scripts/validate_piped_donut_pre_remote_ci_package.py` now has a repository
+  fallback for the external operator-local piped-donut plan path that is absent
+  on Linux CI workers.
+- `doged status` now reads the configured daemon port and also accepts a
+  `--port` override, matching `doged serve` behavior.
+- README secrets/config documentation now reflects the Kimi default path
+  (`DOGE_TEXT_LLM_PROVIDER=kimi`, `MOONSHOT_API_KEY`) and the retained DeepSeek
+  fallback.
+- `IResearchAgentRuntime`, `RuntimeKernel`, the persisted runtime adapter, v1
+  run routes, workspace services, worker user-triggered operations, run summary,
+  in-memory repositories, and `ModelRouter` now propagate first-class
+  `TenantScope` through tenant-scoped run/event/artifact/approval/document reads
+  and mutations. Legacy runtime call signatures remain as temporary migration
+  shims.
+- Tool and runtime failures now use `SafeError` event payloads with stable
+  public code/message/reference fields; legacy public `error`/`message` strings
+  are retained for SDK and SSE compatibility, but raw provider/runtime exception
+  text no longer enters persisted runtime events.
+- `tests/unit/architecture/test_context_dependency_graph.py` adds an AST-level
+  dependency gate for platform-runtime/product/entrypoint import boundaries.
+- `RuntimeContainer` now owns runtime persistence leaf factories; the matching
+  `doge.application.composition` functions remain compatibility shims.
+- `RuntimeContainer` now also owns session use-case factories, and the
+  migrated `session`/`run` CLI runtime paths plus `/v1/tools` registry lookup use
+  bootstrap containers instead of direct legacy composition imports.
+- `doge.application.__init__` now lazily resolves compatibility factory
+  re-exports so application submodule imports no longer eagerly import the
+  legacy mega composition root.
+- `WorkspaceContainer` now owns portfolio/platform/governance repository
+  wiring and case/workflow service wiring; `case` and `template` CLI commands
+  use that workspace container.
+- `GatewayContainer` now owns read-side service/repository wiring, secret
+  providers, macro/industry compatibility report wiring, scan/file-upload
+  factories, local RAG, and claim repositories; matching legacy composition
+  functions delegate to the gateway container.
+- Stock/RSRS/breadth/anomaly/macro/demo CLI commands, scan API helpers, and MCP
+  query/workspace tools now use bootstrap containers rather than direct legacy
+  composition imports.
+- `CaseAssetService` and `CaseDecisionService` now own asset-link and
+  decision behavior directly; `ResearchCaseService` delegates those operations
+  while retaining the public facade.
+- `AgentRun.workflow_context` is now first-class and persisted in SQLite;
+  workflow-template run requests populate it directly while old
+  `ModelPolicy.extra` template metadata remains a compatibility fallback.
+- Default tool descriptors now live on the market, portfolio, research,
+  fundamental, quant, compliance, and publishing providers; the root default
+  registry only aggregates provider-owned descriptors through
+  `ToolApplicationService`.
+- `DOGE_PROCESS_ROLE` now supports `api`, `worker`, and `all`; `doged serve`
+  respects the role, `doged-api`/`doged-worker` console scripts are exposed,
+  independent workers poll the durable SQLite queue, and `/health/ready`
+  reports database, migration, queue, worker, outbox, document-storage, and
+  model-provider checks.
+- Python SDK resources now live in `session.py`, `run.py`, `document.py`, and
+  `platform.py`; `DogeClient` and `AsyncDogeClient` remain thin aggregators.
+- TypeScript SDK resources now live in `session.ts`, `run.ts`, `document.ts`,
+  and `platform.ts`; Web imports the `doge-sdk` package and no longer aliases
+  or includes `packages/doge-sdk-typescript/src` directly.
+- The frontend CI job now tests/builds the TypeScript SDK before Web
+  tests/build so package `dist` exists before Web consumes `doge-sdk`.
+
+Local verification:
+
+```text
+runtime/use-case TenantScope regression: 42 passed
+API/CLI TenantScope contract regression: 40 passed
+runtime/tool SafeError regression: 47 passed
+architecture and layer gates: 92 passed, 1 warning
+contract/API/CLI regression: 48 passed
+bootstrap ownership slice: 14 passed
+workspace asset/decision split: 33 passed
+workflow context independence: 36 passed
+workflow/template/platform compatibility: 132 passed
+tool provider registration split: 39 passed
+daemon role/readiness split: 52 passed
+daemon SSE/CLI compatibility: 15 passed
+Python SDK resource split: 16 passed
+gateway/API/CLI bootstrap migration slice: 107 passed, 1 skipped
+MCP bootstrap migration slice: 92 passed, 1 skipped
+application lazy composition compatibility slice: 117 passed
+full Python regression: 1477 passed, 9 skipped, 11 warnings
+Web SDK source-coupling scan: no relative SDK source imports or source aliases
+TypeScript SDK tests/build: 14 passed; tsc build passed using temporary Node v24.16.0 / npm 11.13.0 from nodejs-wheel
+Web tests/build: 15 files / 91 tests passed; vue-tsc and Vite build passed using temporary Node v24.16.0 / npm 11.13.0 from nodejs-wheel
+governance YAML shape: passed (5 files, 0 findings)
+git diff --check: no whitespace errors
+plan closure gate --allow-open: open as expected (5 controlled external gates, 1 passed)
+```
+
+Remote-CI status remains open. The next commit that contains these local fixes
+must receive its own successful exact-SHA GitHub Actions evidence before the
+remote-CI release gate can be closed.

@@ -149,19 +149,51 @@ only when that bootstrap is retired.
 
 ## Secrets
 
-The committed model config files ship only the placeholder
-`REPLACE_WITH_DEEPSEEK_API_KEY`. For LLM-backed macro/research paths, set the
-real key in the shell environment:
+The default text LLM provider is Kimi/Moonshot
+(`DOGE_TEXT_LLM_PROVIDER=kimi`). For LLM-backed macro/research paths that use
+the default provider, set the real Moonshot key in the shell environment:
 
 ```bash
+set MOONSHOT_API_KEY=sk-your-real-key-here
+```
+
+PowerShell:
+
+```powershell
+$env:MOONSHOT_API_KEY='sk-your-real-key-here'
+```
+
+DeepSeek remains a supported compatibility/fallback provider. To use it
+explicitly, set `DOGE_TEXT_LLM_PROVIDER=deepseek` and provide
+`DEEPSEEK_API_KEY`. The committed model config files ship only the placeholder
+`REPLACE_WITH_DEEPSEEK_API_KEY`.
+
+```bash
+set DOGE_TEXT_LLM_PROVIDER=deepseek
 set DEEPSEEK_API_KEY=sk-your-real-key-here
 ```
 
 PowerShell:
 
 ```powershell
+$env:DOGE_TEXT_LLM_PROVIDER='deepseek'
 $env:DEEPSEEK_API_KEY='sk-your-real-key-here'
 ```
+
+The loopback daemon defaults to port `8901`. Override both `doged serve` and
+`doged status` defaults with `DOGE_DAEMON_PORT`, or pass `--port` to either
+command.
+
+Daemon process roles default to local-development `all`, which starts the API
+and in-process worker together. Production-style deployments should set
+`DOGE_PROCESS_ROLE` explicitly:
+
+- `api` starts FastAPI without an in-process worker.
+- `worker` starts the durable worker and optional outbox publisher only.
+- `all` preserves the local combined topology.
+
+The package also exposes `doged-api` and `doged-worker` console scripts for the
+split roles.
 
 Never commit real API keys, bearer tokens, provider credentials, or operator
 secrets. See [security-and-data-boundaries.md](docs/security-and-data-boundaries.md)

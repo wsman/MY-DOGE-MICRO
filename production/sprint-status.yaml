@@ -21,7 +21,7 @@
 # READ BY: /sprint-status, /story-readiness, /story-done, CI sprint-gate jobs.
 
 version: 1
-last_updated: "2026-06-22"
+last_updated: "2026-06-24"
 # 2026-06-12 (Wave 4 cleanup): Sprint 002 implementation complete. All 13
 # stories shipped: S002-001..013 done. ADR governance — ADR-0002/0003/0005
 # Accepted in S002; ADR-0009/0010 Accepted by Wave 4 review. ADR-0004/0007
@@ -210,6 +210,24 @@ last_updated: "2026-06-22"
 # protocol passed. Built and strictly validated
 # production/qa/evidence/manual/research-agent-screen-reader-manual-2026-06-22.json.
 # Closure gate now reports S017-006 passed with 5 controlled open gates left.
+# 2026-06-24 (swift-frost remediation progress): Exact-SHA remote CI evidence
+# for 625285f was fetched and remains failed (GitHub Actions run 28089385791).
+# Local remediation fixed the Linux CI external-plan-path validator fallback,
+# doged status port lookup, README Kimi/DeepSeek config drift, tenant-scoped
+# Runtime/API/Workspace reads and mutations, SafeError event payloads, an AST
+# bounded-context dependency graph gate, RuntimeContainer-owned runtime/session
+# factories, WorkspaceContainer-owned repository/case/workflow wiring,
+# GatewayContainer-owned read-side/product factories, migrated session/run/
+# case/template/query CLI, scan API, MCP query/workspace tools, and /v1/tools
+# entrypoints, lazy application package composition compatibility exports, real CaseAssetService/
+# CaseDecisionService behavior ownership, first-class persisted AgentRun
+# workflow_context, provider-owned tool descriptor aggregation,
+# DOGE_PROCESS_ROLE api/worker/all split-role daemon readiness, SDK resource
+# modules, Web package-based SDK imports, and TypeScript SDK/Web tests/build
+# under temporary Node v24.16.0/npm 11.13.0. Latest local full Python
+# regression is 1477 passed, 9 skipped, 11 warnings. This does not close S017
+# external gates or remote-CI release evidence; a future fixed SHA still needs
+# successful exact-SHA GitHub Actions evidence.
 
 sprints:
   - id: S016

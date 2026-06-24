@@ -94,7 +94,7 @@ python -m macro.cli --verbose
 
 ## 查询 CLI：`doge`
 
-`doge.interfaces.cli.main` 通过 `argparse` + `add_subparsers`（`src/doge/interfaces/cli/main.py` 的 `build_parser()`）暴露 6 个子命令，分发在 `main()` 中。所有子命令均通过 `doge.application.composition` 中的工厂注入只读仓库适配器或应用用例，**不写入数据库**。
+`doge.interfaces.cli.main` 通过 `argparse` + `add_subparsers`（`src/doge/interfaces/cli/main.py` 的 `build_parser()`）暴露子命令，分发在 `main()` 中。新迁移的 session、run、case 和 template 路径通过 `doge.bootstrap` 容器装配；较早的查询命令仍通过兼容工厂注入只读仓库适配器或应用用例。
 
 子命令概览：
 
@@ -344,7 +344,7 @@ doge macro --verbose
 
 ### 查询 CLI 所需（DuckDB 路径）
 
-查询 CLI 通过 `doge.application.composition` 注入的只读仓库间接读取下列路径变量（定义在 `src/doge/config/settings.py` 的 `DBConfig`）：
+查询 CLI 通过 bootstrap 容器或兼容工厂注入的只读仓库间接读取下列路径变量（定义在 `src/doge/config/settings.py` 的 `DBConfig`）：
 
 | 变量 | 默认 | 说明 | 源码 |
 |------|------|------|------|
@@ -427,6 +427,8 @@ Kimi live call 遇到 429/rate-limit/timeout/connection/5xx 类错误，chat ada
 ```bash
 doged serve --port 8901
 doged status
+doged-api --port 8901
+doged-worker
 ```
 
 `doged serve` 复用 API 的 loopback bind 保障，默认只绑定 `127.0.0.1`。
@@ -434,6 +436,11 @@ doged status
 termination acknowledgement 和 `DOGE_ALLOW_REMOTE_BIND=1` 的 promotion gate。
 如果设置 `DOGE_API_TOKEN`，v1 session/run/document/tool 路由要求
 `Authorization: Bearer <token>`。
+
+默认 `DOGE_PROCESS_ROLE=all` 会在本地进程内同时启动 FastAPI 和 worker。
+生产式拓扑应显式设置 `DOGE_PROCESS_ROLE=api` 或
+`DOGE_PROCESS_ROLE=worker`，也可以直接使用 `doged-api` 与
+`doged-worker` 两个入口。
 
 `doge_mcp.py` 严格意义上**不是**产品查询 CLI（它服务于 MCP 客户端），但操作者常以命令行启动它。为便于交叉查阅，此处列出其 `argparse` 参数（由 `src/doge/interfaces/mcp/server.py` 提供）：
 
