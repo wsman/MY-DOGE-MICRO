@@ -34,6 +34,17 @@ _RUNTIME_LEAF_FACTORIES = [
     "build_agent_unit_of_work",
 ]
 
+# High-level runtime factories that RuntimeContainer must own directly (P1A).
+_RUNTIME_HIGH_LEVEL_FACTORIES = [
+    "build_research_agent_runtime",
+    "build_persisted_research_agent_runtime",
+    "build_run_summary_use_case",
+    "build_capability_registry_use_case",
+    "build_default_tool_registry",
+    "build_execute_run_use_case",
+    "build_resume_run_use_case",
+]
+
 _WORKSPACE_FACTORIES = [
     "build_portfolio_repository",
     "build_platform_repository",
@@ -77,6 +88,33 @@ def test_runtime_container_leaf_factories_do_not_delegate_to_composition() -> No
 
         assert "composition." not in source
         assert "_composition()" not in source
+
+
+def test_runtime_module_has_no_composition_helper() -> None:
+    """P1A: the ``_composition()`` indirection must be gone from bootstrap.runtime."""
+    source = (PROJECT_ROOT / "src" / "doge" / "bootstrap" / "runtime.py").read_text(encoding="utf-8")
+
+    assert "_composition" not in source
+    assert "doge.application.composition" not in source
+
+
+def test_runtime_container_owns_high_level_factories_directly() -> None:
+    """P1A: RuntimeContainer owns the high-level runtime factories, not composition."""
+    for method_name in _RUNTIME_HIGH_LEVEL_FACTORIES:
+        assert hasattr(RuntimeContainer, method_name), f"RuntimeContainer missing {method_name}"
+        source = inspect.getsource(getattr(RuntimeContainer, method_name))
+
+        assert "composition." not in source
+        assert "_composition()" not in source
+
+
+def test_composition_high_level_factories_are_runtime_container_shims() -> None:
+    """P1A: legacy composition entry points delegate to RuntimeContainer."""
+    for factory_name in _RUNTIME_HIGH_LEVEL_FACTORIES:
+        assert hasattr(composition, factory_name), f"composition missing {factory_name}"
+        source = inspect.getsource(getattr(composition, factory_name))
+
+        assert "_runtime_container" in source
 
 
 def test_composition_leaf_factories_are_runtime_container_shims() -> None:

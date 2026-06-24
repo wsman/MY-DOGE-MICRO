@@ -10,6 +10,9 @@ from doge.application.services.page_extraction_service import PageExtractionServ
 from doge.application.services.citation_service import CitationService
 from doge.application.services.claim_validation_service import ClaimValidationService
 from doge.application.services.rag_service import RAGService
+from doge.application.services.portfolio_service import PortfolioService, RiskService, ScenarioService
+from doge.application.agent.tool_service import ToolApplicationService
+from doge.application.capabilities.executors import DisabledCodeExecutor, SubprocessCodeExecutor
 from doge.application.use_cases.generate_industry_report import GenerateIndustryReportUseCase
 from doge.application.use_cases.generate_macro_report import GenerateMacroReportUseCase
 from doge.application.use_cases.manage_notes import ManageNotesUseCase
@@ -43,6 +46,13 @@ from doge.infrastructure.llm.kimi_files_client import KimiFilesClient
 from doge.infrastructure.llm.kimi_text_client import KimiTextClient
 from doge.infrastructure.secrets import EnvSecretProvider, ProcessSecretProvider
 from doge.infrastructure.vector.sqlite_store import SQLiteVectorStore
+from doge.infrastructure.finance.local_connectors import (
+    LocalNoteAnnouncementRepository,
+    StaticIndustryClassificationSource,
+    StaticRiskFactorSource,
+    StockOverviewFinancialStatementRepository,
+    UnavailableConsensusEstimateRepository,
+)
 
 
 @dataclass(frozen=True)
@@ -212,6 +222,77 @@ class GatewayContainer:
                 parser=LocalDocumentParser(),
             ),
         )
+
+    # ── Product / tool-service factories (back the agent tool registry) ──
+
+    def build_risk_factor_source(self):
+        return StaticRiskFactorSource()
+
+    def build_industry_classification_source(self):
+        return StaticIndustryClassificationSource()
+
+    def build_portfolio_service(self):
+        return PortfolioService(self._workspace().build_portfolio_repository())
+
+    def build_risk_service(self):
+        return RiskService(self._workspace().build_portfolio_repository(), self.build_risk_factor_source())
+
+    def build_scenario_service(self):
+        return ScenarioService(self._workspace().build_portfolio_repository(), self.build_risk_factor_source())
+
+    def build_financial_statement_repository(self):
+        return StockOverviewFinancialStatementRepository(self.build_stock_service())
+
+    def build_company_announcement_repository(self):
+        return LocalNoteAnnouncementRepository(self.build_note_repository())
+
+    def build_consensus_estimate_repository(self):
+        return UnavailableConsensusEstimateRepository()
+
+    def build_python_analysis_executor(self, settings=None):
+        """Build the explicitly configured Python analysis executor."""
+        settings = settings or get_settings()
+        if not settings.features.python_analysis_enabled:
+            return DisabledCodeExecutor()
+        executor = settings.features.python_analysis_executor
+        if executor == "subprocess":
+            return SubprocessCodeExecutor()
+        return DisabledCodeExecutor()
+
+    def build_tool_application_service(self) -> ToolApplicationService:
+        """Build the fully injected application service used by agent tools."""
+        settings = get_settings()
+        return ToolApplicationService(
+            stock_service_factory=self.build_stock_service,
+            ranking_service_factory=self.build_ranking_service,
+            breadth_service_factory=self.build_breadth_service,
+            anomaly_service_factory=self.build_anomaly_service,
+            view_service_factory=self.build_view_service,
+            portfolio_service_factory=self.build_portfolio_service,
+            risk_service_factory=self.build_risk_service,
+            scenario_service_factory=self.build_scenario_service,
+            rag_service_factory=self.build_rag_service,
+            note_repository_factory=self.build_note_repository,
+            industry_report_use_case_factory=self.build_generate_industry_report_use_case,
+            financial_statement_repository_factory=self.build_financial_statement_repository,
+            company_announcement_repository_factory=self.build_company_announcement_repository,
+            consensus_estimate_repository_factory=self.build_consensus_estimate_repository,
+            industry_classification_source_factory=self.build_industry_classification_source,
+            view_repository_factory=lambda: self.build_view_repository(read_only=True),
+            code_executor=self.build_python_analysis_executor(settings),
+            use_capability_providers=True,
+        )
+
+    def _workspace(self):
+        """Return the workspace container sharing this gateway's db_path.
+
+        Lazy import keeps the bootstrap modules free of a module-level
+        gateway<->workspace coupling.
+        """
+
+        from doge.bootstrap.workspace import build_workspace_container
+
+        return build_workspace_container(self.db_path)
 
 
 def build_gateway_container(db_path: Path | str | None = None) -> GatewayContainer:

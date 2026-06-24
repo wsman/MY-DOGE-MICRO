@@ -288,31 +288,11 @@ def build_agent_repositories(db_path=None):
 
 
 def build_agent_runtime_kernel(model=None, tool_registry=None, event_publisher=None, db_path=None) -> RuntimeKernel:
-    """Build the persisted agent runtime kernel."""
-    repos = build_agent_repositories(db_path)
-    secret_provider = build_secret_provider()
-    if model is None:
-        model = build_kimi_agent_model(secret_provider) if secret_provider.get_secret("kimi.api_key") else ScriptedAgentModel()
-    if tool_registry is None:
-        tool_registry = build_default_tool_registry()
-    return RuntimeKernel(
+    """Build the persisted agent runtime kernel (delegates to RuntimeContainer)."""
+    return _runtime_container(db_path).build_agent_runtime_kernel(
         model=model,
         tool_registry=tool_registry,
-        run_repository=repos["runs"],
-        event_repository=repos["events"],
-        artifact_repository=repos["artifacts"],
-        approval_repository=repos["approvals"],
         event_publisher=event_publisher,
-        context_builder=ContextBuilder(
-            document_repository=repos["documents"],
-            evidence_repository=repos["evidence"],
-            session_repository=repos["sessions"],
-            run_repository=repos["runs"],
-        ),
-        model_router=build_model_router(document_repository=repos["documents"]),
-        agent_backends=build_agent_backends(secret_provider),
-        governance_repository=repos["governance"],
-        runtime_transaction_factory=SQLiteRuntimeTransactionFactory(db_path),
     )
 
 
@@ -329,57 +309,37 @@ def build_event_subscriber(db_path=None, *, poll_interval_seconds: float = 0.1):
 
 
 def build_model_router(document_repository=None) -> ModelRouter:
-    """Build the application model router."""
-    return ModelRouter(document_repository=document_repository, settings=get_settings())
+    """Build the application model router (delegates to RuntimeContainer)."""
+    return _runtime_container().build_model_router(document_repository=document_repository)
 
 
 def build_agent_backends(secret_provider=None):
     """Build optional agent runtime backends keyed by router backend id."""
-    settings = get_settings()
-    secret_provider = secret_provider or build_secret_provider()
-    return {
-        "kimi_agent_sdk": KimiAgentSdkBackend(
-            base_url=settings.kimi.base_url,
-            model=settings.kimi.general_model,
-            secret_provider=secret_provider,
-        )
-    }
+    return _runtime_container().build_agent_backends(secret_provider=secret_provider)
 
 
 def build_research_agent_runtime(model=None, tool_registry=None) -> InMemoryResearchAgentRuntime:
     """Build the in-memory research-agent runtime for the interview demo."""
-    secret_provider = build_secret_provider()
-    if model is None:
-        model = build_kimi_agent_model(secret_provider) if secret_provider.get_secret("kimi.api_key") else ScriptedAgentModel()
-    if tool_registry is None:
-        tool_registry = build_default_tool_registry()
-    return InMemoryResearchAgentRuntime(model=model, tool_registry=tool_registry)
+    return _runtime_container().build_research_agent_runtime(model=model, tool_registry=tool_registry)
 
 
 def build_persisted_research_agent_runtime(model=None, tool_registry=None, event_publisher=None, db_path=None):
     """Build the repository-backed runtime for CLI, daemon and SDK paths."""
-    return PersistedResearchAgentRuntime(
-        build_agent_runtime_kernel(
-            model=model,
-            tool_registry=tool_registry,
-            event_publisher=event_publisher,
-            db_path=db_path,
-        )
+    return _runtime_container(db_path).build_persisted_research_agent_runtime(
+        model=model,
+        tool_registry=tool_registry,
+        event_publisher=event_publisher,
     )
 
 
 def build_macro_strategist_agent_use_case(runtime=None) -> MacroStrategistAgentUseCase:
     """Build the RuntimeKernel-backed macro strategist wrapper."""
-    if runtime is None:
-        runtime = build_persisted_research_agent_runtime()
-    return MacroStrategistAgentUseCase(runtime)
+    return _runtime_container().build_macro_strategist_agent_use_case(runtime)
 
 
 def build_industry_analyzer_agent_use_case(runtime=None) -> IndustryAnalyzerAgentUseCase:
     """Build the RuntimeKernel-backed industry analyzer wrapper."""
-    if runtime is None:
-        runtime = build_persisted_research_agent_runtime()
-    return IndustryAnalyzerAgentUseCase(runtime)
+    return _runtime_container().build_industry_analyzer_agent_use_case(runtime)
 
 
 def build_agent_document_repository(db_path=None):
@@ -419,10 +379,7 @@ def build_claim_repository(db_path=None):
 
 def build_portfolio_repository(db_path=None):
     """Build the portfolio repository and ensure the demo portfolio exists."""
-    repo = SQLitePortfolioRepository(db_path)
-    if repo.get("portfolio-demo") is None:
-        repo.save(demo_portfolio())
-    return repo
+    return _workspace_container(db_path).build_portfolio_repository()
 
 
 def build_platform_repository(db_path=None):
@@ -472,84 +429,57 @@ def build_workflow_service(repo=None, governance=None, db_path=None) -> Workflow
 
 def build_financial_statement_repository():
     """Build the configured financial statement connector."""
-    return StockOverviewFinancialStatementRepository(build_stock_service())
+    return _gateway_container().build_financial_statement_repository()
 
 
 def build_company_announcement_repository():
     """Build the configured company announcement connector."""
-    return LocalNoteAnnouncementRepository(build_note_repository())
+    return _gateway_container().build_company_announcement_repository()
 
 
 def build_consensus_estimate_repository():
     """Build the configured consensus estimate connector."""
-    return UnavailableConsensusEstimateRepository()
+    return _gateway_container().build_consensus_estimate_repository()
 
 
 def build_industry_classification_source():
     """Build the configured industry classification source."""
-    return StaticIndustryClassificationSource()
+    return _gateway_container().build_industry_classification_source()
 
 
 def build_risk_factor_source():
     """Build the configured risk factor source."""
-    return StaticRiskFactorSource()
+    return _gateway_container().build_risk_factor_source()
 
 
 def build_tool_application_service(db_path=None) -> ToolApplicationService:
     """Build the fully injected application service used by agent tools."""
-    settings = get_settings()
-    return ToolApplicationService(
-        stock_service_factory=build_stock_service,
-        ranking_service_factory=build_ranking_service,
-        breadth_service_factory=build_breadth_service,
-        anomaly_service_factory=build_anomaly_service,
-        view_service_factory=build_view_service,
-        portfolio_service_factory=lambda: build_portfolio_service(db_path),
-        risk_service_factory=lambda: build_risk_service(db_path),
-        scenario_service_factory=lambda: build_scenario_service(db_path),
-        rag_service_factory=lambda: build_rag_service(db_path),
-        note_repository_factory=build_note_repository,
-        industry_report_use_case_factory=build_generate_industry_report_use_case,
-        financial_statement_repository_factory=build_financial_statement_repository,
-        company_announcement_repository_factory=build_company_announcement_repository,
-        consensus_estimate_repository_factory=build_consensus_estimate_repository,
-        industry_classification_source_factory=build_industry_classification_source,
-        view_repository_factory=lambda: build_view_repository(read_only=True),
-        code_executor=build_python_analysis_executor(settings),
-        use_capability_providers=True,
-    )
+    return _gateway_container(db_path).build_tool_application_service()
 
 
 def build_python_analysis_executor(settings=None):
     """Build the explicitly configured Python analysis executor."""
-    settings = settings or get_settings()
-    if not settings.features.python_analysis_enabled:
-        return DisabledCodeExecutor()
-    executor = settings.features.python_analysis_executor
-    if executor == "subprocess":
-        return SubprocessCodeExecutor()
-    return DisabledCodeExecutor()
+    return _gateway_container().build_python_analysis_executor(settings)
 
 
 def build_default_tool_registry(entitlement_checker=None, context=None, db_path=None):
     """Build the default tool registry with application dependencies injected."""
-    return _build_tool_registry(
-        service=build_tool_application_service(db_path),
+    return _runtime_container(db_path).build_default_tool_registry(
         entitlement_checker=entitlement_checker,
         context=context,
     )
 
 
 def build_portfolio_service(db_path=None):
-    return PortfolioService(build_portfolio_repository(db_path))
+    return _gateway_container(db_path).build_portfolio_service()
 
 
 def build_risk_service(db_path=None):
-    return RiskService(build_portfolio_repository(db_path), build_risk_factor_source())
+    return _gateway_container(db_path).build_risk_service()
 
 
 def build_scenario_service(db_path=None):
-    return ScenarioService(build_portfolio_repository(db_path), build_risk_factor_source())
+    return _gateway_container(db_path).build_scenario_service()
 
 
 def build_agent_run_queue(db_path=None):
@@ -584,37 +514,24 @@ def build_append_turn_use_case(db_path=None) -> AppendTurn:
 
 
 def build_execute_run_use_case(model=None, tool_registry=None, db_path=None) -> ExecuteRun:
-    runtime = build_persisted_research_agent_runtime(model=model, tool_registry=tool_registry, db_path=db_path)
-    return ExecuteRun(runtime, SQLiteSessionRepository(db_path))
+    return _runtime_container(db_path).build_execute_run_use_case(model=model, tool_registry=tool_registry)
 
 
 def build_resume_run_use_case(model=None, tool_registry=None, db_path=None) -> ResumeRun:
-    runtime = build_persisted_research_agent_runtime(model=model, tool_registry=tool_registry, db_path=db_path)
-    return ResumeRun(runtime)
+    return _runtime_container(db_path).build_resume_run_use_case(model=model, tool_registry=tool_registry)
 
 
 def build_run_summary_use_case(runtime=None, evidence_repository=None, db_path=None) -> BuildRunSummary:
     """Build the structured run summary/citation/eval use case."""
-    if runtime is None:
-        runtime = build_persisted_research_agent_runtime(db_path=db_path)
-    if evidence_repository is None:
-        evidence_repository = build_agent_evidence_repository(db_path)
-    return BuildRunSummary(runtime, evidence_repository)
+    return _runtime_container(db_path).build_run_summary_use_case(
+        runtime=runtime,
+        evidence_repository=evidence_repository,
+    )
 
 
 def build_capability_registry_use_case() -> BuildCapabilityRegistry:
     """Build the redacted capability discovery use case."""
-    settings = get_settings()
-    return BuildCapabilityRegistry(
-        settings,
-        providers=[
-            FeatureCapabilityProvider(settings),
-            ModelProviderCapabilityProvider(settings),
-            ApiCapabilityProvider(settings),
-            MaturityCapabilityProvider(settings.project_root / "docs" / "progress" / "runtime-maturity.yaml"),
-            ToolRegistryCapabilityProvider(build_default_tool_registry()),
-        ],
-    )
+    return _runtime_container().build_capability_registry_use_case()
 
 
 def build_manage_notes_use_case(
@@ -735,6 +652,12 @@ def _gateway_container(db_path=None):
     from doge.bootstrap.gateway import build_gateway_container
 
     return build_gateway_container(db_path)
+
+
+def _workspace_container(db_path=None):
+    from doge.bootstrap.workspace import build_workspace_container
+
+    return build_workspace_container(db_path)
 
 
 def _warn_legacy_composition() -> None:
