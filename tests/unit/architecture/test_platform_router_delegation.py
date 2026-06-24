@@ -59,16 +59,40 @@ def test_platform_aggregator_is_thin() -> None:
         )
 
 
-def test_platform_service_delegation_lives_in_subrouters() -> None:
-    """P1D: the platform service classes are wired in the shared helper module."""
-    source = (ROUTER_DIR / "_platform_common.py").read_text(encoding="utf-8")
-    for service_name in [
+def test_platform_routers_delegate_service_construction_to_composition_root() -> None:
+    """P2C: _platform_common factories delegate to the workspace composition
+    root; no inline service construction remains in the router layer."""
+    common = (ROUTER_DIR / "_platform_common.py").read_text(encoding="utf-8")
+    composition_src = Path("src/doge/platform/workspace/composition.py").read_text(encoding="utf-8")
+
+    # Each workspace service factory delegates through the composition root.
+    for builder in (
+        "composition.build_workspace_service",
+        "composition.build_project_service",
+        "composition.build_research_case_service",
+        "composition.build_workflow_service",
+    ):
+        assert builder in common, f"_platform_common must delegate via {builder}"
+
+    # No inline service construction remains in the router common module.
+    for construction in (
+        "WorkspaceService(",
+        "ProjectService(",
+        "ResearchCaseService(",
+        "WorkflowService(",
+    ):
+        assert construction not in common, f"_platform_common must not construct {construction}"
+
+    # The service classes are constructed in the bounded-context composition root.
+    for service_name in (
         "WorkspaceService",
         "ProjectService",
         "ResearchCaseService",
         "WorkflowService",
-    ]:
-        assert service_name in source, f"_platform_common missing service delegation: {service_name}"
+    ):
+        assert service_name in composition_src, (
+            f"composition root missing service construction: {service_name}"
+        )
 
 
 def test_platform_subrouters_are_self_contained() -> None:

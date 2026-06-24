@@ -26,6 +26,7 @@ from doge.interfaces.api.enterprise_access import (
     is_enterprise_request,
     request_id,
 )
+from doge.platform.workspace import composition
 from doge.platform.workspace import (
     PlatformAccessDeniedError,
     PlatformFeatureDisabledError,
@@ -65,14 +66,14 @@ def build_workspace_service(
     repo: IPlatformRepository = Depends(deps.get_platform_repository),
     governance: IEnterpriseGovernanceRepository = Depends(deps.get_enterprise_governance_repository),
 ) -> WorkspaceService:
-    return WorkspaceService(repo, governance)
+    return composition.build_workspace_service(repo, governance)
 
 
 def build_project_service(
     repo: IPlatformRepository = Depends(deps.get_platform_repository),
     governance: IEnterpriseGovernanceRepository = Depends(deps.get_enterprise_governance_repository),
 ) -> ProjectService:
-    return ProjectService(repo, governance)
+    return composition.build_project_service(repo, governance)
 
 
 def build_research_case_service(
@@ -80,7 +81,7 @@ def build_research_case_service(
     governance: IEnterpriseGovernanceRepository = Depends(deps.get_enterprise_governance_repository),
     runtime: IResearchAgentRuntime = Depends(deps.get_persisted_research_agent_runtime),
 ) -> ResearchCaseService:
-    return ResearchCaseService(repo, governance, runtime)
+    return composition.build_research_case_service(repo, governance, runtime)
 
 
 def build_research_case_execution_service(
@@ -92,7 +93,7 @@ def build_research_case_execution_service(
     capability_registry: BuildCapabilityRegistry = Depends(deps.get_capability_registry_use_case),
     settings=Depends(deps.get_settings_dep),
 ) -> ResearchCaseService:
-    return ResearchCaseService(
+    return composition.build_research_case_service(
         repo,
         governance,
         runtime,
@@ -107,7 +108,7 @@ def build_workflow_service(
     repo: IPlatformRepository = Depends(deps.get_platform_repository),
     governance: IEnterpriseGovernanceRepository = Depends(deps.get_enterprise_governance_repository),
 ) -> WorkflowService:
-    return WorkflowService(repo, governance)
+    return composition.build_workflow_service(repo, governance)
 
 
 # ── Request context + error translation ──
