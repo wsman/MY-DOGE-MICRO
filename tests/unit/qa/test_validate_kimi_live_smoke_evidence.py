@@ -93,6 +93,13 @@ def test_passed_evidence_validates_when_required_scenarios_pass():
     assert validate(_passed()) == []
 
 
+def test_passed_evidence_allows_missing_optional_files_upload():
+    payload = _passed()
+    payload["scenarios"] = [item for item in payload["scenarios"] if item["name"] != "files_upload"]
+
+    assert validate(payload) == []
+
+
 def test_passed_evidence_rejects_missing_required_scenario():
     payload = _passed()
     payload["scenarios"] = [item for item in payload["scenarios"] if item["name"] != "vision_base64"]
@@ -131,6 +138,17 @@ def test_files_upload_pass_requires_cleanup_confirmation():
     errors = validate(payload)
 
     assert any("files_upload: file.deleted must be true" in error for error in errors)
+
+
+def test_optional_files_upload_skip_requires_reason():
+    payload = _passed()
+    for index, scenario in enumerate(payload["scenarios"]):
+        if scenario["name"] == "files_upload":
+            payload["scenarios"][index] = {"name": "files_upload", "status": "skipped"}
+
+    errors = validate(payload)
+
+    assert any("files_upload: skipped scenario requires reason" in error for error in errors)
 
 
 def test_passed_required_scenario_requires_usage_summary():

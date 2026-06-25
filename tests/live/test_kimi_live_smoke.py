@@ -7,23 +7,17 @@ small and use non-sensitive generated fixtures.
 
 from __future__ import annotations
 
-import base64
 import os
 from pathlib import Path
 
 import pytest
 
+from scripts import run_kimi_live_smoke as smoke
 from doge.config.settings import reset_settings
 from doge.core.ports.agent_model import AgentContentPart, AgentMessage
 from doge.infrastructure.agent.backends import KimiAgentSdkBackend
 from doge.infrastructure.llm.kimi_client import KimiAgentModel
 from doge.infrastructure.llm.kimi_files_client import KimiFilesClient
-
-
-_TINY_PNG_BASE64 = (
-    "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAGUlEQVR4nGP8z8AARLJgwiM3"
-    "LqkEAC8iAhE7A52jAAAAAElFTkSuQmCC"
-)
 
 
 def _require_live_kimi() -> str:
@@ -77,7 +71,7 @@ def test_live_kimi_files_upload_smoke(tmp_path: Path):
 @pytest.mark.asyncio
 async def test_live_kimi_vision_base64_smoke():
     _require_live_kimi()
-    assert base64.b64decode(_TINY_PNG_BASE64)
+    fixture = smoke._load_vision_fixture(os.environ.get("DOGE_LIVE_KIMI_VISION_IMAGE"))
     model = KimiAgentModel(model=os.environ.get("KIMI_GENERAL_MODEL") or "kimi-k2.6", max_retries=0)
 
     events = [
@@ -88,10 +82,12 @@ async def test_live_kimi_vision_base64_smoke():
                     role="user",
                     content=[
                         AgentContentPart.text_part(
-                            "This is a tiny generated chart-like PNG smoke fixture. "
-                            "Reply with a short confirmation."
+                            fixture["prompt"]
                         ),
-                        AgentContentPart.image_base64(media_type="image/png", data=_TINY_PNG_BASE64),
+                        AgentContentPart.image_base64(
+                            media_type=fixture["media_type"],
+                            data=fixture["data"],
+                        ),
                     ],
                 )
             ],

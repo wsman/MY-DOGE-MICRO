@@ -48,7 +48,8 @@ GATES = [
         passing_results=frozenset({"passed"}),
         next_action=(
             "Run scripts/run_kimi_live_smoke.py in an operator-approved Kimi credential/spend window with "
-            "DOGE_LIVE_KIMI=1 and MOONSHOT_API_KEY set, then replace the blocked evidence with the live result."
+            "DOGE_LIVE_KIMI=1, MOONSHOT_API_KEY, and a normal-size Vision image set; Files upload is optional "
+            "for the Kimi Coding v1 gate, then replace the blocked evidence with the live result."
         ),
         strict_command=(
             ".\\.venv\\Scripts\\python.exe scripts\\validate_kimi_live_smoke_evidence.py "

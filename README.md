@@ -149,19 +149,32 @@ only when that bootstrap is retired.
 
 ## Secrets
 
-The default text LLM provider is Kimi/Moonshot
-(`DOGE_TEXT_LLM_PROVIDER=kimi`). For LLM-backed macro/research paths that use
-the default provider, set the real Moonshot key in the shell environment:
+The v1 live Kimi release baseline is the Kimi Coding endpoint
+(`https://api.kimi.com/coding/v1`) for chat-centered research work. It supports
+Research Agent runs, report generation, tool/function calling, thinking mode,
+and model routing through the OpenAI-compatible chat API.
+
+Set `KIMI_CODING_MODE=1` and provide an operator-owned `sk-kimi-*` key through
+`MOONSHOT_API_KEY`:
 
 ```bash
-set MOONSHOT_API_KEY=sk-your-real-key-here
+set KIMI_CODING_MODE=1
+set MOONSHOT_API_KEY=sk-kimi-your-real-key-here
 ```
 
 PowerShell:
 
 ```powershell
-$env:MOONSHOT_API_KEY='sk-your-real-key-here'
+$env:KIMI_CODING_MODE='1'
+$env:MOONSHOT_API_KEY='sk-kimi-your-real-key-here'
 ```
+
+Kimi Coding is chat-centered and does not expose `/files`. API/CLI document
+attachments still work through local payload storage, `LocalDocumentParser`,
+SQLite evidence records, and local RAG lookup; they are not uploaded to Kimi in
+coding mode. If Kimi-side file context becomes required, configure a separate
+ordinary Moonshot key and a future split-client path that routes chat to Kimi
+Coding and files to Moonshot.
 
 DeepSeek remains a supported compatibility/fallback provider. To use it
 explicitly, set `DOGE_TEXT_LLM_PROVIDER=deepseek` and provide

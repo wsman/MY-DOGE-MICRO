@@ -25,7 +25,7 @@ Current closure posture:
 | Item | Type | Test Approach | Required Evidence |
 |---|---|---|---|
 | S017-001 Browser and Node/Web verification | UI / SDK Workflow | Web tests, web build, TypeScript SDK tests/build, browser walkthrough, reconnect evidence | Existing passed evidence under `production/qa/evidence/manual/` and web/SDK command logs in sprint docs |
-| S017-002 Live Kimi smoke execution | External Integration | Operator live run plus strict evidence validation | `production/qa/evidence/live/kimi-live-smoke-2026-06-22.json` with `result=passed`; strict validator passes without `--allow-blocked` |
+| S017-002 Live Kimi smoke execution | External Integration | Operator live run plus strict evidence validation | `production/qa/evidence/live/kimi-live-smoke-2026-06-22.json` with `result=passed`; required text + Vision scenarios pass; optional Files status is recorded if attempted; strict validator passes without `--allow-blocked` |
 | S017-003 Financial provider fixture approval | Provider Approval / Data Governance | Product/operator decision package plus strict approval validation | `financial-provider-approval-*.json` with `result=approved`; strict validator passes without `--allow-template` |
 | S017-004 Enterprise auth implementation plan and boundary | Auth / Permission / Ops | Local auth, ACL, audit, secret-provider, remote-bind, and redaction tests plus production validation template | Existing local tests/evidence pass; `AUTH-prod` remains separate production gate |
 | S017-005 One-hour daemon soak execution | Ops / Reliability | Soak execution with JSON summary and zero-failure threshold checks | Existing soak evidence under `production/qa/evidence/soak/daemon-soak-run-20260622T044433/` |
@@ -86,6 +86,7 @@ Current closure posture:
 ```powershell
 $env:DOGE_LIVE_KIMI = "1"
 $env:MOONSHOT_API_KEY = "<operator-secret>"
+$env:DOGE_LIVE_KIMI_VISION_IMAGE = "<operator-approved JPEG/PNG/WEBP path>"
 .\.venv\Scripts\python.exe scripts\run_kimi_live_smoke.py --output-dir production\qa\evidence\live
 .\.venv\Scripts\python.exe scripts\validate_kimi_live_smoke_evidence.py production\qa\evidence\live\kimi-live-smoke-2026-06-22.json
 ```
@@ -93,9 +94,10 @@ $env:MOONSHOT_API_KEY = "<operator-secret>"
 **Pass criteria**:
 
 - Evidence result is `passed`.
-- Text, Files, Vision/file-QA, and optional Agent SDK status are recorded.
-- Files evidence records only a redacted `sha256:<prefix>` provider id hash.
-- Provider file cleanup is confirmed.
+- Required Text and Vision/file-QA scenarios are `passed`.
+- Files and optional Agent SDK status are recorded when attempted, but Files is optional for the Kimi Coding v1 gate.
+- If Files passes, evidence records only a redacted `sha256:<prefix>` provider id hash.
+- If Files passes, provider file cleanup is confirmed.
 - Scenario usage summaries are bounded and contain no raw provider payloads or secrets.
 
 ### S017-003 financial provider approval

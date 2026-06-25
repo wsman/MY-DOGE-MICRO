@@ -18,6 +18,10 @@ class FileUploadError(ValueError):
 
 
 class KimiFilesPort(Protocol):
+    @property
+    def supports_files_api(self) -> bool:
+        ...
+
     def upload_file(self, path: Path, *, purpose: str = "file-extract") -> str:
         ...
 
@@ -87,7 +91,7 @@ class FileUploadService:
         parser_error: str | None = None
         status = DocumentStatus.UPLOADED
 
-        if self._kimi_files_client is not None:
+        if self._kimi_files_client is not None and getattr(self._kimi_files_client, "supports_files_api", True):
             try:
                 kimi_file_id = self._kimi_files_client.upload_file(storage_path, purpose=purpose)
                 if purpose == "file-extract":

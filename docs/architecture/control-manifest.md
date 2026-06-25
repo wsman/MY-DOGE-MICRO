@@ -136,7 +136,7 @@ Proposed  ──►  Accepted  ──►  Superseded
 4. **Each ADR must record**: Title, Status, Date, Last Verified, Decision Makers, Context (Problem/Current State/Constraints/Requirements), Decision, Alternatives Considered, Consequences, ADR Dependencies, Engine/Stack Compatibility, CDD Requirements Addressed.
 5. **Run `/architecture-review` after completing a set of ADRs** — it cross-checks consistency, populates the TR registry, and produces the traceability narrative.
 
-### Current status inventory (2026-06-23)
+### Current status inventory (2026-06-25)
 
 | ADR | Status | Note |
 |---|---|---|
@@ -162,6 +162,7 @@ Proposed  ──►  Accepted  ──►  Superseded
 | 0020 Platform Shell UI | **Proposed** | Shell slices exist; navigation/accessibility promotion gates remain open. |
 | 0021 Bounded Context Consolidation | **Accepted** | Eight-context consolidation accepted by `docs/archive/audits/adr-0021-0022-review-2026-06-23.md`; external gates still block maturity promotion. |
 | 0022 Directory Restructuring | **Accepted** | Facade-first target layout accepted by `docs/archive/audits/adr-0021-0022-review-2026-06-23.md`; broad physical moves remain story-gated. |
+| 0023 Kimi "For Coding" Endpoint Support | **Accepted** | Kimi Coding is the v1 chat-centered release baseline; Kimi `/files` remains unsupported on the coding endpoint and uses local parser/evidence fallback. |
 
 ---
 

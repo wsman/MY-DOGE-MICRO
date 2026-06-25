@@ -29,10 +29,17 @@ SCENARIO_PROFILES = {
     "vision_base64": "vision_analysis",
     "agent_sdk_optional": "agent_automation",
 }
+REQUIRED_SCENARIOS = {"text_k26", "vision_base64"}
 TINY_PNG_BASE64 = (
     "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAGUlEQVR4nGP8z8AARLJgwiM3"
     "LqkEAC8iAhE7A52jAAAAAElFTkSuQmCC"
 )
+_IMAGE_MEDIA_TYPES = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+}
 
 
 async def _scenario_text() -> dict[str, Any]:
@@ -52,8 +59,8 @@ async def _scenario_text() -> dict[str, Any]:
     return _chat_result("text_k26", model_name, events, latency_ms, "financial_research")
 
 
-async def _scenario_vision() -> dict[str, Any]:
-    assert base64.b64decode(TINY_PNG_BASE64)
+async def _scenario_vision(vision_image: str | None = None) -> dict[str, Any]:
+    fixture = _load_vision_fixture(vision_image)
     model_name = os.environ.get("KIMI_GENERAL_MODEL") or "kimi-k2.6"
     model = KimiAgentModel(model=model_name, max_retries=0)
     started = perf_counter()
@@ -65,9 +72,12 @@ async def _scenario_vision() -> dict[str, Any]:
                     role="user",
                     content=[
                         AgentContentPart.text_part(
-                            "This is a tiny generated chart-like PNG smoke fixture. Reply with a short confirmation."
+                            fixture["prompt"]
                         ),
-                        AgentContentPart.image_base64(media_type="image/png", data=TINY_PNG_BASE64),
+                        AgentContentPart.image_base64(
+                            media_type=fixture["media_type"],
+                            data=fixture["data"],
+                        ),
                     ],
                 )
             ],
@@ -77,7 +87,53 @@ async def _scenario_vision() -> dict[str, Any]:
         )
     ]
     latency_ms = (perf_counter() - started) * 1000
-    return _chat_result("vision_base64", model_name, events, latency_ms, "vision_analysis")
+    result = _chat_result("vision_base64", model_name, events, latency_ms, "vision_analysis")
+    result["fixture"] = {
+        "source": fixture["source"],
+        "media_type": fixture["media_type"],
+        "size_bytes": fixture["size_bytes"],
+    }
+    return result
+
+
+def _load_vision_fixture(vision_image: str | None = None) -> dict[str, Any]:
+    if not vision_image:
+        image_bytes = base64.b64decode(TINY_PNG_BASE64)
+        return {
+            "source": "tiny_png",
+            "media_type": "image/png",
+            "data": TINY_PNG_BASE64,
+            "size_bytes": len(image_bytes),
+            "prompt": "This is a tiny generated chart-like PNG smoke fixture. Reply with a short confirmation.",
+        }
+
+    image_path = Path(vision_image).expanduser()
+    if not image_path.is_file():
+        raise ValueError("vision image path does not exist or is not a file")
+    image_bytes = image_path.read_bytes()
+    media_type = _detect_image_media_type(image_path, image_bytes)
+    return {
+        "source": "operator_image",
+        "media_type": media_type,
+        "data": base64.b64encode(image_bytes).decode("ascii"),
+        "size_bytes": len(image_bytes),
+        "prompt": "This is an operator-provided image smoke fixture. Reply with a short confirmation.",
+    }
+
+
+def _detect_image_media_type(path: Path, image_bytes: bytes) -> str:
+    if not image_bytes:
+        raise ValueError("vision image is empty")
+    if image_bytes.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if image_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if image_bytes.startswith(b"RIFF") and image_bytes[8:12] == b"WEBP":
+        return "image/webp"
+    media_type = _IMAGE_MEDIA_TYPES.get(path.suffix.lower())
+    if media_type:
+        return media_type
+    raise ValueError("unsupported vision image format; use JPEG, PNG, or WEBP")
 
 
 async def _scenario_agent_sdk() -> dict[str, Any]:
@@ -125,6 +181,15 @@ async def _scenario_agent_sdk() -> dict[str, Any]:
 
 def _scenario_files() -> dict[str, Any]:
     client = KimiFilesClient()
+    if not getattr(client, "supports_files_api", True):
+        return {
+            "name": "files_upload",
+            "status": "skipped",
+            "profile": "document_extract",
+            "model": os.environ.get("KIMI_GENERAL_MODEL") or "kimi-k2.6",
+            "reason": "configured Kimi endpoint does not support the Files API",
+            "usage": {"reported": False, "reason": "files_upload_optional_not_supported"},
+        }
     with tempfile.TemporaryDirectory(prefix="doge-kimi-live-smoke-") as temp:
         source = Path(temp) / "s017-nonsensitive-smoke.txt"
         source.write_text("S017 Kimi Files smoke fixture. Non-sensitive synthetic text.", encoding="utf-8")
@@ -202,11 +267,15 @@ def _redact_id(value: str) -> str:
     return f"sha256:{digest[:16]}"
 
 
-async def _run_live_scenarios(include_agent_sdk: bool = True) -> list[dict[str, Any]]:
+async def _run_live_scenarios(
+    include_agent_sdk: bool = True,
+    *,
+    vision_image: str | None = None,
+) -> list[dict[str, Any]]:
     results = [
         await _capture_scenario("text_k26", _scenario_text),
         await _capture_scenario("files_upload", _scenario_files),
-        await _capture_scenario("vision_base64", _scenario_vision),
+        await _capture_scenario("vision_base64", lambda: _scenario_vision(vision_image=vision_image)),
     ]
     if include_agent_sdk:
         results.append(await _capture_scenario("agent_sdk_optional", _scenario_agent_sdk))
@@ -274,7 +343,7 @@ def _write_markdown(path: Path, evidence: dict[str, Any]) -> None:
         "",
         "## Scope",
         "",
-        "S017-002 live Kimi smoke for text, Files upload, Vision/file-Q&A, and optional Agent SDK.",
+        "S017-002 live Kimi smoke for required text + Vision/file-Q&A, optional Files upload, and optional Agent SDK.",
         "Evidence is intentionally redacted: no API key, raw prompt, raw file id, or sensitive fixture content is stored.",
         "",
         "## Environment",
@@ -322,6 +391,7 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
     reset_settings()
     output_dir = Path(args.output_dir)
     evidence = _evidence_base()
+    evidence["environment"]["vision_image_supplied"] = bool(args.vision_image)
     blockers = _preflight()
     if blockers:
         evidence.update({
@@ -335,8 +405,11 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
 
     scenarios: list[dict[str, Any]] = []
     try:
-        scenarios = await _run_live_scenarios(include_agent_sdk=not args.skip_agent_sdk)
-        required = [item for item in scenarios if item["name"] != "agent_sdk_optional"]
+        scenarios = await _run_live_scenarios(
+            include_agent_sdk=not args.skip_agent_sdk,
+            vision_image=args.vision_image,
+        )
+        required = [item for item in scenarios if item["name"] in REQUIRED_SCENARIOS]
         failed = [item for item in required if item.get("status") != "passed"]
         result = "passed" if not failed else "failed"
         evidence.update({"result": result, "scenarios": scenarios})
@@ -365,6 +438,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run S017-002 live Kimi smoke and write redacted evidence.")
     parser.add_argument("--output-dir", default="production/qa/evidence/live")
     parser.add_argument("--skip-agent-sdk", action="store_true", help="Do not evaluate optional Agent SDK scenario.")
+    parser.add_argument(
+        "--vision-image",
+        default=os.environ.get("DOGE_LIVE_KIMI_VISION_IMAGE"),
+        help="Optional JPEG/PNG/WEBP image path for the vision_base64 smoke.",
+    )
     parser.add_argument("--allow-blocked", action="store_true", help="Return 0 when env gates are missing.")
     args = parser.parse_args()
     evidence = asyncio.run(_run(args))

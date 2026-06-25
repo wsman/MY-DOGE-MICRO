@@ -44,6 +44,7 @@ contract tests.
 
 - [ADR-0021: Bounded Context Consolidation](adr-0021-bounded-context-consolidation.md)
 - [ADR-0022: Directory Restructuring](adr-0022-directory-restructuring.md)
+- [ADR-0023: Kimi "For Coding" Endpoint Support](adr-0023-kimi-coding-endpoint.md)
 - [Control Manifest](control-manifest.md)
 - [Architecture Registry](../registry/architecture.yaml)
 - [Module Index](../../design/cdd/module-index.md)

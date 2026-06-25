@@ -1,28 +1,83 @@
 {
-  "blockers": [
-    "DOGE_LIVE_KIMI=1",
-    "MOONSHOT_API_KEY"
-  ],
-  "created_at": "2026-06-22T05:28:36.527206+00:00",
+  "created_at": "2026-06-25T05:19:16.613901+00:00",
   "environment": {
-    "DOGE_LIVE_KIMI": false,
+    "DOGE_LIVE_KIMI": true,
     "DOGE_LIVE_KIMI_AGENT_SDK": false,
-    "MOONSHOT_API_KEY_PRESENT": false,
+    "MOONSHOT_API_KEY_PRESENT": true,
     "base_url": "https://api.moonshot.ai/v1",
     "general_model": "kimi-k2.6",
-    "kimi_agent_sdk_installed": false
+    "kimi_agent_sdk_installed": false,
+    "vision_image_supplied": true
   },
-  "notes": [
-    "Live Kimi smoke was not executed; missing explicit operator env gates."
-  ],
   "redaction": {
     "api_key_recorded": false,
     "raw_file_id_recorded": false,
     "raw_prompt_recorded": false,
     "sensitive_fixture_used": false
   },
-  "result": "blocked",
-  "scenarios": [],
+  "result": "passed",
+  "scenarios": [
+    {
+      "event_count": 1,
+      "finish_reasons": [
+        "stop"
+      ],
+      "latency_ms": 1733.94,
+      "model": "kimi-k2.6",
+      "name": "text_k26",
+      "profile": "financial_research",
+      "response_chars": 17,
+      "status": "passed",
+      "usage": {
+        "cached_tokens": 0,
+        "completion_tokens": 23,
+        "cost_usd": 0.0,
+        "latency_ms": 1123.986899969168,
+        "model": "kimi-k2.6",
+        "prompt_tokens": 17,
+        "reported": true,
+        "total_tokens": 40
+      }
+    },
+    {
+      "model": "kimi-k2.6",
+      "name": "files_upload",
+      "profile": "document_extract",
+      "reason": "configured Kimi endpoint does not support the Files API",
+      "status": "skipped",
+      "usage": {
+        "reason": "files_upload_optional_not_supported",
+        "reported": false
+      }
+    },
+    {
+      "event_count": 1,
+      "finish_reasons": [
+        "stop"
+      ],
+      "fixture": {
+        "media_type": "image/jpeg",
+        "size_bytes": 43532,
+        "source": "operator_image"
+      },
+      "latency_ms": 1525.87,
+      "model": "kimi-k2.6",
+      "name": "vision_base64",
+      "profile": "vision_analysis",
+      "response_chars": 10,
+      "status": "passed",
+      "usage": {
+        "cached_tokens": 0,
+        "completion_tokens": 52,
+        "cost_usd": 0.0,
+        "latency_ms": 1487.354899989441,
+        "model": "kimi-k2.6",
+        "prompt_tokens": 556,
+        "reported": true,
+        "total_tokens": 608
+      }
+    }
+  ],
   "schema": "doge.kimi_live_smoke.v1",
   "story_id": "S017-002"
 }

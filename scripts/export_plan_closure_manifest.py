@@ -29,13 +29,18 @@ HANDOFFS = {
     "S017-002": {
         "kind": "live_runner",
         "input_templates": [],
-        "input_refs": ["env:DOGE_LIVE_KIMI=1", "env:MOONSHOT_API_KEY", "optional:env:DOGE_LIVE_KIMI_AGENT_SDK=1"],
+        "input_refs": [
+            "env:DOGE_LIVE_KIMI=1",
+            "env:MOONSHOT_API_KEY",
+            "optional:env:DOGE_LIVE_KIMI_VISION_IMAGE",
+            "optional:env:DOGE_LIVE_KIMI_AGENT_SDK=1",
+        ],
         "build_or_run_command": (
             ".\\.venv\\Scripts\\python.exe scripts\\run_kimi_live_smoke.py "
             "--output-dir production/qa/evidence/live"
         ),
         "output_ref": "production/qa/evidence/live/kimi-live-smoke-2026-06-22.json",
-        "close_condition": "result must be passed; blocked evidence remains open",
+        "close_condition": "result must be passed for required text and Vision scenarios; Files upload is optional; blocked evidence remains open",
     },
     "S017-003": {
         "kind": "evidence_builder",

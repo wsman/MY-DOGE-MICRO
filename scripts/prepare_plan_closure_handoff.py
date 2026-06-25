@@ -31,6 +31,8 @@ TASK_GUIDE_FOCUS = {
     "S017-002": [
         "Confirm the operator-approved credential and spend window before running live Kimi.",
         "Set DOGE_LIVE_KIMI=1 and MOONSHOT_API_KEY in the environment only.",
+        "Set DOGE_LIVE_KIMI_VISION_IMAGE to an operator-approved normal-size JPEG/PNG/WEBP image for the required Vision scenario.",
+        "Files upload is optional for the Kimi Coding v1 gate; if a /files-capable Moonshot key is used and Files passes, evidence must still redact the provider file id and confirm cleanup.",
         "Set DOGE_LIVE_KIMI_AGENT_SDK=1 only if the Agent SDK live path is approved for this run.",
         "Do not copy API keys, raw provider responses, or other secrets into the handoff workspace.",
     ],
@@ -449,7 +451,8 @@ def _render_operator_input_guide(task: dict[str, Any]) -> str:
     else:
         lines.append("- No draft input file is copied for this gate; set the required refs below.")
     for input_ref in task["input_refs"]:
-        lines.append(f"- Required input ref: `{input_ref}`")
+        label = "Optional" if input_ref.startswith("optional:") else "Required"
+        lines.append(f"- {label} input ref: `{input_ref}`")
     if plan["requires_operator_values"]:
         lines.append(
             "- Replace operator value placeholders: "

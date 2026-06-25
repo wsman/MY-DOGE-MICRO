@@ -104,7 +104,7 @@ def test_kimi_files_client_fails_safely_without_key():
         client.get_file_content("file-123")
 
 
-def test_kimi_files_client_sends_coding_user_agent_when_coding_mode_on(monkeypatch, tmp_path):
+def test_kimi_files_client_disables_files_api_when_coding_endpoint_selected(monkeypatch, tmp_path):
     monkeypatch.delenv("KIMI_BASE_URL", raising=False)
     monkeypatch.setenv("KIMI_CODING_MODE", "1")
     reset_settings()
@@ -113,9 +113,26 @@ def test_kimi_files_client_sends_coding_user_agent_when_coding_mode_on(monkeypat
     source = tmp_path / "note.txt"
     source.write_text("fixture", encoding="utf-8")
     client = KimiFilesClient(api_key="sk-kimi-test")
+
+    assert client.supports_files_api is False
+    with pytest.raises(RuntimeError, match="does not support the Files API"):
+        client.upload_file(source)
+    assert "client" not in captured
+
+
+def test_kimi_files_client_allows_files_api_when_base_url_is_explicit_moonshot(monkeypatch, tmp_path):
+    monkeypatch.setenv("KIMI_CODING_MODE", "1")
+    monkeypatch.setenv("KIMI_BASE_URL", "https://api.moonshot.ai/v1")
+    reset_settings()
+    captured = _capture_client(monkeypatch)
+
+    source = tmp_path / "note.txt"
+    source.write_text("fixture", encoding="utf-8")
+    client = KimiFilesClient(api_key="moonshot-key")
     client.upload_file(source)
 
-    assert captured["client"]["base_url"] == "https://api.kimi.com/coding/v1"
+    assert client.supports_files_api is True
+    assert captured["client"]["base_url"] == "https://api.moonshot.ai/v1"
     assert captured["client"]["default_headers"]["User-Agent"] == "claude-code/0.1.0"
 
 

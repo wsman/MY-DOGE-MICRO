@@ -162,22 +162,34 @@ To switch LLM models at runtime (used by the GUI model-switcher), also export
 > `python -m macro.cli` works. No key rotation or history rewrite is required.
 > See `docs/MCP_SERVER.md` "Operator action — key verification".
 
-### Kimi / Moonshot variables (Research Copilot demo)
+### Kimi Coding / Moonshot variables (Research Copilot demo)
 
-The Research Copilot demo uses `src/doge/config/settings.py::KimiConfig` and
-the OpenAI-compatible Moonshot endpoint. If `MOONSHOT_API_KEY` is absent, the
-demo runtime falls back to a deterministic scripted model so local tests and
-the web workspace still run.
+The v1 live Research Copilot baseline uses
+`src/doge/config/settings.py::KimiConfig` with Kimi Coding
+(`https://api.kimi.com/coding/v1`) for chat-centered model work:
+Research Agent runs, text/report generation, tool/function calling, thinking
+mode, and model routing. Enable it with `KIMI_CODING_MODE=1` and an
+operator-owned `MOONSHOT_API_KEY=sk-kimi-...`.
 
-Real file upload and CLI `/attach` do not require a Kimi key. When
-`MOONSHOT_API_KEY` is present, the file upload service can also call the Kimi
-Files API adapter; when it is absent, the local deterministic parser stores
-hash/MIME/size metadata and offline parsed content.
+If `MOONSHOT_API_KEY` is absent, the demo runtime falls back to a deterministic
+scripted model so local tests and the web workspace still run.
+
+Real file upload and CLI `/attach` do not require a Kimi key. In Kimi Coding
+mode the endpoint has no `/files`, so attachments use local payload storage,
+the local parser, SQLite evidence records, and local RAG lookup. A future
+split-client path can route chat to Kimi Coding and files to ordinary Moonshot
+when an operator supplies a separate non-coding Moonshot key.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MOONSHOT_API_KEY` | unset | Secret for live Kimi calls. Keep it in the shell environment only. |
-| `KIMI_BASE_URL` | `https://api.moonshot.ai/v1` | OpenAI-compatible API base URL. |
+| `MOONSHOT_API_KEY` | unset | Secret for live Kimi calls. Use `sk-kimi-*` with Kimi Coding. Keep it in the shell environment only. |
+| `KIMI_CODING_MODE` | `false` | Set to `1` for the v1 Kimi Coding release baseline. |
+| `DOGE_TEXT_LLM_PROVIDER` | `kimi` | `kimi-coding` also enables Kimi Coding mode for text paths. |
+| `KIMI_BASE_URL` | `https://api.moonshot.ai/v1` | Explicit OpenAI-compatible base URL. Overrides coding mode when set. |
+| `KIMI_CODING_BASE_URL` | `https://api.kimi.com/coding/v1` | Kimi Coding endpoint used when coding mode is on and no explicit base URL is set. |
+| `KIMI_CODING_USER_AGENT` | `claude-code/0.1.0` | Default coding-agent User-Agent for Kimi Coding. |
+| `KIMI_CLIENT_USER_AGENT` | unset | Explicit User-Agent override for Kimi clients. |
+| `KIMI_EXTRA_HEADERS` | `{}` | JSON object of additional default HTTP headers. Do not place secrets here. |
 | `KIMI_GENERAL_MODEL` | `kimi-k2.6` | General research/planning/finalization model. |
 | `KIMI_CODE_MODEL` | `kimi-k2.7-code` | Code-sub-agent model for Python/SQL/data tasks. |
 | `KIMI_MAX_RETRIES` | `2` | Bounded retries for Kimi chat create calls on rate-limit/transient provider errors. |

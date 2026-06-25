@@ -1,8 +1,8 @@
 # Architecture Traceability
 
-> **Manifest Version**: 2026-06-23
+> **Manifest Version**: 2026-06-25
 > **Reviewer**: P0 documentation consistency pass
-> **Scope**: ADR-0001..ADR-0022, eight bounded-context CDDs,
+> **Scope**: ADR-0001..ADR-0023, eight bounded-context CDDs,
 > `tr-registry.yaml`, runtime maturity registry, and current API/CLI/Web/MCP
 > surfaces.
 
@@ -26,6 +26,7 @@ Runtime maturity remains separate from release-stage governance:
 | ADR-0015 through ADR-0020 | Proposed |
 | ADR-0021 | Accepted |
 | ADR-0022 | Accepted |
+| ADR-0023 | Accepted |
 
 ADR-0015 through ADR-0020 remain Proposed because their platform and enterprise
 promotion gates are not fully closed.
@@ -65,7 +66,8 @@ promotion gates are not fully closed.
 | Concern | Status | Owner path |
 |---------|--------|------------|
 | Runtime maturity promotion | Blocked while `production_ready: false` | `docs/progress/runtime-maturity.yaml`, TR-054 |
-| Live Kimi/File/Vision smoke | Environment-dependent | Knowledge & Evidence / QA evidence |
+| Live Kimi Coding text smoke | Text path passed for `sk-kimi-*`; v1 baseline excludes Kimi `/files` | ADR-0023 / S017-002 |
+| Kimi Files and Vision smoke | Files unsupported on coding endpoint; vision pending real-image evidence | Knowledge & Evidence / QA evidence |
 | Financial provider approval | External dependency | Portfolio & Risk / Governance & Evaluation |
 | Enterprise production validation | External dependency | Governance & Evaluation |
 | SDK registry publication | External dependency | SDK/daemon delivery surface |

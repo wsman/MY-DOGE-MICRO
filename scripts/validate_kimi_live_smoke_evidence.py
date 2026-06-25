@@ -18,8 +18,8 @@ from scripts.evidence_redaction import secret_leak_errors
 
 SCHEMA = "doge.kimi_live_smoke.v1"
 STORY_ID = "S017-002"
-REQUIRED_SCENARIOS = {"text_k26", "files_upload", "vision_base64"}
-OPTIONAL_SCENARIOS = {"agent_sdk_optional"}
+REQUIRED_SCENARIOS = {"text_k26", "vision_base64"}
+OPTIONAL_SCENARIOS = {"files_upload", "agent_sdk_optional"}
 ALLOWED_SECRET_KEYS = {
     "api_key_recorded",
     "MOONSHOT_API_KEY_PRESENT",
@@ -147,8 +147,8 @@ def _validate_scenario(scenario: dict[str, Any], errors: list[str]) -> None:
             errors.append("files_upload: file.deleted must be true for passed scenario")
         if "file_id" in file_info:
             errors.append("files_upload: raw file_id must not be recorded")
-    if name == "agent_sdk_optional" and status == "skipped" and not scenario.get("reason"):
-        errors.append("agent_sdk_optional: skipped scenario requires reason")
+    if name in OPTIONAL_SCENARIOS and status == "skipped" and not scenario.get("reason"):
+        errors.append(f"{name}: skipped scenario requires reason")
 
 
 def _validate_usage_summary(name: Any, usage: Any, errors: list[str]) -> None:

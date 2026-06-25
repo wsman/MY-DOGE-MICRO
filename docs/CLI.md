@@ -358,17 +358,28 @@ doge macro --verbose
 
 完整环境变量总览另见 [docs/MCP_SERVER.md](MCP_SERVER.md) 的「配置」章节。
 
-### Research Copilot / Kimi 所需
+### Research Copilot / Kimi Coding 所需
 
 `doge session`、`doge run` 和 daemon v1 Research Agent 路径使用本地
-`DOGE_AGENT_DB`；Kimi 是可选 live provider。未设置 `MOONSHOT_API_KEY` 时，
-runtime 使用 deterministic scripted fallback，文件上传和 `/attach` 仍会在本地
-保存 hash/MIME/size/status 与解析结果。
+`DOGE_AGENT_DB`；Kimi 是可选 live provider。第一版发布标准使用
+Kimi Coding（`https://api.kimi.com/coding/v1`）作为聊天/文本/工具调用/推理
+路径：设置 `KIMI_CODING_MODE=1` 并提供 `MOONSHOT_API_KEY=sk-kimi-...`。
+未设置 `MOONSHOT_API_KEY` 时，runtime 使用 deterministic scripted fallback。
+
+Kimi Coding 端点不提供 `/files`。文件上传和 `/attach` 在 coding mode 下仍会
+本地保存 hash/MIME/size/status，并通过本地 parser、SQLite evidence 与本地
+RAG 链路处理；不会上传给 Kimi Files。
 
 | 变量 | 必填 | 默认 | 说明 |
 |------|------|------|------|
-| `MOONSHOT_API_KEY` | 否 | unset | Live Kimi / Moonshot API 密钥；未设置时走本地 fallback。 |
-| `KIMI_BASE_URL` | 否 | `https://api.moonshot.ai/v1` | OpenAI-compatible Kimi API base URL。 |
+| `MOONSHOT_API_KEY` | 否 | unset | Live Kimi / Moonshot API 密钥；Kimi Coding 使用 `sk-kimi-*`；未设置时走本地 fallback。 |
+| `KIMI_CODING_MODE` | 否 | `false` | 设为 `1` 启用第一版 Kimi Coding 发布基线。 |
+| `DOGE_TEXT_LLM_PROVIDER` | 否 | `kimi` | `kimi-coding` 也会启用文本路径的 Kimi Coding mode。 |
+| `KIMI_BASE_URL` | 否 | `https://api.moonshot.ai/v1` | OpenAI-compatible Kimi API base URL；显式设置时优先于 coding endpoint。 |
+| `KIMI_CODING_BASE_URL` | 否 | `https://api.kimi.com/coding/v1` | Kimi Coding endpoint。 |
+| `KIMI_CODING_USER_AGENT` | 否 | `claude-code/0.1.0` | Coding-agent User-Agent；可覆盖。 |
+| `KIMI_CLIENT_USER_AGENT` | 否 | unset | 显式 User-Agent override。 |
+| `KIMI_EXTRA_HEADERS` | 否 | `{}` | JSON 对象形式的额外 HTTP headers；不要放密钥。 |
 | `KIMI_GENERAL_MODEL` | 否 | `kimi-k2.6` | Research Agent 默认模型。 |
 | `KIMI_CODE_MODEL` | 否 | `kimi-k2.7-code` | 预留的代码子任务模型。 |
 | `KIMI_MAX_RETRIES` | 否 | `2` | Kimi chat create 请求遇到 429/rate/timeout/connection/5xx 类错误时的最大重试次数。 |

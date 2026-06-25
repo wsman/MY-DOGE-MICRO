@@ -383,7 +383,7 @@ sprints:
     exit_criteria:
       - "Node/npm web and TypeScript SDK tests/build pass in an operator environment."
       - "Browser manual evidence exists for the Research Agent business loop."
-      - "Live Kimi smoke evidence exists for text, Files, Vision, and optional Agent SDK."
+      - "Live Kimi smoke evidence exists for required text + Vision scenarios, with Files and Agent SDK recorded as optional capability observations."
       - "Provider fixture/license scope is approved before real adapter implementation."
       - "Enterprise auth implementation choices and the first fail-closed middleware boundary are in place before OIDC/JWKS coding."
     stories:
@@ -409,7 +409,7 @@ sprints:
         owner: operator
         status: review
         blocking_gate: true
-        note: "Runner and validator exist at scripts/run_kimi_live_smoke.py and scripts/validate_kimi_live_smoke_evidence.py. Current redacted evidence at production/qa/evidence/live/kimi-live-smoke-2026-06-22.json records result=blocked because DOGE_LIVE_KIMI=1 and MOONSHOT_API_KEY are unavailable. Ready for operator execution, not done."
+        note: "Runner and validator exist at scripts/run_kimi_live_smoke.py and scripts/validate_kimi_live_smoke_evidence.py. Current redacted evidence at production/qa/evidence/live/kimi-live-smoke-2026-06-22.json records result=blocked because DOGE_LIVE_KIMI=1 and MOONSHOT_API_KEY are unavailable. Required closure is text + Vision passed; Files is optional for the Kimi Coding v1 gate and remains recorded as a capability observation. Ready for operator execution, not done."
 
       - id: S017-003
         title: "Financial provider fixture approval"

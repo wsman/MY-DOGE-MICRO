@@ -15,6 +15,8 @@ class FakeParser:
 
 
 class FakeKimiFiles:
+    supports_files_api = True
+
     def __init__(self):
         self.uploads = []
         self.content_calls = []
@@ -26,6 +28,16 @@ class FakeKimiFiles:
     def get_file_content(self, file_id: str) -> str:
         self.content_calls.append(file_id)
         return "kimi extracted"
+
+
+class FakeUnsupportedKimiFiles:
+    supports_files_api = False
+
+    def upload_file(self, path: Path, *, purpose: str = "file-extract") -> str:
+        raise AssertionError("unsupported Kimi Files client must not be called")
+
+    def get_file_content(self, file_id: str) -> str:
+        raise AssertionError("unsupported Kimi Files client must not be called")
 
 
 def test_register_path_persists_hash_mime_size_and_content(tmp_path):
@@ -159,3 +171,22 @@ def test_kimi_file_extract_upload_reads_text_content(tmp_path):
     assert document["kimi_file_purpose"] == "file-extract"
     assert document["content"] == "kimi extracted"
     assert kimi.content_calls == ["file-file-extract"]
+
+
+def test_unsupported_kimi_files_client_falls_back_to_local_parser(tmp_path):
+    db = tmp_path / "agent_state.db"
+    source = tmp_path / "report.txt"
+    source.write_text("local evidence", encoding="utf-8")
+    service = FileUploadService(
+        SQLiteDocumentRepository(db),
+        storage_dir=tmp_path / "documents",
+        parser=FakeParser(),
+        kimi_files_client=FakeUnsupportedKimiFiles(),
+    )
+
+    document = service.register_path(source)
+
+    assert document["parsing_status"] == "parsed"
+    assert document["content"] == "local evidence"
+    assert document["kimi_file_id"] is None
+    assert document["kimi_file_purpose"] == "file-extract"

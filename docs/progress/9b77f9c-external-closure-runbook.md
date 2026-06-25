@@ -161,7 +161,7 @@ checks.
 
 | ID | Required Result | Evidence Fallback | Completed Evidence Pattern | Close Command |
 |---|---|---|---|---|
-| S017-002 | `passed` | `production/qa/evidence/live/kimi-live-smoke-2026-06-22.json` | Same file from live run | `.\.venv\Scripts\python.exe scripts\validate_kimi_live_smoke_evidence.py production\qa\evidence\live\kimi-live-smoke-2026-06-22.json` |
+| S017-002 | `passed` for required text + Vision; Files optional | `production/qa/evidence/live/kimi-live-smoke-2026-06-22.json` | Same file from live run | `.\.venv\Scripts\python.exe scripts\validate_kimi_live_smoke_evidence.py production\qa\evidence\live\kimi-live-smoke-2026-06-22.json` |
 | S017-003 | `approved` | `production/qa/evidence/provider/financial-provider-approval-template-2026-06-22.json` | `production/qa/evidence/provider/financial-provider-approval-*.json` | `.\.venv\Scripts\python.exe scripts\validate_financial_provider_approval_evidence.py <evidence-json>` |
 | W3-live | `passed` | `production/qa/evidence/eval/analyst-benchmark-template-2026-06-22.json` | `production/qa/evidence/eval/analyst-benchmark-*.json` | `.\.venv\Scripts\python.exe scripts\validate_analyst_benchmark_evidence.py <evidence-json>` |
 | AUTH-prod | `passed` | `production/qa/evidence/enterprise/enterprise-production-validation-template-2026-06-22.json` | `production/qa/evidence/enterprise/enterprise-production-validation-*.json` | `.\.venv\Scripts\python.exe scripts\validate_enterprise_production_validation_evidence.py <evidence-json>` |
@@ -179,9 +179,13 @@ checks.
 ```powershell
 $env:DOGE_LIVE_KIMI = "1"
 $env:MOONSHOT_API_KEY = "<operator-approved-key>"
+$env:DOGE_LIVE_KIMI_VISION_IMAGE = "<operator-approved JPEG/PNG/WEBP path>"
 .\.venv\Scripts\python.exe scripts\run_kimi_live_smoke.py --output-dir production\qa\evidence\live
 .\.venv\Scripts\python.exe scripts\validate_kimi_live_smoke_evidence.py production\qa\evidence\live\kimi-live-smoke-2026-06-22.json
 ```
+
+The live runner records `files_upload` when attempted, but `/files` is optional
+for the Kimi Coding v1 gate because the coding endpoint is chat-only.
 
 2. Financial provider approval:
 
