@@ -3,6 +3,7 @@ from types import SimpleNamespace
 import openai
 import pytest
 
+from doge.config.settings import reset_settings
 from doge.infrastructure.llm.kimi_files_client import KimiFilesClient
 
 
@@ -12,6 +13,31 @@ class _SecretProvider:
 
     def get_secret(self, name: str):
         return self.values.get(name)
+
+
+def _capture_client(monkeypatch):
+    captured: dict = {}
+
+    class _FakeFiles:
+        def create(self, *, file, purpose):
+            return SimpleNamespace(id="file-123")
+
+        def content(self, file_id):
+            return SimpleNamespace(text="extracted")
+
+        def retrieve(self, file_id):
+            return {"id": file_id}
+
+        def delete(self, file_id):
+            return SimpleNamespace(id=file_id)
+
+    class _FakeOpenAI:
+        def __init__(self, **kwargs):
+            captured["client"] = kwargs
+            self.files = _FakeFiles()
+
+    monkeypatch.setattr(openai, "OpenAI", _FakeOpenAI)
+    return captured
 
 
 def test_kimi_files_client_uploads_and_reads_content(monkeypatch, tmp_path):
@@ -76,3 +102,34 @@ def test_kimi_files_client_fails_safely_without_key():
 
     with pytest.raises(RuntimeError, match="MOONSHOT_API_KEY"):
         client.get_file_content("file-123")
+
+
+def test_kimi_files_client_sends_coding_user_agent_when_coding_mode_on(monkeypatch, tmp_path):
+    monkeypatch.delenv("KIMI_BASE_URL", raising=False)
+    monkeypatch.setenv("KIMI_CODING_MODE", "1")
+    reset_settings()
+    captured = _capture_client(monkeypatch)
+
+    source = tmp_path / "note.txt"
+    source.write_text("fixture", encoding="utf-8")
+    client = KimiFilesClient(api_key="sk-kimi-test")
+    client.upload_file(source)
+
+    assert captured["client"]["base_url"] == "https://api.kimi.com/coding/v1"
+    assert captured["client"]["default_headers"]["User-Agent"] == "claude-code/0.1.0"
+
+
+def test_kimi_files_client_omits_default_headers_when_coding_mode_off(monkeypatch, tmp_path):
+    monkeypatch.delenv("KIMI_BASE_URL", raising=False)
+    monkeypatch.delenv("KIMI_CODING_MODE", raising=False)
+    monkeypatch.delenv("KIMI_CLIENT_USER_AGENT", raising=False)
+    reset_settings()
+    captured = _capture_client(monkeypatch)
+
+    source = tmp_path / "note.txt"
+    source.write_text("fixture", encoding="utf-8")
+    client = KimiFilesClient(api_key="moonshot-key")
+    client.upload_file(source)
+
+    assert captured["client"]["base_url"] == "https://api.moonshot.ai/v1"
+    assert captured["client"].get("default_headers") in (None, {})

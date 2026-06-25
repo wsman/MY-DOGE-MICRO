@@ -121,7 +121,7 @@ class RuntimeContainer:
         secret_provider = secret_provider or self._gateway().build_secret_provider()
         return {
             "kimi_agent_sdk": KimiAgentSdkBackend(
-                base_url=settings.kimi.base_url,
+                base_url=settings.kimi.effective_base_url(),
                 model=settings.kimi.general_model,
                 secret_provider=secret_provider,
             )

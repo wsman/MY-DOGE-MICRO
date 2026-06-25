@@ -7,6 +7,32 @@ from doge.core.ports.agent_model import AgentContentPart, AgentMessage
 from doge.infrastructure.llm.kimi_client import KimiAgentModel, KimiMessageSerializer
 
 
+def _capture_client_kwargs(monkeypatch):
+    """Patch openai.AsyncOpenAI with a fake that records constructor kwargs."""
+    import openai
+
+    captured: dict = {}
+
+    class _FakeCompletions:
+        async def create(self, **kwargs):
+            message = SimpleNamespace(role="assistant", content="ok", tool_calls=[])
+            choice = SimpleNamespace(message=message, finish_reason="stop")
+            usage = SimpleNamespace(model_dump=lambda exclude_none=True: {"total_tokens": 1})
+            return SimpleNamespace(
+                choices=[choice],
+                usage=usage,
+                model_dump=lambda exclude_none=True: {"id": "resp-1"},
+            )
+
+    class _FakeAsyncOpenAI:
+        def __init__(self, **kwargs):
+            captured["client"] = kwargs
+            self.chat = SimpleNamespace(completions=_FakeCompletions())
+
+    monkeypatch.setattr(openai, "AsyncOpenAI", _FakeAsyncOpenAI)
+    return captured
+
+
 class _SecretProvider:
     def __init__(self, values):
         self.values = values
@@ -351,3 +377,80 @@ async def test_kimi_client_does_not_retry_non_retryable_create_error(monkeypatch
 
     assert attempts["count"] == 1
     assert events == []
+
+
+@pytest.mark.asyncio
+async def test_kimi_client_sends_coding_user_agent_when_coding_mode_on(monkeypatch):
+    monkeypatch.delenv("KIMI_BASE_URL", raising=False)
+    monkeypatch.setenv("KIMI_CODING_MODE", "1")
+    monkeypatch.setenv("MOONSHOT_API_KEY", "sk-kimi-test")
+    reset_settings()
+    captured = _capture_client_kwargs(monkeypatch)
+
+    _ = [
+        event
+        async for event in KimiAgentModel().chat(
+            [AgentMessage(role="user", content="hi")], stream=False
+        )
+    ]
+
+    assert captured["client"]["base_url"] == "https://api.kimi.com/coding/v1"
+    assert captured["client"]["default_headers"]["User-Agent"] == "claude-code/0.1.0"
+
+
+@pytest.mark.asyncio
+async def test_kimi_client_omits_default_headers_when_coding_mode_off(monkeypatch):
+    monkeypatch.delenv("KIMI_BASE_URL", raising=False)
+    monkeypatch.delenv("KIMI_CODING_MODE", raising=False)
+    monkeypatch.delenv("KIMI_CLIENT_USER_AGENT", raising=False)
+    monkeypatch.setenv("MOONSHOT_API_KEY", "moonshot-key")
+    reset_settings()
+    captured = _capture_client_kwargs(monkeypatch)
+
+    _ = [
+        event
+        async for event in KimiAgentModel().chat(
+            [AgentMessage(role="user", content="hi")], stream=False
+        )
+    ]
+
+    assert captured["client"]["base_url"] == "https://api.moonshot.ai/v1"
+    assert captured["client"].get("default_headers") in (None, {})
+
+
+@pytest.mark.asyncio
+async def test_kimi_client_respects_explicit_user_agent_override(monkeypatch):
+    monkeypatch.setenv("KIMI_CODING_MODE", "1")
+    monkeypatch.setenv("KIMI_CLIENT_USER_AGENT", "roo-code/1.2.3")
+    monkeypatch.setenv("MOONSHOT_API_KEY", "sk-kimi-test")
+    reset_settings()
+    captured = _capture_client_kwargs(monkeypatch)
+
+    _ = [
+        event
+        async for event in KimiAgentModel().chat(
+            [AgentMessage(role="user", content="hi")], stream=False
+        )
+    ]
+
+    assert captured["client"]["default_headers"]["User-Agent"] == "roo-code/1.2.3"
+
+
+@pytest.mark.asyncio
+async def test_kimi_client_merges_extra_headers(monkeypatch):
+    monkeypatch.setenv("KIMI_CODING_MODE", "1")
+    monkeypatch.setenv("KIMI_EXTRA_HEADERS", '{"X-Trace-Id": "abc"}')
+    monkeypatch.setenv("MOONSHOT_API_KEY", "sk-kimi-test")
+    reset_settings()
+    captured = _capture_client_kwargs(monkeypatch)
+
+    _ = [
+        event
+        async for event in KimiAgentModel().chat(
+            [AgentMessage(role="user", content="hi")], stream=False
+        )
+    ]
+
+    headers = captured["client"]["default_headers"]
+    assert headers["User-Agent"] == "claude-code/0.1.0"
+    assert headers["X-Trace-Id"] == "abc"

@@ -23,7 +23,8 @@ class KimiFilesClient:
         settings = get_settings().kimi
         secrets = secret_provider or EnvSecretProvider()
         self._api_key = api_key if api_key is not None else (secrets.get_secret("kimi.api_key") or settings.api_key)
-        self._base_url = base_url if base_url is not None else settings.base_url
+        self._base_url = base_url if base_url is not None else settings.effective_base_url()
+        self._default_headers = settings.default_http_headers()
 
     @property
     def is_configured(self) -> bool:
@@ -63,4 +64,8 @@ class KimiFilesClient:
             from openai import OpenAI
         except ImportError as exc:  # pragma: no cover - installed in normal envs
             raise RuntimeError("openai package is not installed") from exc
-        return OpenAI(api_key=self._api_key, base_url=self._base_url)
+        return OpenAI(
+            api_key=self._api_key,
+            base_url=self._base_url,
+            default_headers=self._default_headers or None,
+        )

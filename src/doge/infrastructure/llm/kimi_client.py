@@ -104,7 +104,8 @@ class KimiAgentModel(IAgentModel):
         settings = get_settings().kimi
         secrets = secret_provider or EnvSecretProvider()
         self._api_key = api_key if api_key is not None else (secrets.get_secret("kimi.api_key") or settings.api_key)
-        self._base_url = base_url if base_url is not None else settings.base_url
+        self._base_url = base_url if base_url is not None else settings.effective_base_url()
+        self._default_headers = settings.default_http_headers()
         self._model = model if model is not None else settings.general_model
         self._max_retries = max(0, max_retries if max_retries is not None else settings.max_retries)
         self._retry_delay = retry_delay if retry_delay is not None else settings.retry_delay
@@ -155,7 +156,12 @@ class KimiAgentModel(IAgentModel):
             logger.warning("openai package not installed")
             return
 
-        client = AsyncOpenAI(api_key=self._api_key, base_url=self._base_url, timeout=timeout or self._timeout)
+        client = AsyncOpenAI(
+            api_key=self._api_key,
+            base_url=self._base_url,
+            timeout=timeout or self._timeout,
+            default_headers=self._default_headers or None,
+        )
         kwargs: dict[str, Any] = {
             "model": request_model,
             "messages": KimiMessageSerializer.serialize_messages(messages),

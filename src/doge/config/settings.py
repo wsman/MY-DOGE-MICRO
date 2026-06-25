@@ -74,6 +74,18 @@ def _env_csv(name: str, default: tuple[str, ...] = ()) -> tuple[str, ...]:
     return tuple(item.strip() for item in env.split(",") if item.strip())
 
 
+def _env_json_object(name: str, default: dict) -> dict:
+    """Read a JSON-object env var (e.g. HTTP headers), falling back to ``default``."""
+    raw = os.environ.get(name)
+    if not raw:
+        return dict(default)
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        return dict(default)
+    return parsed if isinstance(parsed, dict) else dict(default)
+
+
 def _env_choice(name: str, default: str, choices: tuple[str, ...]) -> str:
     """Read an env var constrained to a small operator-facing choice set."""
     value = os.environ.get(name) or default
@@ -316,6 +328,42 @@ class KimiConfig:
     )
     monthly_budget_usd: float = field(default_factory=lambda: _env_float("KIMI_MONTHLY_BUDGET_USD", 0.0))
     run_budget_usd: float = field(default_factory=lambda: _env_float("KIMI_RUN_BUDGET_USD", 0.0))
+    # Kimi "For Coding" endpoint support. The coding endpoint
+    # (https://api.kimi.com/coding/v1) gates on a recognized coding-agent
+    # User-Agent, so coding mode also defaults the UA. Per-field env overrides
+    # always win; see effective_base_url() and default_http_headers().
+    base_url_explicit: bool = field(default_factory=lambda: bool(os.environ.get("KIMI_BASE_URL")))
+    client_user_agent: str = field(default_factory=lambda: os.environ.get("KIMI_CLIENT_USER_AGENT") or "")
+    extra_headers: dict[str, str] = field(default_factory=lambda: _env_json_object("KIMI_EXTRA_HEADERS", {}))
+    coding_mode: bool = field(
+        default_factory=lambda: (
+            os.environ.get("KIMI_CODING_MODE", "").lower() in {"1", "true", "yes", "on"}
+            or os.environ.get("DOGE_TEXT_LLM_PROVIDER", "").lower() == "kimi-coding"
+        )
+    )
+    coding_base_url: str = field(
+        default_factory=lambda: os.environ.get("KIMI_CODING_BASE_URL") or "https://api.kimi.com/coding/v1"
+    )
+    coding_user_agent: str = field(
+        default_factory=lambda: os.environ.get("KIMI_CODING_USER_AGENT") or "claude-code/0.1.0"
+    )
+
+    def effective_base_url(self) -> str:
+        """Resolve the Kimi base URL honoring explicit override > coding mode > default."""
+        if self.base_url_explicit:
+            return self.base_url
+        if self.coding_mode:
+            return self.coding_base_url
+        return self.base_url
+
+    def default_http_headers(self) -> dict[str, str]:
+        """Build the OpenAI client default_headers dict (User-Agent + extras)."""
+        headers: dict[str, str] = {}
+        user_agent = self.client_user_agent or (self.coding_user_agent if self.coding_mode else "")
+        if user_agent:
+            headers["User-Agent"] = user_agent
+        headers.update(self.extra_headers)
+        return headers
 
 
 @dataclass(frozen=True)
