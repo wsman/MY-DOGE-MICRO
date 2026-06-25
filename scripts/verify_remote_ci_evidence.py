@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 import re
 import sys
@@ -189,11 +190,7 @@ def _workflow_runs_url(*, api_root: str, owner: str, repo: str, head_sha: str) -
 def _fetch_json(url: str) -> dict[str, Any]:
     request = Request(
         url,
-        headers={
-            "Accept": "application/vnd.github+json",
-            "User-Agent": "codex-remote-ci-evidence",
-            "X-GitHub-Api-Version": "2022-11-28",
-        },
+        headers=_github_headers(),
     )
     try:
         with urlopen(request, timeout=20) as response:
@@ -203,6 +200,26 @@ def _fetch_json(url: str) -> dict[str, Any]:
     except URLError as exc:
         raise RuntimeError(f"GitHub API request failed: {exc.reason}") from exc
     return json.loads(body)
+
+
+def _github_headers() -> dict[str, str]:
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "codex-remote-ci-evidence",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    token = _github_token_from_env()
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    return headers
+
+
+def _github_token_from_env() -> str | None:
+    for name in ("GITHUB_TOKEN", "GH_TOKEN"):
+        token = os.environ.get(name)
+        if token and token.strip():
+            return token.strip()
+    return None
 
 
 def _normalize_run(item: dict[str, Any]) -> dict[str, Any]:

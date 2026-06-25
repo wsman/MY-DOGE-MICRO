@@ -1,6 +1,6 @@
 # 9b77f9c External Closure Handoff Workspace
 
-Prepared: 2026-06-25T05:15:48.087341+00:00
+Prepared: 2026-06-25T09:21:21.116089+00:00
 Date token: 2026-06-22
 Source manifest: `production/qa/evidence/plan-closure/9b77f9c-external-closure-manifest.json`
 Source plan SHA-256: `unavailable`
@@ -20,9 +20,9 @@ validator command.
 ### S017-002 - Live Kimi smoke execution
 
 - Required result: `passed`
-- Current status: `open` / `blocked`
+- Current status: `open` / `passed`
 - Handoff kind: `live_runner`
-- Close condition: result must be passed for required text and Vision scenarios; Files upload is optional; blocked evidence remains open
+- Close condition: result must pass text, Files upload, Vision, and Agent SDK scenarios; partial or blocked evidence remains open
 - Output ref: `production/qa/evidence/live/kimi-live-smoke-2026-06-22.json`
 - Validator: `.\.venv\Scripts\python.exe scripts\validate_kimi_live_smoke_evidence.py production/qa/evidence/live/kimi-live-smoke-2026-06-22.json`
 - Builder/runner: `.\.venv\Scripts\python.exe scripts\run_kimi_live_smoke.py --output-dir production/qa/evidence/live`
@@ -31,11 +31,12 @@ validator command.
 - Input refs:
   - `env:DOGE_LIVE_KIMI=1`
   - `env:MOONSHOT_API_KEY`
+  - `env:DOGE_LIVE_KIMI_AGENT_SDK=1`
+  - `env:KIMI_FILES_API_CAPABLE=1`
   - `optional:env:DOGE_LIVE_KIMI_VISION_IMAGE`
-  - `optional:env:DOGE_LIVE_KIMI_AGENT_SDK=1`
 - Workspace command: `.\.venv\Scripts\python.exe scripts\run_kimi_live_smoke.py --output-dir production/qa/evidence/live`
 
-Next action: Run scripts/run_kimi_live_smoke.py in an operator-approved Kimi credential/spend window with DOGE_LIVE_KIMI=1, MOONSHOT_API_KEY, and a normal-size Vision image set; Files upload is optional for the Kimi Coding v1 gate, then replace the blocked evidence with the live result.
+Next action: Run scripts/run_kimi_live_smoke.py in an operator-approved Kimi credential/spend window with DOGE_LIVE_KIMI=1, MOONSHOT_API_KEY, a normal-size Vision image set, a /files-capable provider configuration, and DOGE_LIVE_KIMI_AGENT_SDK=1 with kimi_agent_sdk installed. Text/Vision-only live evidence is retained as progress but does not close S017-002.
 
 ### S017-003 - Financial provider fixture approval
 

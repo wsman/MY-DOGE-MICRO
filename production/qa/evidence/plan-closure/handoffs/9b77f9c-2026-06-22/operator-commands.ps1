@@ -38,7 +38,7 @@ if ($TaskId -ne 'all') {
 
 # S017-002 - Live Kimi smoke execution
 # Required result: passed
-# Close condition: result must be passed for required text and Vision scenarios; Files upload is optional; blocked evidence remains open
+# Close condition: result must pass text, Files upload, Vision, and Agent SDK scenarios; partial or blocked evidence remains open
 if ($TaskId -in @('all', 'S017-002')) {
     & $python scripts\run_kimi_live_smoke.py --output-dir production/qa/evidence/live
     & $python scripts\validate_kimi_live_smoke_evidence.py 'production/qa/evidence/live/kimi-live-smoke-2026-06-22.json'

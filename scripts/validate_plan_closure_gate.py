@@ -44,12 +44,13 @@ GATES = [
         path=ROOT / "production" / "qa" / "evidence" / "live" / "kimi-live-smoke-2026-06-22.json",
         validator=validate_kimi_live,
         allow_kwarg="allow_blocked",
-        open_results=frozenset({"blocked"}),
+        open_results=frozenset({"blocked", "failed", "passed"}),
         passing_results=frozenset({"passed"}),
         next_action=(
             "Run scripts/run_kimi_live_smoke.py in an operator-approved Kimi credential/spend window with "
-            "DOGE_LIVE_KIMI=1, MOONSHOT_API_KEY, and a normal-size Vision image set; Files upload is optional "
-            "for the Kimi Coding v1 gate, then replace the blocked evidence with the live result."
+            "DOGE_LIVE_KIMI=1, MOONSHOT_API_KEY, a normal-size Vision image set, a /files-capable provider "
+            "configuration, and DOGE_LIVE_KIMI_AGENT_SDK=1 with kimi_agent_sdk installed. Text/Vision-only "
+            "live evidence is retained as progress but does not close S017-002."
         ),
         strict_command=(
             ".\\.venv\\Scripts\\python.exe scripts\\validate_kimi_live_smoke_evidence.py "

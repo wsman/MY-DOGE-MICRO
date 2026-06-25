@@ -12,7 +12,22 @@ EVIDENCE_PATH = ROOT / "production" / "qa" / "evidence" / "live" / "kimi-live-sm
 
 
 def _blocked() -> dict:
-    return json.loads(EVIDENCE_PATH.read_text(encoding="utf-8"))
+    payload = copy.deepcopy(json.loads(EVIDENCE_PATH.read_text(encoding="utf-8")))
+    payload.update(
+        {
+            "result": "blocked",
+            "blockers": ["DOGE_LIVE_KIMI=1", "MOONSHOT_API_KEY"],
+            "environment": {
+                **payload["environment"],
+                "DOGE_LIVE_KIMI": False,
+                "MOONSHOT_API_KEY_PRESENT": False,
+                "DOGE_LIVE_KIMI_AGENT_SDK": False,
+                "kimi_agent_sdk_installed": False,
+            },
+            "scenarios": [],
+        }
+    )
+    return payload
 
 
 def _passed() -> dict:
@@ -25,6 +40,8 @@ def _passed() -> dict:
                 **payload["environment"],
                 "DOGE_LIVE_KIMI": True,
                 "MOONSHOT_API_KEY_PRESENT": True,
+                "DOGE_LIVE_KIMI_AGENT_SDK": True,
+                "kimi_agent_sdk_installed": True,
             },
             "scenarios": [
                 {
@@ -71,8 +88,14 @@ def _passed() -> dict:
                 },
                 {
                     "name": "agent_sdk_optional",
-                    "status": "skipped",
-                    "reason": "kimi_agent_sdk is not installed",
+                    "status": "passed",
+                    "profile": "agent_automation",
+                    "model": "kimi-k2.6",
+                    "latency_ms": 155.0,
+                    "event_count": 1,
+                    "response_chars": 18,
+                    "finish_reasons": ["stop"],
+                    "usage": {"reported": False, "reason": "provider_usage_not_reported"},
                 },
             ],
         }
@@ -93,11 +116,24 @@ def test_passed_evidence_validates_when_required_scenarios_pass():
     assert validate(_passed()) == []
 
 
-def test_passed_evidence_allows_missing_optional_files_upload():
+def test_passed_evidence_requires_files_upload_for_full_closure():
     payload = _passed()
     payload["scenarios"] = [item for item in payload["scenarios"] if item["name"] != "files_upload"]
 
-    assert validate(payload) == []
+    errors = validate(payload)
+
+    assert any("missing full-closure scenarios" in error for error in errors)
+    assert validate(payload, allow_blocked=True) == []
+
+
+def test_current_partial_live_evidence_is_controlled_open_only():
+    payload = json.loads(EVIDENCE_PATH.read_text(encoding="utf-8"))
+
+    strict_errors = validate(payload)
+
+    assert any("files_upload: full closure requires status=passed" in error for error in strict_errors)
+    assert any("agent_sdk_optional" in error for error in strict_errors)
+    assert validate(payload, allow_blocked=True) == []
 
 
 def test_passed_evidence_rejects_missing_required_scenario():
@@ -209,6 +245,6 @@ def test_cli_allows_blocked_only_with_flag():
     )
 
     assert denied.returncode == 1
-    assert "blocked evidence" in denied.stdout
+    assert "full closure" in denied.stdout
     assert allowed.returncode == 0
     assert json.loads(allowed.stdout)["passed"] is True

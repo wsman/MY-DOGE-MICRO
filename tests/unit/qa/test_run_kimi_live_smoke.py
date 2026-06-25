@@ -98,7 +98,7 @@ def test_scenario_files_skips_when_configured_endpoint_has_no_files_api(monkeypa
 
 
 @pytest.mark.asyncio
-async def test_run_can_pass_when_optional_files_upload_fails(monkeypatch, tmp_path):
+async def test_run_does_not_pass_when_files_upload_fails(monkeypatch, tmp_path):
     monkeypatch.setenv("DOGE_LIVE_KIMI", "1")
     monkeypatch.setenv("MOONSHOT_API_KEY", "sk-test-secret-123456")
 
@@ -135,7 +135,7 @@ async def test_run_can_pass_when_optional_files_upload_fails(monkeypatch, tmp_pa
         vision_image=None,
     ))
 
-    assert evidence["result"] == "passed"
+    assert evidence["result"] == "failed"
     statuses = {item["name"]: item["status"] for item in evidence["scenarios"]}
     assert statuses == {
         "text_k26": "passed",

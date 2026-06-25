@@ -18,7 +18,8 @@ from scripts.evidence_redaction import secret_leak_errors
 
 SCHEMA = "doge.kimi_live_smoke.v1"
 STORY_ID = "S017-002"
-REQUIRED_SCENARIOS = {"text_k26", "vision_base64"}
+BASE_REQUIRED_SCENARIOS = {"text_k26", "vision_base64"}
+FULL_CLOSURE_SCENARIOS = {"text_k26", "files_upload", "vision_base64", "agent_sdk_optional"}
 OPTIONAL_SCENARIOS = {"files_upload", "agent_sdk_optional"}
 ALLOWED_SECRET_KEYS = {
     "api_key_recorded",
@@ -86,7 +87,7 @@ def validate(payload: dict[str, Any], *, allow_blocked: bool = False) -> list[st
         if isinstance(item, dict) and isinstance(item.get("name"), str)
     }
     scenario_names = set(scenario_map)
-    unexpected = scenario_names - REQUIRED_SCENARIOS - OPTIONAL_SCENARIOS
+    unexpected = scenario_names - BASE_REQUIRED_SCENARIOS - OPTIONAL_SCENARIOS
     if unexpected:
         errors.append(f"unexpected scenarios: {', '.join(sorted(unexpected))}")
 
@@ -98,16 +99,18 @@ def validate(payload: dict[str, Any], *, allow_blocked: bool = False) -> list[st
             errors.append("blocked evidence must not include executed scenarios")
 
     if result == "passed":
-        missing = REQUIRED_SCENARIOS - scenario_names
+        missing = BASE_REQUIRED_SCENARIOS - scenario_names
         if missing:
             errors.append(f"missing required scenarios: {', '.join(sorted(missing))}")
-        for name in sorted(REQUIRED_SCENARIOS):
+        for name in sorted(BASE_REQUIRED_SCENARIOS):
             scenario = _dict(scenario_map.get(name))
             if scenario.get("status") != "passed":
                 errors.append(f"{name}: passed evidence requires status=passed")
-        optional = _dict(scenario_map.get("agent_sdk_optional"))
-        if optional and optional.get("status") == "failed":
-            errors.append("agent_sdk_optional failed in passed evidence")
+        closure_errors = _full_closure_errors(scenario_map, environment)
+        if closure_errors and allow_blocked:
+            pass
+        else:
+            errors.extend(closure_errors)
 
     if result == "failed" and not (scenario_map or payload.get("error")):
         errors.append("failed evidence requires scenarios or a redacted error")
@@ -129,7 +132,7 @@ def _validate_scenario(scenario: dict[str, Any], errors: list[str]) -> None:
     status = scenario.get("status")
     if status not in {"passed", "failed", "skipped"}:
         errors.append(f"{name}: status must be passed, failed, or skipped")
-    if name in REQUIRED_SCENARIOS:
+    if name in BASE_REQUIRED_SCENARIOS:
         for key in ["model", "profile"]:
             if not isinstance(scenario.get(key), str) or not scenario[key].strip():
                 errors.append(f"{name}: {key} is required")
@@ -149,6 +152,26 @@ def _validate_scenario(scenario: dict[str, Any], errors: list[str]) -> None:
             errors.append("files_upload: raw file_id must not be recorded")
     if name in OPTIONAL_SCENARIOS and status == "skipped" and not scenario.get("reason"):
         errors.append(f"{name}: skipped scenario requires reason")
+
+
+def _full_closure_errors(
+    scenario_map: dict[str, dict[str, Any]],
+    environment: dict[str, Any],
+) -> list[str]:
+    errors: list[str] = []
+    scenario_names = set(scenario_map)
+    missing = FULL_CLOSURE_SCENARIOS - scenario_names
+    if missing:
+        errors.append(f"missing full-closure scenarios: {', '.join(sorted(missing))}")
+    for name in sorted(FULL_CLOSURE_SCENARIOS & scenario_names):
+        scenario = _dict(scenario_map.get(name))
+        if scenario.get("status") != "passed":
+            errors.append(f"{name}: full closure requires status=passed")
+    if environment.get("DOGE_LIVE_KIMI_AGENT_SDK") is not True:
+        errors.append("passed evidence for full closure requires environment.DOGE_LIVE_KIMI_AGENT_SDK=true")
+    if environment.get("kimi_agent_sdk_installed") is not True:
+        errors.append("passed evidence for full closure requires environment.kimi_agent_sdk_installed=true")
+    return errors
 
 
 def _validate_usage_summary(name: Any, usage: Any, errors: list[str]) -> None:

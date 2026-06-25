@@ -5,7 +5,13 @@ from pathlib import Path
 import subprocess
 import sys
 
-from scripts.verify_remote_ci_evidence import SCHEMA, build_evidence, validate, wait_for_evidence
+from scripts.verify_remote_ci_evidence import (
+    SCHEMA,
+    _github_headers,
+    build_evidence,
+    validate,
+    wait_for_evidence,
+)
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -113,6 +119,25 @@ def test_build_remote_ci_evidence_normalizes_github_runs(monkeypatch):
         }
     ]
     assert validate(payload) == []
+
+
+def test_github_headers_use_env_token_without_exposing_it(monkeypatch):
+    monkeypatch.setenv("GITHUB_TOKEN", "  ghp_secret_token  ")
+    monkeypatch.delenv("GH_TOKEN", raising=False)
+
+    headers = _github_headers()
+
+    assert headers["Authorization"] == "Bearer ghp_secret_token"
+    assert "ghp_secret_token" not in json.dumps({"schema": SCHEMA})
+
+
+def test_github_headers_ignore_blank_token(monkeypatch):
+    monkeypatch.setenv("GITHUB_TOKEN", "   ")
+    monkeypatch.delenv("GH_TOKEN", raising=False)
+
+    headers = _github_headers()
+
+    assert "Authorization" not in headers
 
 
 def test_wait_for_remote_ci_evidence_polls_until_success(monkeypatch):

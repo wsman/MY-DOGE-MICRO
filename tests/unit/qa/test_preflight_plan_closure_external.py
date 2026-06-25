@@ -3,6 +3,7 @@ from pathlib import Path
 import subprocess
 import sys
 
+import scripts.preflight_plan_closure_external as preflight_module
 from scripts.preflight_plan_closure_external import build_preflight
 from scripts.prepare_plan_closure_handoff import prepare_handoff_workspace
 
@@ -49,7 +50,13 @@ def test_preflight_plan_closure_external_accepts_valid_handoff_workspace(tmp_pat
 def test_preflight_plan_closure_external_accepts_filled_handoff_workspace(tmp_path, monkeypatch):
     monkeypatch.setenv("DOGE_LIVE_KIMI", "1")
     monkeypatch.setenv("MOONSHOT_API_KEY", "secret-value")
-    monkeypatch.delenv("DOGE_LIVE_KIMI_AGENT_SDK", raising=False)
+    monkeypatch.setenv("DOGE_LIVE_KIMI_AGENT_SDK", "1")
+    monkeypatch.setenv("KIMI_FILES_API_CAPABLE", "1")
+    monkeypatch.setattr(
+        preflight_module.importlib.util,
+        "find_spec",
+        lambda name: object() if name == "kimi_agent_sdk" else None,
+    )
     workspace = tmp_path / "handoff"
     handoff = prepare_handoff_workspace(manifest_path=MANIFEST, date="2030-01-02", output_dir=workspace)
     _mark_all_draft_inputs_filled(handoff)

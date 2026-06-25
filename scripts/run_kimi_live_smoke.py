@@ -29,7 +29,7 @@ SCENARIO_PROFILES = {
     "vision_base64": "vision_analysis",
     "agent_sdk_optional": "agent_automation",
 }
-REQUIRED_SCENARIOS = {"text_k26", "vision_base64"}
+REQUIRED_SCENARIOS = {"text_k26", "files_upload", "vision_base64", "agent_sdk_optional"}
 TINY_PNG_BASE64 = (
     "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAGUlEQVR4nGP8z8AARLJgwiM3"
     "LqkEAC8iAhE7A52jAAAAAElFTkSuQmCC"
@@ -343,7 +343,7 @@ def _write_markdown(path: Path, evidence: dict[str, Any]) -> None:
         "",
         "## Scope",
         "",
-        "S017-002 live Kimi smoke for required text + Vision/file-Q&A, optional Files upload, and optional Agent SDK.",
+        "S017-002 live Kimi smoke for required text, Files, Vision, and Agent SDK.",
         "Evidence is intentionally redacted: no API key, raw prompt, raw file id, or sensitive fixture content is stored.",
         "",
         "## Environment",
@@ -409,9 +409,10 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             include_agent_sdk=not args.skip_agent_sdk,
             vision_image=args.vision_image,
         )
-        required = [item for item in scenarios if item["name"] in REQUIRED_SCENARIOS]
-        failed = [item for item in required if item.get("status") != "passed"]
-        result = "passed" if not failed else "failed"
+        required = {item["name"]: item for item in scenarios if item["name"] in REQUIRED_SCENARIOS}
+        missing = REQUIRED_SCENARIOS - set(required)
+        failed = [item for item in required.values() if item.get("status") != "passed"]
+        result = "passed" if not failed and not missing else "failed"
         evidence.update({"result": result, "scenarios": scenarios})
     except Exception as exc:  # noqa: BLE001 - live provider errors vary
         evidence.update({

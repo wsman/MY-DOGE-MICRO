@@ -9,8 +9,8 @@ evidence outputs in this handoff workspace.
 ## Gate Contract
 
 - Required result: `passed`
-- Current status: `open` / `blocked`
-- Close condition: result must be passed for required text and Vision scenarios; Files upload is optional; blocked evidence remains open
+- Current status: `open` / `passed`
+- Close condition: result must pass text, Files upload, Vision, and Agent SDK scenarios; partial or blocked evidence remains open
 - Completed evidence belongs in: `production/qa/evidence/live/kimi-live-smoke-2026-06-22.json`
 - Strict validator: `.\.venv\Scripts\python.exe scripts\validate_kimi_live_smoke_evidence.py production/qa/evidence/live/kimi-live-smoke-2026-06-22.json`
 - Builder/runner: `.\.venv\Scripts\python.exe scripts\run_kimi_live_smoke.py --output-dir production/qa/evidence/live`
@@ -20,8 +20,9 @@ evidence outputs in this handoff workspace.
 - No draft input file is copied for this gate; set the required refs below.
 - Required input ref: `env:DOGE_LIVE_KIMI=1`
 - Required input ref: `env:MOONSHOT_API_KEY`
+- Required input ref: `env:DOGE_LIVE_KIMI_AGENT_SDK=1`
+- Required input ref: `env:KIMI_FILES_API_CAPABLE=1`
 - Optional input ref: `optional:env:DOGE_LIVE_KIMI_VISION_IMAGE`
-- Optional input ref: `optional:env:DOGE_LIVE_KIMI_AGENT_SDK=1`
 
 ## Operator Focus
 
