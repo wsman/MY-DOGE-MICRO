@@ -7,12 +7,14 @@ def test_runtime_kernel_delegates_execution_services() -> None:
     source = Path("src/doge/application/agent/runtime_kernel.py").read_text(encoding="utf-8")
 
     for required in [
-        "ModelExecutionService",
-        "ToolExecutionService",
-        "ArtifactEvaluationService",
+        "IModelExecutionService",
+        "IToolExecutionService",
+        "IArtifactEvaluationService",
     ]:
         assert required in source
+    assert "doge.core.ports.runtime_services" in source
     for forbidden in [
+        "doge.platform.runtime",
         "CitationService",
         "NumericalConsistencyService",
         "inspect.signature",
@@ -32,5 +34,19 @@ def test_runtime_services_define_split_boundaries() -> None:
         "class ModelExecutionService",
         "class ToolExecutionService",
         "class ArtifactEvaluationService",
+        "from doge.core.ports.runtime_services import ModelExecutionResult, ToolResult",
+    ]:
+        assert required in source
+
+
+def test_core_runtime_services_define_ports_and_result_types() -> None:
+    source = Path("src/doge/core/ports/runtime_services.py").read_text(encoding="utf-8")
+
+    for required in [
+        "class IModelExecutionService",
+        "class IToolExecutionService",
+        "class IArtifactEvaluationService",
+        "class ModelExecutionResult",
+        "class ToolResult",
     ]:
         assert required in source

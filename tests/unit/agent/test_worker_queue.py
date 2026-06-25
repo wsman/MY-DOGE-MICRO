@@ -70,3 +70,20 @@ def test_run_queue_heartbeat_extends_active_lease(tmp_path):
 
     after = _latest_queue_row(db, "run-1")["lease_expires_at"]
     assert after > before
+
+
+def test_run_queue_moves_exhausted_stalled_claim_to_dead_letter(tmp_path):
+    db = tmp_path / "agent_state.db"
+    queue = SQLiteRunQueue(db)
+    queue.enqueue("run-1")
+    assert queue.claim_atomic("worker-a", lease_seconds=-1, max_attempts=2) == "run-1"
+    assert queue.recover_stalled_leases(lease_timeout_seconds=0, max_attempts=2) == ["run-1"]
+    assert queue.claim_atomic("worker-b", lease_seconds=-1, max_attempts=2) == "run-1"
+
+    recovered = queue.recover_stalled_leases(lease_timeout_seconds=0, max_attempts=2)
+
+    latest = _latest_queue_row(db, "run-1")
+    assert recovered == []
+    assert latest["status"] == "dead_letter"
+    assert latest["attempt_count"] == 2
+    assert queue.list_pending() == []

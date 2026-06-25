@@ -28,19 +28,23 @@ class ExecuteRun:
         portfolio_id: str | None = "portfolio-demo",
         model_policy: dict[str, Any] | ModelPolicy | None = None,
     ) -> AgentRun:
-        run = await self._runtime.create_run({
-            "workflow": "investment_research",
-            "question": question,
-            "session_id": session_id,
-            "market": market,
-            "language": language,
-            "document_ids": document_ids or [],
-            "portfolio_id": portfolio_id,
-            "model_policy": ModelPolicy.from_dict(model_policy or {"max_tool_rounds": 8}),
-        })
+        scope = TenantScope.local()
+        run = await self._runtime.create_run(
+            scope,
+            {
+                "workflow": "investment_research",
+                "question": question,
+                "session_id": session_id,
+                "market": market,
+                "language": language,
+                "document_ids": document_ids or [],
+                "portfolio_id": portfolio_id,
+                "model_policy": ModelPolicy.from_dict(model_policy or {"max_tool_rounds": 8}),
+            },
+        )
         if session_id and self._append_turn is not None:
             self._append_turn.execute(session_id, question, run.run_id)
-        return await self._runtime.run_to_pause_or_completion(run.run_id)
+        return await self._runtime.run_to_pause_or_completion(scope, run.run_id)
 
 
 class ResumeRun:

@@ -11,6 +11,7 @@ from typing import Protocol
 from doge.application.services.file_purpose_router import route_kimi_file_purpose
 from doge.core.domain.document_models import Document, DocumentStatus
 from doge.core.ports.document_repository import IDocumentRepository
+from doge.shared.scope import TenantScope
 
 
 class FileUploadError(ValueError):
@@ -67,18 +68,32 @@ class FileUploadService:
         self._kimi_files_client = kimi_files_client
         self._extraction_service = extraction_service
 
-    def register_path(self, path: str | Path, *, tenant_id: str | None = None) -> dict:
+    def register_path(
+        self,
+        path: str | Path,
+        *,
+        scope: TenantScope | None = None,
+        tenant_id: str | None = None,
+    ) -> dict:
         source = Path(path).expanduser().resolve()
         if not source.exists() or not source.is_file():
             raise FileUploadError(f"file not found: {source}")
         self._validate_file(source.name, source.stat().st_size)
         payload = source.read_bytes()
-        return self.register_bytes(filename=source.name, payload=payload, tenant_id=tenant_id)
+        return self.register_bytes(filename=source.name, payload=payload, scope=scope, tenant_id=tenant_id)
 
-    def register_bytes(self, *, filename: str, payload: bytes, tenant_id: str | None = None) -> dict:
+    def register_bytes(
+        self,
+        *,
+        filename: str,
+        payload: bytes,
+        scope: TenantScope | None = None,
+        tenant_id: str | None = None,
+    ) -> dict:
+        resolved_scope = _resolve_scope(scope, tenant_id)
         self._validate_file(filename, len(payload))
         file_hash = hashlib.sha256(payload).hexdigest()
-        existing = self._repository.get_by_hash(file_hash, tenant_id=tenant_id)
+        existing = self._repository.get_by_hash(file_hash, resolved_scope)
         if existing is not None:
             self._extract(existing)
             return existing
@@ -121,7 +136,7 @@ class FileUploadService:
             parser_error=parser_error,
             content=content,
         )
-        return self._save_and_extract(document, tenant_id=tenant_id)
+        return self._save_and_extract(document, scope=resolved_scope)
 
     def register_text(
         self,
@@ -129,8 +144,10 @@ class FileUploadService:
         filename: str,
         content: str,
         document_id: str | None = None,
+        scope: TenantScope | None = None,
         tenant_id: str | None = None,
     ) -> dict:
+        resolved_scope = _resolve_scope(scope, tenant_id)
         payload = content.encode("utf-8")
         file_hash = hashlib.sha256(payload).hexdigest()
         mime_type = mimetypes.guess_type(filename)[0] or "text/plain"
@@ -144,7 +161,7 @@ class FileUploadService:
             kimi_file_purpose=route_kimi_file_purpose(filename=filename, mime_type=mime_type),
             content=content,
         )
-        return self._save_and_extract(document, tenant_id=tenant_id)
+        return self._save_and_extract(document, scope=resolved_scope)
 
     def _validate_file(self, filename: str, size_bytes: int) -> None:
         if not filename:
@@ -168,12 +185,11 @@ class FileUploadService:
             shutil.move(str(tmp), str(destination))
         return destination
 
-    def _save_and_extract(self, document: Document, *, tenant_id: str | None = None) -> dict:
+    def _save_and_extract(self, document: Document, *, scope: TenantScope) -> dict:
         record = document.to_dict()
-        if tenant_id is not None:
-            record["tenant_id"] = tenant_id
-        self._repository.save(record)
-        saved = self._repository.get(document.document_id, tenant_id=tenant_id)
+        record["tenant_id"] = scope.tenant_id
+        self._repository.save(record, scope)
+        saved = self._repository.get(document.document_id, scope)
         result = saved if saved is not None else document.to_dict()
         self._extract(result)
         return result
@@ -181,3 +197,11 @@ class FileUploadService:
     def _extract(self, document: Document | dict) -> None:
         if self._extraction_service is not None:
             self._extraction_service.extract(document)
+
+
+def _resolve_scope(scope: TenantScope | None, tenant_id: str | None) -> TenantScope:
+    if scope is not None:
+        if tenant_id is not None and tenant_id != scope.tenant_id:
+            raise ValueError(f"tenant mismatch for scope: {tenant_id} != {scope.tenant_id}")
+        return scope
+    return TenantScope.from_tenant_id(tenant_id)

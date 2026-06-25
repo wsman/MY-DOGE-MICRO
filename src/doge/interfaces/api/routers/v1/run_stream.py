@@ -4,20 +4,15 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from sse_starlette.sse import EventSourceResponse
 
 from doge.core.ports.agent_runtime import IResearchAgentRuntime
 from doge.core.ports.event_subscriber import IEventSubscriber
 from doge.interfaces.api import deps
+from doge.interfaces.api.handlers import RunNotFound, RunStreamHandler
 from doge.interfaces.api.routers.v1._common import serialize
-from doge.interfaces.api.routers.v1._runs_common import (
-    STREAM_CLOSE_EVENTS,
-    STREAM_CLOSE_STATUSES,
-    authorized_run,
-    max_event_sequence_after,
-    request_scope,
-)
+from doge.interfaces.api.routers.v1._runs_common import request_run_access
 
 router = APIRouter(dependencies=[Depends(deps.require_api_token)])
 
@@ -30,35 +25,25 @@ async def stream_run(
     runtime: IResearchAgentRuntime = Depends(deps.get_persisted_research_agent_runtime),
     subscriber: IEventSubscriber = Depends(deps.get_event_subscriber),
 ):
-    scope = request_scope(request)
-    authorized = authorized_run(request, runtime, run_id)
     try:
         after_sequence = int(last_event_id or "0")
     except ValueError:
         after_sequence = 0
+    try:
+        event_stream = RunStreamHandler(runtime=runtime, subscriber=subscriber).open(
+            run_id=run_id,
+            access=request_run_access(request),
+            after_sequence=after_sequence,
+        )
+    except RunNotFound:
+        raise HTTPException(404, "run not found")
 
     async def generator():
-        run = runtime.get_run(scope, run_id) or authorized
-        terminal_at_start = run.status in STREAM_CLOSE_STATUSES
-        initial_max_sequence = max_event_sequence_after(
-            runtime,
-            run_id,
-            after_sequence,
-            scope=scope,
-        )
-        if terminal_at_start and initial_max_sequence <= after_sequence:
-            return
-        async for event in subscriber.subscribe(run_id, after_sequence=after_sequence):
+        async for event in event_stream:
             yield {
                 "id": str(event.sequence),
                 "event": event.event_type.value,
                 "data": json.dumps(serialize(event), ensure_ascii=False),
             }
-            run = runtime.get_run(scope, run_id)
-            if run and run.status in STREAM_CLOSE_STATUSES:
-                if terminal_at_start and event.sequence >= initial_max_sequence:
-                    return
-                if not terminal_at_start and event.event_type.value in STREAM_CLOSE_EVENTS:
-                    return
 
     return EventSourceResponse(generator())

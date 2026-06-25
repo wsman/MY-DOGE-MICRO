@@ -14,6 +14,7 @@ from doge.infrastructure.database.agent_repositories import (
     SQLiteSessionRepository,
     bootstrap_agent_schema,
 )
+from doge.shared.scope import TenantScope
 
 
 def test_sqlite_run_repository_save_and_get(tmp_path):
@@ -27,6 +28,20 @@ def test_sqlite_run_repository_save_and_get(tmp_path):
     assert loaded is not None
     assert loaded.question == "q"
     assert loaded.session_id == "ses-1"
+
+
+def test_sqlite_run_repository_local_filter_reads_legacy_null_tenant(tmp_path):
+    db = tmp_path / "agent_state.db"
+    repo = SQLiteRunRepository(db)
+    run = AgentRun.create(workflow="investment_research", question="q", session_id="ses-1")
+    repo.save(run)
+    with sqlite3.connect(str(db)) as conn:
+        conn.execute("UPDATE runs SET tenant_id = NULL WHERE run_id = ?", (run.run_id,))
+        conn.commit()
+
+    assert repo.get(run.run_id, tenant_id="local") is not None
+    assert [item.run_id for item in repo.list_recent(tenant_id="local")] == [run.run_id]
+    assert repo.get(run.run_id, tenant_id="tenant-a") is None
 
 
 def test_sqlite_event_repository_sequence_order(tmp_path):
@@ -91,6 +106,20 @@ def test_sqlite_event_repository_rejects_duplicate_sequence_without_replace(tmp_
     assert [event.payload["n"] for event in loaded] == [1]
 
 
+def test_sqlite_event_repository_rejects_orphan_run_id(tmp_path):
+    db = tmp_path / "agent_state.db"
+    events = SQLiteEventRepository(db)
+    event = AgentEvent(
+        event_id="evt-orphan",
+        run_id="missing-run",
+        event_type=EventType.ERROR,
+        payload={"n": 1},
+    )
+
+    with pytest.raises(sqlite3.IntegrityError):
+        events.append(event)
+
+
 def test_sqlite_artifact_repository_roundtrip(tmp_path):
     db = tmp_path / "agent_state.db"
     run = AgentRun.create(workflow="investment_research", question="q")
@@ -114,6 +143,39 @@ def test_sqlite_session_repository_roundtrip(tmp_path):
 
     assert loaded is not None
     assert loaded.title == "Demo"
+
+
+def test_sqlite_session_repository_accepts_tenant_scope(tmp_path):
+    db = tmp_path / "agent_state.db"
+    repo = SQLiteSessionRepository(db)
+    scope = TenantScope.enterprise("tenant-a", "user-a")
+    session = AgentSession.create("Scoped", tenant_id="tenant-a")
+
+    repo.save(session, scope)
+
+    assert repo.get(session.session_id, scope) is not None
+    assert repo.get(session.session_id, TenantScope.enterprise("tenant-b", "user-b")) is None
+    assert [item.session_id for item in repo.list_recent(scope)] == [session.session_id]
+
+
+def test_sqlite_run_repository_accepts_tenant_scope(tmp_path):
+    db = tmp_path / "agent_state.db"
+    repo = SQLiteRunRepository(db)
+    scope = TenantScope.enterprise("tenant-a", "user-a")
+    run = AgentRun.create(
+        workflow="investment_research",
+        question="q",
+        session_id="ses-a",
+        identity_snapshot=IdentitySnapshot(tenant_id="tenant-a", user_hash="user-a"),
+    )
+
+    repo.save(run, scope)
+
+    assert repo.get(run.run_id, scope) is not None
+    assert repo.get_run_header(run.run_id, scope) is not None
+    assert [item.run_id for item in repo.list_by_session("ses-a", scope)] == [run.run_id]
+    assert [item.run_id for item in repo.list_recent(scope)] == [run.run_id]
+    assert repo.get(run.run_id, TenantScope.enterprise("tenant-b", "user-b")) is None
 
 
 def test_sqlite_runtime_repositories_filter_by_tenant(tmp_path):

@@ -5,6 +5,7 @@ from doge.application.composition import build_persisted_research_agent_runtime
 from doge.core.domain.agent_models import RunStatus
 from doge.infrastructure.agent.inmemory_runtime import InMemoryResearchAgentRuntime
 from doge.infrastructure.agent.scripted_model import ScriptedAgentModel
+from doge.shared.scope import TenantScope
 
 
 def _schema(name: str):
@@ -74,6 +75,50 @@ async def test_inmemory_repositories_match_sqlite_semantics(tmp_path):
     assert [event.event_type for event in mem_run.events] == [event.event_type for event in sql_run.events]
     assert len(mem_run.artifacts) == len(sql_run.artifacts) == 1
     assert len(mem_run.approvals) == len(sql_run.approvals) == 1
+
+
+@pytest.mark.asyncio
+async def test_persisted_runtime_scope_first_create_and_run(tmp_path):
+    runtime = build_persisted_research_agent_runtime(
+        model=ScriptedAgentModel(),
+        tool_registry=_registry(),
+        db_path=tmp_path / "agent_state.db",
+    )
+    scope = TenantScope.enterprise("tenant-a", "user-a")
+
+    run = await runtime.create_run(
+        scope,
+        {"question": "Analyze AAPL", "model_policy": {"max_tool_rounds": 8}},
+    )
+    paused = await runtime.run_to_pause_or_completion(scope, run.run_id)
+
+    assert run.identity_snapshot is not None
+    assert run.identity_snapshot.tenant_id == "tenant-a"
+    assert run.identity_snapshot.user_hash == "user-a"
+    assert runtime.get_run(scope, run.run_id) is not None
+    assert runtime.get_run(TenantScope.enterprise("tenant-b", "user-b"), run.run_id) is None
+    assert paused.status in {RunStatus.AWAITING_APPROVAL, RunStatus.COMPLETED}
+
+
+@pytest.mark.asyncio
+async def test_persisted_runtime_scope_first_rejects_spoofed_identity(tmp_path):
+    runtime = build_persisted_research_agent_runtime(
+        model=ScriptedAgentModel(),
+        tool_registry=_registry(),
+        db_path=tmp_path / "agent_state.db",
+    )
+    scope = TenantScope.enterprise("tenant-a", "user-a")
+
+    with pytest.raises(ValueError, match="tenant mismatch"):
+        await runtime.create_run(
+            scope,
+            {"question": "Analyze AAPL", "identity_snapshot": {"tenant_id": "tenant-b", "user_hash": "user-a"}},
+        )
+    with pytest.raises(ValueError, match="subject mismatch"):
+        await runtime.create_run(
+            scope,
+            {"question": "Analyze AAPL", "identity_snapshot": {"tenant_id": "tenant-a", "user_hash": "user-b"}},
+        )
 
 
 @pytest.mark.asyncio

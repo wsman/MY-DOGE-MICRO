@@ -12,7 +12,13 @@ from doge.core.domain.page_models import DocumentPage
 from doge.core.ports.evidence_repository import IEvidenceRepository
 from doge.infrastructure.database.agent_repositories import bootstrap_agent_schema
 from doge.infrastructure.database.sqlite import SQLiteConnection
-from doge.infrastructure.database.tenant_guard import guard_existing_tenant, require_same_tenant, resolve_tenant_id
+from doge.infrastructure.database.tenant_guard import (
+    LOCAL_TENANT_ID,
+    guard_existing_tenant,
+    require_same_tenant,
+    resolve_tenant_id,
+)
+from doge.shared.scope import TenantScope
 
 
 class SQLiteEvidenceRepository(IEvidenceRepository):
@@ -26,9 +32,16 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
     def _connect(self):
         return self._connection.connect()
 
-    def save_page(self, page: DocumentPage, tenant_id: str | None = None) -> None:
+    def save_page(
+        self,
+        page: DocumentPage,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> None:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
         with self._connect() as conn:
-            effective_tenant_id = resolve_tenant_id(_tenant_id_for_document(conn, page.document_id), tenant_id)
+            effective_tenant_id = resolve_tenant_id(_tenant_id_for_document(conn, page.document_id), requested_tenant_id)
             guard_existing_tenant(
                 conn,
                 table="document_pages",
@@ -65,20 +78,33 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
             )
             conn.commit()
 
-    def list_pages(self, document_id: str, tenant_id: str | None = None) -> list[DocumentPage]:
+    def list_pages(
+        self,
+        document_id: str,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> list[DocumentPage]:
         sql = "SELECT * FROM document_pages WHERE document_id = ?"
-        params: tuple[object, ...] = (document_id,)
-        if tenant_id is not None:
-            sql += " AND tenant_id = ?"
-            params = (document_id, tenant_id)
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
+        tenant_sql, tenant_params = _tenant_filter("tenant_id", requested_tenant_id)
+        sql += tenant_sql
+        params: tuple[object, ...] = (document_id, *tenant_params)
         sql += " ORDER BY page_number ASC"
         with self._connect() as conn:
             rows = conn.execute(sql, params).fetchall()
             return [DocumentPage.from_mapping(dict(row)) for row in rows]
 
-    def save_chunk(self, chunk: DocumentChunk, tenant_id: str | None = None) -> None:
+    def save_chunk(
+        self,
+        chunk: DocumentChunk,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> None:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
         with self._connect() as conn:
-            effective_tenant_id = resolve_tenant_id(_tenant_id_for_document(conn, chunk.document_id), tenant_id)
+            effective_tenant_id = resolve_tenant_id(_tenant_id_for_document(conn, chunk.document_id), requested_tenant_id)
             guard_existing_tenant(
                 conn,
                 table="document_chunks",
@@ -120,12 +146,20 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
 
     def list_chunks(
         self,
+        scope: TenantScope | list[str] | str | None = None,
         document_ids: list[str] | None = None,
         limit: int = 20,
+        *,
         tenant_id: str | None = None,
     ) -> list[DocumentChunk]:
+        if isinstance(scope, list):
+            if isinstance(document_ids, int):
+                limit = document_ids
+            document_ids = scope
+            scope = None
         if document_ids == []:
             return []
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
         sql = "SELECT * FROM document_chunks"
         params: list[object] = []
         where: list[str] = []
@@ -133,9 +167,10 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
             placeholders = ", ".join("?" for _ in document_ids)
             where.append(f"document_id IN ({placeholders})")
             params.extend(document_ids)
-        if tenant_id is not None:
-            where.append("tenant_id = ?")
-            params.append(tenant_id)
+        tenant_sql, tenant_params = _tenant_condition("tenant_id", requested_tenant_id)
+        if tenant_sql:
+            where.append(tenant_sql)
+            params.extend(tenant_params)
         if where:
             sql += " WHERE " + " AND ".join(where)
         sql += " ORDER BY document_id ASC, page_number ASC, start_char ASC LIMIT ?"
@@ -144,7 +179,14 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
             rows = conn.execute(sql, params).fetchall()
             return [DocumentChunk.from_mapping(dict(row)) for row in rows]
 
-    def save_evidence(self, evidence: EvidenceRecord, tenant_id: str | None = None) -> None:
+    def save_evidence(
+        self,
+        evidence: EvidenceRecord,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> None:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
         with self._connect() as conn:
             run_tenant_id = _tenant_id_for_run(conn, evidence.run_id)
             document_tenant_id = _tenant_id_for_document(conn, evidence.document_id)
@@ -156,7 +198,7 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
                 )
             effective_tenant_id = resolve_tenant_id(
                 run_tenant_id or document_tenant_id,
-                tenant_id,
+                requested_tenant_id,
             )
             guard_existing_tenant(
                 conn,
@@ -202,12 +244,18 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
             )
             conn.commit()
 
-    def get_evidence(self, evidence_id: str, tenant_id: str | None = None) -> EvidenceRecord | None:
+    def get_evidence(
+        self,
+        evidence_id: str,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> EvidenceRecord | None:
         sql = "SELECT * FROM evidence_records WHERE evidence_id = ?"
-        params: tuple[object, ...] = (evidence_id,)
-        if tenant_id is not None:
-            sql += " AND tenant_id = ?"
-            params = (evidence_id, tenant_id)
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
+        tenant_sql, tenant_params = _tenant_filter("tenant_id", requested_tenant_id)
+        sql += tenant_sql
+        params: tuple[object, ...] = (evidence_id, *tenant_params)
         with self._connect() as conn:
             row = conn.execute(sql, params).fetchone()
             return EvidenceRecord.from_mapping(dict(row)) if row else None
@@ -215,11 +263,13 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
     def list_evidence(
         self,
         *,
+        scope: TenantScope | str | None = None,
         run_id: str | None = None,
         document_id: str | None = None,
         limit: int = 20,
         tenant_id: str | None = None,
     ) -> list[EvidenceRecord]:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
         where: list[str] = []
         params: list[object] = []
         if run_id:
@@ -228,9 +278,10 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
         if document_id:
             where.append("document_id = ?")
             params.append(document_id)
-        if tenant_id is not None:
-            where.append("tenant_id = ?")
-            params.append(tenant_id)
+        tenant_sql, tenant_params = _tenant_condition("tenant_id", requested_tenant_id)
+        if tenant_sql:
+            where.append(tenant_sql)
+            params.extend(tenant_params)
         sql = "SELECT * FROM evidence_records"
         if where:
             sql += " WHERE " + " AND ".join(where)
@@ -251,3 +302,30 @@ def _tenant_id_for_run(conn, run_id: str | None) -> str | None:
         return None
     row = conn.execute("SELECT tenant_id FROM runs WHERE run_id = ?", (run_id,)).fetchone()
     return row["tenant_id"] if row and row["tenant_id"] else None
+
+
+def _tenant_id_from_scope(scope: TenantScope | str | None, tenant_id: str | None = None) -> str | None:
+    if isinstance(scope, TenantScope):
+        if tenant_id is not None and tenant_id != scope.tenant_id:
+            raise ValueError(f"tenant mismatch for scope: {tenant_id} != {scope.tenant_id}")
+        return scope.tenant_id
+    if isinstance(scope, str):
+        if tenant_id is not None and tenant_id != scope:
+            raise ValueError(f"tenant mismatch for scope: {tenant_id} != {scope}")
+        return scope
+    return tenant_id
+
+
+def _tenant_filter(column: str, tenant_id: str | None, *, prefix: str = " AND ") -> tuple[str, tuple[object, ...]]:
+    condition, params = _tenant_condition(column, tenant_id)
+    if not condition:
+        return "", ()
+    return f"{prefix}{condition}", params
+
+
+def _tenant_condition(column: str, tenant_id: str | None) -> tuple[str, tuple[object, ...]]:
+    if tenant_id is None:
+        return "", ()
+    if tenant_id == LOCAL_TENANT_ID:
+        return f"({column} = ? OR {column} IS NULL)", (LOCAL_TENANT_ID,)
+    return f"{column} = ?", (tenant_id,)

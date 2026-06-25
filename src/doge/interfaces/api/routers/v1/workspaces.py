@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 
 from doge.interfaces.api import deps
+from doge.interfaces.api.handlers import WorkspaceHandler
 from doge.interfaces.api.routers.v1._common import serialize
 from doge.interfaces.api.routers.v1._platform_common import (
     build_workspace_service,
@@ -30,7 +31,7 @@ async def list_workspaces(
     service: WorkspaceService = Depends(build_workspace_service),
 ):
     try:
-        items = service.list(platform_context(request), limit=limit)
+        items = WorkspaceHandler(service=service).list(context=platform_context(request), limit=limit)
         return {"workspaces": serialize(items)}
     except PlatformServiceError as exc:
         raise_platform_error(exc)
@@ -43,7 +44,11 @@ async def create_workspace(
     service: WorkspaceService = Depends(build_workspace_service),
 ):
     try:
-        workspace = service.create(platform_context(request), name=body.name, description=body.description)
+        workspace = WorkspaceHandler(service=service).create(
+            context=platform_context(request),
+            name=body.name,
+            description=body.description,
+        )
         return serialize(workspace)
     except PlatformServiceError as exc:
         raise_platform_error(exc)
@@ -56,6 +61,10 @@ async def get_workspace(
     service: WorkspaceService = Depends(build_workspace_service),
 ):
     try:
-        return serialize(service.get(platform_context(request), workspace_id))
+        workspace = WorkspaceHandler(service=service).get(
+            context=platform_context(request),
+            workspace_id=workspace_id,
+        )
+        return serialize(workspace)
     except PlatformServiceError as exc:
         raise_platform_error(exc)

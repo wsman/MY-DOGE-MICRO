@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from doge.core.domain.agent_models import utc_now
 from doge.core.domain.enterprise_context import EnterpriseContext
+from doge.shared.scope import TenantScope
 
 
 @dataclass(frozen=True)
@@ -53,7 +54,7 @@ class IEnterpriseGovernanceRepository(Protocol):
 
     def revoke_grant(
         self,
-        tenant_id: str,
+        scope: TenantScope,
         subject_hash: str,
         resource_type: str,
         resource_id: str,
@@ -63,7 +64,7 @@ class IEnterpriseGovernanceRepository(Protocol):
 
     def list_acl_grants(
         self,
-        tenant_id: str | None = None,
+        scope: TenantScope,
         subject_hash: str | None = None,
         resource_type: str | None = None,
         resource_id: str | None = None,
@@ -91,14 +92,18 @@ class IEnterpriseGovernanceRepository(Protocol):
     def append_audit_event(self, event: EnterpriseAuditEvent) -> EnterpriseAuditEvent:
         ...
 
-    def list_audit_events(self, tenant_id: str | None = None) -> list[EnterpriseAuditEvent]:
+    def list_audit_events(self, scope: TenantScope) -> list[EnterpriseAuditEvent]:
         ...
 
-    def purge_audit_events(self, tenant_id: str, before_created_at: str) -> int:
+    def purge_audit_events(self, scope: TenantScope, before_created_at: str) -> int:
         ...
 
     def record_approval_decision(self, decision: ApprovalActorDecision) -> None:
         ...
 
-    def list_approval_decisions(self, approval_id: str | None = None) -> list[ApprovalActorDecision]:
+    def list_approval_decisions(
+        self,
+        scope: TenantScope,
+        approval_id: str | None = None,
+    ) -> list[ApprovalActorDecision]:
         ...

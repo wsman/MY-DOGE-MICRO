@@ -1,0 +1,7 @@
+{
+  "context": "evidence",
+  "migrations": [
+    "documents_metadata",
+    "local_tenant_backfill"
+  ]
+}

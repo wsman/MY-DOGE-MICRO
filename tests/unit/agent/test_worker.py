@@ -65,7 +65,9 @@ class ProcessingRuntime(FakeRuntime):
         super().__init__()
         self.processed = []
 
-    async def run_to_pause_or_completion(self, run_id: str):
+    async def run_to_pause_or_completion(self, scope, run_id: str | None = None):
+        if run_id is None:
+            run_id = scope
         self.processed.append(run_id)
         return type("Run", (), {"status": RunStatus.COMPLETED})()
 

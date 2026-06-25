@@ -13,11 +13,11 @@ class IResearchAgentRuntime(ABC):
     """Application-facing runtime interface for research-agent runs."""
 
     @abstractmethod
-    async def create_run(self, request: dict[str, Any], *, tenant_id: str | None = None) -> AgentRun:
+    async def create_run(self, scope: TenantScope, request: dict[str, Any]) -> AgentRun:
         ...
 
     @abstractmethod
-    async def run_to_pause_or_completion(self, run_id: str, *, tenant_id: str | None = None) -> AgentRun:
+    async def run_to_pause_or_completion(self, scope: TenantScope, run_id: str) -> AgentRun:
         ...
 
     @abstractmethod

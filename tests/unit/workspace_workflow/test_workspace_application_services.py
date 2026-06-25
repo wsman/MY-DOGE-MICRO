@@ -16,6 +16,7 @@ from doge.platform.workspace.application import (
     PlatformRequestContext,
     PlatformValidationError,
 )
+from doge.shared.scope import TenantScope
 
 
 def test_workspace_service_facade_is_thin_compatibility_wrapper():
@@ -77,7 +78,7 @@ def test_case_asset_service_owns_validation_and_persistence(tmp_path):
     )
 
     assert link.asset_type == "document"
-    assert documents.last_tenant_id is None
+    assert documents.last_scope == TenantScope.local()
     assert [item.asset_link_id for item in service.list_case_assets(context, case_id)] == [link.asset_link_id]
 
     with pytest.raises(PlatformValidationError, match="unsupported asset_type"):
@@ -129,10 +130,10 @@ def _case_repo(tmp_path):
 class _DocumentRepo:
     def __init__(self, document_ids):
         self._document_ids = set(document_ids)
-        self.last_tenant_id = None
+        self.last_scope = None
 
-    def get(self, document_id, tenant_id=None):
-        self.last_tenant_id = tenant_id
+    def get(self, document_id, scope=None, *, tenant_id=None):
+        self.last_scope = scope
         if document_id in self._document_ids:
             return {"document_id": document_id}
         return None

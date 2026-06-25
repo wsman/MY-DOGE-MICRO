@@ -10,9 +10,31 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, is_dataclass
-from typing import Any
+from typing import Any, Protocol
 
 from doge.core.security import redact_secrets
+
+
+class RunClient(Protocol):
+    def get_run(self, run_id: str) -> Any | None:
+        """Return a run payload from either the embedded runtime or SDK."""
+        ...
+
+
+class EmbeddedRunClient:
+    def __init__(self, resume_run_use_case: Any) -> None:
+        self._resume_run = resume_run_use_case
+
+    def get_run(self, run_id: str) -> Any | None:
+        return self._resume_run.execute(run_id)
+
+
+class SdkRunClient:
+    def __init__(self, sdk_client: Any) -> None:
+        self._sdk_client = sdk_client
+
+    def get_run(self, run_id: str) -> Any | None:
+        return self._sdk_client.runs.get(run_id)
 
 
 def to_cli_payload(item: Any) -> Any:
@@ -30,17 +52,29 @@ def parse_approval_ref(value: str) -> tuple[str | None, str]:
     return run_id or None, approval_id
 
 
-def print_last_run(run_id: str | None, *, field: str) -> None:
+def build_embedded_run_client() -> EmbeddedRunClient:
+    from doge.interfaces.cli.commands import session as _session
+
+    return EmbeddedRunClient(_session._runtime_container().build_resume_run_use_case())
+
+
+def _run_field(run: Any, field: str) -> Any:
+    if isinstance(run, dict):
+        return run.get(field)
+    return getattr(run, field)
+
+
+def print_last_run(run_id: str | None, *, field: str, client: RunClient | None = None) -> None:
     if run_id is None:
         print("no active run")
         return
-    from doge.interfaces.cli.commands import session as _session
 
-    run = _session._runtime_container().build_resume_run_use_case().execute(run_id)
+    run_client = client or build_embedded_run_client()
+    run = run_client.get_run(run_id)
     if run is None:
         print("run not found")
         return
-    items = getattr(run, field)
+    items = _run_field(run, field)
     if not items:
         print(f"{field}=0")
         return

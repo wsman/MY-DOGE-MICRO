@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import inspect
 from pathlib import Path
 
@@ -80,6 +81,27 @@ _GATEWAY_FACTORIES = [
     "build_scan_market_use_case",
     "build_file_upload_service",
 ]
+
+_APPLICATION_COMPOSITION_IMPORT_ALLOWLIST = {
+    "src/ai_analysis/anomaly_detection.py",
+    "src/ai_analysis/catalog_generator.py",
+    "src/ai_analysis/fetch_names.py",
+    "src/ai_analysis/market_overview.py",
+    "src/ai_analysis/stock_notes.py",
+    "src/doge/core/services/composition.py",
+    "src/micro/market_scanner.py",
+}
+
+
+def _imports_application_composition(path: Path) -> bool:
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            if any(alias.name == "doge.application.composition" for alias in node.names):
+                return True
+        if isinstance(node, ast.ImportFrom) and node.module == "doge.application.composition":
+            return True
+    return False
 
 
 def test_runtime_container_leaf_factories_do_not_delegate_to_composition() -> None:
@@ -206,3 +228,26 @@ def test_application_package_does_not_eagerly_import_composition() -> None:
     source = (PROJECT_ROOT / "src/doge/application/__init__.py").read_text(encoding="utf-8")
 
     assert "from doge.application.composition import" not in source
+
+
+def test_application_composition_imports_are_legacy_allowlisted() -> None:
+    """G7B: new src code must use bootstrap/process roots, not the legacy shim."""
+    offenders = []
+    for path in sorted((PROJECT_ROOT / "src").rglob("*.py")):
+        relative = path.relative_to(PROJECT_ROOT).as_posix()
+        if relative in _APPLICATION_COMPOSITION_IMPORT_ALLOWLIST:
+            continue
+        if _imports_application_composition(path):
+            offenders.append(relative)
+
+    assert offenders == []
+
+
+def test_application_composition_allowlist_documents_current_legacy_users() -> None:
+    missing = [
+        relative
+        for relative in sorted(_APPLICATION_COMPOSITION_IMPORT_ALLOWLIST)
+        if not _imports_application_composition(PROJECT_ROOT / relative)
+    ]
+
+    assert missing == []

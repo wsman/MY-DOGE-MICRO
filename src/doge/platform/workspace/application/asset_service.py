@@ -53,7 +53,7 @@ class CaseAssetService:
             metadata=request.metadata,
             tenant_id=context.tenant_id,
         )
-        self._repo.save_case_asset(link)
+        self._repo.save_case_asset(link, context.tenant_scope)
         self._access.audit(
             context,
             "case_asset_add",
@@ -65,11 +65,11 @@ class CaseAssetService:
 
     def list_case_assets(self, context: PlatformRequestContext, case_id: str) -> list[CaseAssetLink]:
         self._require_case(context, case_id, "read")
-        return self._repo.list_case_assets(case_id, tenant_id=context.tenant_id)
+        return self._repo.list_case_assets(context.tenant_scope, case_id)
 
     def remove_case_asset(self, context: PlatformRequestContext, case_id: str, asset_link_id: str) -> None:
         self._require_case(context, case_id, "write")
-        self._repo.delete_case_asset(asset_link_id, tenant_id=context.tenant_id)
+        self._repo.delete_case_asset(asset_link_id, context.tenant_scope)
         self._access.audit(
             context,
             "case_asset_remove",
@@ -84,7 +84,7 @@ class CaseAssetService:
         case_id: str,
         permission: str,
     ) -> ResearchCase:
-        research_case = self._repo.get_case(case_id, tenant_id=context.tenant_id)
+        research_case = self._repo.get_case(case_id, context.tenant_scope)
         if research_case is None:
             raise PlatformNotFoundError("research case not found")
         self._access.ensure(context, "research_case", case_id, permission)
@@ -92,10 +92,10 @@ class CaseAssetService:
 
     def _validate_asset_reference(self, context: PlatformRequestContext, asset_type: str, asset_id: str) -> None:
         if asset_type == "document" and self._documents is not None:
-            if self._documents.get(asset_id, tenant_id=context.tenant_id) is None:
+            if self._documents.get(asset_id, context.tenant_scope) is None:
                 raise PlatformNotFoundError("document not found")
         if asset_type == "portfolio" and self._portfolios is not None:
-            if self._portfolios.get(asset_id, tenant_id=context.tenant_id) is None:
+            if self._portfolios.get(asset_id, context.tenant_scope) is None:
                 raise PlatformNotFoundError("portfolio not found")
 
 

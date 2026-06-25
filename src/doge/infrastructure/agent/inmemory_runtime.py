@@ -7,6 +7,11 @@ from doge.application.agent.tools import ToolRegistry
 from doge.core.ports.agent_model import IAgentModel
 from doge.infrastructure.agent.persisted_runtime import PersistedResearchAgentRuntime
 from doge.infrastructure.agent.inmemory_repositories import build_inmemory_repositories
+from doge.platform.runtime.services import (
+    ArtifactEvaluationService,
+    ModelExecutionService,
+    ToolExecutionService,
+)
 
 
 class InMemoryResearchAgentRuntime(PersistedResearchAgentRuntime):
@@ -21,5 +26,8 @@ class InMemoryResearchAgentRuntime(PersistedResearchAgentRuntime):
             event_repository=repos["events"],
             artifact_repository=repos["artifacts"],
             approval_repository=repos["approvals"],
+            model_execution_service=ModelExecutionService(model=model),
+            tool_execution_service=ToolExecutionService(tool_registry=tool_registry),
+            artifact_evaluation_service=ArtifactEvaluationService(),
         )
         super().__init__(kernel)

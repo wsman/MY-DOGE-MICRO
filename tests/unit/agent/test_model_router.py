@@ -12,10 +12,10 @@ from doge.core.domain.run_execution_context import RunExecutionContext, Workflow
 class DocumentRepo:
     def __init__(self, documents):
         self._documents = documents
-        self.tenant_id = None
+        self.scope = None
 
-    def get(self, document_id, tenant_id=None):
-        self.tenant_id = tenant_id
+    def get(self, document_id, scope=None, *, tenant_id=None):
+        self.scope = scope
         return self._documents.get(document_id)
 
 
@@ -112,4 +112,5 @@ def test_model_router_passes_identity_tenant_to_document_lookup():
     )
 
     assert decision.files_purpose == "image"
-    assert documents.tenant_id == "tenant-a"
+    assert documents.scope.tenant_id == "tenant-a"
+    assert documents.scope.subject_hash == "user-a"

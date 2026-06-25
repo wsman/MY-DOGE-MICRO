@@ -6,32 +6,14 @@ import asyncio
 import inspect
 import json
 from collections.abc import Iterable
-from dataclasses import dataclass
 from typing import Any, Callable
 
 from doge.application.agent.tool_service import ToolApplicationService
 from doge.core.domain.tool_descriptor import ToolDescriptor
 from doge.core.domain.tool_policy import ToolCategory
+from doge.core.ports.runtime_services import ToolResult
 from doge.core.ports.tool_entitlement import IToolEntitlementChecker
 from doge.shared.errors import SafeError
-
-
-@dataclass(frozen=True)
-class ToolResult:
-    name: str
-    data: dict[str, Any]
-    ok: bool = True
-    error: str | None = None
-    safe_error: dict[str, str] | None = None
-
-    def to_json(self) -> str:
-        return json.dumps({
-            "ok": self.ok,
-            "name": self.name,
-            "data": self.data,
-            "error": self.error,
-            "safe_error": self.safe_error,
-        }, ensure_ascii=False)
 
 
 class ToolRegistry:

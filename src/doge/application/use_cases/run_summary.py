@@ -14,6 +14,14 @@ from doge.shared.scope import TenantScope
 _TERMINAL_STATUSES = {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED}
 
 
+def _scope_for_summary(scope: TenantScope | None, tenant_id: str | None) -> TenantScope:
+    if scope is None:
+        return TenantScope.from_tenant_id(tenant_id)
+    if tenant_id is not None and tenant_id != scope.tenant_id:
+        raise ValueError(f"tenant mismatch for run summary: {tenant_id} != {scope.tenant_id}")
+    return scope
+
+
 class BuildRunSummary:
     """Assemble structured run-review resources from persisted runtime state."""
 
@@ -27,11 +35,17 @@ class BuildRunSummary:
         self._evidence_repository = evidence_repository
         self._eval_service = eval_service or FinancialEvalService()
 
-    def build(self, run: AgentRun, *, tenant_id: str | None = None) -> dict[str, Any]:
-        scope = TenantScope.from_tenant_id(tenant_id)
-        events = self._runtime.list_events(scope, run.run_id)
-        artifacts = self._runtime.list_artifacts(scope, run.run_id)
-        evidence = self._list_evidence(run.run_id, tenant_id=tenant_id)
+    def build(
+        self,
+        run: AgentRun,
+        *,
+        scope: TenantScope | None = None,
+        tenant_id: str | None = None,
+    ) -> dict[str, Any]:
+        resolved_scope = _scope_for_summary(scope, tenant_id)
+        events = self._runtime.list_events(resolved_scope, run.run_id)
+        artifacts = self._runtime.list_artifacts(resolved_scope, run.run_id)
+        evidence = self._list_evidence(run.run_id, scope=resolved_scope)
         artifact = _latest_artifact(artifacts)
         summary = _summary_for(run, artifact, events)
         claims = _claims_for(run, artifacts, evidence, summary["summary_id"])
@@ -53,10 +67,10 @@ class BuildRunSummary:
             "eval": evaluation,
         }
 
-    def _list_evidence(self, run_id: str, *, tenant_id: str | None) -> list[Any]:
+    def _list_evidence(self, run_id: str, *, scope: TenantScope) -> list[Any]:
         if self._evidence_repository is None:
             return []
-        return self._evidence_repository.list_evidence(run_id=run_id, limit=500, tenant_id=tenant_id)
+        return self._evidence_repository.list_evidence(scope=scope, run_id=run_id, limit=500)
 
 
 def redact_inaccessible_citations(result: dict[str, Any], accessible_document_ids: set[str]) -> dict[str, Any]:

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from doge.application.services.file_upload_service import FileUploadService
 from doge.application.services.page_extraction_service import PageExtractionService
@@ -22,7 +24,6 @@ from doge.application.use_cases.manage_notes import ManageNotesUseCase
 from doge.application.use_cases.populate_stock_names import PopulateStockNamesUseCase
 from doge.application.use_cases.query_ticker import QueryTickerUseCase
 from doge.application.use_cases.scan_market import ScanMarketUseCase
-from doge.bootstrap.runtime import RuntimeContainer
 from doge.config import get_settings
 from doge.core.services.anomaly_service import AnomalyService
 from doge.core.services.breadth_service import BreadthService
@@ -65,6 +66,7 @@ class GatewayContainer:
     """Typed entry point for interface gateway wiring."""
 
     db_path: Path | str | None = None
+    graph_provider: Callable[[], Any] | None = field(default=None, repr=False, compare=False)
 
     def build_secret_provider(self):
         settings = get_settings()
@@ -138,7 +140,7 @@ class GatewayContainer:
         )
 
     def build_rag_service(self):
-        runtime = RuntimeContainer(self.db_path)
+        runtime = self.runtime_container()
         return RAGService(
             evidence_repository=runtime.build_agent_evidence_repository(),
             embedding_provider=HashingEmbeddingProvider(),
@@ -215,7 +217,7 @@ class GatewayContainer:
         secret_provider = self.build_secret_provider()
         if kimi_files_client is None and secret_provider.get_secret("kimi.api_key"):
             kimi_files_client = KimiFilesClient(secret_provider=secret_provider)
-        runtime = RuntimeContainer(self.db_path)
+        runtime = self.runtime_container()
         return FileUploadService(
             runtime.build_agent_document_repository(),
             storage_dir=settings.documents.storage_dir,
@@ -280,7 +282,7 @@ class GatewayContainer:
         )
 
     def build_page_extraction_service(self) -> PageExtractionService:
-        runtime = RuntimeContainer(self.db_path)
+        runtime = self.runtime_container()
         return PageExtractionService(
             evidence_repository=runtime.build_agent_evidence_repository(),
             parser=LocalDocumentParser(),
@@ -295,13 +297,13 @@ class GatewayContainer:
         return StaticIndustryClassificationSource()
 
     def build_portfolio_service(self):
-        return PortfolioService(self._workspace().build_portfolio_repository())
+        return PortfolioService(self.workspace_container().build_portfolio_repository())
 
     def build_risk_service(self):
-        return RiskService(self._workspace().build_portfolio_repository(), self.build_risk_factor_source())
+        return RiskService(self.workspace_container().build_portfolio_repository(), self.build_risk_factor_source())
 
     def build_scenario_service(self):
-        return ScenarioService(self._workspace().build_portfolio_repository(), self.build_risk_factor_source())
+        return ScenarioService(self.workspace_container().build_portfolio_repository(), self.build_risk_factor_source())
 
     def build_financial_statement_repository(self):
         return StockOverviewFinancialStatementRepository(self.build_stock_service())
@@ -346,19 +348,27 @@ class GatewayContainer:
             use_capability_providers=True,
         )
 
-    def _workspace(self):
-        """Return the workspace container sharing this gateway's db_path.
+    def runtime_container(self):
+        """Return the graph-owned runtime container."""
 
-        Lazy import keeps the bootstrap modules free of a module-level
-        gateway<->workspace coupling.
-        """
+        return self._process_graph().runtime_container
 
-        from doge.bootstrap.workspace import build_workspace_container
+    def workspace_container(self):
+        """Return the graph-owned workspace container."""
 
-        return build_workspace_container(self.db_path)
+        return self._process_graph().workspace_container
+
+    def _process_graph(self):
+        if self.graph_provider is not None:
+            return self.graph_provider()
+        from doge.bootstrap.processes import build_embedded_process
+
+        return build_embedded_process(db_path=self.db_path)
 
 
 def build_gateway_container(db_path: Path | str | None = None) -> GatewayContainer:
     """Build the gateway container."""
 
-    return GatewayContainer(db_path=db_path)
+    from doge.bootstrap.processes import build_embedded_process
+
+    return build_embedded_process(db_path=db_path).gateway_container

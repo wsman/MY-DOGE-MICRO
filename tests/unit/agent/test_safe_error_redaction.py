@@ -10,6 +10,11 @@ from doge.infrastructure.database.agent_repositories import (
     SQLiteEventRepository,
     SQLiteRunRepository,
 )
+from doge.platform.runtime.services import (
+    ArtifactEvaluationService,
+    ModelExecutionService,
+    ToolExecutionService,
+)
 from doge.shared.errors import SafeError
 
 
@@ -32,13 +37,17 @@ async def test_tool_exception_persists_safe_error_without_raw_exception_text(tmp
         )
 
     registry.register(_schema("secret_tool"), lambda **_: failing_tool())
+    model = ToolCallModel()
     kernel = RuntimeKernel(
-        model=ToolCallModel(),
+        model=model,
         tool_registry=registry,
         run_repository=SQLiteRunRepository(tmp_path / "agent_state.db"),
         event_repository=SQLiteEventRepository(tmp_path / "agent_state.db"),
         artifact_repository=SQLiteArtifactRepository(tmp_path / "agent_state.db"),
         approval_repository=SQLiteApprovalRepository(tmp_path / "agent_state.db"),
+        model_execution_service=ModelExecutionService(model=model),
+        tool_execution_service=ToolExecutionService(tool_registry=registry),
+        artifact_evaluation_service=ArtifactEvaluationService(),
     )
     run = await kernel.create_run({"question": "Analyze AAPL"})
 

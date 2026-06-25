@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 
 from doge.interfaces.api import deps
+from doge.interfaces.api.handlers import WorkflowTemplateHandler
 from doge.interfaces.api.routers.v1._common import serialize
 from doge.interfaces.api.routers.v1._platform_common import (
     build_workflow_service,
@@ -44,7 +45,10 @@ async def list_workflow_templates(
     service: WorkflowService = Depends(build_workflow_service),
 ):
     try:
-        items = service.list(platform_context(request), limit=limit)
+        items = WorkflowTemplateHandler(service=service).list(
+            context=platform_context(request),
+            limit=limit,
+        )
         return {"workflow_templates": serialize(items)}
     except PlatformServiceError as exc:
         raise_platform_error(exc)
@@ -57,8 +61,8 @@ async def create_workflow_template(
     service: WorkflowService = Depends(build_workflow_service),
 ):
     try:
-        template = service.create(
-            platform_context(request),
+        template = WorkflowTemplateHandler(service=service).create(
+            context=platform_context(request),
             slug=body.slug,
             name=body.name,
             description=body.description,
@@ -86,6 +90,10 @@ async def get_workflow_template(
     service: WorkflowService = Depends(build_workflow_service),
 ):
     try:
-        return serialize(service.get(platform_context(request), template_id))
+        template = WorkflowTemplateHandler(service=service).get(
+            context=platform_context(request),
+            template_id=template_id,
+        )
+        return serialize(template)
     except PlatformServiceError as exc:
         raise_platform_error(exc)

@@ -7,6 +7,7 @@ from doge.application.services.file_purpose_router import route_kimi_file_purpos
 from doge.application.services.page_extraction_service import PageExtractionService
 from doge.infrastructure.database.agent_repositories import SQLiteDocumentRepository
 from doge.infrastructure.database.evidence_repository import SQLiteEvidenceRepository
+from doge.shared.scope import TenantScope
 
 
 class FakeParser:
@@ -124,6 +125,32 @@ def test_register_text_preserves_json_compatibility(tmp_path):
     assert document["parsing_status"] == "parsed"
     assert document["content"] == "# memo"
     assert document["kimi_file_purpose"] == "file-extract"
+
+
+def test_register_text_uses_tenant_scope(tmp_path):
+    db = tmp_path / "agent_state.db"
+    repo = SQLiteDocumentRepository(db)
+    service = FileUploadService(repo, storage_dir=tmp_path / "documents")
+    scope = TenantScope.enterprise("tenant-a", "user-a")
+
+    document = service.register_text(filename="note.md", content="# memo", document_id="doc-tenant", scope=scope)
+
+    assert document["tenant_id"] == "tenant-a"
+    assert repo.get("doc-tenant", scope) is not None
+    assert repo.get("doc-tenant", TenantScope.enterprise("tenant-b", "user-b")) is None
+
+
+def test_register_text_rejects_scope_tenant_mismatch(tmp_path):
+    db = tmp_path / "agent_state.db"
+    service = FileUploadService(SQLiteDocumentRepository(db), storage_dir=tmp_path / "documents")
+
+    with pytest.raises(ValueError, match="tenant mismatch"):
+        service.register_text(
+            filename="note.md",
+            content="# memo",
+            scope=TenantScope.enterprise("tenant-a", "user-a"),
+            tenant_id="tenant-b",
+        )
 
 
 def test_file_purpose_router_routes_by_type():

@@ -37,9 +37,11 @@ from doge.core.ports.worker_queue import IRunQueue
 from doge.infrastructure.database.migration_runner import apply_context_migrations
 from doge.infrastructure.database.sqlite import SQLiteConnection
 from doge.infrastructure.database.tenant_guard import (
+    LOCAL_TENANT_ID,
     guard_existing_tenant,
     resolve_tenant_id,
 )
+from doge.shared.scope import TenantScope
 
 
 def _schema_path() -> Path:
@@ -60,6 +62,26 @@ def bootstrap_agent_schema(db_path: Path | str | None = None) -> None:
         conn.commit()
 
 
+def _tenant_filter(column: str, tenant_id: str | None, *, prefix: str = " AND ") -> tuple[str, tuple[Any, ...]]:
+    if tenant_id is None:
+        return "", ()
+    if tenant_id == LOCAL_TENANT_ID:
+        return f"{prefix}({column} = ? OR {column} IS NULL)", (LOCAL_TENANT_ID,)
+    return f"{prefix}{column} = ?", (tenant_id,)
+
+
+def _tenant_id_from_scope(scope: TenantScope | str | None, tenant_id: str | None = None) -> str | None:
+    if isinstance(scope, TenantScope):
+        if tenant_id is not None and tenant_id != scope.tenant_id:
+            raise ValueError(f"tenant mismatch for scope: {tenant_id} != {scope.tenant_id}")
+        return scope.tenant_id
+    if isinstance(scope, str):
+        if tenant_id is not None and tenant_id != scope:
+            raise ValueError(f"tenant mismatch for scope: {tenant_id} != {scope}")
+        return scope
+    return tenant_id
+
+
 class _BaseAgentRepository:
     def __init__(self, db_path: Path | str | None = None) -> None:
         self._db_path = Path(db_path) if db_path is not None else get_settings().db.agent_db
@@ -71,8 +93,15 @@ class _BaseAgentRepository:
 
 
 class SQLiteSessionRepository(_BaseAgentRepository, ISessionRepository):
-    def save(self, session: AgentSession, tenant_id: str | None = None) -> None:
-        effective_tenant_id = resolve_tenant_id(session.tenant_id, tenant_id)
+    def save(
+        self,
+        session: AgentSession,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> None:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
+        effective_tenant_id = resolve_tenant_id(session.tenant_id, requested_tenant_id)
         with self._connect() as conn:
             guard_existing_tenant(
                 conn,
@@ -92,13 +121,13 @@ class SQLiteSessionRepository(_BaseAgentRepository, ISessionRepository):
                 """,
                 (session.session_id, effective_tenant_id, session.title, session.created_at, session.updated_at),
             )
-            conn.execute("DELETE FROM turns WHERE session_id = ?", (session.session_id,))
             for turn in session.turns:
                 turn_tenant_id = resolve_tenant_id(turn.tenant_id, effective_tenant_id)
                 conn.execute(
                     """
                     INSERT INTO turns(turn_id, session_id, tenant_id, user_message, run_id, created_at)
                     VALUES (?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(turn_id) DO NOTHING
                     """,
                     (
                         turn.turn_id,
@@ -111,27 +140,40 @@ class SQLiteSessionRepository(_BaseAgentRepository, ISessionRepository):
                 )
             conn.commit()
 
-    def get(self, session_id: str, tenant_id: str | None = None) -> AgentSession | None:
+    def get(
+        self,
+        session_id: str,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentSession | None:
         sql = "SELECT * FROM sessions WHERE session_id = ?"
-        params: tuple[Any, ...] = (session_id,)
-        if tenant_id is not None:
-            sql += " AND tenant_id = ?"
-            params = (session_id, tenant_id)
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
+        tenant_sql, tenant_params = _tenant_filter("tenant_id", requested_tenant_id)
+        sql += tenant_sql
+        params: tuple[Any, ...] = (session_id, *tenant_params)
         with self._connect() as conn:
             row = conn.execute(sql, params).fetchone()
             if row is None:
                 return None
             return self._row_to_session(conn, row)
 
-    def list_recent(self, limit: int = 20, tenant_id: str | None = None) -> list[AgentSession]:
+    def list_recent(
+        self,
+        scope: TenantScope | int | str | None = None,
+        limit: int = 20,
+        *,
+        tenant_id: str | None = None,
+    ) -> list[AgentSession]:
+        if isinstance(scope, int):
+            limit = scope
+            scope = None
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
         sql = "SELECT * FROM sessions"
-        params: tuple[Any, ...]
-        if tenant_id is not None:
-            sql += " WHERE tenant_id = ?"
-            params = (tenant_id, limit)
-        else:
-            params = (limit,)
+        tenant_sql, tenant_params = _tenant_filter("tenant_id", requested_tenant_id, prefix=" WHERE ")
+        sql += tenant_sql
         sql += " ORDER BY updated_at DESC LIMIT ?"
+        params: tuple[Any, ...] = (*tenant_params, limit)
         with self._connect() as conn:
             rows = conn.execute(sql, params).fetchall()
             return [self._row_to_session(conn, row) for row in rows]
@@ -162,8 +204,15 @@ class SQLiteSessionRepository(_BaseAgentRepository, ISessionRepository):
 
 
 class SQLiteRunRepository(_BaseAgentRepository, IRunRepository):
-    def save(self, run: AgentRun, tenant_id: str | None = None) -> None:
-        effective_tenant_id = resolve_tenant_id(_tenant_id_from_run(run), tenant_id)
+    def save(
+        self,
+        run: AgentRun,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> None:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
+        effective_tenant_id = resolve_tenant_id(_tenant_id_from_run(run), requested_tenant_id)
         with self._connect() as conn:
             guard_existing_tenant(
                 conn,
@@ -219,38 +268,68 @@ class SQLiteRunRepository(_BaseAgentRepository, IRunRepository):
             )
             conn.commit()
 
-    def get(self, run_id: str, tenant_id: str | None = None) -> AgentRun | None:
+    def get(
+        self,
+        run_id: str,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun | None:
+        return self._get(run_id, tenant_id=_tenant_id_from_scope(scope, tenant_id), hydrate_children=True)
+
+    def get_run_header(
+        self,
+        run_id: str,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun | None:
+        return self._get(run_id, tenant_id=_tenant_id_from_scope(scope, tenant_id), hydrate_children=False)
+
+    def _get(self, run_id: str, *, tenant_id: str | None, hydrate_children: bool) -> AgentRun | None:
         sql = "SELECT * FROM runs WHERE run_id = ?"
-        params: tuple[Any, ...] = (run_id,)
-        if tenant_id is not None:
-            sql += " AND tenant_id = ?"
-            params = (run_id, tenant_id)
+        tenant_sql, tenant_params = _tenant_filter("tenant_id", tenant_id)
+        sql += tenant_sql
+        params: tuple[Any, ...] = (run_id, *tenant_params)
         with self._connect() as conn:
             row = conn.execute(sql, params).fetchone()
             if row is None:
                 return None
-            return _row_to_run(conn, row)
+            if hydrate_children:
+                return _row_to_run(conn, row)
+            return _row_to_run_header(row)
 
-    def list_by_session(self, session_id: str, tenant_id: str | None = None) -> list[AgentRun]:
+    def list_by_session(
+        self,
+        session_id: str,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> list[AgentRun]:
         sql = "SELECT * FROM runs WHERE session_id = ?"
-        params: tuple[Any, ...] = (session_id,)
-        if tenant_id is not None:
-            sql += " AND tenant_id = ?"
-            params = (session_id, tenant_id)
+        tenant_sql, tenant_params = _tenant_filter("tenant_id", _tenant_id_from_scope(scope, tenant_id))
+        sql += tenant_sql
+        params: tuple[Any, ...] = (session_id, *tenant_params)
         sql += " ORDER BY created_at ASC"
         with self._connect() as conn:
             rows = conn.execute(sql, params).fetchall()
             return [_row_to_run(conn, row) for row in rows]
 
-    def list_recent(self, limit: int = 20, tenant_id: str | None = None) -> list[AgentRun]:
+    def list_recent(
+        self,
+        scope: TenantScope | int | str | None = None,
+        limit: int = 20,
+        *,
+        tenant_id: str | None = None,
+    ) -> list[AgentRun]:
+        if isinstance(scope, int):
+            limit = scope
+            scope = None
         sql = "SELECT * FROM runs"
-        params: tuple[Any, ...]
-        if tenant_id is not None:
-            sql += " WHERE tenant_id = ?"
-            params = (tenant_id, limit)
-        else:
-            params = (limit,)
+        tenant_sql, tenant_params = _tenant_filter("tenant_id", _tenant_id_from_scope(scope, tenant_id), prefix=" WHERE ")
+        sql += tenant_sql
         sql += " ORDER BY updated_at DESC LIMIT ?"
+        params: tuple[Any, ...] = (*tenant_params, limit)
         with self._connect() as conn:
             rows = conn.execute(sql, params).fetchall()
             return [_row_to_run(conn, row) for row in rows]
@@ -293,10 +372,9 @@ class SQLiteEventRepository(_BaseAgentRepository, IEventRepository):
                 SELECT * FROM events
                 WHERE run_id = ? AND sequence > ?
                 """
-        params: tuple[Any, ...] = (run_id, after_sequence)
-        if tenant_id is not None:
-            sql += " AND tenant_id = ?"
-            params = (run_id, after_sequence, tenant_id)
+        tenant_sql, tenant_params = _tenant_filter("tenant_id", tenant_id)
+        sql += tenant_sql
+        params: tuple[Any, ...] = (run_id, after_sequence, *tenant_params)
         sql += " ORDER BY sequence ASC"
         with self._connect() as conn:
             rows = conn.execute(sql, params).fetchall()
@@ -341,10 +419,9 @@ class SQLiteArtifactRepository(_BaseAgentRepository, IArtifactRepository):
 
     def list_for_run(self, run_id: str, tenant_id: str | None = None) -> list[AgentArtifact]:
         sql = "SELECT * FROM artifacts WHERE run_id = ?"
-        params: tuple[Any, ...] = (run_id,)
-        if tenant_id is not None:
-            sql += " AND tenant_id = ?"
-            params = (run_id, tenant_id)
+        tenant_sql, tenant_params = _tenant_filter("tenant_id", tenant_id)
+        sql += tenant_sql
+        params: tuple[Any, ...] = (run_id, *tenant_params)
         sql += " ORDER BY created_at ASC"
         with self._connect() as conn:
             rows = conn.execute(sql, params).fetchall()
@@ -389,20 +466,18 @@ class SQLiteApprovalRepository(_BaseAgentRepository, IApprovalRepository):
 
     def get(self, approval_id: str, tenant_id: str | None = None) -> AgentApproval | None:
         sql = "SELECT * FROM approvals WHERE approval_id = ?"
-        params: tuple[Any, ...] = (approval_id,)
-        if tenant_id is not None:
-            sql += " AND tenant_id = ?"
-            params = (approval_id, tenant_id)
+        tenant_sql, tenant_params = _tenant_filter("tenant_id", tenant_id)
+        sql += tenant_sql
+        params: tuple[Any, ...] = (approval_id, *tenant_params)
         with self._connect() as conn:
             row = conn.execute(sql, params).fetchone()
             return _row_to_approval(row) if row else None
 
     def list_for_run(self, run_id: str, tenant_id: str | None = None) -> list[AgentApproval]:
         sql = "SELECT * FROM approvals WHERE run_id = ?"
-        params: tuple[Any, ...] = (run_id,)
-        if tenant_id is not None:
-            sql += " AND tenant_id = ?"
-            params = (run_id, tenant_id)
+        tenant_sql, tenant_params = _tenant_filter("tenant_id", tenant_id)
+        sql += tenant_sql
+        params: tuple[Any, ...] = (run_id, *tenant_params)
         sql += " ORDER BY created_at ASC"
         with self._connect() as conn:
             rows = conn.execute(sql, params).fetchall()
@@ -410,9 +485,16 @@ class SQLiteApprovalRepository(_BaseAgentRepository, IApprovalRepository):
 
 
 class SQLiteDocumentRepository(_BaseAgentRepository, IDocumentRepository):
-    def save(self, document: Document | dict[str, Any]) -> None:
+    def save(
+        self,
+        document: Document | dict[str, Any],
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> None:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
         record = _document_to_record(document)
-        record["tenant_id"] = resolve_tenant_id(record.get("tenant_id"))
+        record["tenant_id"] = resolve_tenant_id(record.get("tenant_id"), requested_tenant_id)
         with self._connect() as conn:
             guard_existing_tenant(
                 conn,
@@ -466,36 +548,55 @@ class SQLiteDocumentRepository(_BaseAgentRepository, IDocumentRepository):
             )
             conn.commit()
 
-    def get(self, document_id: str, tenant_id: str | None = None) -> dict[str, Any] | None:
+    def get(
+        self,
+        document_id: str,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> dict[str, Any] | None:
         sql = "SELECT * FROM documents WHERE document_id = ?"
-        params: tuple[Any, ...] = (document_id,)
-        if tenant_id is not None:
-            sql += " AND tenant_id = ?"
-            params = (document_id, tenant_id)
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
+        tenant_sql, tenant_params = _tenant_filter("tenant_id", requested_tenant_id)
+        sql += tenant_sql
+        params: tuple[Any, ...] = (document_id, *tenant_params)
         with self._connect() as conn:
             row = conn.execute(sql, params).fetchone()
             return _row_to_document_dict(row) if row else None
 
-    def get_by_hash(self, file_hash: str, tenant_id: str | None = None) -> dict[str, Any] | None:
+    def get_by_hash(
+        self,
+        file_hash: str,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> dict[str, Any] | None:
         sql = "SELECT * FROM documents WHERE file_hash = ?"
-        params: tuple[Any, ...] = (file_hash,)
-        if tenant_id is not None:
-            sql += " AND tenant_id = ?"
-            params = (file_hash, tenant_id)
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
+        tenant_sql, tenant_params = _tenant_filter("tenant_id", requested_tenant_id)
+        sql += tenant_sql
+        params: tuple[Any, ...] = (file_hash, *tenant_params)
         sql += " ORDER BY created_at DESC LIMIT 1"
         with self._connect() as conn:
             row = conn.execute(sql, params).fetchone()
             return _row_to_document_dict(row) if row else None
 
-    def list_recent(self, limit: int = 100, tenant_id: str | None = None) -> list[dict[str, Any]]:
+    def list_recent(
+        self,
+        scope: TenantScope | int | str | None = None,
+        limit: int = 100,
+        *,
+        tenant_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        if isinstance(scope, int):
+            limit = scope
+            scope = None
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
         sql = "SELECT * FROM documents"
-        params: tuple[Any, ...]
-        if tenant_id is not None:
-            sql += " WHERE tenant_id = ?"
-            params = (tenant_id, limit)
-        else:
-            params = (limit,)
+        tenant_sql, tenant_params = _tenant_filter("tenant_id", requested_tenant_id, prefix=" WHERE ")
+        sql += tenant_sql
         sql += " ORDER BY created_at DESC LIMIT ?"
+        params: tuple[Any, ...] = (*tenant_params, limit)
         with self._connect() as conn:
             rows = conn.execute(sql, params).fetchall()
             return [_row_to_document_dict(row) for row in rows]
@@ -508,7 +609,7 @@ class SQLiteRunQueue(_BaseAgentRepository, IRunQueue):
     def dequeue(self) -> str | None:
         return self.claim_atomic("legacy-worker", lease_seconds=30)
 
-    def claim_atomic(self, worker_id: str, lease_seconds: int) -> str | None:
+    def claim_atomic(self, worker_id: str, lease_seconds: int, max_attempts: int = 3) -> str | None:
         now = utc_now()
         lease_expires_at = _seconds_from_now(lease_seconds)
         with self._connect() as conn:
@@ -535,6 +636,18 @@ class SQLiteRunQueue(_BaseAgentRepository, IRunQueue):
                     conn.commit()
                     return None
                 attempt_count = int(_row_value(row, "attempt_count") or 0) + 1
+                if attempt_count > max_attempts:
+                    conn.execute(
+                        """
+                        INSERT INTO run_queue(
+                            run_id, status, attempt_count, created_at, updated_at
+                        )
+                        VALUES (?, 'dead_letter', ?, ?, ?)
+                        """,
+                        (row["run_id"], int(_row_value(row, "attempt_count") or 0), now, now),
+                    )
+                    conn.commit()
+                    return None
                 conn.execute(
                     """
                     INSERT INTO run_queue(
@@ -604,7 +717,7 @@ class SQLiteRunQueue(_BaseAgentRepository, IRunQueue):
                 conn.rollback()
                 raise
 
-    def recover_stalled_leases(self, lease_timeout_seconds: int) -> list[str]:
+    def recover_stalled_leases(self, lease_timeout_seconds: int, max_attempts: int = 3) -> list[str]:
         now = utc_now()
         stale_before = _seconds_ago(lease_timeout_seconds)
         recovered: list[str] = []
@@ -632,6 +745,18 @@ class SQLiteRunQueue(_BaseAgentRepository, IRunQueue):
                     (now, stale_before),
                 ).fetchall()
                 for row in rows:
+                    attempt_count = int(row["attempt_count"] or 0)
+                    if attempt_count >= max_attempts:
+                        conn.execute(
+                            """
+                            INSERT INTO run_queue(
+                                run_id, status, attempt_count, created_at, updated_at
+                            )
+                            VALUES (?, 'dead_letter', ?, ?, ?)
+                            """,
+                            (row["run_id"], attempt_count, now, now),
+                        )
+                        continue
                     recovered.append(row["run_id"])
                     conn.execute(
                         """
@@ -640,7 +765,7 @@ class SQLiteRunQueue(_BaseAgentRepository, IRunQueue):
                         )
                         VALUES (?, 'queued', ?, ?, ?)
                         """,
-                        (row["run_id"], int(row["attempt_count"] or 0), now, now),
+                        (row["run_id"], attempt_count, now, now),
                     )
                 conn.commit()
                 return recovered
@@ -720,25 +845,7 @@ class SQLiteIdempotencyStore(_BaseAgentRepository, IIdempotencyStore):
 
 def _row_to_run(conn: sqlite3.Connection, row: sqlite3.Row) -> AgentRun:
     tenant_id = _row_value(row, "tenant_id")
-    policy_payload = json.loads(row["model_policy"] or "{}")
-    run = AgentRun(
-        run_id=row["run_id"],
-        workflow=row["workflow"],
-        question=row["question"],
-        session_id=row["session_id"],
-        market=row["market"],
-        language=row["language"],
-        document_ids=json.loads(row["document_ids"] or "[]"),
-        portfolio_id=row["portfolio_id"],
-        model_policy=ModelPolicy.from_dict(policy_payload),
-        workflow_context=_workflow_context_from_row(row),
-        identity_snapshot=_identity_snapshot_from_row(row, policy_payload),
-        status=RunStatus(row["status"]),
-        cancel_requested_at=row["cancel_requested_at"],
-        schema_version=row["schema_version"] or "1.0",
-        created_at=row["created_at"],
-        updated_at=row["updated_at"],
-    )
+    run = _row_to_run_header(row)
     child_clause = "run_id = ?"
     child_params: tuple[Any, ...] = (run.run_id,)
     if tenant_id is not None:
@@ -766,6 +873,28 @@ def _row_to_run(conn: sqlite3.Connection, row: sqlite3.Row) -> AgentRun:
         ).fetchall()
     ]
     return run
+
+
+def _row_to_run_header(row: sqlite3.Row) -> AgentRun:
+    policy_payload = json.loads(row["model_policy"] or "{}")
+    return AgentRun(
+        run_id=row["run_id"],
+        workflow=row["workflow"],
+        question=row["question"],
+        session_id=row["session_id"],
+        market=row["market"],
+        language=row["language"],
+        document_ids=json.loads(row["document_ids"] or "[]"),
+        portfolio_id=row["portfolio_id"],
+        model_policy=ModelPolicy.from_dict(policy_payload),
+        workflow_context=_workflow_context_from_row(row),
+        identity_snapshot=_identity_snapshot_from_row(row, policy_payload),
+        status=RunStatus(row["status"]),
+        cancel_requested_at=row["cancel_requested_at"],
+        schema_version=row["schema_version"] or "1.0",
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
+    )
 
 
 def _row_value(row: sqlite3.Row, key: str) -> Any:

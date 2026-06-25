@@ -10,6 +10,7 @@ from doge.core.domain.chunk_models import DocumentChunk
 from doge.core.ports.embedding import IEmbeddingCache, IEmbeddingProvider
 from doge.core.ports.evidence_repository import IEvidenceRepository
 from doge.core.ports.vector_store import IVectorStore, VectorRecord
+from doge.shared.scope import TenantScope
 
 
 class RAGService:
@@ -59,8 +60,10 @@ class RAGService:
         document_ids: list[str] | None = None,
         limit: int = 5,
         metadata_filter: dict[str, Any] | None = None,
+        scope: TenantScope | None = None,
+        tenant_id: str | None = None,
     ) -> dict[str, Any]:
-        chunks = self._evidence.list_chunks(document_ids, limit=1000)
+        chunks = self._evidence.list_chunks(_resolve_scope(scope, tenant_id), document_ids, limit=1000)
         self.ingest_chunks(chunks)
         if not chunks:
             return {"query": query, "limit": limit, "results": []}
@@ -121,6 +124,14 @@ def _chunk_result(chunk: DocumentChunk, score: float) -> dict[str, Any]:
         "source_hash": chunk.source_hash,
         "visibility": "local",
     }
+
+
+def _resolve_scope(scope: TenantScope | None, tenant_id: str | None) -> TenantScope:
+    if scope is not None:
+        if tenant_id is not None and tenant_id != scope.tenant_id:
+            raise ValueError(f"tenant mismatch for scope: {tenant_id} != {scope.tenant_id}")
+        return scope
+    return TenantScope.from_tenant_id(tenant_id)
 
 
 def _content_hash(text: str) -> str:

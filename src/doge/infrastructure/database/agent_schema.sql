@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS turns (
     tenant_id TEXT,
     user_message TEXT NOT NULL,
     run_id TEXT,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(session_id) REFERENCES sessions(session_id)
 );
 
 CREATE TABLE IF NOT EXISTS runs (
@@ -49,7 +50,8 @@ CREATE TABLE IF NOT EXISTS events (
     sequence INTEGER NOT NULL,
     schema_version TEXT DEFAULT '1.0',
     created_at TEXT NOT NULL,
-    UNIQUE(run_id, sequence)
+    UNIQUE(run_id, sequence),
+    FOREIGN KEY(run_id) REFERENCES runs(run_id)
 );
 
 CREATE TABLE IF NOT EXISTS runtime_outbox (
@@ -79,7 +81,8 @@ CREATE TABLE IF NOT EXISTS artifacts (
     title TEXT NOT NULL,
     content TEXT NOT NULL,
     data TEXT,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(run_id) REFERENCES runs(run_id)
 );
 
 CREATE TABLE IF NOT EXISTS approvals (
@@ -90,7 +93,8 @@ CREATE TABLE IF NOT EXISTS approvals (
     risk_level TEXT NOT NULL,
     status TEXT NOT NULL,
     created_at TEXT NOT NULL,
-    resolved_at TEXT
+    resolved_at TEXT,
+    FOREIGN KEY(run_id) REFERENCES runs(run_id)
 );
 
 CREATE TABLE IF NOT EXISTS documents (
@@ -220,6 +224,18 @@ CREATE TABLE IF NOT EXISTS run_queue (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_runs_session_created
+ON runs(session_id, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_turns_session_created
+ON turns(session_id, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_approvals_run_status
+ON approvals(run_id, status);
+
+CREATE INDEX IF NOT EXISTS idx_artifacts_run_created
+ON artifacts(run_id, created_at);
 
 CREATE TABLE IF NOT EXISTS idempotency_keys (
     key TEXT NOT NULL,

@@ -67,6 +67,11 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="MY-DOGE API", version="0.1.0", lifespan=lifespan)
 
 _settings = get_settings()
+_LEGACY_API_DEPRECATION_DOC = (
+    "https://github.com/wsman/MY-DOGE-MICRO/blob/main/"
+    "docs/architecture/adr-0024-single-stack-runtime-direction.md"
+)
+_LEGACY_API_SUNSET = "Wed, 30 Sep 2026 00:00:00 GMT"
 
 
 def _build_api_auth_provider(settings, secret_provider_factory=None):
@@ -104,6 +109,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def _legacy_api_deprecation_headers(request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/api/"):
+        response.headers.setdefault("Deprecation", "true")
+        response.headers.setdefault("Sunset", _LEGACY_API_SUNSET)
+        response.headers.setdefault("Link", f'<{_LEGACY_API_DEPRECATION_DOC}>; rel="deprecation"')
+        response.headers.setdefault("X-DOGE-Compatibility-Surface", "legacy-api")
+    return response
 
 # ── 全局异常处理 (ADR-0007 Decision 3, S002-009) ─────
 # Stable string-enum error codes so UI consumers (and the S002-010 SSE client)

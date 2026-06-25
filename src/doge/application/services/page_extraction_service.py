@@ -11,6 +11,7 @@ from doge.core.domain.chunk_models import DocumentChunk
 from doge.core.domain.document_models import Document
 from doge.core.domain.page_models import DocumentPage
 from doge.core.ports.evidence_repository import IEvidenceRepository
+from doge.shared.scope import TenantScope
 
 
 class PageParserPort(Protocol):
@@ -95,15 +96,15 @@ class PageExtractionService:
         self._parser_max_chars = parser_max_chars
 
     def extract(self, document: Document | dict) -> ExtractionResult:
-        tenant_id = document.get("tenant_id") if isinstance(document, dict) else None
+        scope = _scope_for_document(document)
         doc = document if isinstance(document, Document) else Document.from_mapping(document)
         pages, errors = self._extract_pages(doc)
         chunks = self._chunking.chunk_pages(pages)
         if self._evidence_repository is not None:
             for page in pages:
-                self._evidence_repository.save_page(page, tenant_id=tenant_id)
+                self._evidence_repository.save_page(page, scope)
             for chunk in chunks:
-                self._evidence_repository.save_chunk(chunk, tenant_id=tenant_id)
+                self._evidence_repository.save_chunk(chunk, scope)
         return ExtractionResult(
             document_id=doc.document_id,
             pages=pages,
@@ -181,6 +182,13 @@ def _split_page_text(text: str) -> list[str]:
         return []
     parts = [part.strip() for part in text.split("\f")]
     return [part for part in parts if part]
+
+
+def _scope_for_document(document: Document | dict) -> TenantScope:
+    if isinstance(document, dict):
+        tenant_id = document.get("tenant_id")
+        return TenantScope.from_tenant_id(str(tenant_id) if tenant_id else None)
+    return TenantScope.local()
 
 
 def _last_break_before(text: str, start: int, end: int) -> int:

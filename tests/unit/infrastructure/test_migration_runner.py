@@ -1,3 +1,4 @@
+import json
 import sqlite3
 from pathlib import Path
 
@@ -37,10 +38,40 @@ def test_context_migration_registry_declares_context_ownership():
         "runtime:run_workflow_context",
         "runtime:runtime_outbox",
         "runtime:run_queue_leases",
+        "runtime:runtime_query_indexes",
     }.issubset(keys)
     assert {"runtime", "evidence"}.issubset(contexts)
     for context in ("runtime", "evidence", "portfolio", "governance", "workspace"):
         assert (repo_root / "migrations" / context / "README.md").exists()
+        assert (
+            repo_root
+            / "src"
+            / "doge"
+            / "infrastructure"
+            / "database"
+            / "migrations"
+            / context
+            / "README.md"
+        ).exists()
+
+
+def test_source_local_migration_manifests_match_registry():
+    migrations = registered_migrations()
+    registered_by_context: dict[str, set[str]] = {}
+    repo_root = Path(__file__).resolve().parents[3]
+    manifest_root = repo_root / "src" / "doge" / "infrastructure" / "database" / "migrations"
+    contexts = ("runtime", "evidence", "portfolio", "governance", "workspace")
+
+    for migration in migrations:
+        registered_by_context.setdefault(migration.context, set()).add(migration.name)
+
+    for context in contexts:
+        manifest_path = manifest_root / context / "manifest.json"
+        assert manifest_path.exists(), f"missing migration manifest for {context}"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+        assert manifest["context"] == context
+        assert set(manifest["migrations"]) == registered_by_context.get(context, set())
 
 
 def test_bootstrap_upgrades_legacy_agent_database_with_context_migrations(tmp_path):
@@ -142,8 +173,48 @@ def test_bootstrap_upgrades_legacy_agent_database_with_context_migrations(tmp_pa
             "runtime:run_workflow_context",
             "runtime:runtime_outbox",
             "runtime:run_queue_leases",
+            "runtime:runtime_child_foreign_keys",
+            "runtime:runtime_query_indexes",
         }.issubset(applied)
-        assert len(applied) == 12
+        assert len(applied) == 14
+
+
+def test_runtime_context_migration_adds_query_indexes(tmp_path):
+    db = tmp_path / "runtime_indexes.db"
+    bootstrap_agent_schema(db)
+
+    with sqlite3.connect(db) as conn:
+        indexes = {
+            row[1]
+            for table in ("runs", "turns", "approvals", "artifacts", "run_queue")
+            for row in conn.execute(f"PRAGMA index_list({table})").fetchall()
+        }
+
+    assert {
+        "idx_runs_session_created",
+        "idx_turns_session_created",
+        "idx_approvals_run_status",
+        "idx_artifacts_run_created",
+        "idx_run_queue_status_worker_lease",
+    }.issubset(indexes)
+
+
+def test_runtime_context_schema_declares_child_foreign_keys(tmp_path):
+    db = tmp_path / "runtime_foreign_keys.db"
+    bootstrap_agent_schema(db)
+
+    with sqlite3.connect(db) as conn:
+        foreign_keys = {
+            table: {
+                (row[3], row[2], row[4])
+                for row in conn.execute(f"PRAGMA foreign_key_list({table})").fetchall()
+            }
+            for table in ("turns", "events", "artifacts", "approvals")
+        }
+
+    assert ("session_id", "sessions", "session_id") in foreign_keys["turns"]
+    for table in ("events", "artifacts", "approvals"):
+        assert ("run_id", "runs", "run_id") in foreign_keys[table]
 
 
 def test_bootstrap_backfills_legacy_null_tenants_to_local(tmp_path):

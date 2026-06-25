@@ -9,7 +9,8 @@ from doge.core.domain.portfolio_models import Portfolio, PortfolioHolding
 from doge.core.ports.portfolio_repository import IPortfolioRepository
 from doge.infrastructure.database.agent_repositories import bootstrap_agent_schema
 from doge.infrastructure.database.sqlite import SQLiteConnection
-from doge.infrastructure.database.tenant_guard import guard_existing_tenant, resolve_tenant_id
+from doge.infrastructure.database.tenant_guard import LOCAL_TENANT_ID, guard_existing_tenant, resolve_tenant_id
+from doge.shared.scope import TenantScope
 
 
 class SQLitePortfolioRepository(IPortfolioRepository):
@@ -21,8 +22,15 @@ class SQLitePortfolioRepository(IPortfolioRepository):
     def _connect(self):
         return self._connection.connect()
 
-    def save(self, portfolio: Portfolio, tenant_id: str | None = None) -> None:
-        effective_tenant_id = resolve_tenant_id(tenant_id)
+    def save(
+        self,
+        portfolio: Portfolio,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> None:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
+        effective_tenant_id = resolve_tenant_id(requested_tenant_id)
         with self._connect() as conn:
             guard_existing_tenant(
                 conn,
@@ -63,12 +71,18 @@ class SQLitePortfolioRepository(IPortfolioRepository):
                 )
             conn.commit()
 
-    def get(self, portfolio_id: str, tenant_id: str | None = None) -> Portfolio | None:
+    def get(
+        self,
+        portfolio_id: str,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> Portfolio | None:
         sql = "SELECT * FROM portfolios WHERE portfolio_id = ?"
-        params: tuple[str, ...] = (portfolio_id,)
-        if tenant_id is not None:
-            sql += " AND tenant_id = ?"
-            params = (portfolio_id, tenant_id)
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
+        tenant_sql, tenant_params = _tenant_filter("tenant_id", requested_tenant_id)
+        sql += tenant_sql
+        params: tuple[str, ...] = (portfolio_id, *tenant_params)
         with self._connect() as conn:
             row = conn.execute(sql, params).fetchone()
             if row is None:
@@ -81,6 +95,26 @@ class SQLitePortfolioRepository(IPortfolioRepository):
                 ).fetchall()
             ]
         return Portfolio(portfolio_id=row["portfolio_id"], name=row["name"], holdings=holdings)
+
+
+def _tenant_id_from_scope(scope: TenantScope | str | None, tenant_id: str | None = None) -> str | None:
+    if isinstance(scope, TenantScope):
+        if tenant_id is not None and tenant_id != scope.tenant_id:
+            raise ValueError(f"tenant mismatch for scope: {tenant_id} != {scope.tenant_id}")
+        return scope.tenant_id
+    if isinstance(scope, str):
+        if tenant_id is not None and tenant_id != scope:
+            raise ValueError(f"tenant mismatch for scope: {tenant_id} != {scope}")
+        return scope
+    return tenant_id
+
+
+def _tenant_filter(column: str, tenant_id: str | None, *, prefix: str = " AND ") -> tuple[str, tuple[str, ...]]:
+    if tenant_id is None:
+        return "", ()
+    if tenant_id == LOCAL_TENANT_ID:
+        return f"{prefix}({column} = ? OR {column} IS NULL)", (LOCAL_TENANT_ID,)
+    return f"{prefix}{column} = ?", (tenant_id,)
 
 
 def demo_portfolio() -> Portfolio:

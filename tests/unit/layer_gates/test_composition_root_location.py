@@ -54,7 +54,8 @@ class TestCompositionRootLocation:
         # deps reaches the container through the dedicated API container module,
         # which owns the bootstrap-backed AppContainer singleton.
         assert "from doge.interfaces.api.container" in deps_source
-        assert "from doge.bootstrap import build_app_container" in container_source
+        assert "from doge.bootstrap import build_api_process" in container_source
+        assert "process_graph = build_api_process()" in container_source
         assert "app_composition" not in deps_source
         assert "from doge import application as" not in deps_source
 

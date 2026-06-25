@@ -12,6 +12,7 @@ from doge.core.ports.agent_model import AgentContentPart, AgentMessage
 from doge.core.ports.agent_repository import IRunRepository, ISessionRepository
 from doge.core.ports.document_repository import IDocumentRepository
 from doge.core.ports.evidence_repository import IEvidenceRepository
+from doge.shared.scope import TenantScope
 
 
 class ContextBuilder:
@@ -138,9 +139,9 @@ class ContextBuilder:
         if self._documents is None:
             return []
         messages: list[AgentMessage] = []
-        tenant_id = _tenant_filter(context)
+        scope = _scope_for_context(context)
         for document_id in document_ids:
-            document = self._documents.get(document_id, tenant_id=tenant_id)
+            document = self._documents.get(document_id, scope)
             if not document:
                 continue
             file_id = document.get("kimi_file_id")
@@ -175,8 +176,8 @@ class ContextBuilder:
             return []
         if self._max_history_chars <= 0:
             return []
-        tenant_id = _tenant_filter(context)
-        session = self._sessions.get(run.session_id, tenant_id=tenant_id)
+        scope = _scope_for_context(context)
+        session = self._sessions.get(run.session_id, scope)
         if session is None:
             return []
 
@@ -193,7 +194,7 @@ class ContextBuilder:
             if remaining <= 0:
                 break
             if turn.run_id and artifact_count < self._max_prior_artifacts:
-                prior_run = self._runs.get(turn.run_id, tenant_id=tenant_id)
+                prior_run = self._runs.get(turn.run_id, scope)
                 if prior_run is None:
                     continue
                 for artifact in prior_run.artifacts:
@@ -233,9 +234,9 @@ class ContextBuilder:
         if self._evidence is None:
             return ""
         chunks = self._evidence.list_chunks(
+            _scope_for_context(context),
             [document_id],
             limit=self._chunks_per_document,
-            tenant_id=_tenant_filter(context),
         )
         if not chunks:
             return ""
@@ -244,7 +245,7 @@ class ContextBuilder:
     def _document_content_context(self, document_id: str, context: EnterpriseContext | None) -> str:
         if self._documents is None:
             return ""
-        document = self._documents.get(document_id, tenant_id=_tenant_filter(context))
+        document = self._documents.get(document_id, _scope_for_context(context))
         if not document:
             return ""
         content = document.get("content") or ""
@@ -263,10 +264,10 @@ def _format_chunk(chunk: DocumentChunk) -> str:
     )
 
 
-def _tenant_filter(context: EnterpriseContext | None) -> str | None:
+def _scope_for_context(context: EnterpriseContext | None) -> TenantScope:
     if context is None or context.tenant_id == "local":
-        return None
-    return context.tenant_id
+        return TenantScope.local()
+    return TenantScope.enterprise(context.tenant_id, context.user_hash)
 
 
 def _take_chars(content: str, remaining: int) -> tuple[str, int]:

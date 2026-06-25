@@ -17,7 +17,7 @@ class IRunQueue(ABC):
         ...
 
     @abstractmethod
-    def claim_atomic(self, worker_id: str, lease_seconds: int) -> str | None:
+    def claim_atomic(self, worker_id: str, lease_seconds: int, max_attempts: int = 3) -> str | None:
         """Atomically claim one queued or expired run for a worker."""
         ...
 
@@ -32,7 +32,7 @@ class IRunQueue(ABC):
         ...
 
     @abstractmethod
-    def recover_stalled_leases(self, lease_timeout_seconds: int) -> list[str]:
+    def recover_stalled_leases(self, lease_timeout_seconds: int, max_attempts: int = 3) -> list[str]:
         """Requeue expired running claims and return their run IDs."""
         ...
 

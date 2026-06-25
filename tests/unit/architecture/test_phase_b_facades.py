@@ -89,8 +89,12 @@ def test_phase_b_package_markers_import_cleanly() -> None:
     assert {
         "AppContainer",
         "GatewayContainer",
+        "ProcessGraph",
         "RuntimeContainer",
         "WorkspaceContainer",
+        "build_api_process",
+        "build_embedded_process",
+        "build_worker_process",
     }.issubset(set(doge.bootstrap.__all__))
     assert doge.entrypoints.__all__ == []
     assert doge.platform.__all__ == []

@@ -27,6 +27,7 @@ from doge.infrastructure.database.tenant_guard import (
     require_same_tenant,
     resolve_tenant_id,
 )
+from doge.shared.scope import TenantScope
 
 
 class SQLitePlatformRepository(IPlatformRepository):
@@ -38,8 +39,14 @@ class SQLitePlatformRepository(IPlatformRepository):
     def _connect(self):
         return self._connection.connect()
 
-    def save_workspace(self, workspace: Workspace) -> None:
-        effective_tenant_id = resolve_tenant_id(workspace.tenant_id)
+    def save_workspace(
+        self,
+        workspace: Workspace,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> None:
+        effective_tenant_id = resolve_tenant_id(workspace.tenant_id, _tenant_id_from_scope(scope, tenant_id))
         with self._connect() as conn:
             guard_existing_tenant(
                 conn,
@@ -78,18 +85,40 @@ class SQLitePlatformRepository(IPlatformRepository):
             )
             conn.commit()
 
-    def get_workspace(self, workspace_id: str, tenant_id: str | None = None) -> Workspace | None:
-        row = self._get_one("workspaces", "workspace_id", workspace_id, tenant_id)
+    def get_workspace(
+        self,
+        workspace_id: str,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> Workspace | None:
+        row = self._get_one("workspaces", "workspace_id", workspace_id, _tenant_id_from_scope(scope, tenant_id))
         return Workspace.from_mapping(dict(row)) if row else None
 
-    def list_workspaces(self, limit: int = 100, tenant_id: str | None = None) -> list[Workspace]:
-        rows = self._list("workspaces", limit=limit, tenant_id=tenant_id)
+    def list_workspaces(
+        self,
+        scope: TenantScope | int | str | None = None,
+        limit: int = 100,
+        *,
+        tenant_id: str | None = None,
+    ) -> list[Workspace]:
+        if isinstance(scope, int):
+            limit = scope
+            scope = None
+        rows = self._list("workspaces", limit=limit, tenant_id=_tenant_id_from_scope(scope, tenant_id))
         return [Workspace.from_mapping(dict(row)) for row in rows]
 
-    def save_project(self, project: Project) -> None:
+    def save_project(
+        self,
+        project: Project,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> None:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
         with self._connect() as conn:
             workspace_tenant_id = _tenant_id_for(conn, "workspaces", "workspace_id", project.workspace_id)
-            effective_tenant_id = resolve_tenant_id(project.tenant_id or workspace_tenant_id)
+            effective_tenant_id = resolve_tenant_id(project.tenant_id or workspace_tenant_id, requested_tenant_id)
             if workspace_tenant_id is not None:
                 require_same_tenant(
                     workspace_tenant_id,
@@ -137,24 +166,43 @@ class SQLitePlatformRepository(IPlatformRepository):
             )
             conn.commit()
 
-    def get_project(self, project_id: str, tenant_id: str | None = None) -> Project | None:
-        row = self._get_one("projects", "project_id", project_id, tenant_id)
+    def get_project(
+        self,
+        project_id: str,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> Project | None:
+        row = self._get_one("projects", "project_id", project_id, _tenant_id_from_scope(scope, tenant_id))
         return Project.from_mapping(dict(row)) if row else None
 
     def list_projects(
         self,
+        scope: TenantScope | None = None,
         *,
         workspace_id: str | None = None,
         limit: int = 100,
         tenant_id: str | None = None,
     ) -> list[Project]:
-        rows = self._list("projects", limit=limit, tenant_id=tenant_id, extra=("workspace_id", workspace_id))
+        rows = self._list(
+            "projects",
+            limit=limit,
+            tenant_id=_tenant_id_from_scope(scope, tenant_id),
+            extra=("workspace_id", workspace_id),
+        )
         return [Project.from_mapping(dict(row)) for row in rows]
 
-    def save_case(self, research_case: ResearchCase) -> None:
+    def save_case(
+        self,
+        research_case: ResearchCase,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> None:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
         with self._connect() as conn:
             project_tenant_id = _tenant_id_for(conn, "projects", "project_id", research_case.project_id)
-            effective_tenant_id = resolve_tenant_id(research_case.tenant_id or project_tenant_id)
+            effective_tenant_id = resolve_tenant_id(research_case.tenant_id or project_tenant_id, requested_tenant_id)
             if project_tenant_id is not None:
                 require_same_tenant(
                     project_tenant_id,
@@ -202,22 +250,35 @@ class SQLitePlatformRepository(IPlatformRepository):
             )
             conn.commit()
 
-    def get_case(self, case_id: str, tenant_id: str | None = None) -> ResearchCase | None:
-        row = self._get_one("research_cases", "case_id", case_id, tenant_id)
+    def get_case(
+        self,
+        case_id: str,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> ResearchCase | None:
+        row = self._get_one("research_cases", "case_id", case_id, _tenant_id_from_scope(scope, tenant_id))
         return ResearchCase.from_mapping(dict(row)) if row else None
 
     def list_cases(
         self,
+        scope: TenantScope | None = None,
         *,
         project_id: str | None = None,
         limit: int = 100,
         tenant_id: str | None = None,
     ) -> list[ResearchCase]:
-        rows = self._list("research_cases", limit=limit, tenant_id=tenant_id, extra=("project_id", project_id))
+        rows = self._list(
+            "research_cases",
+            limit=limit,
+            tenant_id=_tenant_id_from_scope(scope, tenant_id),
+            extra=("project_id", project_id),
+        )
         return [ResearchCase.from_mapping(dict(row)) for row in rows]
 
     def link_case_run(
         self,
+        scope: TenantScope | str | None = None,
         *,
         case_id: str,
         run_id: str,
@@ -228,7 +289,7 @@ class SQLitePlatformRepository(IPlatformRepository):
         with self._connect() as conn:
             effective_tenant_id = resolve_tenant_id(
                 _tenant_id_for(conn, "research_cases", "case_id", case_id),
-                tenant_id,
+                _tenant_id_from_scope(scope, tenant_id),
             )
             conn.execute(
                 """
@@ -249,6 +310,7 @@ class SQLitePlatformRepository(IPlatformRepository):
 
     def link_workflow_template_run(
         self,
+        scope: TenantScope | str | None = None,
         *,
         template_id: str,
         run_id: str,
@@ -258,7 +320,7 @@ class SQLitePlatformRepository(IPlatformRepository):
         with self._connect() as conn:
             effective_tenant_id = resolve_tenant_id(
                 _tenant_id_for(conn, "workflow_templates", "template_id", template_id),
-                tenant_id,
+                _tenant_id_from_scope(scope, tenant_id),
             )
             conn.execute(
                 """
@@ -276,8 +338,14 @@ class SQLitePlatformRepository(IPlatformRepository):
             conn.commit()
         return WorkflowTemplateRunLink.from_mapping(dict(row))
 
-    def save_workflow_template(self, template: WorkflowTemplate) -> None:
-        effective_tenant_id = resolve_tenant_id(template.tenant_id)
+    def save_workflow_template(
+        self,
+        template: WorkflowTemplate,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> None:
+        effective_tenant_id = resolve_tenant_id(template.tenant_id, _tenant_id_from_scope(scope, tenant_id))
         with self._connect() as conn:
             guard_existing_tenant(
                 conn,
@@ -329,22 +397,45 @@ class SQLitePlatformRepository(IPlatformRepository):
             )
             conn.commit()
 
-    def get_workflow_template(self, template_id: str, tenant_id: str | None = None) -> WorkflowTemplate | None:
+    def get_workflow_template(
+        self,
+        template_id: str,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> WorkflowTemplate | None:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
         with self._connect() as conn:
-            row = self._get_one_with_conn(conn, "workflow_templates", "template_id", template_id, tenant_id)
+            row = self._get_one_with_conn(conn, "workflow_templates", "template_id", template_id, requested_tenant_id)
             if row is None:
-                row = self._get_one_with_conn(conn, "workflow_templates", "slug", template_id, tenant_id)
+                row = self._get_one_with_conn(conn, "workflow_templates", "slug", template_id, requested_tenant_id)
             return WorkflowTemplate.from_mapping(dict(row)) if row else None
 
-    def list_workflow_templates(self, limit: int = 100, tenant_id: str | None = None) -> list[WorkflowTemplate]:
-        rows = self._list("workflow_templates", limit=limit, tenant_id=tenant_id)
+    def list_workflow_templates(
+        self,
+        scope: TenantScope | int | str | None = None,
+        limit: int = 100,
+        *,
+        tenant_id: str | None = None,
+    ) -> list[WorkflowTemplate]:
+        if isinstance(scope, int):
+            limit = scope
+            scope = None
+        rows = self._list("workflow_templates", limit=limit, tenant_id=_tenant_id_from_scope(scope, tenant_id))
         return [WorkflowTemplate.from_mapping(dict(row)) for row in rows]
 
-    def save_case_asset(self, link: CaseAssetLink) -> None:
+    def save_case_asset(
+        self,
+        link: CaseAssetLink,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> None:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
         with self._connect() as conn:
             effective_tenant_id = resolve_tenant_id(
                 _tenant_id_for(conn, "research_cases", "case_id", link.case_id),
-                link.tenant_id,
+                requested_tenant_id if requested_tenant_id is not None else link.tenant_id,
             )
             guard_existing_tenant(
                 conn,
@@ -388,15 +479,21 @@ class SQLitePlatformRepository(IPlatformRepository):
 
     def list_case_assets(
         self,
-        case_id: str,
-        tenant_id: str | None = None,
+        scope: TenantScope | str | None = None,
+        case_id: str | None = None,
         include_deleted: bool = False,
+        *,
+        tenant_id: str | None = None,
     ) -> list[CaseAssetLink]:
+        if case_id is None:
+            case_id = str(scope)
+            scope = None
         sql = "SELECT * FROM case_assets WHERE case_id = ?"
         params: list[Any] = [case_id]
-        if tenant_id is not None:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
+        if requested_tenant_id is not None:
             sql += " AND tenant_id = ?"
-            params.append(tenant_id)
+            params.append(requested_tenant_id)
         if not include_deleted:
             sql += " AND deleted_at IS NULL"
         sql += " ORDER BY linked_at DESC"
@@ -404,22 +501,36 @@ class SQLitePlatformRepository(IPlatformRepository):
             rows = conn.execute(sql, tuple(params)).fetchall()
         return [CaseAssetLink.from_mapping(dict(row)) for row in rows]
 
-    def delete_case_asset(self, asset_link_id: str, tenant_id: str | None = None) -> None:
+    def delete_case_asset(
+        self,
+        asset_link_id: str,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> None:
         now = utc_now()
         sql = "UPDATE case_assets SET deleted_at = ? WHERE asset_link_id = ?"
         params: list[Any] = [now, asset_link_id]
-        if tenant_id is not None:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
+        if requested_tenant_id is not None:
             sql += " AND tenant_id = ?"
-            params.append(tenant_id)
+            params.append(requested_tenant_id)
         with self._connect() as conn:
             conn.execute(sql, tuple(params))
             conn.commit()
 
-    def save_workflow_execution(self, execution: WorkflowExecution) -> None:
+    def save_workflow_execution(
+        self,
+        execution: WorkflowExecution,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> None:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
         with self._connect() as conn:
             effective_tenant_id = resolve_tenant_id(
                 _tenant_id_for(conn, "research_cases", "case_id", execution.case_id),
-                execution.tenant_id,
+                requested_tenant_id if requested_tenant_id is not None else execution.tenant_id,
             )
             guard_existing_tenant(
                 conn,
@@ -469,22 +580,35 @@ class SQLitePlatformRepository(IPlatformRepository):
     def get_workflow_execution(
         self,
         execution_id: str,
+        scope: TenantScope | str | None = None,
+        *,
         tenant_id: str | None = None,
     ) -> WorkflowExecution | None:
-        row = self._get_one("workflow_executions", "execution_id", execution_id, tenant_id)
+        row = self._get_one(
+            "workflow_executions",
+            "execution_id",
+            execution_id,
+            _tenant_id_from_scope(scope, tenant_id),
+        )
         return WorkflowExecution.from_mapping(dict(row)) if row else None
 
     def list_workflow_executions(
         self,
-        case_id: str,
-        tenant_id: str | None = None,
+        scope: TenantScope | str | None = None,
+        case_id: str | None = None,
         limit: int = 100,
+        *,
+        tenant_id: str | None = None,
     ) -> list[WorkflowExecution]:
+        if case_id is None:
+            case_id = str(scope)
+            scope = None
         sql = "SELECT * FROM workflow_executions WHERE case_id = ?"
         params: list[Any] = [case_id]
-        if tenant_id is not None:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
+        if requested_tenant_id is not None:
             sql += " AND tenant_id = ?"
-            params.append(tenant_id)
+            params.append(requested_tenant_id)
         sql += " ORDER BY updated_at DESC LIMIT ?"
         params.append(limit)
         with self._connect() as conn:
@@ -498,9 +622,10 @@ class SQLitePlatformRepository(IPlatformRepository):
         *,
         run_id: str | None = None,
         preflight_result: dict | None = None,
+        scope: TenantScope | str | None = None,
         tenant_id: str | None = None,
     ) -> WorkflowExecution | None:
-        existing = self.get_workflow_execution(execution_id, tenant_id=tenant_id)
+        existing = self.get_workflow_execution(execution_id, scope, tenant_id=tenant_id)
         if existing is None:
             return None
         updated = WorkflowExecution(
@@ -514,14 +639,21 @@ class SQLitePlatformRepository(IPlatformRepository):
                 "updated_at": utc_now(),
             }
         )
-        self.save_workflow_execution(updated)
+        self.save_workflow_execution(updated, scope, tenant_id=tenant_id)
         return updated
 
-    def save_case_decision(self, decision: CaseDecision) -> None:
+    def save_case_decision(
+        self,
+        decision: CaseDecision,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> None:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
         with self._connect() as conn:
             effective_tenant_id = resolve_tenant_id(
                 _tenant_id_for(conn, "research_cases", "case_id", decision.case_id),
-                decision.tenant_id,
+                requested_tenant_id if requested_tenant_id is not None else decision.tenant_id,
             )
             guard_existing_tenant(
                 conn,
@@ -561,15 +693,21 @@ class SQLitePlatformRepository(IPlatformRepository):
 
     def list_case_decisions(
         self,
-        case_id: str,
-        tenant_id: str | None = None,
+        scope: TenantScope | str | None = None,
+        case_id: str | None = None,
         limit: int = 100,
+        *,
+        tenant_id: str | None = None,
     ) -> list[CaseDecision]:
+        if case_id is None:
+            case_id = str(scope)
+            scope = None
         sql = "SELECT * FROM case_decisions WHERE case_id = ?"
         params: list[Any] = [case_id]
-        if tenant_id is not None:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
+        if requested_tenant_id is not None:
             sql += " AND tenant_id = ?"
-            params.append(tenant_id)
+            params.append(requested_tenant_id)
         sql += " ORDER BY created_at DESC LIMIT ?"
         params.append(limit)
         with self._connect() as conn:
@@ -620,6 +758,18 @@ def _json(value: dict[str, Any]) -> str:
 
 def _json_value(value: Any) -> str:
     return json.dumps(value if value is not None else [], ensure_ascii=False)
+
+
+def _tenant_id_from_scope(scope: TenantScope | str | None, tenant_id: str | None = None) -> str | None:
+    if isinstance(scope, TenantScope):
+        if tenant_id is not None and tenant_id != scope.tenant_id:
+            raise ValueError(f"tenant mismatch for scope: {tenant_id} != {scope.tenant_id}")
+        return scope.tenant_id
+    if isinstance(scope, str):
+        if tenant_id is not None and tenant_id != scope:
+            raise ValueError(f"tenant mismatch for scope: {tenant_id} != {scope}")
+        return scope
+    return tenant_id
 
 
 def _tenant_id_for(conn, table: str, key: str, value: str) -> str | None:

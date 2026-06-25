@@ -69,6 +69,8 @@ def _migrations() -> tuple[Migration, ...]:
         Migration("runtime", "run_workflow_context", _migrate_run_workflow_context),
         Migration("runtime", "runtime_outbox", _migrate_runtime_outbox),
         Migration("runtime", "run_queue_leases", _migrate_run_queue_leases),
+        Migration("runtime", "runtime_child_foreign_keys", _migrate_runtime_child_foreign_keys),
+        Migration("runtime", "runtime_query_indexes", _migrate_runtime_query_indexes),
     )
 
 
@@ -277,5 +279,137 @@ def _migrate_run_queue_leases(conn: sqlite3.Connection) -> None:
         """
         CREATE INDEX IF NOT EXISTS idx_runtime_outbox_run_sequence
         ON runtime_outbox(run_id, sequence)
+        """
+    )
+
+
+def _migrate_runtime_child_foreign_keys(conn: sqlite3.Connection) -> None:
+    _rebuild_table_with_foreign_keys(
+        conn,
+        "turns",
+        """
+        CREATE TABLE turns (
+            turn_id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL,
+            tenant_id TEXT,
+            user_message TEXT NOT NULL,
+            run_id TEXT,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(session_id) REFERENCES sessions(session_id)
+        )
+        """,
+        ("turn_id", "session_id", "tenant_id", "user_message", "run_id", "created_at"),
+        "sessions",
+    )
+    _rebuild_table_with_foreign_keys(
+        conn,
+        "events",
+        """
+        CREATE TABLE events (
+            event_id TEXT PRIMARY KEY,
+            tenant_id TEXT,
+            run_id TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            payload TEXT NOT NULL,
+            sequence INTEGER NOT NULL,
+            schema_version TEXT DEFAULT '1.0',
+            created_at TEXT NOT NULL,
+            UNIQUE(run_id, sequence),
+            FOREIGN KEY(run_id) REFERENCES runs(run_id)
+        )
+        """,
+        ("event_id", "tenant_id", "run_id", "event_type", "payload", "sequence", "schema_version", "created_at"),
+        "runs",
+    )
+    _rebuild_table_with_foreign_keys(
+        conn,
+        "artifacts",
+        """
+        CREATE TABLE artifacts (
+            artifact_id TEXT PRIMARY KEY,
+            tenant_id TEXT,
+            run_id TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            data TEXT,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(run_id) REFERENCES runs(run_id)
+        )
+        """,
+        ("artifact_id", "tenant_id", "run_id", "kind", "title", "content", "data", "created_at"),
+        "runs",
+    )
+    _rebuild_table_with_foreign_keys(
+        conn,
+        "approvals",
+        """
+        CREATE TABLE approvals (
+            approval_id TEXT PRIMARY KEY,
+            tenant_id TEXT,
+            run_id TEXT NOT NULL,
+            action TEXT NOT NULL,
+            risk_level TEXT NOT NULL,
+            status TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            resolved_at TEXT,
+            FOREIGN KEY(run_id) REFERENCES runs(run_id)
+        )
+        """,
+        ("approval_id", "tenant_id", "run_id", "action", "risk_level", "status", "created_at", "resolved_at"),
+        "runs",
+    )
+
+
+def _rebuild_table_with_foreign_keys(
+    conn: sqlite3.Connection,
+    table: str,
+    create_sql: str,
+    columns: tuple[str, ...],
+    referenced_table: str,
+) -> None:
+    if referenced_table in {row[2] for row in conn.execute(f"PRAGMA foreign_key_list({table})").fetchall()}:
+        return
+    legacy_table = f"{table}_legacy_no_fk"
+    column_list = ", ".join(columns)
+    conn.execute("PRAGMA foreign_keys = OFF")
+    conn.execute(f"ALTER TABLE {table} RENAME TO {legacy_table}")
+    conn.execute(create_sql)
+    conn.execute(
+        f"INSERT OR IGNORE INTO {table}({column_list}) SELECT {column_list} FROM {legacy_table}"
+    )
+    conn.execute(f"DROP TABLE {legacy_table}")
+    conn.execute("PRAGMA foreign_keys = ON")
+
+
+def _migrate_runtime_query_indexes(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_runs_session_created
+        ON runs(session_id, created_at)
+        """
+    )
+    conn.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_turns_session_created
+        ON turns(session_id, created_at)
+        """
+    )
+    conn.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_approvals_run_status
+        ON approvals(run_id, status)
+        """
+    )
+    conn.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_artifacts_run_created
+        ON artifacts(run_id, created_at)
+        """
+    )
+    conn.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_run_queue_status_worker_lease
+        ON run_queue(status, worker_id, lease_expires_at)
         """
     )

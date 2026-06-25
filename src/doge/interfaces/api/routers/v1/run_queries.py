@@ -2,18 +2,22 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from doge.application.use_cases.run_summary import BuildRunSummary
 from doge.core.ports.agent_runtime import IResearchAgentRuntime
 from doge.core.ports.enterprise_governance import IEnterpriseGovernanceRepository
 from doge.interfaces.api import deps
-from doge.interfaces.api.enterprise_access import append_audit
+from doge.interfaces.api.handlers import (
+    GetRunHandler,
+    GetRunSummaryHandler,
+    ListArtifactsHandler,
+    ListEventsHandler,
+    RunNotFound,
+)
 from doge.interfaces.api.routers.v1._common import serialize
 from doge.interfaces.api.routers.v1._runs_common import (
-    authorized_run,
-    build_authorized_summary,
-    request_scope,
+    request_run_access,
     require_run_summary_api,
 )
 
@@ -26,7 +30,11 @@ async def get_run(
     run_id: str,
     runtime: IResearchAgentRuntime = Depends(deps.get_persisted_research_agent_runtime),
 ):
-    return serialize(authorized_run(request, runtime, run_id))
+    try:
+        run = GetRunHandler(runtime=runtime).handle(run_id=run_id, access=request_run_access(request))
+    except RunNotFound:
+        raise HTTPException(404, "run not found")
+    return serialize(run)
 
 
 @router.get("/runs/{run_id}/events")
@@ -36,12 +44,14 @@ async def get_events(
     after_sequence: int = 0,
     runtime: IResearchAgentRuntime = Depends(deps.get_persisted_research_agent_runtime),
 ):
-    scope = request_scope(request)
-    authorized_run(request, runtime, run_id)
-    events = [
-        event for event in runtime.list_events(scope, run_id)
-        if event.sequence > after_sequence
-    ]
+    try:
+        events = ListEventsHandler(runtime=runtime).handle(
+            run_id=run_id,
+            access=request_run_access(request),
+            after_sequence=after_sequence,
+        )
+    except RunNotFound:
+        raise HTTPException(404, "run not found")
     return {"events": serialize(events)}
 
 
@@ -51,9 +61,14 @@ async def get_artifacts(
     run_id: str,
     runtime: IResearchAgentRuntime = Depends(deps.get_persisted_research_agent_runtime),
 ):
-    scope = request_scope(request)
-    authorized_run(request, runtime, run_id)
-    return {"artifacts": serialize(runtime.list_artifacts(scope, run_id))}
+    try:
+        artifacts = ListArtifactsHandler(runtime=runtime).handle(
+            run_id=run_id,
+            access=request_run_access(request),
+        )
+    except RunNotFound:
+        raise HTTPException(404, "run not found")
+    return {"artifacts": serialize(artifacts)}
 
 
 @router.get("/runs/{run_id}/summary", dependencies=[Depends(require_run_summary_api)])
@@ -64,9 +79,16 @@ async def get_run_summary(
     use_case: BuildRunSummary = Depends(deps.get_run_summary_use_case),
     governance: IEnterpriseGovernanceRepository = Depends(deps.get_enterprise_governance_repository),
 ):
-    run = authorized_run(request, runtime, run_id)
-    result = build_authorized_summary(request, run, use_case, governance)
-    append_audit(request, governance, "run_summary_read", "run", run_id)
+    try:
+        access = request_run_access(request)
+        run = GetRunHandler(runtime=runtime).handle(run_id=run_id, access=access)
+    except RunNotFound:
+        raise HTTPException(404, "run not found")
+    result = GetRunSummaryHandler(use_case=use_case, governance=governance).handle(
+        run=run,
+        access=access,
+        audit_event_type="run_summary_read",
+    )
     return {"summary": serialize(result["summary"])}
 
 
@@ -78,9 +100,16 @@ async def get_run_claims(
     use_case: BuildRunSummary = Depends(deps.get_run_summary_use_case),
     governance: IEnterpriseGovernanceRepository = Depends(deps.get_enterprise_governance_repository),
 ):
-    run = authorized_run(request, runtime, run_id)
-    result = build_authorized_summary(request, run, use_case, governance)
-    append_audit(request, governance, "run_claims_read", "run", run_id)
+    try:
+        access = request_run_access(request)
+        run = GetRunHandler(runtime=runtime).handle(run_id=run_id, access=access)
+    except RunNotFound:
+        raise HTTPException(404, "run not found")
+    result = GetRunSummaryHandler(use_case=use_case, governance=governance).handle(
+        run=run,
+        access=access,
+        audit_event_type="run_claims_read",
+    )
     return {
         "summary_id": result["summary"]["summary_id"],
         "claims": serialize(result["claims"]),
@@ -95,9 +124,16 @@ async def get_run_citations(
     use_case: BuildRunSummary = Depends(deps.get_run_summary_use_case),
     governance: IEnterpriseGovernanceRepository = Depends(deps.get_enterprise_governance_repository),
 ):
-    run = authorized_run(request, runtime, run_id)
-    result = build_authorized_summary(request, run, use_case, governance)
-    append_audit(request, governance, "run_citations_read", "run", run_id)
+    try:
+        access = request_run_access(request)
+        run = GetRunHandler(runtime=runtime).handle(run_id=run_id, access=access)
+    except RunNotFound:
+        raise HTTPException(404, "run not found")
+    result = GetRunSummaryHandler(use_case=use_case, governance=governance).handle(
+        run=run,
+        access=access,
+        audit_event_type="run_citations_read",
+    )
     return {
         "summary_id": result["summary"]["summary_id"],
         "citations": serialize(result["citations"]),
@@ -112,9 +148,16 @@ async def get_run_eval(
     use_case: BuildRunSummary = Depends(deps.get_run_summary_use_case),
     governance: IEnterpriseGovernanceRepository = Depends(deps.get_enterprise_governance_repository),
 ):
-    run = authorized_run(request, runtime, run_id)
-    result = build_authorized_summary(request, run, use_case, governance)
-    append_audit(request, governance, "run_eval_read", "run", run_id)
+    try:
+        access = request_run_access(request)
+        run = GetRunHandler(runtime=runtime).handle(run_id=run_id, access=access)
+    except RunNotFound:
+        raise HTTPException(404, "run not found")
+    result = GetRunSummaryHandler(use_case=use_case, governance=governance).handle(
+        run=run,
+        access=access,
+        audit_event_type="run_eval_read",
+    )
     return {
         "summary_id": result["summary"]["summary_id"],
         "eval": serialize(result["eval"]),
@@ -127,5 +170,8 @@ async def get_approvals(
     run_id: str,
     runtime: IResearchAgentRuntime = Depends(deps.get_persisted_research_agent_runtime),
 ):
-    run = authorized_run(request, runtime, run_id)
+    try:
+        run = GetRunHandler(runtime=runtime).handle(run_id=run_id, access=request_run_access(request))
+    except RunNotFound:
+        raise HTTPException(404, "run not found")
     return {"approvals": serialize(run.approvals)}

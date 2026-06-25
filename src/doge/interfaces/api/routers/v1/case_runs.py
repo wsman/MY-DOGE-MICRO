@@ -8,15 +8,9 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 
 from doge.application.use_cases.run_summary import BuildRunSummary
-from doge.application.agent.worker import AsyncioWorker
 from doge.core.ports.enterprise_governance import IEnterpriseGovernanceRepository
 from doge.interfaces.api import deps
-from doge.interfaces.api.enterprise_access import (
-    append_audit,
-    enterprise_context,
-    is_enterprise_request,
-    redact_run_summary_for_request,
-)
+from doge.interfaces.api.handlers import ExecuteWorkflowHandler, ResearchCaseRunHandler
 from doge.interfaces.api.routers.v1._common import serialize
 from doge.interfaces.api.routers.v1._platform_common import (
     build_research_case_execution_service,
@@ -25,6 +19,7 @@ from doge.interfaces.api.routers.v1._platform_common import (
     raise_platform_error,
     require_platform_objects,
 )
+from doge.interfaces.api.routers.v1._runs_common import request_run_access
 from doge.platform.workspace import (
     CaseExecutionCreate,
     CaseRunCreate,
@@ -66,6 +61,13 @@ class CaseExecutionRequest(BaseModel):
     trigger_channel: str = "api"
 
 
+def build_execute_workflow_handler(
+    service: ResearchCaseService = Depends(build_research_case_execution_service),
+    worker=Depends(deps.get_daemon_worker),
+) -> ExecuteWorkflowHandler:
+    return ExecuteWorkflowHandler(service=service, worker=worker)
+
+
 @router.post(
     "/research-cases/{case_id}/executions/preflight",
     dependencies=[Depends(require_platform_objects)],
@@ -78,10 +80,10 @@ async def preflight_research_case_execution(
     settings=Depends(deps.get_settings_dep),
 ):
     try:
-        result = service.preflight_template_execution(
-            platform_context(request),
-            case_id,
-            _case_execution_create(body),
+        result = ResearchCaseRunHandler(service=service).preflight(
+            context=platform_context(request),
+            case_id=case_id,
+            command=_case_execution_create(body),
             workflow_templates_enabled=settings.features.workflow_templates,
         )
         return serialize(result.to_dict())
@@ -98,17 +100,15 @@ async def execute_research_case_template(
     request: Request,
     case_id: str,
     body: CaseExecutionRequest,
-    service: ResearchCaseService = Depends(build_research_case_execution_service),
-    worker: AsyncioWorker = Depends(deps.get_daemon_worker),
+    handler: ExecuteWorkflowHandler = Depends(build_execute_workflow_handler),
     settings=Depends(deps.get_settings_dep),
 ):
     try:
-        result = await service.execute_template(
-            platform_context(request),
-            case_id,
-            _case_execution_create(body),
+        result = await handler.handle(
+            context=platform_context(request),
+            case_id=case_id,
+            command=_case_execution_create(body),
             workflow_templates_enabled=settings.features.workflow_templates,
-            worker=worker,
         )
         return serialize(result.to_dict())
     except PlatformServiceError as exc:
@@ -123,7 +123,11 @@ async def list_research_case_executions(
     service: ResearchCaseService = Depends(build_research_case_execution_service),
 ):
     try:
-        items = service.list_workflow_executions_for_case(platform_context(request), case_id, limit=limit)
+        items = ResearchCaseRunHandler(service=service).list_executions(
+            context=platform_context(request),
+            case_id=case_id,
+            limit=limit,
+        )
         return {"executions": serialize(items)}
     except PlatformServiceError as exc:
         raise_platform_error(exc)
@@ -140,7 +144,12 @@ async def get_research_case_execution(
     service: ResearchCaseService = Depends(build_research_case_execution_service),
 ):
     try:
-        return serialize(service.get_workflow_execution(platform_context(request), case_id, execution_id))
+        execution = ResearchCaseRunHandler(service=service).get_execution(
+            context=platform_context(request),
+            case_id=case_id,
+            execution_id=execution_id,
+        )
+        return serialize(execution)
     except PlatformServiceError as exc:
         raise_platform_error(exc)
 
@@ -155,15 +164,13 @@ async def get_research_case_review(
     governance: IEnterpriseGovernanceRepository = Depends(deps.get_enterprise_governance_repository),
 ):
     try:
-        review = service.build_case_review(platform_context(request), case_id)
-        latest_run = review.get("latest_run")
-        if latest_run is not None and settings.features.run_summary_api:
-            summary_resources = _build_summary_for_review(request, latest_run, use_case, governance)
-            review.update(summary_resources)
-        else:
-            review.update({"summary": None, "claims": [], "citations": [], "eval": None})
-            if latest_run is not None:
-                review["warnings"] = [*review.get("warnings", []), "run_summary_api_unavailable"]
+        review = ResearchCaseRunHandler(service=service, governance=governance).review(
+            context=platform_context(request),
+            case_id=case_id,
+            run_summary_enabled=settings.features.run_summary_api,
+            summary_use_case=use_case,
+            access=request_run_access(request),
+        )
         return serialize(review)
     except PlatformServiceError as exc:
         raise_platform_error(exc)
@@ -178,10 +185,10 @@ async def link_research_case_run(
     settings=Depends(deps.get_settings_dep),
 ):
     try:
-        result = await service.create_run_link(
-            platform_context(request),
-            case_id,
-            CaseRunCreate(
+        result = await ResearchCaseRunHandler(service=service).link_run(
+            context=platform_context(request),
+            case_id=case_id,
+            command=CaseRunCreate(
                 run_id=body.run_id,
                 template_id=body.template_id,
                 link_type=body.link_type,
@@ -218,21 +225,3 @@ def _case_execution_create(body: CaseExecutionRequest) -> CaseExecutionCreate:
         skip_preflight=body.skip_preflight,
         trigger_channel=body.trigger_channel,
     )
-
-
-def _build_summary_for_review(
-    request: Request,
-    run,
-    use_case: BuildRunSummary,
-    governance: IEnterpriseGovernanceRepository,
-) -> dict[str, Any]:
-    tenant_id = enterprise_context(request).tenant_id if is_enterprise_request(request) else None
-    result = use_case.build(run, tenant_id=tenant_id)
-    result = redact_run_summary_for_request(request, governance, result)
-    append_audit(request, governance, "research_case_review_read", "research_case", run.run_id)
-    return {
-        "summary": result["summary"],
-        "claims": result["claims"],
-        "citations": result["citations"],
-        "eval": result["eval"],
-    }

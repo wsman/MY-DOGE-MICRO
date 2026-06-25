@@ -11,6 +11,7 @@ from doge.core.ports.agent_repository import (
     IEventRepository,
     IRunRepository,
 )
+from doge.shared.scope import TenantScope
 
 
 class _InMemoryAgentStore:
@@ -29,48 +30,105 @@ class InMemoryRunRepository(IRunRepository):
     def store(self) -> _InMemoryAgentStore:
         return self._store
 
-    def save(self, run: AgentRun, tenant_id: str | None = None) -> None:
+    def save(
+        self,
+        run: AgentRun,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> None:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
+        if requested_tenant_id is not None and not _matches_tenant(_tenant_id_from_run(run), requested_tenant_id):
+            raise ValueError("tenant mismatch for run")
         stored = deepcopy(run)
         stored.events = []
         stored.artifacts = []
         stored.approvals = []
         self._store.runs[run.run_id] = stored
 
-    def get(self, run_id: str, tenant_id: str | None = None) -> AgentRun | None:
+    def get(
+        self,
+        run_id: str,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun | None:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
         run = self._store.runs.get(run_id)
-        if run is None or not _matches_tenant(_tenant_id_from_run(run), tenant_id):
+        if run is None or not _matches_tenant(_tenant_id_from_run(run), requested_tenant_id):
             return None
         hydrated = deepcopy(run)
-        hydrated.events = deepcopy(InMemoryEventRepository(self._store).list_for_run(run_id, tenant_id=tenant_id))
-        hydrated.artifacts = deepcopy(InMemoryArtifactRepository(self._store).list_for_run(run_id, tenant_id=tenant_id))
+        hydrated.events = deepcopy(
+            InMemoryEventRepository(self._store).list_for_run(run_id, tenant_id=requested_tenant_id)
+        )
+        hydrated.artifacts = deepcopy(
+            InMemoryArtifactRepository(self._store).list_for_run(run_id, tenant_id=requested_tenant_id)
+        )
         hydrated.approvals = [
             deepcopy(approval)
-            for approval in InMemoryApprovalRepository(self._store).list_for_run(run_id, tenant_id=tenant_id)
+            for approval in InMemoryApprovalRepository(self._store).list_for_run(
+                run_id,
+                tenant_id=requested_tenant_id,
+            )
         ]
         hydrated.approvals.sort(key=lambda item: item.created_at)
         return hydrated
 
-    def list_by_session(self, session_id: str, tenant_id: str | None = None) -> list[AgentRun]:
+    def get_run_header(
+        self,
+        run_id: str,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun | None:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
+        run = self._store.runs.get(run_id)
+        if run is None or not _matches_tenant(_tenant_id_from_run(run), requested_tenant_id):
+            return None
+        header = deepcopy(run)
+        header.events = []
+        header.artifacts = []
+        header.approvals = []
+        return header
+
+    def list_by_session(
+        self,
+        session_id: str,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> list[AgentRun]:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
         runs = [
             run for run in self._store.runs.values()
-            if run.session_id == session_id and _matches_tenant(_tenant_id_from_run(run), tenant_id)
+            if run.session_id == session_id and _matches_tenant(_tenant_id_from_run(run), requested_tenant_id)
         ]
         hydrated: list[AgentRun] = []
         for run in sorted(runs, key=lambda item: item.created_at):
-            loaded = self.get(run.run_id, tenant_id=tenant_id)
+            loaded = self.get(run.run_id, tenant_id=requested_tenant_id)
             if loaded is not None:
                 hydrated.append(loaded)
         return hydrated
 
-    def list_recent(self, limit: int = 20, tenant_id: str | None = None) -> list[AgentRun]:
+    def list_recent(
+        self,
+        scope: TenantScope | int | str | None = None,
+        limit: int = 20,
+        *,
+        tenant_id: str | None = None,
+    ) -> list[AgentRun]:
+        if isinstance(scope, int):
+            limit = scope
+            scope = None
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
         runs = [
             run for run in self._store.runs.values()
-            if _matches_tenant(_tenant_id_from_run(run), tenant_id)
+            if _matches_tenant(_tenant_id_from_run(run), requested_tenant_id)
         ]
         runs = sorted(runs, key=lambda item: item.updated_at, reverse=True)[:limit]
         hydrated: list[AgentRun] = []
         for run in runs:
-            loaded = self.get(run.run_id, tenant_id=tenant_id)
+            loaded = self.get(run.run_id, tenant_id=requested_tenant_id)
             if loaded is not None:
                 hydrated.append(loaded)
         return hydrated
@@ -181,3 +239,15 @@ def _matches_tenant(record_tenant_id: str | None, requested_tenant_id: str | Non
     if requested_tenant_id is None:
         return True
     return (record_tenant_id or "local") == (requested_tenant_id or "local")
+
+
+def _tenant_id_from_scope(scope: TenantScope | str | None, tenant_id: str | None = None) -> str | None:
+    if isinstance(scope, TenantScope):
+        if tenant_id is not None and tenant_id != scope.tenant_id:
+            raise ValueError(f"tenant mismatch for scope: {tenant_id} != {scope.tenant_id}")
+        return scope.tenant_id
+    if isinstance(scope, str):
+        if tenant_id is not None and tenant_id != scope:
+            raise ValueError(f"tenant mismatch for scope: {tenant_id} != {scope}")
+        return scope
+    return tenant_id

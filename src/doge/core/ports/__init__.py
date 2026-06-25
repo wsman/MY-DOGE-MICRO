@@ -58,6 +58,13 @@ from doge.core.ports.repository import (
     StorageWriteError,
 )
 from doge.core.ports.runtime_transaction import IOutboxRepository, IRuntimeTransaction, IRuntimeTransactionFactory
+from doge.core.ports.runtime_services import (
+    IArtifactEvaluationService,
+    IModelExecutionService,
+    IToolExecutionService,
+    ModelExecutionResult,
+    ToolResult,
+)
 from doge.core.ports.secrets import ISecretProvider
 from doge.core.ports.unit_of_work import IAgentUnitOfWork
 from doge.core.ports.worker_queue import IRunQueue
@@ -72,6 +79,7 @@ __all__ = [
     "IAgentUnitOfWork",
     "IApprovalRepository",
     "IArtifactRepository",
+    "IArtifactEvaluationService",
     "ICapabilityProvider",
     "IClaimRepository",
     "ICodeExecutor",
@@ -98,6 +106,7 @@ __all__ = [
     "IMarketViewRepository",
     "IIndustryClassificationSource",
     "IModelRouter",
+    "IModelExecutionService",
     "IEnterpriseModelGateway",
     "INoteRepository",
     "IPlatformRepository",
@@ -118,13 +127,16 @@ __all__ = [
     "ITdxFileScanner",
     "ITDXServerList",
     "IToolEntitlementChecker",
+    "IToolExecutionService",
     "ITickerMetadataSource",
     "ITickerNameCache",
     "IVectorStore",
     "VectorRecord",
     "VectorSearchResult",
     "ExecutionResult",
+    "ModelExecutionResult",
     "RoutingDecision",
     "TDXServer",
+    "ToolResult",
     "StorageWriteError",
 ]

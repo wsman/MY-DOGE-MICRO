@@ -38,7 +38,7 @@ class CaseDecisionService:
             source_execution_ids=request.source_execution_ids,
             tenant_id=context.tenant_id,
         )
-        self._repo.save_case_decision(decision)
+        self._repo.save_case_decision(decision, context.tenant_scope)
         self._access.audit(
             context,
             "case_decision_record",
@@ -50,7 +50,7 @@ class CaseDecisionService:
 
     def list_case_decisions(self, context: PlatformRequestContext, case_id: str) -> list[CaseDecision]:
         self._require_case(context, case_id, "read")
-        return self._repo.list_case_decisions(case_id, tenant_id=context.tenant_id)
+        return self._repo.list_case_decisions(context.tenant_scope, case_id)
 
     def _require_case(
         self,
@@ -58,7 +58,7 @@ class CaseDecisionService:
         case_id: str,
         permission: str,
     ) -> ResearchCase:
-        research_case = self._repo.get_case(case_id, tenant_id=context.tenant_id)
+        research_case = self._repo.get_case(case_id, context.tenant_scope)
         if research_case is None:
             raise PlatformNotFoundError("research case not found")
         self._access.ensure(context, "research_case", case_id, permission)

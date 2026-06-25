@@ -7,6 +7,7 @@ from typing import Any
 
 from doge.core.domain.platform_models import WorkflowTemplate
 from doge.core.ports.platform_repository import IPlatformRepository
+from doge.shared.scope import TenantScope
 
 
 BUILTIN_TEMPLATES: list[dict[str, Any]] = [
@@ -154,11 +155,17 @@ class TemplateSeedResult:
         return {"inserted": self.inserted, "existing": self.existing, "dry_run": self.dry_run}
 
 
-def seed_workflow_templates(repo: IPlatformRepository, *, tenant_id: str | None = None, dry_run: bool = False) -> TemplateSeedResult:
+def seed_workflow_templates(
+    repo: IPlatformRepository,
+    *,
+    scope: TenantScope | None = None,
+    tenant_id: str | None = None,
+    dry_run: bool = False,
+) -> TemplateSeedResult:
     inserted: list[str] = []
     existing: list[str] = []
     for item in BUILTIN_TEMPLATES:
-        current = repo.get_workflow_template(item["slug"], tenant_id=tenant_id)
+        current = repo.get_workflow_template(item["slug"], scope, tenant_id=tenant_id)
         if current is not None:
             existing.append(item["slug"])
             continue
@@ -183,5 +190,5 @@ def seed_workflow_templates(repo: IPlatformRepository, *, tenant_id: str | None 
                 "metadata": item.get("metadata", {}),
             }
         )
-        repo.save_workflow_template(template)
+        repo.save_workflow_template(template, scope, tenant_id=tenant_id)
     return TemplateSeedResult(inserted=inserted, existing=existing, dry_run=dry_run)

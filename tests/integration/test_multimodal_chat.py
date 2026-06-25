@@ -14,6 +14,11 @@ from doge.infrastructure.database.agent_repositories import (
     SQLiteRunRepository,
 )
 from doge.infrastructure.database.evidence_repository import SQLiteEvidenceRepository
+from doge.platform.runtime.services import (
+    ArtifactEvaluationService,
+    ModelExecutionService,
+    ToolExecutionService,
+)
 
 
 class CapturingModel:
@@ -40,14 +45,18 @@ async def test_runtime_includes_selected_document_chunks_in_model_context(tmp_pa
     documents.save(document)
     PageExtractionService(evidence_repository=evidence).extract(document)
     model = CapturingModel()
+    registry = ToolRegistry()
     kernel = RuntimeKernel(
         model=model,
-        tool_registry=ToolRegistry(),
+        tool_registry=registry,
         run_repository=SQLiteRunRepository(db),
         event_repository=SQLiteEventRepository(db),
         artifact_repository=SQLiteArtifactRepository(db),
         approval_repository=SQLiteApprovalRepository(db),
         context_builder=ContextBuilder(document_repository=documents, evidence_repository=evidence),
+        model_execution_service=ModelExecutionService(model=model),
+        tool_execution_service=ToolExecutionService(tool_registry=registry),
+        artifact_evaluation_service=ArtifactEvaluationService(),
     )
 
     run = await kernel.create_run({

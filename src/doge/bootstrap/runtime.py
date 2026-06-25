@@ -10,7 +10,8 @@ delegated to :class:`~doge.bootstrap.gateway.GatewayContainer`.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -52,6 +53,11 @@ from doge.infrastructure.database.sqlite_runtime_transaction import (
     SQLiteRuntimeTransactionFactory,
 )
 from doge.infrastructure.database.sqlite_uow import SQLiteAgentUnitOfWork
+from doge.platform.runtime.services import (
+    ArtifactEvaluationService,
+    ModelExecutionService,
+    ToolExecutionService,
+)
 
 
 @dataclass(frozen=True)
@@ -59,6 +65,7 @@ class RuntimeContainer:
     """Typed entry point for agent runtime wiring."""
 
     db_path: Path | str | None = None
+    graph_provider: Callable[[], Any] | None = field(default=None, repr=False, compare=False)
 
     # ── Repository / adapter leaves ──
 
@@ -118,7 +125,7 @@ class RuntimeContainer:
     def build_agent_backends(self, secret_provider=None):
         """Build optional agent runtime backends keyed by router backend id."""
         settings = get_settings()
-        secret_provider = secret_provider or self._gateway().build_secret_provider()
+        secret_provider = secret_provider or self.gateway_container().build_secret_provider()
         return {
             "kimi_agent_sdk": KimiAgentSdkBackend(
                 base_url=settings.kimi.effective_base_url(),
@@ -130,7 +137,7 @@ class RuntimeContainer:
     def build_agent_runtime_kernel(self, model=None, tool_registry=None, event_publisher=None) -> RuntimeKernel:
         """Build the persisted agent runtime kernel."""
         repos = self.build_agent_repositories()
-        gateway = self._gateway()
+        gateway = self.gateway_container()
         secret_provider = gateway.build_secret_provider()
         if model is None:
             model = (
@@ -140,6 +147,8 @@ class RuntimeContainer:
             )
         if tool_registry is None:
             tool_registry = self.build_default_tool_registry()
+        model_router = self.build_model_router(document_repository=repos["documents"])
+        agent_backends = self.build_agent_backends(secret_provider)
         return RuntimeKernel(
             model=model,
             tool_registry=tool_registry,
@@ -154,15 +163,25 @@ class RuntimeContainer:
                 session_repository=repos["sessions"],
                 run_repository=repos["runs"],
             ),
-            model_router=self.build_model_router(document_repository=repos["documents"]),
-            agent_backends=self.build_agent_backends(secret_provider),
+            model_router=model_router,
+            agent_backends=agent_backends,
             governance_repository=repos["governance"],
+            model_execution_service=ModelExecutionService(
+                model=model,
+                model_router=model_router,
+                agent_backends=agent_backends,
+            ),
+            tool_execution_service=ToolExecutionService(
+                tool_registry=tool_registry,
+                governance_repository=repos["governance"],
+            ),
+            artifact_evaluation_service=ArtifactEvaluationService(),
             runtime_transaction_factory=SQLiteRuntimeTransactionFactory(self.db_path),
         )
 
     def build_research_agent_runtime(self, model: Any = None, tool_registry: Any = None) -> InMemoryResearchAgentRuntime:
         """Build the in-memory research-agent runtime for the interview demo."""
-        gateway = self._gateway()
+        gateway = self.gateway_container()
         secret_provider = gateway.build_secret_provider()
         if model is None:
             model = (
@@ -208,7 +227,7 @@ class RuntimeContainer:
     def build_default_tool_registry(self, entitlement_checker: Any = None, context: Any = None):
         """Build the default tool registry with application dependencies injected."""
         return _build_tool_registry(
-            service=self._gateway().build_tool_application_service(),
+            service=self.gateway_container().build_tool_application_service(),
             entitlement_checker=entitlement_checker,
             context=context,
         )
@@ -245,20 +264,22 @@ class RuntimeContainer:
 
     # ── Bootstrap collaborators ──
 
-    def _gateway(self):
-        """Return the gateway container sharing this runtime's db_path.
+    def gateway_container(self):
+        """Return the graph-owned gateway container."""
 
-        Lazy import keeps the bootstrap modules free of a module-level
-        runtime<->gateway import cycle (``gateway`` imports ``runtime`` at
-        module level for its own collaborator construction).
-        """
+        return self._process_graph().gateway_container
 
-        from doge.bootstrap.gateway import build_gateway_container
+    def _process_graph(self):
+        if self.graph_provider is not None:
+            return self.graph_provider()
+        from doge.bootstrap.processes import build_embedded_process
 
-        return build_gateway_container(self.db_path)
+        return build_embedded_process(db_path=self.db_path)
 
 
 def build_runtime_container(db_path: Path | str | None = None) -> RuntimeContainer:
     """Build the runtime container."""
 
-    return RuntimeContainer(db_path=db_path)
+    from doge.bootstrap.processes import build_embedded_process
+
+    return build_embedded_process(db_path=db_path).runtime_container

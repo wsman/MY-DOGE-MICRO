@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from typing import Any
 
+from doge.core.security import redact_secrets
 from doge.interfaces.cli.commands.session_presenter import parse_approval_ref
+from doge.interfaces.cli.commands.session_presenter import print_last_run
+from doge.interfaces.cli.commands.session_presenter import SdkRunClient
+from doge.interfaces.cli.commands.session_presenter import to_cli_payload
 
 
 class GatewayArgs:
@@ -68,6 +73,44 @@ def gateway_upload_document(args, path: str) -> dict[str, Any]:
     return with_gateway_client(args, lambda client: client.documents.upload_path(path))
 
 
+def gateway_stream_events(args, run_id: str) -> list[Any]:
+    return with_gateway_client(args, lambda client: list(client.runs.stream(run_id)))
+
+
+def _gateway_stream_event_record(run_id: str, event: Any) -> dict[str, Any]:
+    return redact_secrets({
+        "type": "event",
+        "run_id": run_id,
+        "event": to_cli_payload(event),
+    })
+
+
+def print_gateway_stream(args, run_id: str, *, jsonl: bool = False) -> None:
+    try:
+        events = gateway_stream_events(args, run_id)
+    except Exception as exc:  # noqa: BLE001 - CLI emits concise operator message
+        print(f"stream_error={exc}", file=sys.stderr)
+        return
+    for event in events:
+        if jsonl:
+            print(json.dumps(_gateway_stream_event_record(run_id, event), ensure_ascii=False, sort_keys=True))
+        else:
+            print(json.dumps(redact_secrets(to_cli_payload(event)), ensure_ascii=False, sort_keys=True))
+
+
+def print_gateway_run_field(args, run_id: str | None, *, field: str) -> None:
+    if run_id is None:
+        print_last_run(run_id, field=field)
+        return
+    try:
+        with_gateway_client(
+            args,
+            lambda client: print_last_run(run_id, field=field, client=SdkRunClient(client)),
+        )
+    except Exception as exc:  # noqa: BLE001 - CLI emits concise operator message
+        print(f"{field}_error={exc}", file=sys.stderr)
+
+
 def resolve_gateway_approval(args, run_id: str, approval_id: str, approved: bool) -> None:
     payload = gateway_resolve_approval(args, run_id, approval_id, approved)
     status = payload.get("status") or payload.get("run", {}).get("status") or payload.get("status_code")
@@ -105,8 +148,16 @@ def cmd_gateway_session(args) -> None:
         message = getattr(args, "message", None)
         if message:
             run_id = gateway_create_turn(args, resume_id, message, market=args.market)
-            print(f"run_id={run_id} status=accepted")
-            print(f"stream_via=GET /v1/runs/{run_id}/stream")
+            if getattr(args, "jsonl", False):
+                print(json.dumps(
+                    {"type": "run_accepted", "run_id": run_id, "status": "accepted"},
+                    ensure_ascii=False,
+                    sort_keys=True,
+                ))
+            else:
+                print(f"run_id={run_id} status=accepted")
+            if getattr(args, "follow", False) or getattr(args, "jsonl", False):
+                print_gateway_stream(args, run_id, jsonl=getattr(args, "jsonl", False))
             return
         print(f"session_id={session.get('session_id')}")
         print(f"title={session.get('title')}")

@@ -189,7 +189,8 @@ class AsyncioWorker:
                 if run_id is None:
                     continue
                 heartbeat_task = asyncio.create_task(self._heartbeat_loop(run_id))
-                task = asyncio.create_task(self._runtime.run_to_pause_or_completion(run_id))
+                scope = self._scope_for_run(run_id)
+                task = asyncio.create_task(self._runtime.run_to_pause_or_completion(scope, run_id))
                 self._active_tasks[run_id] = task
                 try:
                     run = await task

@@ -109,3 +109,36 @@ def test_platform_subrouters_are_self_contained() -> None:
         source = (ROUTER_DIR / filename).read_text(encoding="utf-8")
         assert "router = APIRouter" in source, f"{filename} must define its own router"
         assert route_prefix in source, f"{filename} must define routes under {route_prefix}"
+
+
+def test_gate5_priority_routers_delegate_behavior_to_handlers() -> None:
+    """G5C: priority v1 routers stay thin after handler extraction."""
+
+    priority_files = [
+        "sessions.py",
+        "run_actions.py",
+        "run_queries.py",
+        "run_stream.py",
+        "case_runs.py",
+        "cases.py",
+        "workflows.py",
+        "workspaces.py",
+        "projects.py",
+    ]
+    forbidden_tokens = [
+        "service.",
+        "worker.",
+        ".execute(",
+        "authorized_run",
+        "build_authorized_summary",
+        "redact_run_summary_for_request",
+        "ensure_resource_access",
+        "trusted_identity_snapshot",
+        "trusted_model_policy",
+        "append_audit",
+    ]
+
+    for filename in priority_files:
+        source = (ROUTER_DIR / filename).read_text(encoding="utf-8")
+        for token in forbidden_tokens:
+            assert token not in source, f"{filename} contains router behavior token: {token}"

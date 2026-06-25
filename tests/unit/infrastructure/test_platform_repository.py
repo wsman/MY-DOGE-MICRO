@@ -10,6 +10,7 @@ from doge.core.domain.platform_models import (
     Workspace,
 )
 from doge.infrastructure.database.platform_repository import SQLitePlatformRepository
+from doge.shared.scope import TenantScope
 
 
 def test_platform_repository_persists_object_hierarchy_and_idempotent_run_links(tmp_path):
@@ -40,6 +41,46 @@ def test_platform_repository_defaults_local_tenant(tmp_path):
     saved = repo.get_workspace(workspace.workspace_id, tenant_id="local")
     assert saved is not None
     assert saved.tenant_id == "local"
+
+
+def test_platform_repository_accepts_tenant_scope(tmp_path):
+    repo = SQLitePlatformRepository(tmp_path / "agent.db")
+    scope = TenantScope.enterprise("tenant-a", "user-a")
+    other_scope = TenantScope.enterprise("tenant-b", "user-b")
+    workspace = Workspace.create(name="Scoped workspace", tenant_id="tenant-a")
+    repo.save_workspace(workspace, scope)
+    project = Project.create(workspace_id=workspace.workspace_id, name="Scoped project", tenant_id="tenant-a")
+    repo.save_project(project, scope)
+    case = ResearchCase.create(project_id=project.project_id, title="Scoped case", tenant_id="tenant-a")
+    repo.save_case(case, scope)
+    template = WorkflowTemplate.create(slug="scoped-review", name="Scoped review", tenant_id="tenant-a")
+    repo.save_workflow_template(template, scope)
+    asset = CaseAssetLink.create(
+        case_id=case.case_id,
+        asset_type="document",
+        asset_id="doc-1",
+        tenant_id="tenant-a",
+    )
+    repo.save_case_asset(asset, scope)
+    execution = WorkflowExecution.create(
+        case_id=case.case_id,
+        template_id=template.template_id,
+        template_slug=template.slug,
+        run_id="run-1",
+        tenant_id="tenant-a",
+    )
+    repo.save_workflow_execution(execution, scope)
+    decision = CaseDecision.create(case_id=case.case_id, decision_type="hold", tenant_id="tenant-a")
+    repo.save_case_decision(decision, scope)
+
+    assert repo.get_workspace(workspace.workspace_id, scope) == workspace
+    assert repo.list_projects(scope, workspace_id=workspace.workspace_id) == [project]
+    assert repo.list_cases(scope, project_id=project.project_id) == [case]
+    assert repo.get_workflow_template(template.template_id, scope) == template
+    assert repo.list_case_assets(scope, case.case_id) == [asset]
+    assert repo.get_workflow_execution(execution.execution_id, scope) == execution
+    assert repo.list_case_decisions(scope, case.case_id) == [decision]
+    assert repo.get_workspace(workspace.workspace_id, other_scope) is None
 
 
 def test_platform_repository_rejects_cross_tenant_child_writes(tmp_path):

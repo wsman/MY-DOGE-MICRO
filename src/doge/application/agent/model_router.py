@@ -9,6 +9,7 @@ from doge.core.domain.model_policy import ModelPolicy
 from doge.core.domain.run_execution_context import RunExecutionContext
 from doge.core.ports.document_repository import IDocumentRepository
 from doge.core.ports.model_router import RoutingDecision
+from doge.shared.scope import TenantScope
 
 
 class ModelRouter:
@@ -51,8 +52,10 @@ class ModelRouter:
             if execution_context is not None
             else run.identity_snapshot
         )
-        tenant_id = identity_snapshot.tenant_id if identity_snapshot is not None else None
-        files_purpose = self._purpose_for_documents(run.document_ids, tenant_id=tenant_id) or spec.files_purpose
+        files_purpose = (
+            self._purpose_for_documents(run.document_ids, scope=_scope_for_identity(identity_snapshot))
+            or spec.files_purpose
+        )
         max_completion_tokens = policy.max_completion_tokens or getattr(
             self._settings.kimi,
             "max_completion_tokens",
@@ -78,12 +81,12 @@ class ModelRouter:
             extra_body={},
         )
 
-    def _purpose_for_documents(self, document_ids: list[str], *, tenant_id: str | None = None) -> str | None:
+    def _purpose_for_documents(self, document_ids: list[str], *, scope: TenantScope) -> str | None:
         if self._documents is None:
             return None
         purposes: list[str] = []
         for document_id in document_ids:
-            document = self._documents.get(document_id, tenant_id=tenant_id)
+            document = self._documents.get(document_id, scope)
             if not document:
                 continue
             purpose = document.get("kimi_file_purpose") or _purpose_from_mime(document.get("mime_type"))
@@ -104,6 +107,12 @@ def _purpose_from_mime(mime_type: str | None) -> str | None:
     if mime_type.startswith("video/"):
         return "video"
     return None
+
+
+def _scope_for_identity(identity_snapshot) -> TenantScope:
+    if identity_snapshot is None:
+        return TenantScope.local()
+    return TenantScope.enterprise(identity_snapshot.tenant_id, identity_snapshot.user_hash)
 
 
 def _infer_profile(

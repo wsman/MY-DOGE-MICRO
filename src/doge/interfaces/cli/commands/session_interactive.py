@@ -10,6 +10,8 @@ from doge.interfaces.cli.commands.session_gateway import (
     GatewayArgs,
     gateway_create_session,
     gateway_create_turn,
+    print_gateway_run_field,
+    print_gateway_stream,
     gateway_upload_document,
     resolve_gateway_approval,
 )
@@ -94,10 +96,24 @@ def interactive_loop(
             print("\n".join(schema["function"]["name"] for schema in registry.schemas))
             continue
         if line == "/trace":
-            print_last_run(last_run_id, field="events")
+            if mode == "gateway":
+                print_gateway_run_field(
+                    GatewayArgs(daemon_url=daemon_url, api_token=api_token),
+                    last_run_id,
+                    field="events",
+                )
+            else:
+                print_last_run(last_run_id, field="events")
             continue
         if line == "/artifacts":
-            print_last_run(last_run_id, field="artifacts")
+            if mode == "gateway":
+                print_gateway_run_field(
+                    GatewayArgs(daemon_url=daemon_url, api_token=api_token),
+                    last_run_id,
+                    field="artifacts",
+                )
+            else:
+                print_last_run(last_run_id, field="artifacts")
             continue
         if line.startswith("/approve ") or line.startswith("/deny "):
             if last_run_id is None:
@@ -135,7 +151,7 @@ def interactive_loop(
             )
             last_run_id = run_id
             print(f"run_id={run_id} status=accepted")
-            print(f"stream_via=GET /v1/runs/{run_id}/stream")
+            print_gateway_stream(GatewayArgs(daemon_url=daemon_url, api_token=api_token), run_id)
             continue
         run = asyncio.run(_session._runtime_container().build_execute_run_use_case().execute(
             line,

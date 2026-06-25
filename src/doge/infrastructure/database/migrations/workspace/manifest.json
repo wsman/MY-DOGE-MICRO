@@ -1,0 +1,6 @@
+{
+  "context": "workspace",
+  "migrations": [
+    "local_tenant_backfill"
+  ]
+}

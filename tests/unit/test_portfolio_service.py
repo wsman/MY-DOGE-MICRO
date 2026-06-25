@@ -1,8 +1,10 @@
 import pytest
 
+from doge.application.services.portfolio_import_service import PortfolioImportService
 from doge.application.services.portfolio_service import PortfolioService, RiskService, ScenarioService
 from doge.core.domain.portfolio_models import Portfolio, PortfolioHolding
 from doge.infrastructure.database.portfolio_repository import SQLitePortfolioRepository, demo_portfolio
+from doge.shared.scope import TenantScope
 
 
 class AggressiveRiskFactors:
@@ -35,6 +37,28 @@ def test_portfolio_repository_filters_by_tenant(tmp_path):
     assert repo.get("p1", tenant_id="tenant-a") is not None
     assert repo.get("p2", tenant_id="tenant-a") is None
     assert repo.get("p2").name == "Tenant B"
+
+
+def test_portfolio_repository_accepts_tenant_scope(tmp_path):
+    repo = SQLitePortfolioRepository(tmp_path / "agent_state.db")
+    scope = TenantScope.enterprise("tenant-a", "user-a")
+
+    repo.save(Portfolio(portfolio_id="p1", name="Tenant A", holdings=[]), scope)
+
+    assert repo.get("p1", scope) is not None
+    assert repo.get("p1", TenantScope.enterprise("tenant-b", "user-b")) is None
+
+
+def test_portfolio_import_service_uses_tenant_scope(tmp_path):
+    repo = SQLitePortfolioRepository(tmp_path / "agent_state.db")
+    scope = TenantScope.enterprise("tenant-a", "user-a")
+    csv_payload = "symbol,asset_class,sector,quantity,market_value,currency\nAAPL,equity,technology,1,100,USD\n"
+
+    result = PortfolioImportService(repo).import_csv(csv_payload, portfolio_id="portfolio-scope", scope=scope)
+
+    assert result["tenant_id"] == "tenant-a"
+    assert repo.get("portfolio-scope", scope) is not None
+    assert repo.get("portfolio-scope", TenantScope.enterprise("tenant-b", "user-b")) is None
 
 
 def test_portfolio_repository_rejects_cross_tenant_overwrite(tmp_path):

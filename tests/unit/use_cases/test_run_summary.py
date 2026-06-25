@@ -1,6 +1,9 @@
+import pytest
+
 from doge.application.use_cases.run_summary import BuildRunSummary, redact_inaccessible_citations
 from doge.core.domain.agent_models import AgentArtifact, AgentEvent, AgentRun, EventType, RunStatus
 from doge.core.domain.evidence_models import EvidenceRecord
+from doge.shared.scope import TenantScope
 
 
 def test_build_run_summary_assembles_claims_citations_and_eval():
@@ -43,6 +46,42 @@ def test_build_run_summary_assembles_claims_citations_and_eval():
     assert result["eval"]["metrics"]["cost_usd"] == 0.01
 
 
+def test_build_run_summary_accepts_tenant_scope():
+    run = AgentRun.create(workflow="investment_research", question="Analyze", run_id="run-1")
+    artifact = AgentArtifact(
+        artifact_id="art-1",
+        run_id="run-1",
+        kind="report",
+        title="Report",
+        content="Revenue grew 12%.",
+    )
+    event = AgentEvent(
+        event_id="evt-1",
+        run_id="run-1",
+        event_type=EventType.MODEL_RESPONSE,
+        sequence=1,
+    )
+    evidence = _EvidenceRepo([])
+
+    BuildRunSummary(
+        _Runtime(run, [event], [artifact], expected_tenant_id="tenant-a"),
+        evidence,
+    ).build(run, scope=TenantScope.enterprise("tenant-a"))
+
+    assert [scope.tenant_id for scope in evidence.seen_scopes] == ["tenant-a"]
+
+
+def test_build_run_summary_rejects_scope_tenant_id_mismatch():
+    run = AgentRun.create(workflow="investment_research", question="Analyze", run_id="run-1")
+
+    with pytest.raises(ValueError, match="tenant mismatch"):
+        BuildRunSummary(_Runtime(run, [], []), _EvidenceRepo([])).build(
+            run,
+            scope=TenantScope.enterprise("tenant-a"),
+            tenant_id="tenant-b",
+        )
+
+
 def test_redact_inaccessible_citations_hides_snippets_and_marks_eval_failure():
     result = {
         "summary": {"summary_id": "sum-1"},
@@ -67,18 +106,19 @@ def test_redact_inaccessible_citations_hides_snippets_and_marks_eval_failure():
 
 
 class _Runtime:
-    def __init__(self, run, events, artifacts):
+    def __init__(self, run, events, artifacts, expected_tenant_id="local"):
         self._run = run
         self._events = events
         self._artifacts = artifacts
+        self._expected_tenant_id = expected_tenant_id
 
     def list_events(self, scope, run_id=None, *, tenant_id=None):
-        assert getattr(scope, "tenant_id", "local") == "local"
+        assert getattr(scope, "tenant_id", "local") == self._expected_tenant_id
         assert run_id == "run-1"
         return self._events
 
     def list_artifacts(self, scope, run_id=None, *, tenant_id=None):
-        assert getattr(scope, "tenant_id", "local") == "local"
+        assert getattr(scope, "tenant_id", "local") == self._expected_tenant_id
         assert run_id == "run-1"
         return self._artifacts
 
@@ -86,6 +126,8 @@ class _Runtime:
 class _EvidenceRepo:
     def __init__(self, evidence):
         self._evidence = evidence
+        self.seen_scopes = []
 
-    def list_evidence(self, *, run_id=None, document_id=None, limit=20, tenant_id=None):
+    def list_evidence(self, *, scope=None, run_id=None, document_id=None, limit=20, tenant_id=None):
+        self.seen_scopes.append(scope)
         return self._evidence[:limit]

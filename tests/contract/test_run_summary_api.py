@@ -135,7 +135,8 @@ class _EvidenceRepo:
             support_snippet="The filing says revenue grew 12%.",
         )
 
-    def list_evidence(self, *, run_id=None, document_id=None, limit=20, tenant_id=None):
-        if tenant_id not in (None, "tenant-a"):
+    def list_evidence(self, *, scope=None, run_id=None, document_id=None, limit=20, tenant_id=None):
+        tenant_id = getattr(scope, "tenant_id", tenant_id)
+        if tenant_id not in (None, "local", "tenant-a"):
             return []
         return [self.evidence]

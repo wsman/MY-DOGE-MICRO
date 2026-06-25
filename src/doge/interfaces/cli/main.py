@@ -8,7 +8,7 @@ Usage:
     doge demo [--market cn] [--top 5]
     doge macro [--verbose]
     doge session [--title "..."]
-    doge run "question" [--session <session_id>] [--json] [--trace]
+    doge run "question" [--session <session_id>] [--json] [--trace] [--follow] [--jsonl]
     doge template list|show|seed
     doge case list|show|preflight|execute|review|decision
 
@@ -103,6 +103,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_session.add_argument("--list", action="store_true", help="list recent sessions")
     p_session.add_argument("--limit", type=int, default=20)
     p_session.add_argument("--interactive", action="store_true", help="enter an interactive session loop")
+    p_session.add_argument("--follow", action="store_true", help="follow gateway run events after creating a turn")
+    p_session.add_argument("--jsonl", action="store_true", help="emit gateway run events as JSON Lines")
 
     # run
     p_run = sub.add_parser("run", help="execute a persisted research-agent run")
@@ -114,6 +116,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--max-tool-rounds", type=int, default=8)
     p_run.add_argument("--json", action="store_true", help="emit JSON only")
     p_run.add_argument("--trace", action="store_true", help="print event trace after the summary")
+    p_run.add_argument("--follow", action="store_true", help="print run events after the summary")
+    p_run.add_argument("--jsonl", action="store_true", help="emit run summary and events as JSON Lines")
 
     # template
     p_template = sub.add_parser("template", help="manage workflow templates")

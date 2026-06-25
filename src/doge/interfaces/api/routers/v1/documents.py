@@ -17,6 +17,8 @@ from doge.interfaces.api.enterprise_access import (
     grant_creator_access,
     is_enterprise_request,
 )
+from doge.interfaces.api.handlers import UploadDocumentCommand, UploadDocumentHandler
+from doge.shared.scope import TenantScope
 
 router = APIRouter(dependencies=[Depends(deps.require_api_token)])
 
@@ -34,7 +36,7 @@ async def create_document(
     governance: IEnterpriseGovernanceRepository = Depends(deps.get_enterprise_governance_repository),
 ):
     content_type = request.headers.get("content-type", "")
-    tenant_id = enterprise_context(request).tenant_id if is_enterprise_request(request) else None
+    scope = _document_scope(request)
     try:
         if content_type.startswith("multipart/form-data"):
             form = await request.form()
@@ -43,16 +45,21 @@ async def create_document(
                 raise FileUploadError("multipart field 'file' is required")
             filename = getattr(upload, "filename", None) or "document"
             payload = await upload.read()
-            document = upload_service.register_bytes(filename=filename, payload=payload, tenant_id=tenant_id)
+            document = UploadDocumentHandler(upload_service=upload_service).handle(
+                UploadDocumentCommand(filename=filename, payload=payload),
+                scope=scope,
+            )
             _record_document_create(request, governance, document["document_id"])
             return document
 
         body = DocumentRequest.model_validate(await request.json())
-        document = upload_service.register_text(
-            filename=body.filename,
-            content=body.content,
-            document_id=body.document_id,
-            tenant_id=tenant_id,
+        document = UploadDocumentHandler(upload_service=upload_service).handle(
+            UploadDocumentCommand(
+                filename=body.filename,
+                content=body.content,
+                document_id=body.document_id,
+            ),
+            scope=scope,
         )
         _record_document_create(request, governance, document["document_id"])
         return document
@@ -67,8 +74,7 @@ async def list_documents(
     documents: IDocumentRepository = Depends(deps.get_agent_document_repository),
     governance: IEnterpriseGovernanceRepository = Depends(deps.get_enterprise_governance_repository),
 ):
-    tenant_id = enterprise_context(request).tenant_id if is_enterprise_request(request) else None
-    rows = documents.list_recent(limit, tenant_id=tenant_id)
+    rows = documents.list_recent(_document_scope(request), limit)
     ids = [row["document_id"] for row in rows]
     allowed = filter_accessible_resource_ids(request, governance, "document", ids, "read")
     append_audit(request, governance, "document_list", "document", "*", metadata={"limit": limit})
@@ -82,8 +88,7 @@ async def get_document(
     documents: IDocumentRepository = Depends(deps.get_agent_document_repository),
     governance: IEnterpriseGovernanceRepository = Depends(deps.get_enterprise_governance_repository),
 ):
-    tenant_id = enterprise_context(request).tenant_id if is_enterprise_request(request) else None
-    document = documents.get(document_id, tenant_id=tenant_id)
+    document = documents.get(document_id, _document_scope(request))
     if document is None:
         raise HTTPException(404, "document not found")
     ensure_resource_access(request, governance, "document", document_id, "read")
@@ -98,3 +103,10 @@ def _record_document_create(
 ) -> None:
     grant_creator_access(request, governance, "document", document_id, provenance="document_upload")
     append_audit(request, governance, "document_create", "document", document_id)
+
+
+def _document_scope(request: Request) -> TenantScope:
+    if not is_enterprise_request(request):
+        return TenantScope.local()
+    context = enterprise_context(request)
+    return TenantScope.enterprise(context.tenant_id, context.user_hash)

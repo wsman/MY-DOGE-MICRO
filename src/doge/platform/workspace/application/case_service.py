@@ -169,20 +169,20 @@ class WorkspaceService:
         self._access = PlatformAccessService(governance)
 
     def list(self, context: PlatformRequestContext, *, limit: int = 100) -> list[Workspace]:
-        items = self._repo.list_workspaces(limit=limit, tenant_id=context.tenant_id)
+        items = self._repo.list_workspaces(context.tenant_scope, limit=limit)
         items = self._access.filter_items(context, "workspace", items, "workspace_id")
         self._access.audit(context, "workspace_list", "workspace", "*", metadata={"count": len(items)})
         return items
 
     def create(self, context: PlatformRequestContext, *, name: str, description: str = "") -> Workspace:
         workspace = Workspace.create(name=name, description=description, tenant_id=context.tenant_id)
-        self._repo.save_workspace(workspace)
+        self._repo.save_workspace(workspace, context.tenant_scope)
         self._access.grant_creator(context, "workspace", workspace.workspace_id, provenance="workspace_create")
         self._access.audit(context, "workspace_create", "workspace", workspace.workspace_id)
         return workspace
 
     def get(self, context: PlatformRequestContext, workspace_id: str) -> Workspace:
-        workspace = self._repo.get_workspace(workspace_id, tenant_id=context.tenant_id)
+        workspace = self._repo.get_workspace(workspace_id, context.tenant_scope)
         if workspace is None:
             raise PlatformNotFoundError("workspace not found")
         self._access.ensure(context, "workspace", workspace_id, "read")
@@ -204,7 +204,7 @@ class ProjectService:
         workspace_id: str | None = None,
         limit: int = 100,
     ) -> list[Project]:
-        items = self._repo.list_projects(workspace_id=workspace_id, limit=limit, tenant_id=context.tenant_id)
+        items = self._repo.list_projects(context.tenant_scope, workspace_id=workspace_id, limit=limit)
         items = self._access.filter_items(context, "project", items, "project_id")
         self._access.audit(context, "project_list", "project", "*", metadata={"count": len(items)})
         return items
@@ -218,7 +218,7 @@ class ProjectService:
         description: str = "",
         default_market: str | None = None,
     ) -> Project:
-        workspace = self._repo.get_workspace(workspace_id, tenant_id=context.tenant_id)
+        workspace = self._repo.get_workspace(workspace_id, context.tenant_scope)
         if workspace is None:
             raise PlatformNotFoundError("workspace not found")
         self._access.ensure(context, "workspace", workspace_id, "read")
@@ -229,13 +229,13 @@ class ProjectService:
             default_market=default_market,
             tenant_id=context.tenant_id,
         )
-        self._repo.save_project(project)
+        self._repo.save_project(project, context.tenant_scope)
         self._access.grant_creator(context, "project", project.project_id, provenance="project_create")
         self._access.audit(context, "project_create", "project", project.project_id)
         return project
 
     def get(self, context: PlatformRequestContext, project_id: str) -> Project:
-        project = self._repo.get_project(project_id, tenant_id=context.tenant_id)
+        project = self._repo.get_project(project_id, context.tenant_scope)
         if project is None:
             raise PlatformNotFoundError("project not found")
         self._access.ensure(context, "project", project_id, "read")
@@ -282,7 +282,7 @@ class ResearchCaseService:
         project_id: str | None = None,
         limit: int = 100,
     ) -> list[ResearchCase]:
-        items = self._repo.list_cases(project_id=project_id, limit=limit, tenant_id=context.tenant_id)
+        items = self._repo.list_cases(context.tenant_scope, project_id=project_id, limit=limit)
         items = self._access.filter_items(context, "research_case", items, "case_id")
         self._access.audit(context, "research_case_list", "research_case", "*", metadata={"count": len(items)})
         return items
@@ -295,7 +295,7 @@ class ResearchCaseService:
         title: str,
         thesis: str = "",
     ) -> ResearchCase:
-        project = self._repo.get_project(project_id, tenant_id=context.tenant_id)
+        project = self._repo.get_project(project_id, context.tenant_scope)
         if project is None:
             raise PlatformNotFoundError("project not found")
         self._access.ensure(context, "project", project_id, "read")
@@ -305,7 +305,7 @@ class ResearchCaseService:
             thesis=thesis,
             tenant_id=context.tenant_id,
         )
-        self._repo.save_case(research_case)
+        self._repo.save_case(research_case, context.tenant_scope)
         self._access.grant_creator(
             context,
             "research_case",
@@ -316,7 +316,7 @@ class ResearchCaseService:
         return research_case
 
     def get(self, context: PlatformRequestContext, case_id: str) -> ResearchCase:
-        research_case = self._repo.get_case(case_id, tenant_id=context.tenant_id)
+        research_case = self._repo.get_case(case_id, context.tenant_scope)
         if research_case is None:
             raise PlatformNotFoundError("research case not found")
         self._access.ensure(context, "research_case", case_id, "read")
@@ -331,7 +331,7 @@ class ResearchCaseService:
         *,
         workflow_templates_enabled: bool,
     ) -> CaseRunCreateResult:
-        research_case = self._repo.get_case(case_id, tenant_id=context.tenant_id)
+        research_case = self._repo.get_case(case_id, context.tenant_scope)
         if research_case is None:
             raise PlatformNotFoundError("research case not found")
         self._access.ensure(context, "research_case", case_id, "write")
@@ -341,7 +341,7 @@ class ResearchCaseService:
             raise PlatformValidationError("run_id or template_id required")
         if not workflow_templates_enabled:
             raise PlatformFeatureDisabledError("workflow templates API disabled")
-        template = self._repo.get_workflow_template(request.template_id, tenant_id=context.tenant_id)
+        template = self._repo.get_workflow_template(request.template_id, context.tenant_scope)
         if template is None:
             raise PlatformNotFoundError("workflow template not found")
         self._access.ensure(context, "workflow_template", template.template_id, "read")
@@ -361,16 +361,16 @@ class ResearchCaseService:
             tenant_id=context.tenant_id,
             user_hash=context.user_hash,
         )
-        run = await self._runtime.create_run(run_request, tenant_id=context.tenant_id)
+        run = await self._runtime.create_run(context.tenant_scope, run_request)
         self._repo.link_workflow_template_run(
+            context.tenant_scope,
             template_id=template.template_id,
             run_id=run.run_id,
-            tenant_id=context.tenant_id,
         )
         link = self._repo.link_case_run(
+            context.tenant_scope,
             case_id=case_id,
             run_id=run.run_id,
-            tenant_id=context.tenant_id,
             link_type=request.link_type,
         )
         self._access.audit(
@@ -397,9 +397,9 @@ class ResearchCaseService:
             if run_tenant_id != context.tenant_id:
                 raise PlatformNotFoundError("run not found")
         link = self._repo.link_case_run(
+            context.tenant_scope,
             case_id=case_id,
             run_id=run_id,
-            tenant_id=context.tenant_id,
             link_type=link_type,
         )
         self._access.audit(
@@ -444,7 +444,7 @@ class ResearchCaseService:
         limit: int = 100,
     ) -> list[WorkflowExecution]:
         self._require_case(context, case_id, "read")
-        executions = self._repo.list_workflow_executions(case_id, tenant_id=context.tenant_id, limit=limit)
+        executions = self._repo.list_workflow_executions(context.tenant_scope, case_id, limit=limit)
         return [self._with_current_run_status(item, scope=context.tenant_scope) for item in executions]
 
     def get_workflow_execution(
@@ -454,7 +454,7 @@ class ResearchCaseService:
         execution_id: str,
     ) -> WorkflowExecution:
         self._require_case(context, case_id, "read")
-        execution = self._repo.get_workflow_execution(execution_id, tenant_id=context.tenant_id)
+        execution = self._repo.get_workflow_execution(execution_id, context.tenant_scope)
         if execution is None or execution.case_id != case_id:
             raise PlatformNotFoundError("workflow execution not found")
         return self._with_current_run_status(execution, scope=context.tenant_scope)
@@ -515,7 +515,7 @@ class ResearchCaseService:
                 trigger_channel=request.trigger_channel,
                 tenant_id=context.tenant_id,
             )
-            self._repo.save_workflow_execution(execution)
+            self._repo.save_workflow_execution(execution, context.tenant_scope)
             raise PlatformValidationError(
                 "template preflight failed",
                 details={"execution": dict(execution.__dict__), "preflight_result": preflight.to_dict()},
@@ -537,7 +537,7 @@ class ResearchCaseService:
             tenant_id=context.tenant_id,
             user_hash=context.user_hash,
         )
-        run = await self._runtime.create_run(run_request, tenant_id=context.tenant_id)
+        run = await self._runtime.create_run(context.tenant_scope, run_request)
         execution = WorkflowExecution.create(
             case_id=case_id,
             template_id=template.template_id,
@@ -550,16 +550,16 @@ class ResearchCaseService:
             trigger_channel=request.trigger_channel,
             tenant_id=context.tenant_id,
         )
-        self._repo.save_workflow_execution(execution)
+        self._repo.save_workflow_execution(execution, context.tenant_scope)
         self._repo.link_workflow_template_run(
+            context.tenant_scope,
             template_id=template.template_id,
             run_id=run.run_id,
-            tenant_id=context.tenant_id,
         )
         self._repo.link_case_run(
+            context.tenant_scope,
             case_id=case_id,
             run_id=run.run_id,
-            tenant_id=context.tenant_id,
             link_type="primary",
         )
         run = await self._dispatch_run(context, run, worker)
@@ -567,7 +567,7 @@ class ResearchCaseService:
             execution.execution_id,
             _status_for_run(run),
             run_id=run.run_id,
-            tenant_id=context.tenant_id,
+            scope=context.tenant_scope,
         ) or execution
         self._access.audit(
             context,
@@ -584,9 +584,9 @@ class ResearchCaseService:
 
     def build_case_review(self, context: PlatformRequestContext, case_id: str) -> dict[str, Any]:
         research_case = self._require_case(context, case_id, "read")
-        assets = self._repo.list_case_assets(case_id, tenant_id=context.tenant_id)
+        assets = self._repo.list_case_assets(context.tenant_scope, case_id)
         executions = self.list_workflow_executions_for_case(context, case_id)
-        decisions = self._repo.list_case_decisions(case_id, tenant_id=context.tenant_id)
+        decisions = self._repo.list_case_decisions(context.tenant_scope, case_id)
         latest_run = None
         for execution in executions:
             if execution.run_id:
@@ -611,8 +611,8 @@ class ResearchCaseService:
         failed_or_degraded_runs: list[dict[str, Any]] = []
         for research_case in cases:
             executions = self._repo.list_workflow_executions(
+                context.tenant_scope,
                 research_case.case_id,
-                tenant_id=context.tenant_id,
                 limit=5,
             )
             hydrated = [self._with_current_run_status(item, scope=context.tenant_scope) for item in executions]
@@ -655,7 +655,7 @@ class ResearchCaseService:
         case_id: str,
         permission: str,
     ) -> ResearchCase:
-        research_case = self._repo.get_case(case_id, tenant_id=context.tenant_id)
+        research_case = self._repo.get_case(case_id, context.tenant_scope)
         if research_case is None:
             raise PlatformNotFoundError("research case not found")
         self._access.ensure(context, "research_case", case_id, permission)
@@ -669,7 +669,7 @@ class ResearchCaseService:
     ) -> WorkflowTemplate:
         if not workflow_templates_enabled:
             raise PlatformFeatureDisabledError("workflow templates API disabled")
-        template = self._repo.get_workflow_template(template_id, tenant_id=context.tenant_id)
+        template = self._repo.get_workflow_template(template_id, context.tenant_scope)
         if template is None:
             raise PlatformNotFoundError("workflow template not found")
         self._access.ensure(context, "workflow_template", template.template_id, "read")
@@ -683,15 +683,15 @@ class ResearchCaseService:
     ) -> list[dict[str, Any]]:
         missing: list[dict[str, Any]] = []
         for document_id in request.document_ids:
-            if self._documents is not None and self._documents.get(document_id, tenant_id=context.tenant_id) is None:
+            if self._documents is not None and self._documents.get(document_id, context.tenant_scope) is None:
                 missing.append({"asset_type": "document", "asset_id": document_id, "code": "not_found"})
         if request.portfolio_id and self._portfolios is not None:
-            if self._portfolios.get(request.portfolio_id, tenant_id=context.tenant_id) is None:
+            if self._portfolios.get(request.portfolio_id, context.tenant_scope) is None:
                 missing.append({"asset_type": "portfolio", "asset_id": request.portfolio_id, "code": "not_found"})
         if request.asset_link_ids:
             existing = {
                 link.asset_link_id
-                for link in self._repo.list_case_assets(case_id, tenant_id=context.tenant_id)
+                for link in self._repo.list_case_assets(context.tenant_scope, case_id)
             }
             for asset_link_id in request.asset_link_ids:
                 if asset_link_id not in existing:
@@ -737,7 +737,7 @@ class ResearchCaseService:
         if worker is not None and hasattr(worker, "enqueue_continuation"):
             await worker.enqueue_continuation(run.run_id, scope=context.tenant_scope)
             return self._runtime.get_run(context.tenant_scope, run.run_id) or run
-        return await self._runtime.run_to_pause_or_completion(run.run_id, tenant_id=context.tenant_id)
+        return await self._runtime.run_to_pause_or_completion(context.tenant_scope, run.run_id)
 
     def _with_current_run_status(
         self,
@@ -764,7 +764,7 @@ class WorkflowService:
         self._access = PlatformAccessService(governance)
 
     def list(self, context: PlatformRequestContext, *, limit: int = 100) -> list[WorkflowTemplate]:
-        items = self._repo.list_workflow_templates(limit=limit, tenant_id=context.tenant_id)
+        items = self._repo.list_workflow_templates(context.tenant_scope, limit=limit)
         items = self._access.filter_items(context, "workflow_template", items, "template_id")
         self._access.audit(context, "workflow_template_list", "workflow_template", "*", metadata={"count": len(items)})
         return items
@@ -812,7 +812,7 @@ class WorkflowService:
                 ),
             }
         )
-        self._repo.save_workflow_template(template)
+        self._repo.save_workflow_template(template, context.tenant_scope)
         self._access.grant_creator(
             context,
             "workflow_template",
@@ -823,7 +823,7 @@ class WorkflowService:
         return template
 
     def get(self, context: PlatformRequestContext, template_id: str) -> WorkflowTemplate:
-        template = self._repo.get_workflow_template(template_id, tenant_id=context.tenant_id)
+        template = self._repo.get_workflow_template(template_id, context.tenant_scope)
         if template is None:
             raise PlatformNotFoundError("workflow template not found")
         self._access.ensure(context, "workflow_template", template.template_id, "read")

@@ -20,7 +20,9 @@ from doge.interfaces.api.enterprise_access import (
     enterprise_context,
     filter_accessible_resource_ids,
     is_enterprise_request,
+    request_id,
 )
+from doge.interfaces.api.handlers import RunAccessContext
 from doge.shared.scope import TenantScope
 
 STREAM_CLOSE_STATUSES = {
@@ -60,8 +62,7 @@ def build_authorized_summary(
     governance: IEnterpriseGovernanceRepository,
 ) -> dict:
     """Build the run summary and redact citations the caller cannot read."""
-    tenant_id = enterprise_context(request).tenant_id if is_enterprise_request(request) else None
-    result = use_case.build(run, tenant_id=tenant_id)
+    result = use_case.build(run, scope=request_scope(request) if is_enterprise_request(request) else None)
     if not is_enterprise_request(request):
         return result
     document_ids = sorted(
@@ -97,6 +98,17 @@ def request_scope(request: Request) -> TenantScope:
         return TenantScope.local()
     context = enterprise_context(request)
     return TenantScope.enterprise(context.tenant_id, context.user_hash)
+
+
+def request_run_access(request: Request) -> RunAccessContext:
+    if not is_enterprise_request(request):
+        return RunAccessContext(scope=TenantScope.local(), request_id=request_id(request))
+    context = enterprise_context(request)
+    return RunAccessContext(
+        scope=TenantScope.enterprise(context.tenant_id, context.user_hash),
+        enterprise_context=context,
+        request_id=request_id(request),
+    )
 
 
 def run_tenant_id(run: AgentRun) -> str | None:

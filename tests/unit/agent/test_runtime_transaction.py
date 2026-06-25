@@ -19,6 +19,11 @@ from doge.infrastructure.database.agent_repositories import (
 from doge.infrastructure.database.sqlite_runtime_transaction import SQLiteRuntimeTransactionFactory
 from doge.infrastructure.database.sqlite_runtime_transaction import SQLiteOutboxRepository
 from doge.infrastructure.database.sqlite_uow import SQLiteAgentUnitOfWork
+from doge.platform.runtime.services import (
+    ArtifactEvaluationService,
+    ModelExecutionService,
+    ToolExecutionService,
+)
 
 
 class FinalModel:
@@ -54,13 +59,18 @@ class FailingArtifactTransaction:
 
 
 def _kernel(db, *, transaction_factory=None):
+    model = FinalModel()
+    registry = ToolRegistry()
     return RuntimeKernel(
-        model=FinalModel(),
-        tool_registry=ToolRegistry(),
+        model=model,
+        tool_registry=registry,
         run_repository=SQLiteRunRepository(db),
         event_repository=SQLiteEventRepository(db),
         artifact_repository=SQLiteArtifactRepository(db),
         approval_repository=SQLiteApprovalRepository(db),
+        model_execution_service=ModelExecutionService(model=model),
+        tool_execution_service=ToolExecutionService(tool_registry=registry),
+        artifact_evaluation_service=ArtifactEvaluationService(),
         runtime_transaction_factory=transaction_factory or SQLiteRuntimeTransactionFactory(db),
     )
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from doge.core.domain.agent_models import AgentRun
 from doge.core.domain.model_policy import ModelPolicy
 from doge.core.ports.agent_runtime import IResearchAgentRuntime
+from doge.shared.scope import TenantScope
 
 
 RESEARCH_PATH = "runtime_research_copilot"
@@ -27,19 +28,23 @@ class IndustryAnalyzerAgentUseCase:
         portfolio_id: str | None = "portfolio-demo",
         model_policy: dict | ModelPolicy | None = None,
     ) -> AgentRun:
-        run = await self._runtime.create_run({
-            "workflow": "industry_research",
-            "question": question or _default_question(industry, market),
-            "session_id": session_id,
-            "market": market,
-            "document_ids": document_ids or [],
-            "portfolio_id": portfolio_id,
-            "model_policy": ModelPolicy.from_dict(model_policy or {
-                "execution_profile": "financial_research",
-                "max_tool_rounds": 8,
-            }),
-        })
-        return await self._runtime.run_to_pause_or_completion(run.run_id)
+        scope = TenantScope.local()
+        run = await self._runtime.create_run(
+            scope,
+            {
+                "workflow": "industry_research",
+                "question": question or _default_question(industry, market),
+                "session_id": session_id,
+                "market": market,
+                "document_ids": document_ids or [],
+                "portfolio_id": portfolio_id,
+                "model_policy": ModelPolicy.from_dict(model_policy or {
+                    "execution_profile": "financial_research",
+                    "max_tool_rounds": 8,
+                }),
+            },
+        )
+        return await self._runtime.run_to_pause_or_completion(scope, run.run_id)
 
 
 def _default_question(industry: str, market: str) -> str:

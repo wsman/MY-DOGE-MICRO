@@ -7,6 +7,7 @@ from doge.core.domain.page_models import DocumentPage
 from doge.application.services.page_extraction_service import ChunkingService
 from doge.infrastructure.database.agent_repositories import SQLiteDocumentRepository, SQLiteRunRepository
 from doge.infrastructure.database.evidence_repository import SQLiteEvidenceRepository
+from doge.shared.scope import TenantScope
 
 
 def test_evidence_repository_persists_pages_chunks_and_evidence(tmp_path):
@@ -82,6 +83,36 @@ def test_evidence_repository_filters_pages_chunks_and_evidence_by_tenant(tmp_pat
     assert repository.get_evidence(evidence_b.evidence_id, tenant_id="tenant-a") is None
     assert repository.list_evidence(run_id="run-a", tenant_id="tenant-a") == [evidence_a]
     assert repository.list_evidence(document_id="doc-b", tenant_id="tenant-a") == []
+
+
+def test_evidence_repository_accepts_tenant_scope(tmp_path):
+    repository = SQLiteEvidenceRepository(tmp_path / "agent_state.db")
+    scope = TenantScope.enterprise("tenant-a", "user-a")
+    page = DocumentPage.create(
+        document_id="doc-a",
+        page_number=1,
+        text="Tenant A margin expanded.",
+        source_hash="hash-a",
+    )
+    chunk = ChunkingService().chunk_page(page)[0]
+    evidence = EvidenceRecord.create(
+        chunk=chunk,
+        claim="a",
+        support_snippet="Tenant A margin",
+        run_id="run-a",
+    )
+
+    repository.save_page(page, scope)
+    repository.save_chunk(chunk, scope)
+    repository.save_evidence(evidence, scope)
+
+    assert repository.list_pages("doc-a", scope) == [page]
+    assert repository.list_chunks(scope, ["doc-a"], limit=10) == [chunk]
+    assert repository.get_evidence(evidence.evidence_id, scope) == evidence
+    assert repository.list_evidence(scope=scope, run_id="run-a") == [evidence]
+    other_scope = TenantScope.enterprise("tenant-b", "user-b")
+    assert repository.list_chunks(other_scope, ["doc-a"], limit=10) == []
+    assert repository.list_evidence(scope=other_scope, run_id="run-a") == []
 
 
 def test_evidence_repository_rejects_cross_tenant_parent_mismatch(tmp_path):

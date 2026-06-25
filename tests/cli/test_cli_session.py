@@ -1,3 +1,4 @@
+import json
 import subprocess
 import sys
 import os
@@ -137,19 +138,32 @@ def test_cli_gateway_interactive_posts_turn_to_daemon(monkeypatch, capsys):
             captured.append((session_id, message, kwargs))
             return "run-gateway"
 
+    class FakeRuns:
+        def stream(self, run_id):
+            captured.append(("stream", run_id))
+            return [{"event_type": "run_queued", "run_id": run_id}]
+
+        def get(self, run_id):
+            captured.append(("get", run_id))
+            return {
+                "events": [{"event_type": "tool_call", "payload": {"ticker": "AAPL"}}],
+                "artifacts": [{"artifact_id": "art-1", "title": "Gateway Memo"}],
+            }
+
     class FakeGatewayClient:
         def __init__(self):
             self.sessions = FakeSessions()
+            self.runs = FakeRuns()
 
         def close(self):
             captured.append(("closed",))
 
-    lines = iter(["Analyze AAPL", "/exit"])
+    lines = iter(["Analyze AAPL", "/trace", "/artifacts", "/exit"])
     monkeypatch.setattr("builtins.input", lambda _prompt="": next(lines))
     monkeypatch.setattr(session_command, "_gateway_client", lambda args: FakeGatewayClient())
 
     class FailingRuntimeContainer:
-        def build_execute_run_use_case(self):
+        def __getattr__(self, _name):
             raise AssertionError("gateway mode must not use embedded runtime")
 
     monkeypatch.setattr(session_command, "_runtime_container", lambda: FailingRuntimeContainer())
@@ -158,10 +172,15 @@ def test_cli_gateway_interactive_posts_turn_to_daemon(monkeypatch, capsys):
 
     out = capsys.readouterr().out
     assert "run_id=run-gateway status=accepted" in out
+    assert "stream_via=GET" not in out
+    assert '"event_type": "run_queued"' in out
+    assert '"event_type": "tool_call"' in out
+    assert '"title": "Gateway Memo"' in out
     assert captured[0][0] == "ses-cli"
     assert captured[0][1] == "Analyze AAPL"
     assert captured[0][2]["model_policy"]["execution_profile"] == "financial_research"
-    assert captured[-1] == ("closed",)
+    assert ("stream", "run-gateway") in captured
+    assert captured.count(("get", "run-gateway")) == 2
 
 
 def test_cli_gateway_session_commands_use_sdk_client(monkeypatch, capsys):
@@ -215,6 +234,66 @@ def test_cli_gateway_session_commands_use_sdk_client(monkeypatch, capsys):
     assert calls.count(("closed",)) == 3
 
 
+def test_cli_gateway_session_message_jsonl_streams_sdk_events(monkeypatch, capsys):
+    calls = []
+
+    class FakeSession:
+        data = {"session_id": "ses-gateway", "title": "SDK Gateway", "turns": []}
+
+    class FakeSessions:
+        def get(self, session_id):
+            calls.append(("get_session", session_id))
+            return FakeSession()
+
+        def create_turn(self, session_id, message, **kwargs):
+            calls.append(("create_turn", session_id, message, kwargs))
+            return "run-gateway"
+
+    class FakeRuns:
+        def stream(self, run_id):
+            calls.append(("stream", run_id))
+            return [{"event_type": "run_queued", "payload": {"api_key": "sk-gateway-secret"}}]
+
+    class FakeGatewayClient:
+        def __init__(self):
+            self.sessions = FakeSessions()
+            self.runs = FakeRuns()
+
+        def close(self):
+            calls.append(("closed",))
+
+    monkeypatch.setattr(session_command, "_gateway_client", lambda args: FakeGatewayClient())
+
+    args = SimpleNamespace(
+        list=False,
+        resume="ses-gateway",
+        message="Analyze AAPL",
+        market="us",
+        approve=None,
+        deny=None,
+        follow=True,
+        jsonl=True,
+        interactive=False,
+        daemon_url="http://127.0.0.1:8901",
+        api_token="test-token",
+    )
+
+    session_command._cmd_gateway_session(args)
+
+    lines = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    assert lines[0] == {"run_id": "run-gateway", "status": "accepted", "type": "run_accepted"}
+    assert lines[1]["type"] == "event"
+    assert lines[1]["event"]["payload"]["api_key"] == "<redacted>"
+    assert "sk-gateway-secret" not in json.dumps(lines, ensure_ascii=False)
+    assert ("get_session", "ses-gateway") in calls
+    create_turn = next(call for call in calls if call[0] == "create_turn")
+    assert create_turn[1] == "ses-gateway"
+    assert create_turn[2] == "Analyze AAPL"
+    assert create_turn[3]["market"] == "us"
+    assert create_turn[3]["model_policy"]["execution_profile"] == "financial_research"
+    assert ("stream", "run-gateway") in calls
+
+
 def test_cli_gateway_attach_uses_sdk_document_upload(tmp_path, monkeypatch, capsys):
     source = tmp_path / "report.txt"
     source.write_text("alpha beta", encoding="utf-8")
@@ -230,10 +309,16 @@ def test_cli_gateway_attach_uses_sdk_document_upload(tmp_path, monkeypatch, caps
             captured.append((session_id, message, kwargs))
             return "run-gateway"
 
+    class FakeRuns:
+        def stream(self, run_id):
+            captured.append(("stream", run_id))
+            return [{"event_type": "run_queued", "run_id": run_id}]
+
     class FakeGatewayClient:
         def __init__(self):
             self.documents = FakeDocuments()
             self.sessions = FakeSessions()
+            self.runs = FakeRuns()
 
         def close(self):
             captured.append(("closed",))
@@ -254,6 +339,7 @@ def test_cli_gateway_attach_uses_sdk_document_upload(tmp_path, monkeypatch, caps
     assert "attached=doc-gateway" in out
     assert captured[0] == ("upload_path", str(source))
     assert captured[2][2]["document_ids"] == ["doc-gateway"]
+    assert ("stream", "run-gateway") in captured
 
 
 def test_cli_attach_registers_real_file_and_passes_document_id(tmp_path, monkeypatch, capsys):

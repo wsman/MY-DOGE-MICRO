@@ -8,10 +8,11 @@ owner of the bootstrap composition root for the API surface.
 
 from __future__ import annotations
 
-from doge.bootstrap import build_app_container
+from doge.bootstrap import build_api_process
 
 #: The bootstrap application container singleton for the API process.
-app_container = build_app_container()
+process_graph = build_api_process()
+app_container = process_graph.as_app_container()
 
 
 def get_app_container():

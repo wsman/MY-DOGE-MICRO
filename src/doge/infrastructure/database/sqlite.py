@@ -69,6 +69,7 @@ class SQLiteConnection:
     def connect(self) -> Generator[sqlite3.Connection, None, None]:
         """Yield a configured SQLite connection."""
         conn = sqlite3.connect(self._resolve_path())
+        conn.execute("PRAGMA foreign_keys = ON")
         if self._use_row_factory:
             conn.row_factory = sqlite3.Row
         try:

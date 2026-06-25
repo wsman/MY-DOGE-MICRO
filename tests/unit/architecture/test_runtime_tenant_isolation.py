@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import inspect
+from pathlib import Path
 
 import pytest
 
@@ -37,3 +38,14 @@ def test_tenant_scope_local_is_explicit_and_enterprise_rejects_blank_tenant() ->
 
     with pytest.raises(ValueError, match="enterprise tenant_id is required"):
         TenantScope.enterprise("")
+
+
+def test_core_ports_do_not_accept_optional_tenant_id_parameters() -> None:
+    ports_root = Path("src/doge/core/ports")
+    offenders: list[str] = []
+    for path in ports_root.glob("*.py"):
+        source = path.read_text(encoding="utf-8")
+        if "tenant_id: str | None" in source or "tenant_id=None" in source or "tenant_id: str | None = None" in source:
+            offenders.append(path.name)
+
+    assert offenders == []

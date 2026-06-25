@@ -31,10 +31,10 @@ from doge.core.ports.event_publisher import IEventPublisher
 from doge.core.ports.enterprise_governance import IEnterpriseGovernanceRepository
 from doge.core.ports.model_router import IModelRouter
 from doge.core.ports.runtime_transaction import IRuntimeTransaction, IRuntimeTransactionFactory
-from doge.platform.runtime.services import (
-    ArtifactEvaluationService,
-    ModelExecutionService,
-    ToolExecutionService,
+from doge.core.ports.runtime_services import (
+    IArtifactEvaluationService,
+    IModelExecutionService,
+    IToolExecutionService,
 )
 from doge.shared.errors import SafeError
 from doge.shared.scope import TenantScope
@@ -64,11 +64,25 @@ class RuntimeKernel:
         web_search_stage: WebSearchStage | None = None,
         agent_backends: dict[str, IAgentBackend] | None = None,
         governance_repository: IEnterpriseGovernanceRepository | None = None,
-        model_execution_service: ModelExecutionService | None = None,
-        tool_execution_service: ToolExecutionService | None = None,
-        artifact_evaluation_service: ArtifactEvaluationService | None = None,
+        model_execution_service: IModelExecutionService | None = None,
+        tool_execution_service: IToolExecutionService | None = None,
+        artifact_evaluation_service: IArtifactEvaluationService | None = None,
         runtime_transaction_factory: IRuntimeTransactionFactory | None = None,
     ) -> None:
+        missing_services = [
+            name
+            for name, service in (
+                ("model_execution_service", model_execution_service),
+                ("tool_execution_service", tool_execution_service),
+                ("artifact_evaluation_service", artifact_evaluation_service),
+            )
+            if service is None
+        ]
+        if missing_services:
+            raise TypeError(
+                "RuntimeKernel requires injected runtime execution services: "
+                + ", ".join(missing_services)
+            )
         self._model = model
         self._tools = tool_registry
         self._runs = run_repository
@@ -88,18 +102,9 @@ class RuntimeKernel:
         self._web_search_stage = web_search_stage
         self._agent_backends = agent_backends or {}
         self._governance = governance_repository
-        self._model_execution = model_execution_service or ModelExecutionService(
-            model=model,
-            response_assembler=self._response_assembler,
-            model_router=model_router,
-            web_search_stage=web_search_stage,
-            agent_backends=self._agent_backends,
-        )
-        self._tool_execution = tool_execution_service or ToolExecutionService(
-            tool_registry=tool_registry,
-            governance_repository=governance_repository,
-        )
-        self._artifact_evaluation = artifact_evaluation_service or ArtifactEvaluationService()
+        self._model_execution = model_execution_service
+        self._tool_execution = tool_execution_service
+        self._artifact_evaluation = artifact_evaluation_service
 
     async def create_run(self, request: dict[str, Any], *, tenant_id: str | None = None) -> AgentRun:
         model_policy_payload = request.get("model_policy")
@@ -354,7 +359,7 @@ class RuntimeKernel:
         resolved_scope, resolved_run_id = _run_args(scope, run_id, tenant_id=tenant_id)
         run = self._require_run(resolved_run_id, tenant_id=resolved_scope.tenant_id)
         if run.status in {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED}:
-            return run
+            return self._hydrate(resolved_run_id, tenant_id=resolved_scope.tenant_id)
         run.cancel_requested_at = utc_now()
         if run.status != RunStatus.CANCELLING:
             await self._record_transition(run, status=RunStatus.CANCELLING)
@@ -373,7 +378,7 @@ class RuntimeKernel:
         resolved_scope, resolved_run_id = _run_args(scope, run_id, tenant_id=tenant_id)
         run = self._require_run(resolved_run_id, tenant_id=resolved_scope.tenant_id)
         if run.status in {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED}:
-            return run
+            return self._hydrate(resolved_run_id, tenant_id=resolved_scope.tenant_id)
         return await self._mark_cancelled(run, tenant_id=resolved_scope.tenant_id)
 
     async def record_failure(
@@ -399,7 +404,10 @@ class RuntimeKernel:
         tenant_id: str | None = None,
     ) -> AgentRun | None:
         resolved_scope, resolved_run_id = _run_args(scope, run_id, tenant_id=tenant_id)
-        return self._runs.get(resolved_run_id, tenant_id=resolved_scope.tenant_id)
+        run = self._require_run_header_or_none(resolved_run_id, tenant_id=resolved_scope.tenant_id)
+        if run is None:
+            return None
+        return self._hydrate(resolved_run_id, tenant_id=resolved_scope.tenant_id)
 
     def list_events(
         self,
@@ -491,13 +499,23 @@ class RuntimeKernel:
         return persisted_events
 
     def _require_run(self, run_id: str, *, tenant_id: str | None = None) -> AgentRun:
-        run = self._runs.get(run_id, tenant_id=tenant_id)
+        run = self._require_run_header_or_none(run_id, tenant_id=tenant_id)
         if run is None:
             raise KeyError(f"run not found: {run_id}")
         return run
 
     def _hydrate(self, run_id: str, *, tenant_id: str | None = None) -> AgentRun:
-        return self._require_run(run_id, tenant_id=tenant_id)
+        run = self._require_run(run_id, tenant_id=tenant_id)
+        run.events = self._events.list_for_run(run_id, tenant_id=tenant_id)
+        run.artifacts = self._artifacts.list_for_run(run_id, tenant_id=tenant_id)
+        run.approvals = self._approvals.list_for_run(run_id, tenant_id=tenant_id)
+        return run
+
+    def _require_run_header_or_none(self, run_id: str, *, tenant_id: str | None = None) -> AgentRun | None:
+        get_header = getattr(self._runs, "get_run_header", None)
+        if get_header is not None:
+            return get_header(run_id, tenant_id=tenant_id)
+        return self._runs.get(run_id, tenant_id=tenant_id)
 
 
 def _identity_snapshot_from_request(request: dict[str, Any], model_policy_payload: Any) -> IdentitySnapshot | None:
@@ -667,7 +685,8 @@ def _tenant_id_for_event_run(event: AgentEvent, runs: IRunRepository) -> str | N
 
 
 def _tenant_id_for_repository_run(run_id: str, runs: IRunRepository) -> str | None:
-    run = runs.get(run_id)
+    get_header = getattr(runs, "get_run_header", None)
+    run = get_header(run_id) if get_header is not None else runs.get(run_id)
     if run is None:
         return None
     return _tenant_id_for_run(run)

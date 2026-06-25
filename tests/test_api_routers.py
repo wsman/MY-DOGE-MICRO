@@ -264,6 +264,14 @@ class TestHealthAndStats:
         assert r.status_code == 200
         assert r.json() == {"status": "ok"}
 
+    def test_legacy_api_routes_emit_deprecation_headers(self, client):
+        r = client.get("/api/health")
+
+        assert r.headers["Deprecation"] == "true"
+        assert r.headers["Sunset"] == api_main._LEGACY_API_SUNSET
+        assert "adr-0024-single-stack-runtime-direction.md" in r.headers["Link"]
+        assert r.headers["X-DOGE-Compatibility-Surface"] == "legacy-api"
+
     def test_health_404_for_unknown_path(self, client):
         # Edge case: a path that does not exist returns 404 (not 500).
         r = client.get("/api/does-not-exist")

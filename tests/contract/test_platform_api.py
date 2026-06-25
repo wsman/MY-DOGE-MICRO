@@ -335,11 +335,16 @@ class _Provider:
 class _Runtime:
     def __init__(self):
         self.created_requests = []
+        self.created_scopes = []
         self.runs = {
             "run-1": AgentRun.create(workflow="investment_research", question="Analyze", run_id="run-1")
         }
 
-    async def create_run(self, request, *, tenant_id=None):
+    async def create_run(self, scope, request=None, *, tenant_id=None):
+        if request is None:
+            request = scope
+            scope = None
+        self.created_scopes.append(scope)
         self.created_requests.append(request)
         run = AgentRun.create(
             workflow=request.get("workflow", "investment_research"),
@@ -358,7 +363,9 @@ class _Runtime:
             run_id = scope
         return self.runs.get(run_id)
 
-    async def run_to_pause_or_completion(self, run_id, *, tenant_id=None):
+    async def run_to_pause_or_completion(self, scope, run_id=None, *, tenant_id=None):
+        if run_id is None:
+            run_id = scope
         run = self.runs[run_id]
         run.status = RunStatus.COMPLETED
         return run

@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from doge.core.domain.portfolio_models import Portfolio, PortfolioHolding
 from doge.core.ports.portfolio_repository import IPortfolioRepository
+from doge.shared.scope import TenantScope
 
 
 class PortfolioImportError(ValueError):
@@ -26,8 +27,10 @@ class PortfolioImportService:
         *,
         name: str | None = None,
         portfolio_id: str | None = None,
+        scope: TenantScope | None = None,
         tenant_id: str | None = None,
     ) -> dict:
+        resolved_scope = _resolve_scope(scope, tenant_id)
         rows = list(csv.DictReader(io.StringIO(content)))
         if not rows:
             raise PortfolioImportError("portfolio csv has no holdings")
@@ -38,10 +41,9 @@ class PortfolioImportService:
             name=name or "Imported portfolio",
             holdings=holdings,
         )
-        self._repository.save(portfolio, tenant_id=tenant_id)
+        self._repository.save(portfolio, resolved_scope)
         result = portfolio.to_dict()
-        if tenant_id is not None:
-            result["tenant_id"] = tenant_id
+        result["tenant_id"] = resolved_scope.tenant_id
         return result
 
 
@@ -61,6 +63,14 @@ def _holding_from_row(row: dict[str, str | None], line_number: int) -> Portfolio
         market_value=market_value,
         currency=(_text(normalized, "currency") or "USD").upper(),
     )
+
+
+def _resolve_scope(scope: TenantScope | None, tenant_id: str | None) -> TenantScope:
+    if scope is not None:
+        if tenant_id is not None and tenant_id != scope.tenant_id:
+            raise ValueError(f"tenant mismatch for scope: {tenant_id} != {scope.tenant_id}")
+        return scope
+    return TenantScope.from_tenant_id(tenant_id)
 
 
 def _text(row: dict[str, str | None], *keys: str) -> str:
