@@ -10,14 +10,15 @@
 
 MY-DOGE-MICRO is a local-first quantitative investment decision-support platform.
 All data, computation, and state live on the operator's machine; no cloud
-account is required. The product exposes **three runtime surfaces**, each bound
-to loopback so it is safe to run on a developer workstation:
+account is required. ADR-0024 makes the preferred platform path explicit:
+process roots, persisted runtime state, `/v1` routes, and SDK clients. The
+product still exposes local runtime surfaces, each bound to loopback by default:
 
 | Surface | Entry point | Default bind | Purpose |
 |---------|-------------|--------------|---------|
-| **PyQt desktop dashboard** | `src/interface/dashboard.py` | local GUI window | Operator scan / macro / notes UI |
-| **FastAPI HTTP backend** | `src/doge/interfaces/api/main.py` | `127.0.0.1:8901` | REST + SSE API consumed by the web console |
+| **FastAPI HTTP backend** | `src/doge/interfaces/api/main.py` | `127.0.0.1:8901` | Preferred `/v1` REST/SSE API plus legacy `/api` compatibility |
 | **MCP server** | `doge_mcp.py` | stdio, or `127.0.0.1:8902` (SSE) | Tool layer for Claude Code / MCP clients |
+| **PyQt desktop dashboard** | `src/interface/dashboard.py` | local GUI window | Legacy-maintained local dashboard |
 
 You do not need all three at once. The two most common setups are:
 
@@ -261,9 +262,11 @@ python -m uvicorn doge.interfaces.api.main:app --host 127.0.0.1 --port 8901
 ```
 
 Binds `127.0.0.1:8901` (`src/doge/interfaces/api/main.py`). This process serves the
-REST + SSE API consumed by the Vue web console. It registers six routers under
-`/api/{scan,data,notes,macro,analysis,config}` plus `/api/health` and
-`/api/stats` (`src/doge/interfaces/api/main.py`).
+REST + SSE API consumed by the Vue web console. New daemon/platform work should
+use `/v1/*` routes and SDK clients. The older
+`/api/{scan,data,notes,macro,analysis,config}` routes, `/api/health`, and
+`/api/stats` remain loopback compatibility routes and emit deprecation headers
+per ADR-0024.
 
 The API uses a stable error envelope — every `HTTPException` is reshaped into
 `{"error": {"code", "message"}}` with string-enum codes
@@ -305,6 +308,9 @@ The Vite dev server proxies `/api` → `http://localhost:8901`
 pip install -e ".[gui]"     # installs PyQt6
 python src/interface/dashboard.py
 ```
+
+The desktop dashboard is legacy-maintained for local use. New platform UX work
+should target the Web/SDK/v1 path unless a separate PyQt story is approved.
 
 > **Known portability blocker.** `src/interface/dashboard.py:6-15` contains a
 > **machine-hardcoded** Qt6 DLL bootstrap:

@@ -2,16 +2,17 @@
 
 > **Manifest Version**: 2026-06-25
 > **Reviewer**: P0 documentation consistency pass
-> **Scope**: ADR-0001..ADR-0023, eight bounded-context CDDs,
+> **Scope**: ADR-0001..ADR-0024, eight bounded-context CDDs,
 > `tr-registry.yaml`, runtime maturity registry, and current API/CLI/Web/MCP
 > surfaces.
 
 ## Verdict
 
-Architecture traceability is aligned with the ADR-0021 bounded-context model.
-The counted product/platform module set is eight bounded contexts. Former
-mixed modules are preserved in `design/cdd/module-index.md` and
-`docs/registry/architecture.yaml` as historical/superseded entries.
+Architecture traceability is aligned with the ADR-0021 bounded-context model
+and the ADR-0024 single-stack runtime direction. The counted product/platform
+module set is eight bounded contexts. Former mixed modules are preserved in
+`design/cdd/module-index.md` and `docs/registry/architecture.yaml` as
+historical/superseded entries.
 
 Runtime maturity remains separate from release-stage governance:
 
@@ -27,6 +28,7 @@ Runtime maturity remains separate from release-stage governance:
 | ADR-0021 | Accepted |
 | ADR-0022 | Accepted |
 | ADR-0023 | Accepted |
+| ADR-0024 | Accepted |
 
 ADR-0015 through ADR-0020 remain Proposed because their platform and enterprise
 promotion gates are not fully closed.
@@ -53,6 +55,10 @@ promotion gates are not fully closed.
   `tests/contract/test_api_doc_route_coverage.py` asserts docs-vs-live parity.
 - **CLI entrypoint**: `docs/CLI.md` promotes `doge ...`; legacy
   `python src/cli.py ...` remains a compatibility shim.
+- **Single-stack direction**: ADR-0024 says new platform work goes through
+  process roots, persisted runtime state, `/v1` routes, and SDK clients.
+  Legacy `/api/*`, `doge.application.composition`, in-memory runtime, and
+  PyQt are compatibility/demo surfaces.
 - **Runtime maturity**: `docs/progress/runtime-maturity.yaml` remains the
   authority for runtime labels and keeps production readiness blocked.
 - **Progress archive**: dated 2026-06-23 audit snapshots live under
@@ -66,8 +72,8 @@ promotion gates are not fully closed.
 | Concern | Status | Owner path |
 |---------|--------|------------|
 | Runtime maturity promotion | Blocked while `production_ready: false` | `docs/progress/runtime-maturity.yaml`, TR-054 |
-| Live Kimi Coding text smoke | Text path passed for `sk-kimi-*`; v1 baseline excludes Kimi `/files` | ADR-0023 / S017-002 |
-| Kimi Files and Vision smoke | Files unsupported on coding endpoint; vision pending real-image evidence | Knowledge & Evidence / QA evidence |
+| Live Kimi closure | Text and Vision evidence are partial; Files and Agent SDK live evidence still block full S017-002 closure | ADR-0023 / S017-002 |
+| Legacy compatibility removal | `/api/*`, `doge.application.composition`, in-memory runtime, and PyQt require staged removal/support stories | ADR-0024 |
 | Financial provider approval | External dependency | Portfolio & Risk / Governance & Evaluation |
 | Enterprise production validation | External dependency | Governance & Evaluation |
 | SDK registry publication | External dependency | SDK/daemon delivery surface |

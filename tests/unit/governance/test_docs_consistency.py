@@ -102,6 +102,28 @@ def test_runtime_maturity_non_production_posture_is_unchanged():
     assert "stable_declaration: forbidden" in maturity
 
 
+def test_runtime_maturity_marks_inmemory_and_pyqt_as_non_production_surfaces():
+    maturity = _read("docs/progress/runtime-maturity.yaml")
+    readme = _read("README.md")
+    getting_started = _read("docs/GETTING_STARTED.md")
+
+    for required in [
+        "in_memory_runtime:",
+        "status: demo_test_only",
+        "not the production-facing runtime path",
+        "pyqt_desktop:",
+        "status: legacy_maintained_local_surface",
+        "PyQt does not imply production readiness",
+    ]:
+        assert required in maturity
+
+    assert "the in-memory agent runtime, and PyQt" in readme
+    assert "compatibility or demo surfaces" in readme
+    assert "desktop dashboard is legacy-maintained for local use" in getting_started
+    assert "New platform UX work" in getting_started
+    assert "Web/SDK/v1 path" in getting_started
+
+
 def test_docs_validation_scripts_pass():
     commands = [
         [sys.executable, "scripts/validate_no_stale_counts.py"],

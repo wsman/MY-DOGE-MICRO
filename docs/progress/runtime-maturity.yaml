@@ -21,6 +21,37 @@ maturity_labels:
   level_3_sdk_platform: experimental
   production_ready: false
 
+single_stack_direction:
+  status: in_progress
+  authority: docs/architecture/adr-0024-single-stack-runtime-direction.md
+  preferred_new_platform_path:
+    composition: doge.bootstrap.processes
+    runtime_state: persisted_runtime
+    http_contracts: /v1/*
+    daemon_clients: Python and TypeScript SDK clients
+  compatibility_surfaces:
+    legacy_api:
+      status: compatibility
+      route_family: /api/*
+      deprecation_headers: true
+      removal_not_before: "2026-09-30"
+      notes: "Loopback local-demo routes remain mounted for compatibility; no new platform feature should be added only under /api/*."
+    application_composition:
+      status: compatibility_shim
+      module: doge.application.composition
+      replacement: doge.bootstrap.processes
+      notes: "Legacy/brownfield factories remain available while internal callers migrate to process roots."
+    in_memory_runtime:
+      status: demo_test_only
+      module: doge.infrastructure.agent.inmemory_runtime
+      replacement: persisted runtime repositories and durable queue
+      notes: "Useful for zero-key demo and deterministic tests; not the production-facing runtime path."
+    pyqt_desktop:
+      status: legacy_maintained_local_surface
+      entrypoint: src/interface/dashboard.py
+      blocker: "Qt DLL bootstrap still contains a machine-specific qt6_bin_path."
+      notes: "Optional GUI smoke remains valuable; PyQt does not imply production readiness."
+
 sprint_008_runtime_gates:
   queued_status_and_event:
     status: passed

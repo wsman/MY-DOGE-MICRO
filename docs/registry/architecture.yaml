@@ -2,7 +2,7 @@
 #
 # PURPOSE: Single source of truth for cross-ADR architectural stances that all
 # ADRs must agree on. Skills check this before writing new ADRs to detect
-# conflicts at authoring time. Aggregated from ADR-0001..0023 and module CDDs.
+# conflicts at authoring time. Aggregated from ADR-0001..0024 and module CDDs.
 #
 # RULES:
 #   - Register a stance when it constrains how OTHER systems must be built.
@@ -189,9 +189,10 @@ interfaces:
     consumers: [vue-web-console, pyqt-desktop-dashboard]
     transports: [http]
     adr: docs/architecture/adr-0007-api-surface-and-cors.md
-    signature: "87 product routes; JSON + SSE; bind 127.0.0.1:8901; legacy /api plus daemon /v1/platform"
+    signature: "87 product routes; JSON + SSE; bind 127.0.0.1:8901; legacy /api compatibility plus preferred /v1 daemon/platform routes"
     referenced_by:
       - docs/architecture/adr-0008-web-architecture.md
+      - docs/architecture/adr-0024-single-stack-runtime-direction.md
     added: "2026-06-12"
 
   - contract: storage_repository_access
@@ -516,6 +517,14 @@ api_decisions:
     reason: "Workflows and shell routes need provider/tool/evidence/maturity blockers from one safe source."
     added: "2026-06-22"
 
+  - purpose: single_stack_runtime_direction
+    status: active
+    api: "process roots + persisted runtime + /v1 routes + SDK clients"
+    not: "New platform features under legacy /api/*, doge.application.composition, in-memory runtime, or PyQt-only paths"
+    adr: docs/architecture/adr-0024-single-stack-runtime-direction.md
+    reason: "Prevents permanent dual architecture while preserving local compatibility and demo surfaces through explicit deprecation gates."
+    added: "2026-06-25"
+
 # ============================================================================
 # PERFORMANCE BUDGETS
 # ============================================================================
@@ -743,3 +752,11 @@ adr_index:
     path: docs/architecture/adr-0023-kimi-coding-endpoint.md
     governs: "Kimi Coding v1 chat-centered release baseline, coding-agent User-Agent, unsupported Kimi /files boundary, local document parsing fallback"
     depends_on: [ADR-0005, ADR-0012]
+
+  - id: ADR-0024
+    title: "Single-Stack Runtime Direction"
+    status: Accepted
+    date: "2026-06-25"
+    path: docs/architecture/adr-0024-single-stack-runtime-direction.md
+    governs: "new platform work through process roots, persisted runtime, /v1 routes, and SDK clients; legacy /api, application.composition, in-memory runtime, and PyQt as compatibility/demo surfaces"
+    depends_on: [ADR-0001, ADR-0007, ADR-0011, ADR-0021, ADR-0022]

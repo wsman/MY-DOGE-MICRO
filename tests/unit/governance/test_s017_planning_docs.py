@@ -167,9 +167,16 @@ def test_kimi_live_smoke_readiness_is_review_not_done():
     assert "Ready for operator execution, not done" in body
     assert evidence["schema"] == "doge.kimi_live_smoke.v1"
     assert evidence["story_id"] == "S017-002"
-    assert evidence["result"] == "blocked"
-    assert evidence["blockers"] == ["DOGE_LIVE_KIMI=1", "MOONSHOT_API_KEY"]
-    assert evidence["scenarios"] == []
+    if evidence["result"] == "blocked":
+        assert evidence["blockers"] == ["DOGE_LIVE_KIMI=1", "MOONSHOT_API_KEY"]
+        assert evidence["scenarios"] == []
+    else:
+        assert evidence["result"] == "passed"
+        scenarios = {item["name"]: item for item in evidence["scenarios"]}
+        assert scenarios["text_k26"]["status"] == "passed"
+        assert scenarios["vision_base64"]["status"] == "passed"
+        assert scenarios["files_upload"]["status"] in {"failed", "skipped"}
+        assert scenarios.get("agent_sdk_optional", {}).get("status") != "passed"
     for text in [sprint_plan, maturity, audit]:
         assert "scripts/run_kimi_live_smoke.py" in text
         assert "scripts/validate_kimi_live_smoke_evidence.py" in text
@@ -187,6 +194,7 @@ def test_kimi_live_smoke_readiness_is_review_not_done():
     assert "usage.reported must be true or false" in live_validator
     assert "test_passed_required_scenario_requires_usage_summary" in live_validator_test
     assert "test_usage_summary_rejects_unexpected_provider_payload_keys" in live_validator_test
+    assert "test_current_partial_live_evidence_is_controlled_open_only" in live_validator_test
 
 
 def test_kimi_plan_completion_audit_preserves_non_production_posture():

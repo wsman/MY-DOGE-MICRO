@@ -8,6 +8,10 @@ runs, and local API/UI/MCP surfaces without making cloud storage a requirement.
 The current architecture authority is the eight bounded-context model accepted
 by ADR-0021. Historical Macro/Micro wording is preserved only as archive
 material in [legacy-macro-micro.md](docs/archive/old-architecture/legacy-macro-micro.md).
+ADR-0024 sets the single-stack runtime direction: new platform work should use
+process roots, persisted runtime state, `/v1` routes, and SDK clients. Legacy
+`/api/*`, `doge.application.composition`, the in-memory agent runtime, and PyQt
+are compatibility or demo surfaces, not alternate platform stacks.
 
 ## Current Maturity
 
@@ -65,7 +69,9 @@ framework and agent studio. They are not the operator guide for this product.
 
 Delivery channels such as FastAPI, Web, CLI, daemon, SDK, MCP, and PyQt are
 not counted modules. Storage/model/market-data providers are adapters behind
-ports. Physical source moves remain governed by ADR-0022 and must be story-gated.
+ports. Physical source moves remain governed by ADR-0022 and must be
+story-gated. New runtime/platform features should target `/v1` and SDK clients;
+legacy `/api/*` remains a local compatibility surface with deprecation headers.
 
 ## Quick Start
 
@@ -142,6 +148,7 @@ python src/interface/dashboard.py
 ```
 
 The desktop entrypoint is [src/interface/dashboard.py](src/interface/dashboard.py).
+It is a legacy-maintained local surface, not the preferred platform UI.
 It still contains a known portability blocker named `qt6_bin_path`: on machines
 whose PyQt6 Qt DLLs are not installed at that hardcoded path, the dashboard may
 need a local PATH or DLL-location adjustment. This warning should be removed

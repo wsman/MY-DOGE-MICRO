@@ -2,13 +2,11 @@
 
 The local-first HTTP backend of MY-DOGE-MICRO. A single FastAPI application
 (`doge.interfaces.api.main`) binds to `127.0.0.1:8901` and exposes **87 product routes**:
-34 legacy `/api/*` routes plus 53 daemon/v1 routes (`sessions`, `runs`,
-`documents`, `tools`, `health`, case workflow, portfolio import, audit, and enterprise ACL).
-It is the surface the
-Vue web console (`web/`) and optionally the PyQt desktop dashboard call to
-trigger market scans, browse persisted data, manage stock notes, read macro and
-research reports, run the Research Copilot demo workflow, and configure the TDX
-install.
+34 legacy `/api/*` compatibility routes plus 53 daemon/v1 routes (`sessions`,
+`runs`, `documents`, `tools`, `health`, case workflow, portfolio import, audit,
+and enterprise ACL). Per ADR-0024, new platform work should target `/v1/*` and
+SDK clients. Legacy `/api/*` remains for local compatibility and emits
+deprecation metadata headers.
 
 > **Stack**: FastAPI 0.123.8, Uvicorn 0.38.0, Pydantic 2.12.4, sse-starlette
 > 3.0.3, httpx 0.28.1 (TestClient) — pinned in `pyproject.toml:11-25`. Reverse-documented
@@ -58,14 +56,21 @@ python -m uvicorn doge.interfaces.api.main:app --host 127.0.0.1 --port 8901
 `src/api` remains only as a deprecated compatibility redirect shim. New
 integrations should import or launch `doge.interfaces.api`.
 
+Legacy `/api/*` responses include:
+
+- `Deprecation: true`
+- `Sunset: Wed, 30 Sep 2026 00:00:00 GMT`
+- `Link: <...adr-0024-single-stack-runtime-direction.md>; rel="deprecation"`
+- `X-DOGE-Compatibility-Surface: legacy-api`
+
 Two BLAS/OpenMP thread-count shims are set at import via
 `os.environ.setdefault` (`src/doge/interfaces/api/main.py`) — `OPENBLAS_NUM_THREADS=1`
 and `OMP_NUM_THREADS=1` — shared with the DuckDB/ai_analysis layers.
 
 ## Base URL & Transports
 
-**Base URL**: `http://127.0.0.1:8901` — all product routes live under the
-`/api` prefix.
+**Base URL**: `http://127.0.0.1:8901` — legacy compatibility routes live under
+`/api`; preferred daemon/platform routes live under `/v1` plus `/health`.
 
 Two response modes are used (`design/cdd/fastapi-service.md` §9.1):
 
@@ -510,9 +515,11 @@ itself is named `vipdoc`, else `{valid: false, message: "vipdoc directory not fo
 
 ### agent router
 
-The Research Copilot endpoints expose the interview-demo agent workflow. The
-runtime stores run state in memory for the demo and returns operator-safe 404
-errors when a run or approval id is unknown.
+The legacy Research Copilot endpoints expose the interview-demo agent workflow.
+The runtime stores run state in memory for this compatibility demo and returns
+operator-safe 404 errors when a run or approval id is unknown. New daemon,
+SDK, and platform integrations should use `/v1/sessions`, `/v1/runs`, and the
+SDK clients backed by persisted runtime state.
 
 #### `POST /api/agent/runs` — `agent.py`
 Body: arbitrary JSON matching the demo request shape (`workflow`, `question`,
