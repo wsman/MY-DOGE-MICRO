@@ -97,6 +97,13 @@ class PersistedResearchAgentRuntime(IResearchAgentRuntime):
         *,
         tenant_id: str | None = None,
     ) -> AsyncIterator[AgentEvent]:
+        """Replay-only iterator over events already persisted for the run.
+
+        This method yields the same events returned by ``list_events``
+        asynchronously. It does **not** subscribe to new events generated after
+        the call begins. Live streaming is provided by ``RunStreamHandler``
+        in conjunction with ``IEventSubscriber.subscribe``.
+        """
         resolved_scope, resolved_run_id = _run_args(scope, run_id, tenant_id=tenant_id)
         for event in self.list_events(resolved_scope, resolved_run_id):
             yield event

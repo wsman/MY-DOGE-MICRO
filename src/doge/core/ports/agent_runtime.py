@@ -39,6 +39,12 @@ class IResearchAgentRuntime(ABC):
 
     @abstractmethod
     def list_events(self, scope: TenantScope, run_id: str) -> list[AgentEvent]:
+        """Synchronous query for persisted events of ``run_id``.
+
+        This is the canonical method for reading historical events from the
+        runtime's persisted store. For live streaming, use ``RunStreamHandler``
+        with ``IEventSubscriber.subscribe`` instead.
+        """
         ...
 
     @abstractmethod
@@ -47,6 +53,12 @@ class IResearchAgentRuntime(ABC):
 
     @abstractmethod
     async def stream_events(self, scope: TenantScope, run_id: str) -> AsyncIterator[AgentEvent]:
+        """Replay-only async iterator over already-persisted events.
+
+        The default contract is replay: it yields events that have already been
+        recorded. Live cross-process streaming is provided by ``IEventSubscriber``
+        in conjunction with ``RunStreamHandler``.
+        """
         ...
 
     @abstractmethod

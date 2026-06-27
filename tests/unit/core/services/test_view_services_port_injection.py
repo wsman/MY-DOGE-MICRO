@@ -196,14 +196,20 @@ class _RaisingAfterResponses(FakeMarketViewRepository):
 def test_bootstrap_owns_infrastructure_imports():
     """P1B: bootstrap containers import infrastructure; composition and services do not."""
     import doge.application.composition as comp
+    import doge.bootstrap.gateway_factories as gateway_factories
     from doge.bootstrap import gateway, runtime, workspace
 
     comp_source = Path(inspect.getfile(comp)).read_text(encoding="utf-8")
     assert "from doge.infrastructure" not in comp_source, (
         "doge.application.composition must be a thin shim with no infrastructure imports"
     )
-    # The bootstrap containers are the sanctioned wiring sites.
-    for mod in (gateway, runtime, workspace):
+    # The bootstrap container(s) and their bounded-context factory modules are the
+    # sanctioned wiring sites. GatewayContainer itself is now a thin facade, so the
+    # infrastructure wiring lives in the factory modules.
+    wiring_modules = [runtime, workspace]
+    for factory_module in gateway_factories.__all__:
+        wiring_modules.append(importlib.import_module(f"doge.bootstrap.gateway_factories.{factory_module}"))
+    for mod in wiring_modules:
         source = Path(inspect.getfile(mod)).read_text(encoding="utf-8")
         assert "from doge.infrastructure" in source, (
             f"{mod.__name__} should own infrastructure wiring for the view-backed services"

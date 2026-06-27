@@ -1,8 +1,16 @@
 import pytest
 
+from doge.application.agent.approval_coordinator import ApprovalCoordinator
+from doge.application.agent.artifact_finalizer import ArtifactFinalizer
+from doge.application.agent.context_builder import ContextBuilder
+from doge.application.agent.model_response_assembler import ModelResponseAssembler
+from doge.application.agent.run_lifecycle_service import RunLifecycleService
+from doge.application.agent.run_stepper import RunStepper
 from doge.application.agent.runtime_kernel import RuntimeKernel
 from doge.application.agent.tools import ToolRegistry, ToolResult
+from doge.application.agent.transition_recorder import TransitionRecorder
 from doge.core.ports.runtime_services import ModelExecutionResult
+from doge.infrastructure.database.sqlite_runtime_transaction import SQLiteRuntimeTransactionFactory
 from doge.core.domain.agent_models import EventType, RunStatus
 from doge.core.ports.enterprise_governance import EnterpriseAclGrant
 from doge.core.ports.agent_model import AgentMessage, AgentResponse
@@ -51,19 +59,82 @@ def _registry() -> ToolRegistry:
     return registry
 
 
+def _build_kernel(
+    db,
+    model,
+    tool_registry,
+    *,
+    governance_repository=None,
+    model_router=None,
+    agent_backends=None,
+    model_execution_service=None,
+):
+    """Build a RuntimeKernel from collaborators for unit tests."""
+    services = _runtime_services(
+        model,
+        tool_registry,
+        governance_repository=governance_repository,
+        model_router=model_router,
+        agent_backends=agent_backends,
+        model_execution_service=model_execution_service,
+    )
+    repos = {
+        "runs": SQLiteRunRepository(db),
+        "events": SQLiteEventRepository(db),
+        "artifacts": SQLiteArtifactRepository(db),
+        "approvals": SQLiteApprovalRepository(db),
+    }
+    transition_recorder = TransitionRecorder(
+        transaction_factory=SQLiteRuntimeTransactionFactory(db),
+    )
+    artifact_finalizer = ArtifactFinalizer(
+        evaluation_service=services["artifact_evaluation_service"],
+    )
+    context_builder = ContextBuilder(
+        document_repository=None,
+        evidence_repository=None,
+        session_repository=None,
+        run_repository=repos["runs"],
+    )
+    stepper = RunStepper(
+        run_repository=repos["runs"],
+        event_repository=repos["events"],
+        artifact_repository=repos["artifacts"],
+        approval_repository=repos["approvals"],
+        context_builder=context_builder,
+        response_assembler=ModelResponseAssembler(),
+        model_execution_service=services["model_execution_service"],
+        tool_execution_service=services["tool_execution_service"],
+        artifact_finalizer=artifact_finalizer,
+        transition_recorder=transition_recorder,
+    )
+    lifecycle = RunLifecycleService(
+        run_repository=repos["runs"],
+        event_repository=repos["events"],
+        artifact_repository=repos["artifacts"],
+        approval_repository=repos["approvals"],
+        transition_recorder=transition_recorder,
+        run_stepper=stepper,
+    )
+    approval_coordinator = ApprovalCoordinator(
+        run_repository=repos["runs"],
+        approval_repository=repos["approvals"],
+        transition_recorder=transition_recorder,
+    )
+    return RuntimeKernel(
+        lifecycle_service=lifecycle,
+        stepper=stepper,
+        transition_recorder=transition_recorder,
+        approval_coordinator=approval_coordinator,
+        artifact_finalizer=artifact_finalizer,
+    )
+
+
 def _kernel(tmp_path):
     db = tmp_path / "agent_state.db"
     model = ScriptedAgentModel()
     registry = _registry()
-    return RuntimeKernel(
-        model=model,
-        tool_registry=registry,
-        run_repository=SQLiteRunRepository(db),
-        event_repository=SQLiteEventRepository(db),
-        artifact_repository=SQLiteArtifactRepository(db),
-        approval_repository=SQLiteApprovalRepository(db),
-        **_runtime_services(model, registry),
-    )
+    return _build_kernel(db, model, registry)
 
 
 def _runtime_services(
@@ -322,10 +393,11 @@ async def test_kernel_cancel_completed_run_is_idempotent(tmp_path):
 
 @pytest.mark.asyncio
 async def test_kernel_step_cancels_mid_run(tmp_path):
+    db = tmp_path / "agent_state.db"
     kernel = _kernel(tmp_path)
     run = await kernel.create_run({"question": "Analyze AAPL"})
     run.status = RunStatus.CANCELLING
-    kernel._runs.save(run)
+    SQLiteRunRepository(db).save(run)
 
     cancelled = await kernel.step(run.run_id)
 
@@ -383,15 +455,7 @@ async def test_kernel_runs_web_search_stage_when_policy_enabled(tmp_path):
     db = tmp_path / "agent_state.db"
     model = SearchThenFinalModel()
     registry = ToolRegistry()
-    kernel = RuntimeKernel(
-        model=model,
-        tool_registry=registry,
-        run_repository=SQLiteRunRepository(db),
-        event_repository=SQLiteEventRepository(db),
-        artifact_repository=SQLiteArtifactRepository(db),
-        approval_repository=SQLiteApprovalRepository(db),
-        **_runtime_services(model, registry),
-    )
+    kernel = _build_kernel(db, model, registry)
     run = await kernel.create_run({
         "question": "Analyze current market",
         "model_policy": {"web_search_enabled": True},
@@ -409,15 +473,7 @@ async def test_kernel_runs_web_search_stage_when_profile_enabled(tmp_path):
     db = tmp_path / "agent_state.db"
     model = SearchThenFinalModel()
     registry = ToolRegistry()
-    kernel = RuntimeKernel(
-        model=model,
-        tool_registry=registry,
-        run_repository=SQLiteRunRepository(db),
-        event_repository=SQLiteEventRepository(db),
-        artifact_repository=SQLiteArtifactRepository(db),
-        approval_repository=SQLiteApprovalRepository(db),
-        **_runtime_services(model, registry),
-    )
+    kernel = _build_kernel(db, model, registry)
     run = await kernel.create_run({
         "question": "Analyze current market",
         "model_policy": {"execution_profile": "web_research"},
@@ -438,16 +494,12 @@ async def test_kernel_routes_non_direct_backend_to_injected_backend(tmp_path):
     registry = ToolRegistry()
     router = BackendRouter()
     backends = {"kimi_agent_sdk": backend}
-    kernel = RuntimeKernel(
-        model=model,
-        tool_registry=registry,
-        run_repository=SQLiteRunRepository(db),
-        event_repository=SQLiteEventRepository(db),
-        artifact_repository=SQLiteArtifactRepository(db),
-        approval_repository=SQLiteApprovalRepository(db),
+    kernel = _build_kernel(
+        db,
+        model,
+        registry,
         model_router=router,
         agent_backends=backends,
-        **_runtime_services(model, registry, model_router=router, agent_backends=backends),
     )
     run = await kernel.create_run({"question": "Automate"})
 
@@ -464,16 +516,12 @@ async def test_kernel_routes_backend_approval_into_runtime_approval_flow(tmp_pat
     registry = _registry()
     router = BackendRouter()
     backends = {"kimi_agent_sdk": ApprovalBackend()}
-    kernel = RuntimeKernel(
-        model=model,
-        tool_registry=registry,
-        run_repository=SQLiteRunRepository(db),
-        event_repository=SQLiteEventRepository(db),
-        artifact_repository=SQLiteArtifactRepository(db),
-        approval_repository=SQLiteApprovalRepository(db),
+    kernel = _build_kernel(
+        db,
+        model,
+        registry,
         model_router=router,
         agent_backends=backends,
-        **_runtime_services(model, registry, model_router=router, agent_backends=backends),
     )
     run = await kernel.create_run({"question": "Automate"})
 
@@ -491,15 +539,11 @@ async def test_kernel_filters_enterprise_tool_schemas_by_persistent_acl(tmp_path
     governance.grant(_tool_grant("stock_overview"))
     model = ToolSchemaCaptureModel()
     registry = _registry()
-    kernel = RuntimeKernel(
-        model=model,
-        tool_registry=registry,
-        run_repository=SQLiteRunRepository(db),
-        event_repository=SQLiteEventRepository(db),
-        artifact_repository=SQLiteArtifactRepository(db),
-        approval_repository=SQLiteApprovalRepository(db),
+    kernel = _build_kernel(
+        db,
+        model,
+        registry,
         governance_repository=governance,
-        **_runtime_services(model, registry, governance_repository=governance),
     )
     run = await kernel.create_run({
         "question": "Analyze AAPL",
@@ -518,14 +562,11 @@ async def test_kernel_passes_run_execution_context_to_model_execution(tmp_path):
     capture = ExecutionContextCaptureService()
     model = ScriptedAgentModel()
     registry = _registry()
-    kernel = RuntimeKernel(
-        model=model,
-        tool_registry=registry,
-        run_repository=SQLiteRunRepository(db),
-        event_repository=SQLiteEventRepository(db),
-        artifact_repository=SQLiteArtifactRepository(db),
-        approval_repository=SQLiteApprovalRepository(db),
-        **_runtime_services(model, registry, model_execution_service=capture),
+    kernel = _build_kernel(
+        db,
+        model,
+        registry,
+        model_execution_service=capture,
     )
     run = await kernel.create_run({
         "question": "Analyze AAPL",
@@ -570,15 +611,11 @@ async def test_kernel_denies_enterprise_tool_call_without_persistent_acl(tmp_pat
     governance = SQLiteEnterpriseGovernanceRepository(db)
     model = StockToolCallModel()
     registry = _registry()
-    kernel = RuntimeKernel(
-        model=model,
-        tool_registry=registry,
-        run_repository=SQLiteRunRepository(db),
-        event_repository=SQLiteEventRepository(db),
-        artifact_repository=SQLiteArtifactRepository(db),
-        approval_repository=SQLiteApprovalRepository(db),
+    kernel = _build_kernel(
+        db,
+        model,
+        registry,
         governance_repository=governance,
-        **_runtime_services(model, registry, governance_repository=governance),
     )
     run = await kernel.create_run({
         "question": "Analyze AAPL",
@@ -603,15 +640,7 @@ async def test_kernel_redacts_tool_error_before_persisting_event(tmp_path):
 
     registry.register(_schema("secret_tool"), lambda **_: secret_tool())
     model = FailingToolCallModel()
-    kernel = RuntimeKernel(
-        model=model,
-        tool_registry=registry,
-        run_repository=SQLiteRunRepository(db),
-        event_repository=SQLiteEventRepository(db),
-        artifact_repository=SQLiteArtifactRepository(db),
-        approval_repository=SQLiteApprovalRepository(db),
-        **_runtime_services(model, registry),
-    )
+    kernel = _build_kernel(db, model, registry)
     run = await kernel.create_run({"question": "Analyze AAPL"})
 
     stepped = await kernel.step(run.run_id)
@@ -658,15 +687,11 @@ async def test_kernel_allows_enterprise_tool_call_with_persistent_acl(tmp_path):
     governance.grant(_tool_grant("stock_overview"))
     model = StockToolCallModel()
     registry = _registry()
-    kernel = RuntimeKernel(
-        model=model,
-        tool_registry=registry,
-        run_repository=SQLiteRunRepository(db),
-        event_repository=SQLiteEventRepository(db),
-        artifact_repository=SQLiteArtifactRepository(db),
-        approval_repository=SQLiteApprovalRepository(db),
+    kernel = _build_kernel(
+        db,
+        model,
+        registry,
         governance_repository=governance,
-        **_runtime_services(model, registry, governance_repository=governance),
     )
     run = await kernel.create_run({
         "question": "Analyze AAPL",

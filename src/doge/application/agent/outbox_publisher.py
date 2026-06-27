@@ -8,7 +8,14 @@ from doge.core.ports.runtime_transaction import IOutboxRepository
 
 
 class OutboxPublisher:
-    """Poll and publish committed runtime events from the transactional outbox."""
+    """Poll and publish committed runtime events from the transactional outbox.
+
+    The transactional outbox staging is implemented at the runtime transaction
+    level, but the publisher loop is currently active only when the
+    ``runtime_outbox_publisher`` feature flag is enabled. When the flag is off,
+    staging is a no-op and events are delivered through the in-process event bus
+    or the SQLite polling subscriber instead.
+    """
 
     def __init__(
         self,

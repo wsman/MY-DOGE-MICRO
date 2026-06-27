@@ -1,4 +1,17 @@
-"""v1 run SSE streaming route."""
+"""v1 run SSE streaming route.
+
+This route uses ``RunStreamHandler`` which combines historical replay via
+``runtime.list_events`` with live events via ``IEventSubscriber.subscribe``.
+This is the canonical live SSE implementation.
+
+Streaming semantics (per ADR-0025):
+- ``list_events`` = synchronous persisted query (historical replay)
+- ``stream_events`` = replay-only async iterator (not used here)
+- ``RunStreamHandler`` + ``IEventSubscriber.subscribe`` = live cross-process SSE
+
+New clients should use this ``/v1/runs/{run_id}/stream`` endpoint.
+The legacy ``/api/runs/{run_id}/stream`` is replay-only and deprecated.
+"""
 
 from __future__ import annotations
 

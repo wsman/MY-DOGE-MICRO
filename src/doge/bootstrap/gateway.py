@@ -7,58 +7,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from doge.application.services.file_upload_service import FileUploadService
-from doge.application.services.page_extraction_service import PageExtractionService
-from doge.application.services.citation_service import CitationService
-from doge.application.services.claim_validation_service import ClaimValidationService
-from doge.application.services.rag_service import RAGService
-from doge.application.services.portfolio_service import PortfolioService, RiskService, ScenarioService
-from doge.application.agent.tool_service import ToolApplicationService
-from doge.application.capabilities.executors import DisabledCodeExecutor, SubprocessCodeExecutor
-from doge.application.use_cases.generate_industry_report import GenerateIndustryReportUseCase
-from doge.application.use_cases.generate_macro_report import GenerateMacroReportUseCase
-from doge.application.use_cases.generate_market_overview import GenerateMarketOverviewUseCase
-from doge.application.use_cases.generate_anomaly_report import GenerateAnomalyReportUseCase
-from doge.application.use_cases.generate_catalog import GenerateCatalogUseCase
-from doge.application.use_cases.manage_notes import ManageNotesUseCase
-from doge.application.use_cases.populate_stock_names import PopulateStockNamesUseCase
-from doge.application.use_cases.query_ticker import QueryTickerUseCase
-from doge.application.use_cases.scan_market import ScanMarketUseCase
-from doge.config import get_settings
-from doge.core.services.anomaly_service import AnomalyService
-from doge.core.services.breadth_service import BreadthService
-from doge.core.services.ranking_service import RankingService
-from doge.core.services.stock_service import StockService
-from doge.core.services.view_service import ViewService
-from doge.infrastructure.database.market_view_repository import DuckDBMarketViewRepository
-from doge.infrastructure.database.repositories import (
-    DuckDBStockRepository,
-    SQLiteNoteRepository,
-    SQLiteReportRepository,
-    SQLiteSchemaBrowser,
-    SQLiteStockNameRepository,
-)
-from doge.infrastructure.database.claim_repository import SQLiteClaimRepository
-from doge.infrastructure.database.embedding_cache import SQLiteEmbeddingCache
-from doge.infrastructure.database.sqlite_storage import SQLiteStorageRepository
-from doge.infrastructure.data_source.tdx_file_scanner import TDXFileScanner
-from doge.infrastructure.data_source.tdx_server_list import ConfigTDXServerList
-from doge.infrastructure.data_source.yfinance_metadata import YFinanceMetadataSource
-from doge.infrastructure.documents.local_parser import LocalDocumentParser
-from doge.infrastructure.llm.deepseek_client import DeepSeekClient
-from doge.infrastructure.llm.embedding_client import HashingEmbeddingProvider
-from doge.infrastructure.llm.kimi_client import KimiAgentModel
-from doge.infrastructure.llm.kimi_files_client import KimiFilesClient
-from doge.infrastructure.llm.kimi_text_client import KimiTextClient
-from doge.infrastructure.secrets import EnvSecretProvider, ProcessSecretProvider
-from doge.infrastructure.vector.sqlite_store import SQLiteVectorStore
-from doge.infrastructure.finance.local_connectors import (
-    LocalNoteAnnouncementRepository,
-    StaticIndustryClassificationSource,
-    StaticRiskFactorSource,
-    StockOverviewFinancialStatementRepository,
-    UnavailableConsensusEstimateRepository,
-)
+from doge.bootstrap.gateway_factories import documents
+from doge.bootstrap.gateway_factories import llm
+from doge.bootstrap.gateway_factories import market
+from doge.bootstrap.gateway_factories import repositories
+from doge.bootstrap.gateway_factories import secrets
+from doge.bootstrap.gateway_factories import tools
+from doge.bootstrap.gateway_factories import use_cases
 
 
 @dataclass(frozen=True)
@@ -68,307 +23,73 @@ class GatewayContainer:
     db_path: Path | str | None = None
     graph_provider: Callable[[], Any] | None = field(default=None, repr=False, compare=False)
 
-    def build_secret_provider(self):
-        settings = get_settings()
-        provider = settings.secrets.provider
-        if provider == "env":
-            return EnvSecretProvider()
-        if provider == "process":
-            return ProcessSecretProvider(
-                command=settings.secrets.process_command,
-                timeout_seconds=settings.secrets.process_timeout_seconds,
-                allowed_names=frozenset(settings.secrets.allowed_names),
-            )
-        raise ValueError(f"Unsupported DOGE_SECRET_PROVIDER: {provider}")
+    # -- Secrets --
+    def build_secret_provider(self): return secrets.build_secret_provider()
 
-    def build_kimi_agent_model(self, secret_provider=None):
-        return KimiAgentModel(secret_provider=secret_provider or self.build_secret_provider())
+    # -- LLM --
+    def build_kimi_agent_model(self, secret_provider=None): return llm.build_kimi_agent_model(secret_provider)
+    def build_default_text_llm_client(self): return llm.build_default_text_llm_client()
 
-    def build_default_text_llm_client(self):
-        settings = get_settings()
-        secret_provider = self.build_secret_provider()
-        if settings.llm.text_provider.lower() == "deepseek":
-            return DeepSeekClient(secret_provider=secret_provider)
-        return KimiTextClient(KimiAgentModel(secret_provider=secret_provider))
+    # -- Repositories --
+    def build_report_repository(self): return repositories.build_report_repository()
+    def build_schema_browser(self): return repositories.build_schema_browser()
+    def build_stock_repository(self): return repositories.build_stock_repository()
+    def build_note_repository(self): return repositories.build_note_repository()
+    def build_stock_name_repository(self): return repositories.build_stock_name_repository()
+    def build_view_repository(self, *, read_only: bool = True): return repositories.build_view_repository(read_only=read_only)
+    def build_claim_repository(self): return repositories.build_claim_repository(self.db_path)
+    def build_storage_repository(self): return repositories.build_storage_repository()
 
-    def build_report_repository(self):
-        return SQLiteReportRepository()
+    # -- Market services --
+    def build_view_service(self, repo=None): return market.build_view_service(repo)
+    def build_stock_service(self, repo=None): return market.build_stock_service(repo)
+    def build_ranking_service(self, repo=None): return market.build_ranking_service(repo)
+    def build_breadth_service(self, repo=None): return market.build_breadth_service(repo)
+    def build_anomaly_service(self, repo=None): return market.build_anomaly_service(repo)
+    def build_metadata_source(self, max_retries: int | None = None, retry_delay: float | None = None): return market.build_metadata_source(max_retries, retry_delay)
+    def build_tdx_server_list(self): return market.build_tdx_server_list()
+    def build_tdx_data_source(self, preferred_server: str | None = None): return market.build_tdx_data_source(preferred_server)
+    def refresh_views(self) -> None: market.refresh_views()
 
-    def build_schema_browser(self):
-        return SQLiteSchemaBrowser()
+    # -- Documents / RAG --
+    def build_rag_service(self): return documents.build_rag_service(self.db_path, self.runtime_container)
+    def build_file_upload_service(self, *, kimi_files_client=None): return documents.build_file_upload_service(self.db_path, self.runtime_container, kimi_files_client=kimi_files_client)
+    def build_page_extraction_service(self): return documents.build_page_extraction_service(self.runtime_container)
 
-    def build_stock_repository(self):
-        return DuckDBStockRepository()
+    # -- Use cases --
+    def build_manage_notes_use_case(self, note_repo=None): return use_cases.build_manage_notes_use_case(note_repo)
+    def build_generate_macro_report_use_case(self, view_repo=None, llm_client=None, report_repo=None): return use_cases.build_generate_macro_report_use_case(view_repo, llm_client, report_repo)
+    def build_generate_industry_report_use_case(self, ranking_service=None, llm_client=None, stock_service=None, rag_service=None, report_repository=None, claim_repository=None):
+        return use_cases.build_generate_industry_report_use_case(ranking_service, llm_client, stock_service=stock_service, rag_service=rag_service, report_repository=report_repository, claim_repository=claim_repository, db_path=self.db_path)
+    def build_scan_market_use_case(self, stock_repo=None, data_source=None, file_scanner=None, refresh_views_callable=None): return use_cases.build_scan_market_use_case(stock_repo, data_source, file_scanner, refresh_views_callable)
+    def build_query_ticker_use_case(self, stock_repo=None, note_repo=None, metadata_source=None): return use_cases.build_query_ticker_use_case(stock_repo, note_repo, metadata_source)
+    def build_generate_market_overview_use_case(self, view_repo=None, breadth_service=None, ranking_service=None, anomaly_service=None): return use_cases.build_generate_market_overview_use_case(view_repo, breadth_service, ranking_service, anomaly_service)
+    def build_generate_anomaly_report_use_case(self, view_repo=None, anomaly_service=None): return use_cases.build_generate_anomaly_report_use_case(view_repo, anomaly_service)
+    def build_catalog_use_case(self, schema_browser=None, view_service=None): return use_cases.build_catalog_use_case(schema_browser, view_service)
+    def build_populate_stock_names_use_case(self, stock_repo=None, name_repo=None, metadata_source=None): return use_cases.build_populate_stock_names_use_case(stock_repo, name_repo, metadata_source)
 
-    def build_note_repository(self):
-        return SQLiteNoteRepository()
+    # -- Tools / Product services --
+    def build_risk_factor_source(self): return tools.build_risk_factor_source()
+    def build_industry_classification_source(self): return tools.build_industry_classification_source()
+    def build_portfolio_service(self): return tools.build_portfolio_service(self.workspace_container)
+    def build_risk_service(self): return tools.build_risk_service(self.workspace_container)
+    def build_scenario_service(self): return tools.build_scenario_service(self.workspace_container)
+    def build_financial_statement_repository(self): return tools.build_financial_statement_repository(self.build_stock_service())
+    def build_company_announcement_repository(self): return tools.build_company_announcement_repository(self.build_note_repository())
+    def build_consensus_estimate_repository(self): return tools.build_consensus_estimate_repository()
+    def build_python_analysis_executor(self, settings=None): return tools.build_python_analysis_executor(settings)
+    def build_tool_application_service(self): return tools.build_tool_application_service(self.db_path, self.runtime_container, self.workspace_container, documents.build_rag_service, use_cases.build_generate_industry_report_use_case)
 
-    def build_stock_name_repository(self):
-        return SQLiteStockNameRepository()
-
-    def build_view_repository(self, *, read_only: bool = True):
-        return DuckDBMarketViewRepository(read_only=read_only)
-
-    def build_view_service(self, repo=None):
-        return ViewService(repo if repo is not None else self.build_view_repository())
-
-    def build_stock_service(self, repo=None):
-        return StockService(repo if repo is not None else self.build_stock_repository())
-
-    def build_ranking_service(self, repo=None):
-        return RankingService(repo if repo is not None else self.build_view_repository())
-
-    def build_breadth_service(self, repo=None):
-        return BreadthService(repo if repo is not None else self.build_view_repository())
-
-    def build_anomaly_service(self, repo=None):
-        return AnomalyService(repo if repo is not None else self.build_view_repository())
-
-    def build_manage_notes_use_case(self, note_repo=None):
-        return ManageNotesUseCase(note_repo if note_repo is not None else self.build_note_repository())
-
-    def build_generate_macro_report_use_case(
-        self,
-        view_repo=None,
-        llm_client=None,
-        report_repo=None,
-    ):
-        return GenerateMacroReportUseCase(
-            view_repo if view_repo is not None else self.build_view_repository(),
-            llm_client if llm_client is not None else self.build_default_text_llm_client(),
-            report_repo if report_repo is not None else self.build_report_repository(),
-        )
-
-    def build_rag_service(self):
-        runtime = self.runtime_container()
-        return RAGService(
-            evidence_repository=runtime.build_agent_evidence_repository(),
-            embedding_provider=HashingEmbeddingProvider(),
-            vector_store=SQLiteVectorStore(self.db_path),
-            embedding_cache=SQLiteEmbeddingCache(self.db_path),
-        )
-
-    def build_claim_repository(self):
-        return SQLiteClaimRepository(self.db_path)
-
-    def build_generate_industry_report_use_case(
-        self,
-        ranking_service=None,
-        llm_client=None,
-        stock_service=None,
-        rag_service=None,
-        report_repository=None,
-        claim_repository=None,
-    ):
-        return GenerateIndustryReportUseCase(
-            ranking_service if ranking_service is not None else self.build_ranking_service(),
-            llm_client if llm_client is not None else self.build_default_text_llm_client(),
-            stock_service=stock_service if stock_service is not None else self.build_stock_service(),
-            rag_service=rag_service if rag_service is not None else self.build_rag_service(),
-            report_repository=report_repository if report_repository is not None else self.build_report_repository(),
-            claim_repository=claim_repository if claim_repository is not None else self.build_claim_repository(),
-            citation_service=CitationService(),
-            claim_validation_service=ClaimValidationService(),
-        )
-
-    def build_metadata_source(self, max_retries: int | None = None, retry_delay: float | None = None):
-        return YFinanceMetadataSource(max_retries=max_retries, retry_delay=retry_delay)
-
-    def build_storage_repository(self):
-        return SQLiteStorageRepository()
-
-    def build_tdx_server_list(self):
-        return ConfigTDXServerList()
-
-    def build_tdx_data_source(self, preferred_server: str | None = None):
-        from doge.infrastructure.data_source.tdx import TDXDataSource
-
-        return TDXDataSource(preferred_server=preferred_server)
-
-    def build_scan_market_use_case(
-        self,
-        stock_repo=None,
-        data_source=None,
-        file_scanner=None,
-        refresh_views_callable=None,
-    ) -> ScanMarketUseCase:
-        if stock_repo is None:
-            stock_repo = self.build_storage_repository()
-        if data_source is None:
-            data_source = self.build_tdx_data_source()
-        if file_scanner is None:
-            file_scanner = TDXFileScanner()
-        if refresh_views_callable is None:
-            refresh_views_callable = self.refresh_views
-        return ScanMarketUseCase(
-            stock_repo,
-            data_source=data_source,
-            file_scanner=file_scanner,
-            refresh_views_callable=refresh_views_callable,
-        )
-
-    def refresh_views(self) -> None:
-        from doge.infrastructure.database.duckdb import DuckDBConnection
-
-        DuckDBConnection(read_only=False).refresh_views()
-
-    def build_file_upload_service(self, *, kimi_files_client=None):
-        settings = get_settings()
-        secret_provider = self.build_secret_provider()
-        if kimi_files_client is None and secret_provider.get_secret("kimi.api_key"):
-            kimi_files_client = KimiFilesClient(secret_provider=secret_provider)
-        runtime = self.runtime_container()
-        return FileUploadService(
-            runtime.build_agent_document_repository(),
-            storage_dir=settings.documents.storage_dir,
-            max_file_bytes=settings.documents.max_file_bytes,
-            parser=LocalDocumentParser(),
-            kimi_files_client=kimi_files_client,
-            extraction_service=PageExtractionService(
-                evidence_repository=runtime.build_agent_evidence_repository(),
-                parser=LocalDocumentParser(),
-            ),
-        )
-
-    # ── Pure use-case factories (default adapter wiring) ──
-
-    def build_query_ticker_use_case(self, stock_repo=None, note_repo=None, metadata_source=None) -> QueryTickerUseCase:
-        return QueryTickerUseCase(
-            stock_repo if stock_repo is not None else self.build_stock_repository(),
-            note_repo if note_repo is not None else self.build_note_repository(),
-            metadata_source if metadata_source is not None else self.build_metadata_source(),
-        )
-
-    def build_generate_market_overview_use_case(
-        self,
-        view_repo=None,
-        breadth_service=None,
-        ranking_service=None,
-        anomaly_service=None,
-    ) -> GenerateMarketOverviewUseCase:
-        return GenerateMarketOverviewUseCase(
-            view_repo if view_repo is not None else self.build_view_repository(),
-            breadth_service if breadth_service is not None else self.build_breadth_service(),
-            ranking_service if ranking_service is not None else self.build_ranking_service(),
-            anomaly_service if anomaly_service is not None else self.build_anomaly_service(),
-        )
-
-    def build_generate_anomaly_report_use_case(
-        self,
-        view_repo=None,
-        anomaly_service=None,
-    ) -> GenerateAnomalyReportUseCase:
-        return GenerateAnomalyReportUseCase(
-            view_repo if view_repo is not None else self.build_view_repository(),
-            anomaly_service if anomaly_service is not None else self.build_anomaly_service(),
-        )
-
-    def build_catalog_use_case(self, schema_browser=None, view_service=None) -> GenerateCatalogUseCase:
-        return GenerateCatalogUseCase(
-            schema_browser if schema_browser is not None else self.build_schema_browser(),
-            view_service if view_service is not None else self.build_view_service(),
-        )
-
-    def build_populate_stock_names_use_case(
-        self,
-        stock_repo=None,
-        name_repo=None,
-        metadata_source=None,
-    ) -> PopulateStockNamesUseCase:
-        return PopulateStockNamesUseCase(
-            stock_repo if stock_repo is not None else self.build_stock_repository(),
-            name_repo if name_repo is not None else self.build_stock_name_repository(),
-            metadata_source if metadata_source is not None else self.build_metadata_source(),
-        )
-
-    def build_page_extraction_service(self) -> PageExtractionService:
-        runtime = self.runtime_container()
-        return PageExtractionService(
-            evidence_repository=runtime.build_agent_evidence_repository(),
-            parser=LocalDocumentParser(),
-        )
-
-    # ── Product / tool-service factories (back the agent tool registry) ──
-
-    def build_risk_factor_source(self):
-        return StaticRiskFactorSource()
-
-    def build_industry_classification_source(self):
-        return StaticIndustryClassificationSource()
-
-    def build_portfolio_service(self):
-        return PortfolioService(self.workspace_container().build_portfolio_repository())
-
-    def build_risk_service(self):
-        return RiskService(self.workspace_container().build_portfolio_repository(), self.build_risk_factor_source())
-
-    def build_scenario_service(self):
-        return ScenarioService(self.workspace_container().build_portfolio_repository(), self.build_risk_factor_source())
-
-    def build_financial_statement_repository(self):
-        return StockOverviewFinancialStatementRepository(self.build_stock_service())
-
-    def build_company_announcement_repository(self):
-        return LocalNoteAnnouncementRepository(self.build_note_repository())
-
-    def build_consensus_estimate_repository(self):
-        return UnavailableConsensusEstimateRepository()
-
-    def build_python_analysis_executor(self, settings=None):
-        """Build the explicitly configured Python analysis executor."""
-        settings = settings or get_settings()
-        if not settings.features.python_analysis_enabled:
-            return DisabledCodeExecutor()
-        executor = settings.features.python_analysis_executor
-        if executor == "subprocess":
-            return SubprocessCodeExecutor()
-        return DisabledCodeExecutor()
-
-    def build_tool_application_service(self) -> ToolApplicationService:
-        """Build the fully injected application service used by agent tools."""
-        settings = get_settings()
-        return ToolApplicationService(
-            stock_service_factory=self.build_stock_service,
-            ranking_service_factory=self.build_ranking_service,
-            breadth_service_factory=self.build_breadth_service,
-            anomaly_service_factory=self.build_anomaly_service,
-            view_service_factory=self.build_view_service,
-            portfolio_service_factory=self.build_portfolio_service,
-            risk_service_factory=self.build_risk_service,
-            scenario_service_factory=self.build_scenario_service,
-            rag_service_factory=self.build_rag_service,
-            note_repository_factory=self.build_note_repository,
-            industry_report_use_case_factory=self.build_generate_industry_report_use_case,
-            financial_statement_repository_factory=self.build_financial_statement_repository,
-            company_announcement_repository_factory=self.build_company_announcement_repository,
-            consensus_estimate_repository_factory=self.build_consensus_estimate_repository,
-            industry_classification_source_factory=self.build_industry_classification_source,
-            view_repository_factory=lambda: self.build_view_repository(read_only=True),
-            code_executor=self.build_python_analysis_executor(settings),
-            use_capability_providers=True,
-        )
-
-    def runtime_container(self):
-        """Return the graph-owned runtime container."""
-
-        return self._process_graph().runtime_container
-
-    def workspace_container(self):
-        """Return the graph-owned workspace container."""
-
-        return self._process_graph().workspace_container
-
+    # -- Process graph collaborators --
+    def runtime_container(self): return self._process_graph().runtime_container
+    def workspace_container(self): return self._process_graph().workspace_container
     def _process_graph(self):
-        if self.graph_provider is not None:
-            return self.graph_provider()
+        if self.graph_provider is not None: return self.graph_provider()
         from doge.bootstrap.processes import build_embedded_process
-
         return build_embedded_process(db_path=self.db_path)
 
 
 def build_gateway_container(db_path: Path | str | None = None) -> GatewayContainer:
     """Build the gateway container."""
-
     from doge.bootstrap.processes import build_embedded_process
-
     return build_embedded_process(db_path=db_path).gateway_container

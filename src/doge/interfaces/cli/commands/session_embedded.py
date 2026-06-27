@@ -16,9 +16,10 @@ def resolve_embedded_approval(run_id: str, approval_id: str, approved: bool):
     from doge.interfaces.cli.commands import session as _session
 
     runtime = _session._runtime_container().build_persisted_research_agent_runtime()
-    run = asyncio.run(runtime.resolve_approval(TenantScope.local(), run_id, approval_id, approved))
+    scope = TenantScope.local()
+    run = asyncio.run(runtime.resolve_approval(scope, run_id, approval_id, approved))
     if approved:
-        run = asyncio.run(runtime.run_to_pause_or_completion(run_id))
+        run = asyncio.run(runtime.run_to_pause_or_completion(scope, run_id))
     return run
 
 

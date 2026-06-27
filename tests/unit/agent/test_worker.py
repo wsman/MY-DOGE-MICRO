@@ -6,6 +6,17 @@ from doge.application.agent.worker import AsyncioWorker
 from doge.core.domain.agent_models import RunStatus
 
 
+from doge.shared.scope import TenantScope
+
+
+class FakeScopeResolver:
+    def __init__(self, scopes=None):
+        self.scopes = scopes or {}
+
+    def resolve_scope(self, run_id: str):
+        return self.scopes.get(run_id, TenantScope.local())
+
+
 class FakeRunQueue:
     def __init__(self):
         self.pending = []
@@ -64,11 +75,13 @@ class ProcessingRuntime(FakeRuntime):
     def __init__(self):
         super().__init__()
         self.processed = []
+        self.processed_scopes = []
 
     async def run_to_pause_or_completion(self, scope, run_id: str | None = None):
         if run_id is None:
             run_id = scope
         self.processed.append(run_id)
+        self.processed_scopes.append(scope)
         return type("Run", (), {"status": RunStatus.COMPLETED})()
 
 
@@ -169,3 +182,36 @@ async def test_api_mode_enqueue_does_not_auto_start_worker_loop():
 async def _wait_until_processed(runtime: ProcessingRuntime) -> None:
     while not runtime.processed:
         await asyncio.sleep(0.01)
+
+
+def test_worker_uses_enterprise_scope_for_enterprise_run():
+    asyncio.run(_exercise_worker_enterprise_scope())
+
+
+async def _exercise_worker_enterprise_scope() -> None:
+    queue = FakeRunQueue()
+    runtime = ProcessingRuntime()
+    enterprise_scope = TenantScope.enterprise("tenant-a", "user-hash-a")
+    resolver = FakeScopeResolver({"run-enterprise": enterprise_scope})
+    worker = AsyncioWorker(
+        runtime,
+        FakeSessions(),
+        queue,
+        FakeIdempotencyStore(),
+        scope_resolver=resolver,
+        poll_interval_seconds=0.01,
+    )
+    worker.start()
+    queue.pending.append("run-enterprise")
+
+    try:
+        await asyncio.wait_for(_wait_until_processed(runtime), timeout=1.0)
+    finally:
+        await asyncio.wait_for(worker.stop(), timeout=2.0)
+
+    assert runtime.processed == ["run-enterprise"]
+    assert len(runtime.processed_scopes) == 1
+    scope = runtime.processed_scopes[0]
+    assert scope.tenant_id == "tenant-a"
+    assert scope.subject_hash == "user-hash-a"
+    assert scope.tenant_id != "local"

@@ -15,10 +15,16 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from doge.application.agent.approval_coordinator import ApprovalCoordinator
+from doge.application.agent.artifact_finalizer import ArtifactFinalizer
 from doge.application.agent.context_builder import ContextBuilder
+from doge.application.agent.model_response_assembler import ModelResponseAssembler
 from doge.application.agent.model_router import ModelRouter
+from doge.application.agent.run_lifecycle_service import RunLifecycleService
+from doge.application.agent.run_stepper import RunStepper
 from doge.application.agent.runtime_kernel import RuntimeKernel
 from doge.application.agent.tools import build_default_tool_registry as _build_tool_registry
+from doge.application.agent.transition_recorder import TransitionRecorder
 from doge.application.capabilities.registry import (
     ApiCapabilityProvider,
     FeatureCapabilityProvider,
@@ -135,7 +141,7 @@ class RuntimeContainer:
         }
 
     def build_agent_runtime_kernel(self, model=None, tool_registry=None, event_publisher=None) -> RuntimeKernel:
-        """Build the persisted agent runtime kernel."""
+        """Build the persisted agent runtime kernel from its collaborators."""
         repos = self.build_agent_repositories()
         gateway = self.gateway_container()
         secret_provider = gateway.build_secret_provider()
@@ -149,34 +155,59 @@ class RuntimeContainer:
             tool_registry = self.build_default_tool_registry()
         model_router = self.build_model_router(document_repository=repos["documents"])
         agent_backends = self.build_agent_backends(secret_provider)
-        return RuntimeKernel(
+
+        context_builder = ContextBuilder(
+            document_repository=repos["documents"],
+            evidence_repository=repos["evidence"],
+            session_repository=repos["sessions"],
+            run_repository=repos["runs"],
+        )
+        model_execution = ModelExecutionService(
             model=model,
+            model_router=model_router,
+            agent_backends=agent_backends,
+        )
+        tool_execution = ToolExecutionService(
             tool_registry=tool_registry,
+            governance_repository=repos["governance"],
+        )
+        artifact_evaluation = ArtifactEvaluationService()
+        transition_recorder = TransitionRecorder(
+            transaction_factory=SQLiteRuntimeTransactionFactory(self.db_path),
+            event_publisher=event_publisher,
+        )
+        artifact_finalizer = ArtifactFinalizer(evaluation_service=artifact_evaluation)
+        stepper = RunStepper(
             run_repository=repos["runs"],
             event_repository=repos["events"],
             artifact_repository=repos["artifacts"],
             approval_repository=repos["approvals"],
-            event_publisher=event_publisher,
-            context_builder=ContextBuilder(
-                document_repository=repos["documents"],
-                evidence_repository=repos["evidence"],
-                session_repository=repos["sessions"],
-                run_repository=repos["runs"],
-            ),
-            model_router=model_router,
-            agent_backends=agent_backends,
-            governance_repository=repos["governance"],
-            model_execution_service=ModelExecutionService(
-                model=model,
-                model_router=model_router,
-                agent_backends=agent_backends,
-            ),
-            tool_execution_service=ToolExecutionService(
-                tool_registry=tool_registry,
-                governance_repository=repos["governance"],
-            ),
-            artifact_evaluation_service=ArtifactEvaluationService(),
-            runtime_transaction_factory=SQLiteRuntimeTransactionFactory(self.db_path),
+            context_builder=context_builder,
+            response_assembler=ModelResponseAssembler(),
+            model_execution_service=model_execution,
+            tool_execution_service=tool_execution,
+            artifact_finalizer=artifact_finalizer,
+            transition_recorder=transition_recorder,
+        )
+        lifecycle = RunLifecycleService(
+            run_repository=repos["runs"],
+            event_repository=repos["events"],
+            artifact_repository=repos["artifacts"],
+            approval_repository=repos["approvals"],
+            transition_recorder=transition_recorder,
+            run_stepper=stepper,
+        )
+        approval_coordinator = ApprovalCoordinator(
+            run_repository=repos["runs"],
+            approval_repository=repos["approvals"],
+            transition_recorder=transition_recorder,
+        )
+        return RuntimeKernel(
+            lifecycle_service=lifecycle,
+            stepper=stepper,
+            transition_recorder=transition_recorder,
+            approval_coordinator=approval_coordinator,
+            artifact_finalizer=artifact_finalizer,
         )
 
     def build_research_agent_runtime(self, model: Any = None, tool_registry: Any = None) -> InMemoryResearchAgentRuntime:

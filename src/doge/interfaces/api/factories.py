@@ -33,6 +33,7 @@ def build_daemon_worker(
     run_queue: Any,
     idempotency_store: Any,
     unit_of_work: Any,
+    scope_resolver: Any,
     auto_start: bool,
 ):
     """Build the singleton asyncio daemon worker from its wired collaborators."""
@@ -44,6 +45,7 @@ def build_daemon_worker(
         run_queue,
         idempotency_store,
         unit_of_work,
+        scope_resolver=scope_resolver,
         auto_start=auto_start,
     )
 

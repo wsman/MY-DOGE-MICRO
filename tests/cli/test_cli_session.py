@@ -80,7 +80,8 @@ def test_cli_embedded_approval_continues_run(monkeypatch, capsys):
             assert (run_id, approval_id, approved) == ("run-cli", "appr-1", True)
             return SimpleNamespace(run_id=run_id, status=SimpleNamespace(value="queued"), artifacts=[], approvals=[])
 
-        async def run_to_pause_or_completion(self, run_id):
+        async def run_to_pause_or_completion(self, scope, run_id):
+            assert scope.tenant_id == "local"
             return SimpleNamespace(
                 run_id=run_id,
                 status=SimpleNamespace(value="completed"),

@@ -30,6 +30,7 @@ _agent_unit_of_work = None
 _runtime_outbox_publisher = None
 _file_upload_service = None
 _enterprise_governance_repository = None
+_run_scope_resolver = None
 
 
 def get_settings_dep() -> Settings:
@@ -242,6 +243,16 @@ def get_existing_daemon_worker():
     return _worker
 
 
+def get_run_scope_resolver():
+    """Provide a scope resolver that reads run header identity metadata directly."""
+    global _run_scope_resolver
+    if _run_scope_resolver is None:
+        from doge.infrastructure.database.run_scope_resolver import SQLiteRunScopeResolver
+
+        _run_scope_resolver = SQLiteRunScopeResolver(_container.runtime.db_path)
+    return _run_scope_resolver
+
+
 def get_daemon_worker():
     """Provide the singleton daemon worker."""
     global _worker
@@ -253,6 +264,7 @@ def get_daemon_worker():
             run_queue=get_run_queue(),
             idempotency_store=get_idempotency_store(),
             unit_of_work=get_agent_unit_of_work(),
+            scope_resolver=get_run_scope_resolver(),
             auto_start=settings.daemon.process_role != "api",
         )
     return _worker

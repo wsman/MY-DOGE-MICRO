@@ -44,8 +44,10 @@ async def create_run(
     body: AgentRunRequest,
     runtime: IResearchAgentRuntime = Depends(deps.get_research_agent_runtime),
 ):
-    run = await runtime.create_run(body.model_dump())
-    run = await runtime.run_to_pause_or_completion(run.run_id)
+    """Legacy local compatibility route. New clients should use ``/v1/sessions/{id}/turns``."""
+    scope = TenantScope.local()
+    run = await runtime.create_run(scope, body.model_dump())
+    run = await runtime.run_to_pause_or_completion(scope, run.run_id)
     return _serialize(run)
 
 
@@ -76,6 +78,13 @@ async def stream_events(
     run_id: str,
     runtime: IResearchAgentRuntime = Depends(deps.get_research_agent_runtime),
 ):
+    """Legacy replay-only stream. New clients should use ``/v1/runs/{run_id}/stream``.
+
+    This route calls ``runtime.stream_events`` directly, which yields only
+    events already persisted at the time of the call. It does not subscribe to
+    new events. For live streaming, use the v1 route with ``RunStreamHandler``
+    and ``IEventSubscriber.subscribe`` (see ADR-0025).
+    """
     async def event_generator():
         try:
             async for event in runtime.stream_events(TenantScope.local(), run_id):

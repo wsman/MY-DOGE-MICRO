@@ -11,6 +11,7 @@ from doge.core.domain.agent_models import AgentRun, RunStatus
 from doge.core.ports.agent_repository import ISessionRepository
 from doge.core.ports.agent_runtime import IResearchAgentRuntime
 from doge.core.ports.idempotency_store import IIdempotencyStore
+from doge.core.ports.run_scope_resolver import IRunScopeResolver
 from doge.core.ports.unit_of_work import IAgentUnitOfWork
 from doge.core.ports.worker_queue import IRunQueue
 from doge.shared.scope import TenantScope
@@ -26,6 +27,7 @@ class AsyncioWorker:
         run_queue: IRunQueue,
         idempotency_store: IIdempotencyStore,
         unit_of_work: IAgentUnitOfWork | None = None,
+        scope_resolver: IRunScopeResolver | None = None,
         worker_id: str | None = None,
         lease_seconds: int = 30,
         heartbeat_interval_seconds: float | None = None,
@@ -37,6 +39,7 @@ class AsyncioWorker:
         self._run_queue = run_queue
         self._idempotency = idempotency_store
         self._unit_of_work = unit_of_work
+        self._scope_resolver = scope_resolver
         self._worker_id = worker_id or f"worker-{uuid4().hex[:12]}"
         self._lease_seconds = lease_seconds
         self._heartbeat_interval_seconds = heartbeat_interval_seconds or max(1.0, lease_seconds / 3)
@@ -211,7 +214,9 @@ class AsyncioWorker:
                             await heartbeat_task
             except Exception:
                 if run_id is not None:
-                    await _record_runtime_failure(self._runtime, run_id, "runtime failure")
+                    await _record_runtime_failure(
+                        self._runtime, run_id, "runtime failure", self._scope_resolver
+                    )
                     self._run_queue.release_claim(run_id, self._worker_id, "failed")
             finally:
                 if has_signal:
@@ -221,7 +226,18 @@ class AsyncioWorker:
         return self._run_queue.is_ready()
 
     def _scope_for_run(self, run_id: str) -> TenantScope:
-        return _scope_from_run(self._runtime.get_run(run_id))
+        """Resolve the persisted tenant scope for a queued run.
+
+        The worker must discover scope without a caller-provided tenant filter,
+        because queue entries currently store only the run id. A dedicated
+        ``IRunScopeResolver`` reads the run header's identity metadata directly.
+        """
+        if self._scope_resolver is not None:
+            return self._scope_resolver.resolve_scope(run_id)
+        # Fallback for callers that have not yet wired a resolver: load the run
+        # through the local-scope compatibility path. This preserves existing
+        # local-daemon behavior but is not sufficient for enterprise tenant queues.
+        return _scope_from_run(self._runtime.get_run(TenantScope.local(), run_id))
 
     def _enqueue_local(self, run_id: str) -> None:
         if run_id in self._queued_run_ids:
@@ -249,12 +265,22 @@ def _queue_status_for_run(run: AgentRun) -> str:
     return "done"
 
 
-async def _record_runtime_failure(runtime: IResearchAgentRuntime, run_id: str, message: str) -> None:
+async def _record_runtime_failure(
+    runtime: IResearchAgentRuntime,
+    run_id: str,
+    message: str,
+    scope_resolver: IRunScopeResolver | None = None,
+) -> None:
     record_failure = getattr(runtime, "record_failure", None)
     if record_failure is None:
         return
     with suppress(Exception):
-        await record_failure(_scope_from_run(runtime.get_run(run_id)), run_id, message)
+        scope = (
+            scope_resolver.resolve_scope(run_id)
+            if scope_resolver is not None
+            else _scope_from_run(runtime.get_run(TenantScope.local(), run_id))
+        )
+        await record_failure(scope, run_id, message)
 
 
 def _scope_from_snapshot(snapshot: dict[str, Any] | None) -> TenantScope:

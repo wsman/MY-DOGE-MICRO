@@ -94,3 +94,130 @@ class IArtifactEvaluationService(Protocol):
 
     def metrics(self, artifact_text: str, events: list[AgentEvent]) -> dict[str, Any]:
         ...
+
+
+class ITransitionRecorder(Protocol):
+    async def record(
+        self,
+        run: AgentRun,
+        *,
+        status: Any = None,
+        events: list[tuple[Any, dict[str, Any]]] | None = None,
+        artifacts: list[Any] | None = None,
+        approvals: list[Any] | None = None,
+        save_run: bool = False,
+    ) -> list[AgentEvent]:
+        ...
+
+
+class IRunStepper(Protocol):
+    async def step(self, run_id: str, *, tenant_id: str | None = None) -> AgentRun:
+        ...
+
+
+class IApprovalCoordinator(Protocol):
+    async def resolve(
+        self,
+        scope: Any,
+        run_id: str | None,
+        approval_id: str | bool | None,
+        approved: bool,
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun:
+        ...
+
+
+class IArtifactFinalizer(Protocol):
+    def build_artifact(
+        self,
+        run: AgentRun,
+        response_content: str,
+        events: list[AgentEvent],
+        *,
+        usage: dict[str, Any] | None = None,
+    ) -> AgentArtifact:
+        ...
+
+
+class IRunLifecycleService(Protocol):
+    async def create_run(self, request: dict[str, Any], *, tenant_id: str | None = None) -> AgentRun:
+        ...
+
+    async def run_to_pause_or_completion(self, run_id: str, *, tenant_id: str | None = None) -> AgentRun:
+        ...
+
+    async def queue_run(
+        self,
+        scope: Any,
+        run_id: str | None = None,
+        reason: str = "queued",
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun:
+        ...
+
+    async def cancel_run(
+        self,
+        scope: Any,
+        run_id: str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun:
+        ...
+
+    async def finalize_cancelled(
+        self,
+        scope: Any,
+        run_id: str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun:
+        ...
+
+    async def record_failure(
+        self,
+        scope: Any,
+        run_id: str | None = None,
+        message: str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun:
+        ...
+
+    def get_run(
+        self,
+        scope: Any,
+        run_id: str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun | None:
+        ...
+
+    def list_events(
+        self,
+        scope: Any,
+        run_id: str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> list[AgentEvent]:
+        ...
+
+    def list_runs(
+        self,
+        scope: Any | None = None,
+        session_id: str | None = None,
+        limit: int = 20,
+        *,
+        tenant_id: str | None = None,
+    ) -> list[AgentRun]:
+        ...
+
+    def list_artifacts(
+        self,
+        scope: Any,
+        run_id: str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> list[Any]:
+        ...

@@ -58,6 +58,7 @@ from doge.core.ports.repository import (
     StorageWriteError,
 )
 from doge.core.ports.runtime_transaction import IOutboxRepository, IRuntimeTransaction, IRuntimeTransactionFactory
+from doge.core.ports.run_scope_resolver import IRunScopeResolver
 from doge.core.ports.runtime_services import (
     IArtifactEvaluationService,
     IModelExecutionService,
@@ -118,6 +119,7 @@ __all__ = [
     "IRuntimeTransactionFactory",
     "IRunQueue",
     "IRunRepository",
+    "IRunScopeResolver",
     "IRiskFactorSource",
     "ISecretProvider",
     "ISchemaBrowser",
