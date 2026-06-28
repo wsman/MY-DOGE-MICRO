@@ -194,21 +194,25 @@ class _RaisingAfterResponses(FakeMarketViewRepository):
 # Bootstrap containers own the infrastructure import (composition is a shim)
 # ---------------------------------------------------------------------------
 def test_bootstrap_owns_infrastructure_imports():
-    """P1B: bootstrap containers import infrastructure; composition and services do not."""
+    """P1B: bootstrap wiring modules import infrastructure; composition and services do not."""
     import doge.application.composition as comp
     import doge.bootstrap.gateway_factories as gateway_factories
-    from doge.bootstrap import gateway, runtime, workspace
+    from doge.bootstrap import runtime, workspace
 
     comp_source = Path(inspect.getfile(comp)).read_text(encoding="utf-8")
     assert "from doge.infrastructure" not in comp_source, (
         "doge.application.composition must be a thin shim with no infrastructure imports"
     )
     # The bootstrap container(s) and their bounded-context factory modules are the
-    # sanctioned wiring sites. GatewayContainer itself is now a thin facade, so the
-    # infrastructure wiring lives in the factory modules.
-    wiring_modules = [runtime, workspace]
+    # sanctioned wiring sites. GatewayContainer and RuntimeContainer are now thin
+    # facades, so their infrastructure wiring lives in the factory modules.
+    runtime_source = Path(inspect.getfile(runtime)).read_text(encoding="utf-8")
+    assert "from doge.infrastructure" not in runtime_source
+    wiring_modules = [workspace]
     for factory_module in gateway_factories.__all__:
         wiring_modules.append(importlib.import_module(f"doge.bootstrap.gateway_factories.{factory_module}"))
+    for factory_module in ("repositories", "runtime_kernel", "use_cases"):
+        wiring_modules.append(importlib.import_module(f"doge.bootstrap.runtime_factories.{factory_module}"))
     for mod in wiring_modules:
         source = Path(inspect.getfile(mod)).read_text(encoding="utf-8")
         assert "from doge.infrastructure" in source, (

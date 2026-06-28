@@ -35,7 +35,7 @@ _RUNTIME_LEAF_FACTORIES = [
     "build_agent_unit_of_work",
 ]
 
-# High-level runtime factories that RuntimeContainer must own directly (P1A).
+# High-level runtime factories that RuntimeContainer must keep as public facade methods (P1A).
 _RUNTIME_HIGH_LEVEL_FACTORIES = [
     "build_research_agent_runtime",
     "build_persisted_research_agent_runtime",
@@ -45,6 +45,24 @@ _RUNTIME_HIGH_LEVEL_FACTORIES = [
     "build_execute_run_use_case",
     "build_resume_run_use_case",
 ]
+
+_RUNTIME_FACTORY_MODULE_BY_METHOD = {
+    "build_agent_repositories": "repositories",
+    "build_runtime_outbox_repository": "repositories",
+    "build_event_subscriber": "repositories",
+    "build_agent_document_repository": "repositories",
+    "build_agent_evidence_repository": "repositories",
+    "build_agent_run_queue": "repositories",
+    "build_agent_idempotency_store": "repositories",
+    "build_agent_unit_of_work": "repositories",
+    "build_research_agent_runtime": "runtime_kernel",
+    "build_persisted_research_agent_runtime": "runtime_kernel",
+    "build_run_summary_use_case": "use_cases",
+    "build_capability_registry_use_case": "use_cases",
+    "build_default_tool_registry": "tools",
+    "build_execute_run_use_case": "use_cases",
+    "build_resume_run_use_case": "use_cases",
+}
 
 _WORKSPACE_FACTORIES = [
     "build_portfolio_repository",
@@ -110,6 +128,7 @@ def test_runtime_container_leaf_factories_do_not_delegate_to_composition() -> No
 
         assert "composition." not in source
         assert "_composition()" not in source
+        assert f"{_RUNTIME_FACTORY_MODULE_BY_METHOD[method_name]}.{method_name}" in source
 
 
 def test_runtime_module_has_no_composition_helper() -> None:
@@ -120,14 +139,15 @@ def test_runtime_module_has_no_composition_helper() -> None:
     assert "doge.application.composition" not in source
 
 
-def test_runtime_container_owns_high_level_factories_directly() -> None:
-    """P1A: RuntimeContainer owns the high-level runtime factories, not composition."""
+def test_runtime_container_retains_high_level_factory_facade_methods() -> None:
+    """P1A: RuntimeContainer exposes the high-level runtime factories, not composition."""
     for method_name in _RUNTIME_HIGH_LEVEL_FACTORIES:
         assert hasattr(RuntimeContainer, method_name), f"RuntimeContainer missing {method_name}"
         source = inspect.getsource(getattr(RuntimeContainer, method_name))
 
         assert "composition." not in source
         assert "_composition()" not in source
+        assert f"{_RUNTIME_FACTORY_MODULE_BY_METHOD[method_name]}.{method_name}" in source
 
 
 def test_composition_high_level_factories_are_runtime_container_shims() -> None:
