@@ -16,15 +16,16 @@ latest_remotely_verified_sha:
     - "A future commit containing further platformization work (composition-root closure, interface splits, workspace bounded-context migration) will require its own exact-SHA GitHub Actions evidence before that newer HEAD is called remotely verified."
 
 current_pushed_head_local_evidence:
-  head_sha: "f619d3947bd4de11209e5ff40e6e0aebccbb2979"
+  head_sha: "28f6a1a751f5fa79714728aece1f6465b2795b5a"
   evidence: production/qa/evidence/architecture-remediation-acceptance-2026-06-28.md
-  remote_ci_evidence: production/qa/evidence/ci/remote-ci-f619d39.json
+  remote_ci_evidence: production/qa/evidence/ci/remote-ci-28f6a1a.json
   local_architecture_status: passed
   remote_ci_result: passed
-  remote_ci_run_id: 28314323538
+  remote_ci_run_id: 28322343236
   notes:
-    - "Current pushed HEAD f619d3947bd4de11209e5ff40e6e0aebccbb2979 has local architecture remediation evidence and is already on origin/main."
-    - "Exact-SHA remote CI for current pushed HEAD f619d39 passed: GitHub Actions run 28314323538 completed with conclusion=success on a push event for the CI workflow; evidence is stored at production/qa/evidence/ci/remote-ci-f619d39.json."
+    - "Current pushed HEAD 28f6a1a751f5fa79714728aece1f6465b2795b5a has Sprint A runtime boundary convergence evidence and is already on origin/main."
+    - "Exact-SHA remote CI for current pushed HEAD 28f6a1a passed: GitHub Actions run 28322343236 completed with conclusion=success on a push event for the CI workflow; evidence is stored at production/qa/evidence/ci/remote-ci-28f6a1a.json."
+    - "Prior pushed HEAD f619d3947bd4de11209e5ff40e6e0aebccbb2979 (run 28314323538) is retained as a verified intermediate step; runtime boundary convergence work landed in the subsequent commit 28f6a1a."
 
 maturity_labels:
   level_1_embedded_cli_session: preview

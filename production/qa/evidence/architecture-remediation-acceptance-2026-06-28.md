@@ -4,9 +4,9 @@
 **Repository**: `D:\Users\WSMAN\Desktop\Coding Task\MY-DOGE-MICRO`
 **Review Date**: 2026-06-28
 **Baseline HEAD**: `65f6efa4b492c7f3e5fc7d81e5ebd72942925ec1`
-**Committed SHA**: `f619d3947bd4de11209e5ff40e6e0aebccbb2979`
-**Commit message**: `refactor: split runtime container factories`
-**Report status**: Post-amend architecture remediation acceptance report; SHA and remote-CI status calibrated after `f619d3947bd4de11209e5ff40e6e0aebccbb2979` was pushed to `origin/main`.
+**Committed SHA**: `28f6a1a751f5fa79714728aece1f6465b2795b5a`
+**Commit message**: `refactor: converge runtime boundary contracts`
+**Report status**: Post-amend architecture remediation acceptance report; SHA and remote-CI status calibrated after `28f6a1a751f5fa79714728aece1f6465b2795b5a` was pushed to `origin/main`.
 **Verdict**: `GO (local architecture scope clean; full pytest has 3 known non-scope failures)`
 
 ---
@@ -220,10 +220,10 @@ _Note: count increased from 46 to 47 because this acceptance report itself is pa
 
 ## 9. Recommended Next Steps
 
-1. **Exact-SHA remote CI evidence**: `production/qa/evidence/ci/remote-ci-f619d39.json` validates for `f619d3947bd4de11209e5ff40e6e0aebccbb2979`. GitHub Actions run `28314323538` completed with `conclusion=success` for workflow `CI`: `https://github.com/wsman/MY-DOGE-MICRO/actions/runs/28314323538`.
+1. **Exact-SHA remote CI evidence**: `production/qa/evidence/ci/remote-ci-28f6a1a.json` validates for `28f6a1a751f5fa79714728aece1f6465b2795b5a`. GitHub Actions run `28322343236` completed with `conclusion=success` for workflow `CI`: `https://github.com/wsman/MY-DOGE-MICRO/actions/runs/28322343236`. The prior intermediate push `f619d3947bd4de11209e5ff40e6e0aebccbb2979` also has exact-SHA remote CI evidence (`production/qa/evidence/ci/remote-ci-f619d39.json`, run `28314323538`).
 2. **Track non-blocking failures separately**: The 3 remaining failures (MCP stdio timeout, yfinance dtype drift, plan closure SHA256 drift) should be triaged in follow-up tasks outside this architecture remediation.
 3. **External gates still require operator action**: S017-002, S017-003, W3-live, AUTH-prod, S017-007 remain open and cannot be closed autonomously.
-4. **Current HEAD remote status**: `f619d3947bd4de11209e5ff40e6e0aebccbb2979` is the pushed current HEAD and has matching exact-SHA remote CI evidence at `production/qa/evidence/ci/remote-ci-f619d39.json`.
+4. **Current HEAD remote status**: `28f6a1a751f5fa79714728aece1f6465b2795b5a` is the pushed current HEAD and has matching exact-SHA remote CI evidence at `production/qa/evidence/ci/remote-ci-28f6a1a.json`.
 
 ---
 
