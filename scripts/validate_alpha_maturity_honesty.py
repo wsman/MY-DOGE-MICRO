@@ -92,6 +92,24 @@ PROMOTION_CLAIM_RE = re.compile(
     re.IGNORECASE,
 )
 
+LEVEL_3_LABEL_RE = re.compile(r"\blevel_3_sdk_platform:\s*(?!experimental\b)\S+", re.IGNORECASE)
+
+POSTURE_REQUIREMENTS = {
+    "production_ready false": [
+        re.compile(r"\bproduction_ready:\s*false\b", re.IGNORECASE),
+        re.compile(r"\|\s*production ready\s*\|\s*`?false`?\s*\|", re.IGNORECASE),
+    ],
+    "stable_declaration forbidden": [
+        re.compile(r"\bstable_declaration:\s*forbidden\b", re.IGNORECASE),
+        re.compile(r"\|\s*stable declaration\s*\|\s*`?forbidden`?\s*\|", re.IGNORECASE),
+    ],
+    "Level 3 experimental": [
+        re.compile(r"\blevel_3_sdk_platform:\s*experimental\b", re.IGNORECASE),
+        re.compile(r"\blevel 3\b[^|\n]*\|\s*`?experimental`?\s*\|", re.IGNORECASE),
+        re.compile(r"\blevel 3\s+`experimental`", re.IGNORECASE),
+    ],
+}
+
 SAFE_CONTEXT_MARKERS = [
     "not",
     "no ",
@@ -127,19 +145,37 @@ SAFE_NEARBY_CONTEXT_MARKERS = [
 ]
 
 
-def validate_texts(files: Mapping[str, str]) -> list[str]:
+def validate_texts(
+    files: Mapping[str, str],
+    *,
+    require_alpha_file_set: bool = True,
+    require_posture_evidence: bool = False,
+) -> list[str]:
     errors: list[str] = []
-    for file_id, snippets in REQUIRED_SNIPPETS.items():
-        text = files.get(file_id)
-        if text is None:
-            errors.append(f"missing scanned alpha maturity file: {file_id}")
-            continue
-        for snippet in snippets:
-            if snippet not in text:
-                errors.append(f"{file_id}: missing required non-promotion snippet: {snippet}")
+    if require_alpha_file_set:
+        for file_id, snippets in REQUIRED_SNIPPETS.items():
+            text = files.get(file_id)
+            if text is None:
+                errors.append(f"missing scanned alpha maturity file: {file_id}")
+                continue
+            for snippet in snippets:
+                if snippet not in text:
+                    errors.append(f"{file_id}: missing required non-promotion snippet: {snippet}")
+
+    if require_posture_evidence:
+        errors.extend(_validate_posture_evidence(files))
 
     for file_id, text in files.items():
         errors.extend(_scan_file(file_id, text))
+    return errors
+
+
+def _validate_posture_evidence(files: Mapping[str, str]) -> list[str]:
+    combined = "\n".join(files.values())
+    errors: list[str] = []
+    for label, patterns in POSTURE_REQUIREMENTS.items():
+        if not any(pattern.search(combined) for pattern in patterns):
+            errors.append(f"missing required maturity posture evidence: {label}")
     return errors
 
 
@@ -156,6 +192,11 @@ def _scan_file(file_id: str, text: str) -> list[str]:
         if re.search(r"\bstable_declaration:\s*(?!forbidden\b)\S+", lower):
             errors.append(
                 f"{file_id}:{index + 1}: stable_declaration must remain forbidden in Alpha maturity evidence"
+            )
+            continue
+        if LEVEL_3_LABEL_RE.search(lower):
+            errors.append(
+                f"{file_id}:{index + 1}: level_3_sdk_platform must remain experimental in Alpha maturity evidence"
             )
             continue
         if not PROMOTION_CLAIM_RE.search(line):
@@ -211,7 +252,10 @@ def _file_id(path: Path) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Validate that Alpha Magical Peach evidence keeps non-production maturity posture."
+        description=(
+            "Validate that Alpha Magical Peach evidence, or an explicit file set, "
+            "keeps non-production maturity posture."
+        )
     )
     parser.add_argument(
         "--file",
@@ -222,9 +266,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    paths = args.files if args.files else DEFAULT_FILES
+    explicit_files = bool(args.files)
+    paths = args.files if explicit_files else DEFAULT_FILES
     payload = _default_file_map(paths)
-    errors = validate_texts(payload)
+    errors = validate_texts(
+        payload,
+        require_alpha_file_set=not explicit_files,
+        require_posture_evidence=explicit_files,
+    )
     result = {
         "passed": not errors,
         "errors": errors,

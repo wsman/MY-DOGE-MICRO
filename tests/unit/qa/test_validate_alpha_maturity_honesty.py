@@ -20,6 +20,27 @@ def test_alpha_maturity_honesty_accepts_current_evidence_files():
     assert '"passed": true' in result.stdout
 
 
+def test_alpha_maturity_honesty_accepts_explicit_maturity_file_set():
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "validate_alpha_maturity_honesty.py"),
+            "--file",
+            "README.md",
+            "--file",
+            "docs/progress/runtime-maturity.yaml",
+            "--file",
+            "production/qa/evidence/architecture-remediation-acceptance-2026-06-28.md",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert '"passed": true' in result.stdout
+
+
 def test_alpha_maturity_honesty_rejects_direct_production_ready_claim():
     files = _valid_files()
     files["docs/progress/runtime-maturity.yaml"] += "\nrelease_claim: production-ready\n"
@@ -73,6 +94,15 @@ def test_alpha_maturity_honesty_rejects_non_forbidden_stable_declaration():
     errors = validate_texts(files)
 
     assert any("stable_declaration must remain forbidden" in error for error in errors)
+
+
+def test_alpha_maturity_honesty_rejects_non_experimental_level_3_label():
+    files = _valid_files()
+    files["docs/progress/runtime-maturity.yaml"] += "\nlevel_3_sdk_platform: stable\n"
+
+    errors = validate_texts(files)
+
+    assert any("level_3_sdk_platform must remain experimental" in error for error in errors)
 
 
 def _valid_files() -> dict[str, str]:

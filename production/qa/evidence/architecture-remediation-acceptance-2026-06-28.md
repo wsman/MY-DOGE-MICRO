@@ -4,6 +4,9 @@
 **Repository**: `D:\Users\WSMAN\Desktop\Coding Task\MY-DOGE-MICRO`
 **Review Date**: 2026-06-28
 **Baseline HEAD**: `65f6efa4b492c7f3e5fc7d81e5ebd72942925ec1`
+**Committed SHA**: `03bfe4f6fd3256b3285d5538ecc68ace984a7815`
+**Commit message**: `refactor: split runtime kernel and gateway factories`
+**Report status**: Post-amend architecture remediation acceptance report; SHA and remote-CI status calibrated after `03bfe4f6fd3256b3285d5538ecc68ace984a7815` was pushed to `origin/main`.
 **Verdict**: `GO (local architecture scope clean; full pytest has 3 known non-scope failures)`
 
 ---
@@ -16,7 +19,7 @@ The architecture remediation plan targeted three local structural debts:
 2. GatewayContainer monolithic decomposition
 3. Scope-first runtime call + streaming semantics contract hardening
 
-All three targets were met. The full Python test suite passes with 1683 tests; 3 failures remain and are confirmed to be outside the scope of this architecture remediation (environment timeout, dependency dtype drift, and pre-existing plan-closure handoff drift).
+All three targets were met. The full Python test suite completed with 1683 passed, 8 skipped, and 3 failures confirmed to be outside the scope of this architecture remediation (environment timeout, dependency dtype drift, and pre-existing plan-closure handoff drift).
 
 ---
 
@@ -217,10 +220,10 @@ _Note: count increased from 46 to 47 because this acceptance report itself is pa
 
 ## 9. Recommended Next Steps
 
-1. **Commit authorization pending**: Do not commit without explicit user instruction. Before committing, verify `git status --short` from Windows Git contains only the 47 items listed above (including this report).
-2. **Optional pre-commit**: Run `python -m pytest tests/unit/architecture/ tests/unit/agent/ tests/unit/core/services/test_view_services_port_injection.py tests/integration/test_multimodal_chat.py -q` as a focused smoke check.
-3. **Track non-blocking failures separately**: The 3 remaining failures (MCP stdio timeout, yfinance dtype drift, plan closure SHA256 drift) should be triaged in follow-up tasks outside this architecture remediation.
-4. **External gates still require operator action**: S017-002, S017-003, W3-live, AUTH-prod, S017-007 remain open and cannot be closed autonomously.
+1. **Exact-SHA remote CI evidence**: Run `python scripts/verify_remote_ci_evidence.py --head-sha 03bfe4f6fd3256b3285d5538ecc68ace984a7815` after pushing to origin. This environment currently hits GitHub API HTTP 403 rate limits without `GITHUB_TOKEN` or `GH_TOKEN`, so remote CI evidence must be collected by an operator or in a CI run.
+2. **Track non-blocking failures separately**: The 3 remaining failures (MCP stdio timeout, yfinance dtype drift, plan closure SHA256 drift) should be triaged in follow-up tasks outside this architecture remediation.
+3. **External gates still require operator action**: S017-002, S017-003, W3-live, AUTH-prod, S017-007 remain open and cannot be closed autonomously.
+4. **Current HEAD remote status**: `03bfe4f6fd3256b3285d5538ecc68ace984a7815` is the pushed current HEAD, but it must remain `pending_exact_sha_evidence` until a matching `remote-ci-03bfe4f.json` record exists and validates.
 
 ---
 
