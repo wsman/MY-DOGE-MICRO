@@ -16,16 +16,17 @@ latest_remotely_verified_sha:
     - "A future commit containing further platformization work (composition-root closure, interface splits, workspace bounded-context migration) will require its own exact-SHA GitHub Actions evidence before that newer HEAD is called remotely verified."
 
 current_pushed_head_local_evidence:
-  head_sha: "28f6a1a751f5fa79714728aece1f6465b2795b5a"
-  evidence: production/qa/evidence/architecture-remediation-acceptance-2026-06-28.md
-  remote_ci_evidence: production/qa/evidence/ci/remote-ci-28f6a1a.json
+  head_sha: "fd1768fa690a9a0c3a8d7905a7b72f0af54f6b04"
+  evidence: production/qa/evidence/sprint-b-citation-evidence-acceptance-2026-06-28.md
+  remote_ci_evidence: production/qa/evidence/ci/remote-ci-fd1768f.json
   local_architecture_status: passed
   remote_ci_result: passed
-  remote_ci_run_id: 28322343236
+  remote_ci_run_id: 28326916286
   notes:
-    - "Current pushed HEAD 28f6a1a751f5fa79714728aece1f6465b2795b5a has Sprint A runtime boundary convergence evidence and is already on origin/main."
-    - "Exact-SHA remote CI for current pushed HEAD 28f6a1a passed: GitHub Actions run 28322343236 completed with conclusion=success on a push event for the CI workflow; evidence is stored at production/qa/evidence/ci/remote-ci-28f6a1a.json."
-    - "Prior pushed HEAD f619d3947bd4de11209e5ff40e6e0aebccbb2979 (run 28314323538) is retained as a verified intermediate step; runtime boundary convergence work landed in the subsequent commit 28f6a1a."
+    - "Current pushed HEAD fd1768fa690a9a0c3a8d7905a7b72f0af54f6b04 has Sprint B citation/evidence closure evidence and is already on origin/main."
+    - "Exact-SHA remote CI for current pushed HEAD fd1768f passed: GitHub Actions run 28326916286 completed with conclusion=success on a push event for the CI workflow; evidence is stored at production/qa/evidence/ci/remote-ci-fd1768f.json."
+    - "Prior pushed HEAD 28f6a1a751f5fa79714728aece1f6465b2795b5a (run 28322343236) is retained as a verified intermediate step; Sprint B work landed in the subsequent commit fd1768f."
+    - "Sprint B local acceptance: 53 targeted tests passed, full regression 1777 passed with 3 pre-existing failures, ADR-0026 and Sprint B CDD accepted, runtime_document_context gate passed."
 
 maturity_labels:
   level_1_embedded_cli_session: preview

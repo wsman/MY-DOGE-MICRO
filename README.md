@@ -37,9 +37,9 @@ readiness while those values remain unchanged.
 
 Remote verification is SHA-specific. The promoted remote baseline remains
 `b5ab80bc802df36b58a1e56225a87b0f2473b29e`; the current pushed HEAD
-`28f6a1a751f5fa79714728aece1f6465b2795b5a` also has exact-SHA CI evidence:
-GitHub Actions run `28322343236`, stored at
-`production/qa/evidence/ci/remote-ci-28f6a1a.json`.
+`fd1768fa690a9a0c3a8d7905a7b72f0af54f6b04` also has exact-SHA CI evidence:
+GitHub Actions run `28326916286`, stored at
+`production/qa/evidence/ci/remote-ci-fd1768f.json`.
 
 ## Documentation Map
 

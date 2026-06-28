@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 LATEST_REMOTE_SHA = "b5ab80bc802df36b58a1e56225a87b0f2473b29e"
-CURRENT_HEAD_SHA = "28f6a1a751f5fa79714728aece1f6465b2795b5a"
+CURRENT_HEAD_SHA = "fd1768fa690a9a0c3a8d7905a7b72f0af54f6b04"
 
 
 def _read(path: str) -> str:
@@ -23,8 +23,8 @@ def test_runtime_maturity_separates_latest_remote_sha_from_current_head() -> Non
     assert "current_pushed_head_local_evidence:" in maturity
     assert CURRENT_HEAD_SHA in maturity
     assert "remote_ci_result: passed" in maturity
-    assert "remote_ci_run_id: 28322343236" in maturity
-    assert "remote-ci-28f6a1a.json" in maturity
+    assert "remote_ci_run_id: 28326916286" in maturity
+    assert "remote-ci-fd1768f.json" in maturity
 
 
 def test_readme_does_not_claim_current_head_is_remotely_verified() -> None:
@@ -32,17 +32,17 @@ def test_readme_does_not_claim_current_head_is_remotely_verified() -> None:
 
     assert f"promoted remote baseline remains\n`{LATEST_REMOTE_SHA}`" in readme
     assert f"current pushed HEAD\n`{CURRENT_HEAD_SHA}`" in readme
-    assert "GitHub Actions run `28322343236`" in readme
-    assert "remote-ci-28f6a1a.json" in readme
+    assert "GitHub Actions run `28326916286`" in readme
+    assert "remote-ci-fd1768f.json" in readme
 
 
 def test_acceptance_report_targets_current_head_remote_ci_evidence() -> None:
-    report = _read("production/qa/evidence/architecture-remediation-acceptance-2026-06-28.md")
+    report = _read("production/qa/evidence/sprint-b-citation-evidence-acceptance-2026-06-28.md")
 
-    assert f"**Committed SHA**: `{CURRENT_HEAD_SHA}`" in report
-    assert "production/qa/evidence/ci/remote-ci-28f6a1a.json" in report
-    assert "GitHub Actions run `28322343236`" in report
-    assert "Post-amend architecture remediation acceptance report" in report
+    assert f"Committed SHA: `{CURRENT_HEAD_SHA}`" in report
+    assert "production/qa/evidence/ci/remote-ci-fd1768f.json" in report
+    assert "GitHub Actions run `28326916286`" in report
+    assert "Verdict: **GO**" in report
     assert "pending_exact_sha_evidence" not in report
     assert "03bfe4f6fd3256b3285d5538ecc68ace984a7815" not in report
     assert "78107e3e5b489a71f76337124309d8d290b26946" not in report

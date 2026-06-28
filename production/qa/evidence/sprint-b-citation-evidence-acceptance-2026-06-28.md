@@ -2,8 +2,15 @@
 
 > Date: 2026-06-28
 > Plan: design/cdd/sprint-b-citation-evidence-closure.md
-> Committed SHA: `28f6a1a751f5fa79714728aece1f6465b2795b5a` (Sprint B remediation on top of prior work)
+> Committed SHA: `fd1768fa690a9a0c3a8d7905a7b72f0af54f6b04`
 > Verdict: **GO**
+
+## Exact-SHA Remote CI Evidence
+
+- GitHub Actions run `28326916286` completed with `conclusion=success` for workflow `CI` on push event for HEAD `fd1768fa690a9a0c3a8d7905a7b72f0af54f6b04`.
+- Evidence file: `production/qa/evidence/ci/remote-ci-fd1768f.json`
+- URL: `https://github.com/wsman/MY-DOGE-MICRO/actions/runs/28326916286`
+
 
 ## Summary of Changes
 
