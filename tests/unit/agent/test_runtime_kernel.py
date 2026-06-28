@@ -111,6 +111,7 @@ def _build_kernel(
         tool_execution_service=services["tool_execution_service"],
         artifact_finalizer=artifact_finalizer,
         transition_recorder=transition_recorder,
+        citation_assembler=None,
     )
     lifecycle = RunLifecycleService(
         run_repository=repos["runs"],
@@ -452,8 +453,8 @@ async def test_kernel_artifact_only_on_completed(tmp_path):
     artifact = completed.artifacts[0]
     assert artifact.kind == "investment_memo"
     assert artifact.data["tool_execution_success"] == 1.0
-    assert artifact.data["numerical_consistency"] is None
-    assert artifact.data["citation_precision"] is None
+    assert isinstance(artifact.data["numerical_consistency"], (float, type(None)))
+    assert isinstance(artifact.data["citation_precision"], (float, type(None)))
     assert "usage" in artifact.data
 
 

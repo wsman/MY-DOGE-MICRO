@@ -11,6 +11,7 @@ from .agent_models import (
 from .document_models import Document, DocumentStatus
 from .chunk_models import DocumentChunk
 from .evidence_models import EvidenceRecord
+from .evidence_chunk_models import EvidenceChunk
 from .page_models import DocumentPage
 from .portfolio_models import Portfolio, PortfolioHolding
 from .claim_models import CitationRecord, ClaimRecord
@@ -34,6 +35,7 @@ __all__ = [
     "DocumentPage",
     "DocumentStatus",
     "EvidenceRecord",
+    "EvidenceChunk",
     "Portfolio",
     "PortfolioHolding",
     "CitationRecord",

@@ -37,6 +37,7 @@ class RunStepper:
         tool_execution_service: IToolExecutionService,
         artifact_finalizer: ArtifactFinalizer,
         transition_recorder: TransitionRecorder,
+        citation_assembler: Any | None = None,
     ) -> None:
         self._runs = run_repository
         self._events = event_repository
@@ -48,13 +49,17 @@ class RunStepper:
         self._tool_execution = tool_execution_service
         self._artifact_finalizer = artifact_finalizer
         self._recorder = transition_recorder
+        self._citation_assembler = citation_assembler
+        self._tool_results_by_run: dict[str, list[Any]] = {}
 
     async def step(self, scope: TenantScope, run_id: str) -> AgentRun:
         run = self._require_run(scope, run_id)
         if run.status in {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED}:
+            self._cleanup_tool_results(run.run_id)
             return self._hydrate(scope, run)
         if run.status == RunStatus.CANCELLING:
             await self._recorder.mark_cancelled(run)
+            self._cleanup_tool_results(run.run_id)
             return self._hydrate(scope, run)
 
         await self._recorder.record(run, status=RunStatus.RUNNING)
@@ -93,9 +98,11 @@ class RunStepper:
         run = self._require_run(scope, run_id)
         if run.status == RunStatus.CANCELLING:
             await self._recorder.mark_cancelled(run)
+            self._cleanup_tool_results(run.run_id)
             return self._hydrate(scope, run)
         if response is None:
             await self._recorder.mark_failed(run, "model unavailable", code="model_unavailable")
+            self._cleanup_tool_results(run.run_id)
             return self._hydrate(scope, run)
 
         await self._recorder.record(
@@ -109,13 +116,17 @@ class RunStepper:
         )
         if model_result.budget_exceeded:
             await self._recorder.mark_failed(run, "run budget exceeded", code="run_budget_exceeded")
+            self._cleanup_tool_results(run.run_id)
             return self._hydrate(scope, run)
 
         if response.message.tool_calls:
+            if run.run_id not in self._tool_results_by_run:
+                self._tool_results_by_run[run.run_id] = []
             for call in response.message.tool_calls:
                 run = self._require_run(scope, run_id)
                 if run.status == RunStatus.CANCELLING:
                     await self._recorder.mark_cancelled(run)
+                    self._cleanup_tool_results(run.run_id)
                     return self._hydrate(scope, run)
                 function = call.get("function", {})
                 name = function.get("name", "")
@@ -130,9 +141,11 @@ class RunStepper:
                     timeout_seconds=float(timeout) if timeout else None,
                     request_id=execution_context.request_id,
                 )
+                self._tool_results_by_run[run.run_id].append(result)
                 run = self._require_run(scope, run_id)
                 if run.status == RunStatus.CANCELLING:
                     await self._recorder.mark_cancelled(run)
+                    self._cleanup_tool_results(run.run_id)
                     return self._hydrate(scope, run)
                 result_payload: dict[str, Any] = {
                     "ok": result.ok,
@@ -143,6 +156,8 @@ class RunStepper:
                 safe_error = tool_safe_error_payload(result)
                 if safe_error is not None:
                     result_payload["safe_error"] = safe_error
+                if result.evidence_refs is not None:
+                    result_payload["evidence_refs"] = [ref.to_dict() if hasattr(ref, "to_dict") else ref for ref in result.evidence_refs]
                 await self._recorder.record(
                     run,
                     events=[(EventType.TOOL_RESULT, {
@@ -170,23 +185,47 @@ class RunStepper:
             await self._recorder.record(run, status=RunStatus.RUNNING)
             return self._hydrate(scope, run)
 
-        content = self._artifact_finalizer.build_artifact(
+        citation_data = None
+        tool_results = self._tool_results_by_run.get(run.run_id, [])
+        if self._citation_assembler is not None:
+            try:
+                cited_artifact = self._citation_assembler.assemble(
+                    run=run,
+                    content=response.message.content or "",
+                    tool_results=tool_results,
+                )
+                citation_data = cited_artifact.data
+                # Use the enriched content from the assembler
+                content = cited_artifact.content
+            except Exception:
+                # Fallback: use original content without citations
+                content = response.message.content or ""
+        else:
+            content = response.message.content or ""
+
+        artifact = self._artifact_finalizer.build_artifact(
             run,
-            response.message.content,
+            content,
             self._events.list_for_run(run.run_id, tenant_id=scope.tenant_id),
             usage=response.usage or {},
+            citation_data=citation_data,
         )
         await self._recorder.record(
             run,
             status=RunStatus.COMPLETED,
-            artifacts=[content],
+            artifacts=[artifact],
             events=[(EventType.ARTIFACT_CREATED, {
-                "artifact_id": content.artifact_id,
-                "kind": content.kind,
-                "title": content.title,
+                "artifact_id": artifact.artifact_id,
+                "kind": artifact.kind,
+                "title": artifact.title,
             })],
         )
+        # Clean up accumulated tool results for this run
+        self._cleanup_tool_results(run.run_id)
         return self._hydrate(scope, run)
+
+    def _cleanup_tool_results(self, run_id: str) -> None:
+        self._tool_results_by_run.pop(run_id, None)
 
     def _require_run(self, scope: TenantScope, run_id: str) -> AgentRun:
         get_header = getattr(self._runs, "get_run_header", None)

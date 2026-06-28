@@ -162,13 +162,24 @@ sprint_010_evidence_foundation_gates:
       - tests/unit/test_evidence_repository.py
     blocked_by: []
   runtime_document_context:
-    status: partial
+    status: passed
     evidence:
       - src/doge/application/agent/context_builder.py
+      - src/doge/application/agent/artifact_citation_assembler.py
+      - src/doge/application/agent/run_stepper.py
+      - src/doge/application/agent/artifact_finalizer.py
+      - src/doge/core/ports/evidence_repository.py
+      - src/doge/infrastructure/database/evidence_repository.py
       - tests/integration/test_multimodal_chat.py
-    blocked_by:
-      - citation/evidence references are not yet assembled into final artifacts
-      - citation precision has no measured eval
+      - tests/integration/test_citation_assembly.py
+      - tests/benchmark/citation_precision_benchmark.py
+      - tests/unit/agent/test_artifact_citation_assembler.py
+    notes:
+      - "Citation assembly pipeline is implemented: RunStepper -> ArtifactCitationAssembler -> ArtifactFinalizer with inline [^evd-<id>] markers and Sources section."
+      - "Citation precision benchmark exists with deterministic FakeClassifier."
+      - "Architecture review blockers resolved: IEvidenceRepository port extended, SQLiteEvidenceRepository implements list_evidence_chunks/get_evidence_batch, IArtifactFinalizer port includes citation_data, ADR-0026 and Sprint B CDD promoted to Accepted."
+      - "EvidenceChunk model shape and ToolResult.evidence_refs type aligned between implementation and ADR-0026/CDD."
+    blocked_by: []
   parser_lifecycle:
     status: partial
     evidence:

@@ -179,6 +179,47 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
             rows = conn.execute(sql, params).fetchall()
             return [DocumentChunk.from_mapping(dict(row)) for row in rows]
 
+    def get_chunk(
+        self,
+        chunk_id: str,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> DocumentChunk | None:
+        """Retrieve a single chunk by its chunk_id."""
+        sql = "SELECT * FROM document_chunks WHERE chunk_id = ?"
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
+        tenant_sql, tenant_params = _tenant_filter("tenant_id", requested_tenant_id)
+        sql += tenant_sql
+        params: tuple[object, ...] = (chunk_id, *tenant_params)
+        with self._connect() as conn:
+            row = conn.execute(sql, params).fetchone()
+            return DocumentChunk.from_mapping(dict(row)) if row else None
+
+    def list_chunks_for_run(
+        self,
+        run_id: str,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> list[DocumentChunk]:
+        """List all chunks associated with a given run_id via evidence records."""
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
+        sql = """
+            SELECT dc.* FROM document_chunks dc
+            INNER JOIN evidence_records er ON dc.chunk_id = er.chunk_id
+            WHERE er.run_id = ?
+        """
+        params: list[object] = [run_id]
+        tenant_sql, tenant_params = _tenant_condition("er.tenant_id", requested_tenant_id)
+        if tenant_sql:
+            sql += f" AND {tenant_sql}"
+            params.extend(tenant_params)
+        sql += " ORDER BY dc.document_id ASC, dc.page_number ASC, dc.start_char ASC"
+        with self._connect() as conn:
+            rows = conn.execute(sql, params).fetchall()
+            return [DocumentChunk.from_mapping(dict(row)) for row in rows]
+
     def save_evidence(
         self,
         evidence: EvidenceRecord,
@@ -287,6 +328,84 @@ class SQLiteEvidenceRepository(IEvidenceRepository):
             sql += " WHERE " + " AND ".join(where)
         sql += " ORDER BY created_at ASC LIMIT ?"
         params.append(limit)
+        with self._connect() as conn:
+            rows = conn.execute(sql, params).fetchall()
+            return [EvidenceRecord.from_mapping(dict(row)) for row in rows]
+
+    def list_evidence_chunks(
+        self,
+        *,
+        scope: TenantScope | str | None = None,
+        run_id: str | None = None,
+        evidence_ids: list[str] | None = None,
+        limit: int = 100,
+        tenant_id: str | None = None,
+    ) -> list[EvidenceChunk]:
+        """Join evidence records with document chunks and return EvidenceChunk objects."""
+        from doge.core.domain.evidence_chunk_models import EvidenceChunk
+
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
+        where: list[str] = []
+        params: list[object] = []
+        if run_id:
+            where.append("er.run_id = ?")
+            params.append(run_id)
+        if evidence_ids:
+            placeholders = ", ".join("?" for _ in evidence_ids)
+            where.append(f"er.evidence_id IN ({placeholders})")
+            params.extend(evidence_ids)
+        tenant_sql, tenant_params = _tenant_condition("er.tenant_id", requested_tenant_id)
+        if tenant_sql:
+            where.append(tenant_sql)
+            params.extend(tenant_params)
+
+        sql = """
+            SELECT er.*, dc.text AS chunk_text, dc.start_char, dc.end_char, dc.page_id
+            FROM evidence_records er
+            LEFT JOIN document_chunks dc ON er.chunk_id = dc.chunk_id
+        """
+        if where:
+            sql += " WHERE " + " AND ".join(where)
+        sql += " ORDER BY er.created_at ASC LIMIT ?"
+        params.append(limit)
+
+        chunks: list[EvidenceChunk] = []
+        with self._connect() as conn:
+            rows = conn.execute(sql, params).fetchall()
+            for row in rows:
+                row_dict = dict(row)
+                chunks.append(
+                    EvidenceChunk(
+                        evidence_id=row_dict["evidence_id"],
+                        document_id=row_dict["document_id"],
+                        page_number=int(row_dict["page_number"] or 0),
+                        chunk_id=row_dict["chunk_id"] or "",
+                        text=row_dict.get("chunk_text") or row_dict.get("support_snippet") or "",
+                        source_tool=row_dict.get("source_tool") or "repository",
+                        run_id=row_dict.get("run_id"),
+                        created_at=row_dict.get("created_at") or "",
+                    )
+                )
+        return chunks
+
+    def get_evidence_batch(
+        self,
+        evidence_ids: list[str],
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> list[EvidenceRecord]:
+        """Return all requested evidence records that exist and are accessible."""
+        if not evidence_ids:
+            return []
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
+        placeholders = ", ".join("?" for _ in evidence_ids)
+        sql = f"SELECT * FROM evidence_records WHERE evidence_id IN ({placeholders})"
+        params: list[object] = list(evidence_ids)
+        tenant_sql, tenant_params = _tenant_condition("tenant_id", requested_tenant_id)
+        if tenant_sql:
+            sql += f" AND {tenant_sql}"
+            params.extend(tenant_params)
         with self._connect() as conn:
             rows = conn.execute(sql, params).fetchall()
             return [EvidenceRecord.from_mapping(dict(row)) for row in rows]

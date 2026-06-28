@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from doge.application.agent.approval_coordinator import ApprovalCoordinator
+from doge.application.agent.artifact_citation_assembler import ArtifactCitationAssembler
 from doge.application.agent.artifact_finalizer import ArtifactFinalizer
 from doge.application.agent.context_builder import ContextBuilder
 from doge.application.agent.model_response_assembler import ModelResponseAssembler
@@ -14,6 +15,9 @@ from doge.application.agent.run_stepper import RunStepper
 from doge.application.agent.runtime_kernel import RuntimeKernel
 from doge.application.agent.transition_recorder import TransitionRecorder
 from doge.application.agent.web_search_stage import WebSearchStage
+from doge.application.services.citation_support_classifier import CitationSupportClassifier
+from doge.application.services.claim_validation_service import ClaimValidationService
+from doge.application.services.citation_service import CitationService
 from doge.config import get_settings
 from doge.infrastructure.agent.backends import KimiAgentSdkBackend
 from doge.infrastructure.agent.inmemory_runtime import InMemoryResearchAgentRuntime
@@ -71,6 +75,12 @@ def build_agent_runtime_kernel(
         event_publisher=event_publisher,
     )
     artifact_finalizer = ArtifactFinalizer(evaluation_service=ArtifactEvaluationService())
+    citation_assembler = ArtifactCitationAssembler(
+        evidence_repository=repos["evidence"],
+        citation_service=CitationService(),
+        claim_validation_service=ClaimValidationService(),
+        classifier=CitationSupportClassifier(),
+    )
     stepper = RunStepper(
         run_repository=repos["runs"],
         event_repository=repos["events"],
@@ -96,6 +106,7 @@ def build_agent_runtime_kernel(
         ),
         artifact_finalizer=artifact_finalizer,
         transition_recorder=transition_recorder,
+        citation_assembler=citation_assembler,
     )
     lifecycle = RunLifecycleService(
         run_repository=repos["runs"],

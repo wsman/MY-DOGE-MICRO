@@ -17,6 +17,7 @@ from doge.core.domain.agent_models import AgentEvent, AgentRun, EventType
 from doge.core.domain.enterprise_context import EnterpriseContext
 from doge.core.domain.execution_profile import ProfileRegistry
 from doge.core.domain.model_policy import ModelPolicy
+from doge.core.domain.evidence_chunk_models import EvidenceChunk
 from doge.core.domain.run_execution_context import RunExecutionContext
 from doge.core.ports.agent_backend import IAgentBackend
 from doge.core.ports.agent_model import IAgentModel
@@ -230,11 +231,20 @@ class ToolExecutionService:
             {"run_id": run_id},
             request_id=request_id,
         )
-        return await self._tools.execute_async(
+        raw = await self._tools.execute_async(
             tool_name,
             arguments,
             timeout_seconds=timeout_seconds,
             context=context,
+        )
+        evidence_refs = _build_evidence_chunks(raw, run_id=run_id)
+        return ToolResult(
+            name=raw.name,
+            data=raw.data,
+            ok=raw.ok,
+            error=raw.error,
+            safe_error=raw.safe_error,
+            evidence_refs=evidence_refs if evidence_refs else None,
         )
 
     def audit(
@@ -372,3 +382,57 @@ The requested research memo requires source-backed validation and human approval
 2. What downside scenario should be approved for client-facing material?
 3. What unresolved data gaps should remain marked as unavailable?
 """
+
+
+def _build_evidence_chunks(raw: ToolResult, *, run_id: str) -> list[EvidenceChunk]:
+    """Create EvidenceChunk records from a raw tool result.
+
+    When the tool output contains a list of source-backed results (e.g. market
+    data rows, lookup evidence items), each item becomes an EvidenceChunk so
+    downstream citation scoring can trace claims back to tool output.
+
+    For numeric or deterministic single-value outputs, a single chunk is
+    created that captures the tool name and a JSON snapshot of the data.
+    """
+    if not raw.ok:
+        return []
+
+    data = raw.data
+    results = data.get("evidence") or data.get("results") or []
+    if isinstance(results, list) and results:
+        chunks: list[EvidenceChunk] = []
+        for idx, item in enumerate(results):
+            if not isinstance(item, dict):
+                continue
+            text = item.get("text") or item.get("content") or str(item)
+            document_id = item.get("document_id") or item.get("source") or raw.name
+            chunk_id = item.get("chunk_id") or f"{raw.name}-{idx}"
+            page_number = item.get("page_number") or 1
+            chunks.append(
+                EvidenceChunk.create(
+                    document_id=str(document_id),
+                    page_number=int(page_number) if isinstance(page_number, (int, float)) else 1,
+                    chunk_id=str(chunk_id),
+                    text=str(text),
+                    source_tool=raw.name,
+                    run_id=run_id,
+                )
+            )
+        return chunks
+
+    # Fallback: deterministic / numeric output gets one synthetic chunk.
+    import json
+
+    text = json.dumps(data, ensure_ascii=False, default=str) if data else ""
+    if text:
+        return [
+            EvidenceChunk.create(
+                document_id=raw.name,
+                page_number=1,
+                chunk_id=f"{raw.name}-output",
+                text=text,
+                source_tool=raw.name,
+                run_id=run_id,
+            )
+        ]
+    return []

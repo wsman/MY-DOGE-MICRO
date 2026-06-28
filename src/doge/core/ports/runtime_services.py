@@ -8,6 +8,7 @@ from typing import Any, Protocol
 
 from doge.core.domain.agent_models import AgentArtifact, AgentEvent, AgentRun
 from doge.core.domain.enterprise_context import EnterpriseContext
+from doge.core.domain.evidence_chunk_models import EvidenceChunk
 from doge.core.domain.model_policy import ModelPolicy
 from doge.core.domain.run_execution_context import RunExecutionContext
 from doge.core.ports.model_router import RoutingDecision
@@ -29,17 +30,21 @@ class ToolResult:
     ok: bool = True
     error: str | None = None
     safe_error: dict[str, str] | None = None
+    evidence_refs: list[EvidenceChunk] | None = None
 
     def to_json(self) -> str:
         import json
 
-        return json.dumps({
+        payload = {
             "ok": self.ok,
             "name": self.name,
             "data": self.data,
             "error": self.error,
             "safe_error": self.safe_error,
-        }, ensure_ascii=False)
+        }
+        if self.evidence_refs is not None:
+            payload["evidence_refs"] = [ref.to_dict() for ref in self.evidence_refs]
+        return json.dumps(payload, ensure_ascii=False)
 
 
 class IModelResponseAssembler(Protocol):
@@ -145,6 +150,7 @@ class IArtifactFinalizer(Protocol):
         events: list[AgentEvent],
         *,
         usage: dict[str, Any] | None = None,
+        citation_data: dict[str, Any] | None = None,
     ) -> AgentArtifact:
         ...
 

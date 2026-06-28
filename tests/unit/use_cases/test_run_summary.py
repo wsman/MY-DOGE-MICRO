@@ -49,6 +49,35 @@ def test_build_run_summary_assembles_claims_citations_and_eval():
     assert result["eval"]["unrelated_relation_count"] == 0
     assert result["eval"]["classification_confidence_avg"] is not None
     assert result["eval"]["metrics"]["cost_usd"] == 0.01
+    assert result["eval"]["numeric_validation"] == {}
+
+
+def test_build_run_summary_exposes_numeric_validation_from_artifact_data():
+    run = AgentRun.create(workflow="investment_research", question="Analyze", run_id="run-1")
+    run.status = RunStatus.COMPLETED
+    artifact = AgentArtifact(
+        artifact_id="art-1",
+        run_id="run-1",
+        kind="report",
+        title="Report",
+        content="Revenue grew 12%.",
+        data={
+            "claims": [{"claim_id": "claim-1", "text": "Revenue grew 12%.", "status": "supported"}],
+            "numeric_validation": {"revenue_growth": {"claim_value": 12.0, "evidence_value": 12.0, "match": True}},
+        },
+    )
+    event = AgentEvent(
+        event_id="evt-1",
+        run_id="run-1",
+        event_type=EventType.MODEL_RESPONSE,
+        sequence=1,
+    )
+
+    result = BuildRunSummary(_Runtime(run, [event], [artifact]), _EvidenceRepo([])).build(run)
+
+    assert result["eval"]["numeric_validation"] == {
+        "revenue_growth": {"claim_value": 12.0, "evidence_value": 12.0, "match": True}
+    }
 
 
 def test_build_run_summary_accepts_tenant_scope():

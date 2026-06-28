@@ -76,6 +76,30 @@ def test_artifact_finalizer_build_artifact_with_none_content(artifact_finalizer,
     assert artifact.content == ""
 
 
+def test_artifact_finalizer_build_artifact_with_citation_data(artifact_finalizer, run, events):
+    citation_data = {
+        "claims": [{"claim_id": "clm-1", "text": "test claim"}],
+        "citations": [{"citation_id": "cit-1", "source": "doc-1"}],
+        "relations": [{"relation_id": "rel-1", "support_status": "supported"}],
+        "support_status": "supported",
+        "coverage_ratio": 1.0,
+    }
+    artifact = artifact_finalizer.build_artifact(run, "memo content", events, citation_data=citation_data)
+
+    assert artifact.data["claims"] == citation_data["claims"]
+    assert artifact.data["citations"] == citation_data["citations"]
+    assert artifact.data["relations"] == citation_data["relations"]
+    assert artifact.data["support_status"] == "supported"
+    assert artifact.data["coverage_ratio"] == 1.0
+
+
+def test_artifact_finalizer_build_artifact_citation_data_none_is_noop(artifact_finalizer, run, events):
+    artifact = artifact_finalizer.build_artifact(run, "memo content", events, citation_data=None)
+
+    assert "claims" not in artifact.data
+    assert "citations" not in artifact.data
+
+
 def test_artifact_finalizer_execution_context_returns_run_execution_context(artifact_finalizer, run):
     ctx = artifact_finalizer.execution_context(run)
 

@@ -50,6 +50,7 @@ class BuildRunSummary:
         summary = _summary_for(run, artifact, events)
         claims = _claims_for(run, artifacts, evidence, summary["summary_id"])
         citations = _citations_for(run, artifacts, evidence, claims)
+        relations = _relations_for(run, artifacts)
         evaluation = _eval_for(
             run,
             artifact,
@@ -64,6 +65,7 @@ class BuildRunSummary:
             "summary": summary,
             "claims": claims,
             "citations": citations,
+            "relations": relations,
             "eval": evaluation,
         }
 
@@ -204,6 +206,41 @@ def _citations_for(
     return citations
 
 
+def _relations_for(run: AgentRun, artifacts: list[AgentArtifact]) -> list[dict[str, Any]]:
+    relations: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for artifact in artifacts:
+        for raw in _list_field(artifact.data.get("relations")):
+            relation_id = str(raw.get("relation_id") or _stable_id("rel", run.run_id, str(raw.get("claim_id", "")), str(raw.get("evidence_id", ""))))
+            if relation_id in seen:
+                continue
+            seen.add(relation_id)
+            relations.append(
+                {
+                    "relation_id": relation_id,
+                    "run_id": run.run_id,
+                    "claim_id": raw.get("claim_id"),
+                    "evidence_id": raw.get("evidence_id"),
+                    "support_status": _normalize_relation_status(str(raw.get("support_status") or "")),
+                    "confidence": float(raw.get("confidence") or 0.0),
+                    "method": str(raw.get("method") or "deterministic"),
+                    "source": "artifact",
+                }
+            )
+    return relations
+
+
+def _normalize_relation_status(status: str) -> str:
+    normalized = status.strip().lower()
+    if normalized in {"supported", "partial", "unrelated", "contradicted"}:
+        return normalized
+    if normalized in {"conflicted", "conflict", "contradiction"}:
+        return "contradicted"
+    if normalized in {"unsupported", "insufficient_evidence", "unverified"}:
+        return "unrelated"
+    return "unrelated"
+
+
 def _eval_for(
     run: AgentRun,
     artifact: AgentArtifact | None,
@@ -247,6 +284,7 @@ def _eval_for(
         "unrelated_relation_count": relation_quality["unrelated_relation_count"],
         "classification_confidence_avg": relation_quality["classification_confidence_avg"],
         "failed_checks": failed_checks,
+        "numeric_validation": _numeric_validation(artifact),
         "metrics": {
             **quality,
             "contradicted_relation_count": relation_quality["contradicted_relation_count"],
@@ -330,6 +368,15 @@ def _source_label(item: Any) -> str:
     page_number = getattr(item, "page_number", None)
     document_id = getattr(item, "document_id", "")
     return f"{document_id} p.{page_number}" if page_number is not None else str(document_id)
+
+
+def _numeric_validation(artifact: AgentArtifact | None) -> dict[str, Any]:
+    """Extract numeric_validation dict from artifact data if present."""
+    if artifact is None:
+        return {}
+    data = artifact.data or {}
+    numeric = data.get("numeric_validation")
+    return numeric if isinstance(numeric, dict) else {}
 
 
 def _metadata(item: Any) -> dict[str, Any]:

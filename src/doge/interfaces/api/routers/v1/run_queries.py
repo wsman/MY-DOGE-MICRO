@@ -89,7 +89,7 @@ async def get_run_summary(
         access=access,
         audit_event_type="run_summary_read",
     )
-    return {"summary": serialize(result["summary"])}
+    return {"summary": serialize(result["summary"]), "relations": serialize(result["relations"])}
 
 
 @router.get("/runs/{run_id}/claims", dependencies=[Depends(require_run_summary_api)])

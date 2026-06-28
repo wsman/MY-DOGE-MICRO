@@ -42,6 +42,14 @@ def test_run_summary_api_returns_structured_resources():
     assert evaluation.json()["eval"]["claim_evidence_relation_count"] == 1
     assert evaluation.json()["eval"]["supported_relation_count"] == 1
     assert evaluation.json()["eval"]["classification_confidence_avg"] is not None
+    # Citation assembler fields: relations should be present in summary when feature flag enabled
+    assert "relations" in summary.json()
+    assert summary.json()["relations"]
+    assert summary.json()["relations"][0]["relation_id"] == "rel-1"
+    assert summary.json()["relations"][0]["support_status"] == "supported"
+    # Claims and citations are available via dedicated endpoints
+    assert claims.json()["claims"]
+    assert citations.json()["citations"]
 
 
 def test_enterprise_run_citations_redact_denied_document_snippets(tmp_path):
@@ -108,7 +116,11 @@ class _Runtime:
             kind="report",
             title="Report",
             content="Revenue grew 12%.",
-            data={"claims": [{"claim_id": "claim-1", "text": "Revenue grew 12%.", "status": "supported"}]},
+            data={
+                "claims": [{"claim_id": "claim-1", "text": "Revenue grew 12%.", "status": "supported"}],
+                "citations": [{"citation_id": "cit-1", "claim_id": "claim-1", "document_id": "doc-allowed", "snippet": "The filing says revenue grew 12%.", "source": "doc-allowed p.1"}],
+                "relations": [{"relation_id": "rel-1", "claim_id": "claim-1", "evidence_id": "evd-1", "support_status": "supported", "confidence": 0.95, "method": "deterministic"}],
+            },
         )
 
     def get_run(self, scope, run_id=None):

@@ -95,6 +95,10 @@ class ContextBuilder:
             "You are MY-DOGE Enterprise Research Copilot. Use tools for "
             "material numbers, preserve citations, and request approval "
             "for high-risk publication actions."
+            " When referencing source documents, pages, or chunks, "
+            "cite them inline using [^evd-<id>] markers where <id> is the "
+            "evidence identifier. Preserve all existing citation markers "
+            "in your responses."
         )
         if execution_context is not None and execution_context.workflow.template_id:
             template_label = execution_context.workflow.template_slug or execution_context.workflow.template_id

@@ -20,14 +20,17 @@ class ArtifactFinalizer:
         events: list[AgentEvent],
         *,
         usage: dict | None = None,
+        citation_data: dict | None = None,
     ) -> AgentArtifact:
         """Create the investment memo artifact and attach evaluation metrics."""
         content = self._evaluation.artifact_content(response_content)
+        base_metrics = self._evaluation.metrics(content, events)
+        merged = {**(citation_data or {}), **base_metrics, "usage": usage or {}}
         return run.add_artifact(
             kind="investment_memo",
             title="Investment Committee Memo",
             content=content,
-            data={**self._evaluation.metrics(content, events), "usage": usage or {}},
+            data=merged,
         )
 
     @staticmethod

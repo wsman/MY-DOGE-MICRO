@@ -321,6 +321,7 @@ def stepper(run_repository, event_repository, artifact_repository, approval_repo
         tool_execution_service=FakeToolExecutionService(),
         artifact_finalizer=artifact_finalizer,
         transition_recorder=transition_recorder,
+        citation_assembler=None,
     )
 
 
@@ -388,6 +389,7 @@ async def test_run_stepper_step_fails_when_model_returns_none(run_repository, ev
         tool_execution_service=FakeToolExecutionService(),
         artifact_finalizer=artifact_finalizer,
         transition_recorder=transition_recorder,
+        citation_assembler=None,
     )
     run = AgentRun.create(workflow="test", question="Q")
     run.status = RunStatus.QUEUED
@@ -411,6 +413,7 @@ async def test_run_stepper_step_fails_when_budget_exceeded(run_repository, event
         tool_execution_service=FakeToolExecutionService(),
         artifact_finalizer=artifact_finalizer,
         transition_recorder=transition_recorder,
+        citation_assembler=None,
     )
     run = AgentRun.create(workflow="test", question="Q")
     run.status = RunStatus.QUEUED
@@ -435,6 +438,7 @@ async def test_run_stepper_step_executes_tool_and_records_tool_events(run_reposi
         tool_execution_service=tool_service,
         artifact_finalizer=artifact_finalizer,
         transition_recorder=transition_recorder,
+        citation_assembler=None,
     )
     run = AgentRun.create(workflow="test", question="Q")
     run.status = RunStatus.QUEUED
@@ -469,6 +473,7 @@ async def test_run_stepper_step_requests_approval_when_tool_returns_approval_req
         tool_execution_service=ApprovalToolService(),
         artifact_finalizer=artifact_finalizer,
         transition_recorder=transition_recorder,
+        citation_assembler=None,
     )
     run = AgentRun.create(workflow="test", question="Q")
     run.status = RunStatus.QUEUED
@@ -515,6 +520,7 @@ async def test_run_stepper_step_cancels_mid_tool_execution(run_repository, event
         tool_execution_service=FakeToolExecutionService(),
         artifact_finalizer=artifact_finalizer,
         transition_recorder=transition_recorder,
+        citation_assembler=None,
     )
 
     result = await stepper.step(TenantScope.local(), run.run_id)
