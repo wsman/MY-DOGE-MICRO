@@ -1,4 +1,4 @@
-generated_at: "2026-06-24"
+generated_at: "2026-06-29"
 stable_declaration: forbidden
 non_runtime_followup_plan: docs/progress/runtime-stability-followup-plan.md
 
@@ -532,6 +532,32 @@ sprint_016_kimi_research_copilot_closure_gates:
       - docs/progress/runtime-maturity.yaml
       - docs/registry/architecture.yaml
     blocked_by: []
+
+sprint_c_kimi_live_smoke_gates:
+  kimi_coding_v1_local_readiness:
+    status: passed
+    evidence:
+      - design/cdd/sprint-c-kimi-live-smoke.md
+      - scripts/run_kimi_live_smoke.py
+      - scripts/validate_kimi_live_smoke_evidence.py
+      - tests/live/test_kimi_live_smoke.py
+      - tests/unit/qa/test_validate_kimi_live_smoke_evidence.py
+      - production/qa/evidence/live/kimi-live-smoke-2026-06-28.json
+      - production/qa/evidence/live/kimi-live-smoke-2026-06-28.md
+    blocked_by: []
+    notes:
+      - "Runner and validator support Kimi Coding v1 gate semantics: text_k26 + vision_base64 required; files_upload + agent_sdk_optional optional but documented."
+      - "Blocked readiness evidence was generated on 2026-06-28 UTC because DOGE_LIVE_KIMI and MOONSHOT_API_KEY were not set in this session."
+  kimi_coding_v1_live_execution:
+    status: passed
+    evidence:
+      - production/qa/evidence/live/kimi-live-smoke-2026-06-29.json
+      - production/qa/evidence/live/kimi-live-smoke-2026-06-29.md
+    blocked_by: []
+    notes:
+      - "Kimi Coding v1 live smoke passed with DOGE_LIVE_KIMI=1, MOONSHOT_API_KEY present, KIMI_BASE_URL=https://api.kimi.com/coding/v1, and KIMI_GENERAL_MODEL=kimi-k2.6."
+      - "Required scenarios text_k26 and vision_base64 passed; files_upload and agent_sdk_optional were documented as skipped with reasons, which satisfies Sprint C coding-v1 closure."
+      - "Strict validator passed without --allow-blocked for production/qa/evidence/live/kimi-live-smoke-2026-06-29.json."
 
 kimi_enterprise_financial_copilot_gates:
   enterprise_model_gateway:
@@ -1278,8 +1304,8 @@ remaining_stability_blockers:
   - Local RAG foundation landed; retrieval quality benchmarking and production embeddings/vector backend remain open.
   - Deterministic portfolio/risk/scenario tools and local portfolio CSV import landed; real fundamentals/announcement/consensus/risk-factor connector implementation is transferred to S017-003 and later provider-adapter stories.
   - Industry report use case, agent tool, scan-router decoupling, and legacy TDX helper migration landed; real fundamentals/announcement connectors and live Kimi/TDX smoke remain external validation items.
-  - Live Kimi text + Vision smoke is executable through tests/live/test_kimi_live_smoke.py plus scripts/run_kimi_live_smoke.py, Files is recorded as an optional capability observation, and redacted blocked evidence validates with scripts/validate_kimi_live_smoke_evidence.py --allow-blocked; actual live execution remains open in S017-002.
-  - KimiAgentSdkBackend has mock-covered structured messages, tool schema, metadata, approval, tool-call ID, reasoning, usage, and finish-reason mapping; live Kimi Agent SDK session/tool/approval/multimodal verification remains open in S017-002.
+  - Kimi Coding v1 text + Vision live smoke passed for S017-002 with strict validation; Files and Agent SDK were documented as optional skipped scenarios under the coding-v1 gate.
+  - KimiAgentSdkBackend has mock-covered structured messages, tool schema, metadata, approval, tool-call ID, reasoning, usage, and finish-reason mapping; live Kimi Agent SDK session/tool/approval/multimodal verification remains optional follow-up outside the Sprint C coding-v1 closure.
   - Enterprise identity/access is ADR/CDD-covered; AuthConfig, API startup hard-fail for unconfigured enterprise auth, fail-closed/static provider boundary, JWT/OIDC provider validation, bearer middleware path, trusted principal-to-context mapping, tenant metadata for documents, portfolios, sessions, runs, events, artifacts, approvals, and evidence, persistent ACL/audit repositories, document/portfolio/session/run/tool-list/approval API enforcement, tenant-scoped admin ACL grant/list/revoke API, trusted run policy injection, runtime tool ACL enforcement, runtime model/tool audit events, tenant-scoped audit listing, redacted JSONL export with integrity handoff headers, admin retention purge, SecretProvider port/env/process adapter rollout, production secret-store process/sidecar selection, remote-bind promotion gate tests, RAG/citation context filtering, approval actor records, Python/TypeScript SDK bearer/request-id pass-through with error redaction, audit export redaction, CLI trace/artifact redaction, local operational audit review, audit SIEM/WORM handoff packet, local SDK package compatibility, real doged loopback enterprise static-bearer smoke, real doged loopback local-JWKS smoke, real doged loopback process-secret smoke, real doged remote-bind gate smoke, and unified enterprise production validation template/builder/validator landed with tests. Live IdP/JWKS smoke against an operator-approved provider, production secret-store command smoke/rotation evidence, SDK registry publication/release approval, production SIEM/WORM sink integration/operator sign-off, live remote-bind deployment smoke, and production data-isolation review in an operator-approved environment remain open.
   - Financial provider approval packet, evidence template, validator, and synthetic safe provider-shaped fixtures exist; the template validates only with --allow-template, while product/operator approval, provider/license scope, any real provider-derived fixtures, and licensed adapter implementation remain open.
   - The financial eval seed set, analyst benchmark evidence template, and validator exist; real analyst-labeled observations, acceptance thresholds, live Kimi observations, and repeat-run trend history remain open.

@@ -22,7 +22,10 @@ from doge.infrastructure.llm.kimi_files_client import KimiFilesClient
 
 
 ROOT = Path(__file__).resolve().parents[1]
-EVIDENCE_NAME = "kimi-live-smoke-2026-06-22"
+EVIDENCE_NAME = f"kimi-live-smoke-{datetime.now(timezone.utc).strftime('%Y-%m-%d')}"
+BASE_REQUIRED_SCENARIOS = {"text_k26", "vision_base64"}
+OPTIONAL_SCENARIOS = {"files_upload", "agent_sdk_optional"}
+REQUIRED_SCENARIOS = BASE_REQUIRED_SCENARIOS | OPTIONAL_SCENARIOS
 SCENARIO_PROFILES = {
     "text_k26": "financial_research",
     "files_upload": "document_extract",
@@ -268,18 +271,15 @@ def _redact_id(value: str) -> str:
 
 
 async def _run_live_scenarios(
-    include_agent_sdk: bool = True,
     *,
     vision_image: str | None = None,
 ) -> list[dict[str, Any]]:
-    results = [
+    return [
         await _capture_scenario("text_k26", _scenario_text),
         await _capture_scenario("files_upload", _scenario_files),
         await _capture_scenario("vision_base64", lambda: _scenario_vision(vision_image=vision_image)),
+        await _capture_scenario("agent_sdk_optional", _scenario_agent_sdk),
     ]
-    if include_agent_sdk:
-        results.append(await _capture_scenario("agent_sdk_optional", _scenario_agent_sdk))
-    return results
 
 
 async def _capture_scenario(
@@ -334,7 +334,26 @@ def _evidence_base() -> dict[str, Any]:
     }
 
 
+def _coding_v1_result(scenarios: list[dict[str, Any]]) -> dict[str, Any]:
+    scenario_map = {item["name"]: item for item in scenarios if isinstance(item, dict)}
+    base = {name: scenario_map.get(name) for name in BASE_REQUIRED_SCENARIOS}
+    optional = {name: scenario_map.get(name) for name in OPTIONAL_SCENARIOS}
+    base_failed = [name for name, item in base.items() if not item or item.get("status") != "passed"]
+    optional_missing = [name for name, item in optional.items() if not item]
+    optional_bad_skip = [
+        name for name, item in optional.items()
+        if item and item.get("status") == "skipped" and not item.get("reason")
+    ]
+    result = "passed" if not base_failed and not optional_missing and not optional_bad_skip else "failed"
+    return {"result": result, "gate": "coding-v1"}
+
+
 def _write_markdown(path: Path, evidence: dict[str, Any]) -> None:
+    scope = (
+        "S017-002 live Kimi smoke for Kimi Coding v1 (required text + Vision; optional Files and Agent SDK with documented status)."
+        if evidence.get("gate") == "coding-v1"
+        else "S017-002 live Kimi smoke for required text, Files, Vision, and Agent SDK."
+    )
     lines = [
         "# Kimi Live Smoke Evidence",
         "",
@@ -343,7 +362,7 @@ def _write_markdown(path: Path, evidence: dict[str, Any]) -> None:
         "",
         "## Scope",
         "",
-        "S017-002 live Kimi smoke for required text, Files, Vision, and Agent SDK.",
+        scope,
         "Evidence is intentionally redacted: no API key, raw prompt, raw file id, or sensitive fixture content is stored.",
         "",
         "## Environment",
@@ -400,20 +419,23 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             "scenarios": [],
             "notes": ["Live Kimi smoke was not executed; missing explicit operator env gates."],
         })
+        if args.coding_v1:
+            evidence["gate"] = "coding-v1"
         _write_evidence(output_dir, evidence)
         return evidence
 
     scenarios: list[dict[str, Any]] = []
     try:
-        scenarios = await _run_live_scenarios(
-            include_agent_sdk=not args.skip_agent_sdk,
-            vision_image=args.vision_image,
-        )
-        required = {item["name"]: item for item in scenarios if item["name"] in REQUIRED_SCENARIOS}
-        missing = REQUIRED_SCENARIOS - set(required)
-        failed = [item for item in required.values() if item.get("status") != "passed"]
-        result = "passed" if not failed and not missing else "failed"
-        evidence.update({"result": result, "scenarios": scenarios})
+        scenarios = await _run_live_scenarios(vision_image=args.vision_image)
+        evidence.update({"scenarios": scenarios})
+        if args.coding_v1:
+            evidence.update(_coding_v1_result(scenarios))
+        else:
+            required = {item["name"]: item for item in scenarios if item["name"] in REQUIRED_SCENARIOS}
+            missing = REQUIRED_SCENARIOS - set(required)
+            failed = [item for item in required.values() if item.get("status") != "passed"]
+            result = "passed" if not failed and not missing else "failed"
+            evidence.update({"result": result})
     except Exception as exc:  # noqa: BLE001 - live provider errors vary
         evidence.update({
             "result": "failed",
@@ -438,13 +460,17 @@ def _safe_error(exc: BaseException) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run S017-002 live Kimi smoke and write redacted evidence.")
     parser.add_argument("--output-dir", default="production/qa/evidence/live")
-    parser.add_argument("--skip-agent-sdk", action="store_true", help="Do not evaluate optional Agent SDK scenario.")
     parser.add_argument(
         "--vision-image",
         default=os.environ.get("DOGE_LIVE_KIMI_VISION_IMAGE"),
         help="Optional JPEG/PNG/WEBP image path for the vision_base64 smoke.",
     )
     parser.add_argument("--allow-blocked", action="store_true", help="Return 0 when env gates are missing.")
+    parser.add_argument(
+        "--coding-v1",
+        action="store_true",
+        help="Use Kimi Coding v1 gate semantics: text + Vision required; Files + Agent SDK optional but must be documented.",
+    )
     args = parser.parse_args()
     evidence = asyncio.run(_run(args))
     print(json.dumps({

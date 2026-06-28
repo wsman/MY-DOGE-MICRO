@@ -38,10 +38,15 @@ async def test_run_live_scenarios_preserves_partial_failures(monkeypatch):
     monkeypatch.setattr(smoke, "_scenario_files", files_fail)
     monkeypatch.setattr(smoke, "_scenario_vision", vision_ok)
 
-    scenarios = await smoke._run_live_scenarios(include_agent_sdk=False, vision_image="fixture.jpg")
+    scenarios = await smoke._run_live_scenarios(vision_image="fixture.jpg")
 
-    assert [item["name"] for item in scenarios] == ["text_k26", "files_upload", "vision_base64"]
-    assert [item["status"] for item in scenarios] == ["passed", "failed", "passed"]
+    assert [item["name"] for item in scenarios] == [
+        "text_k26",
+        "files_upload",
+        "vision_base64",
+        "agent_sdk_optional",
+    ]
+    assert [item["status"] for item in scenarios] == ["passed", "failed", "passed", "skipped"]
     assert captured["vision_image"] == "fixture.jpg"
     failed = scenarios[1]
     assert failed["profile"] == "document_extract"
@@ -131,8 +136,9 @@ async def test_run_does_not_pass_when_files_upload_fails(monkeypatch, tmp_path):
 
     evidence = await smoke._run(SimpleNamespace(
         output_dir=str(tmp_path),
-        skip_agent_sdk=True,
         vision_image=None,
+        coding_v1=False,
+        allow_blocked=False,
     ))
 
     assert evidence["result"] == "failed"
@@ -141,4 +147,60 @@ async def test_run_does_not_pass_when_files_upload_fails(monkeypatch, tmp_path):
         "text_k26": "passed",
         "files_upload": "failed",
         "vision_base64": "passed",
+        "agent_sdk_optional": "skipped",
     }
+
+
+@pytest.mark.asyncio
+async def test_run_coding_v1_passes_when_optional_scenarios_are_skipped(monkeypatch, tmp_path):
+    monkeypatch.setenv("DOGE_LIVE_KIMI", "1")
+    monkeypatch.setenv("MOONSHOT_API_KEY", "sk-test-secret-123456")
+
+    async def text_ok():
+        return {
+            "name": "text_k26",
+            "status": "passed",
+            "profile": "financial_research",
+            "model": "kimi-k2.6",
+            "latency_ms": 10.0,
+            "usage": {"reported": False, "reason": "provider_usage_not_reported"},
+        }
+
+    async def vision_ok(vision_image=None):
+        return {
+            "name": "vision_base64",
+            "status": "passed",
+            "profile": "vision_analysis",
+            "model": "kimi-k2.6",
+            "latency_ms": 20.0,
+            "usage": {"reported": False, "reason": "provider_usage_not_reported"},
+        }
+
+    def files_skipped():
+        return {
+            "name": "files_upload",
+            "status": "skipped",
+            "profile": "document_extract",
+            "model": "kimi-k2.6",
+            "reason": "configured Kimi endpoint does not support the Files API",
+            "usage": {"reported": False, "reason": "files_upload_optional_not_supported"},
+        }
+
+    monkeypatch.setattr(smoke, "_scenario_text", text_ok)
+    monkeypatch.setattr(smoke, "_scenario_files", files_skipped)
+    monkeypatch.setattr(smoke, "_scenario_vision", vision_ok)
+
+    evidence = await smoke._run(SimpleNamespace(
+        output_dir=str(tmp_path),
+        vision_image=None,
+        coding_v1=True,
+        allow_blocked=False,
+    ))
+
+    assert evidence["result"] == "passed"
+    assert evidence.get("gate") == "coding-v1"
+    statuses = {item["name"]: item["status"] for item in evidence["scenarios"]}
+    assert statuses["text_k26"] == "passed"
+    assert statuses["vision_base64"] == "passed"
+    assert statuses["files_upload"] == "skipped"
+    assert statuses["agent_sdk_optional"] == "skipped"

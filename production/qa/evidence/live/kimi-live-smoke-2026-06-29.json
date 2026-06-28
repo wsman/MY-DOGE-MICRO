@@ -1,0 +1,89 @@
+{
+  "created_at": "2026-06-29T05:31:04.449188+00:00",
+  "environment": {
+    "DOGE_LIVE_KIMI": true,
+    "DOGE_LIVE_KIMI_AGENT_SDK": false,
+    "MOONSHOT_API_KEY_PRESENT": true,
+    "base_url": "https://api.kimi.com/coding/v1",
+    "general_model": "kimi-k2.6",
+    "kimi_agent_sdk_installed": false,
+    "vision_image_supplied": true
+  },
+  "gate": "coding-v1",
+  "redaction": {
+    "api_key_recorded": false,
+    "raw_file_id_recorded": false,
+    "raw_prompt_recorded": false,
+    "sensitive_fixture_used": false
+  },
+  "result": "passed",
+  "scenarios": [
+    {
+      "event_count": 1,
+      "finish_reasons": [
+        "stop"
+      ],
+      "latency_ms": 2838.8,
+      "model": "kimi-k2.6",
+      "name": "text_k26",
+      "profile": "financial_research",
+      "response_chars": 17,
+      "status": "passed",
+      "usage": {
+        "cached_tokens": 17,
+        "completion_tokens": 40,
+        "cost_usd": 0.0,
+        "latency_ms": 1298.3748000115156,
+        "model": "kimi-k2.6",
+        "prompt_tokens": 17,
+        "reported": true,
+        "total_tokens": 57
+      }
+    },
+    {
+      "model": "kimi-k2.6",
+      "name": "files_upload",
+      "profile": "document_extract",
+      "reason": "configured Kimi endpoint does not support the Files API",
+      "status": "skipped",
+      "usage": {
+        "reason": "files_upload_optional_not_supported",
+        "reported": false
+      }
+    },
+    {
+      "event_count": 1,
+      "finish_reasons": [
+        "stop"
+      ],
+      "fixture": {
+        "media_type": "image/png",
+        "size_bytes": 360,
+        "source": "operator_image"
+      },
+      "latency_ms": 3078.63,
+      "model": "kimi-k2.6",
+      "name": "vision_base64",
+      "profile": "vision_analysis",
+      "response_chars": 10,
+      "status": "passed",
+      "usage": {
+        "cached_tokens": 0,
+        "completion_tokens": 78,
+        "cost_usd": 0.0,
+        "latency_ms": 2246.8966000014916,
+        "model": "kimi-k2.6",
+        "prompt_tokens": 77,
+        "reported": true,
+        "total_tokens": 155
+      }
+    },
+    {
+      "name": "agent_sdk_optional",
+      "reason": "set DOGE_LIVE_KIMI_AGENT_SDK=1 to run optional Agent SDK smoke",
+      "status": "skipped"
+    }
+  ],
+  "schema": "doge.kimi_live_smoke.v1",
+  "story_id": "S017-002"
+}

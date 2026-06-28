@@ -1,69 +1,113 @@
 # Active Session State
 
 > Living checkpoint. Gitignored. Read this first after any compaction/crash.
-> Branch: `main` · Date: 2026-06-28
+> Branch: `main` · Date: 2026-06-29
 
 ## Current Task
 
-Sprint B: Citation/Evidence Closure — **ACCEPTED**. Architecture blockers resolved and tests re-verified.
+Sprint C: Kimi Live Smoke Closure — **GO**. Local implementation and Kimi Coding
+v1 live execution are complete; production posture remains non-GA.
 
 ## Phase Status
 
-- **Sprint B (Citation/Evidence Closure)**: **COMPLETE / ACCEPTED**
-  - Base committed SHA: `28f6a1a751f5fa79714728aece1f6465b2795b5a`
-  - All Sprint B targeted tests pass (50+)
-  - Full regression: **1777 passed, 3 failed (pre-existing), 8 skipped**
-  - New failures: **0**
+- **Sprint C (Kimi Live Smoke Closure)**: **COMPLETE / GO**
+  - Story: S017-002
+  - Gate: Kimi Coding v1 (required text + Vision; optional Files + Agent SDK)
+  - Local implementation: **COMPLETE**
+    - Runner updated: `scripts/run_kimi_live_smoke.py`
+    - Validator updated: `scripts/validate_kimi_live_smoke_evidence.py`
+    - Tests updated/added: `tests/unit/qa/test_run_kimi_live_smoke.py`,
+      `tests/unit/qa/test_validate_kimi_live_smoke_evidence.py`
+    - CDD: `design/cdd/sprint-c-kimi-live-smoke.md`
+    - Runtime maturity updated: `docs/progress/runtime-maturity.yaml`
+    - Acceptance report: `production/qa/evidence/sprint-c-kimi-live-smoke-acceptance-2026-06-29.md`
+    - Blocked readiness evidence: `production/qa/evidence/live/kimi-live-smoke-2026-06-28.json`
+  - Live execution: **PASSED**
+    - Closing evidence: `production/qa/evidence/live/kimi-live-smoke-2026-06-29.json`
+    - Strict validator passed without `--allow-blocked`.
+    - Historical partial evidence retained: `kimi-live-smoke-2026-06-22.json`
   - Test Review: APPROVED
-  - Runtime Review: APPROVED (memory leak fixed)
-  - Architecture Review: APPROVED
+  - Runtime/Gate Review: APPROVED
   - Overall Verdict: **GO**
+
+- **Sprint B (Citation/Evidence Closure)**: **COMPLETE / ACCEPTED**
+  - Base committed SHA: `fd1768fa690a9a0c3a8d7905a7b72f0af54f6b04`
   - Acceptance report: `production/qa/evidence/sprint-b-citation-evidence-acceptance-2026-06-28.md`
-  - ADR-0026 status: **Accepted**
-  - Sprint B CDD status: **Accepted**
 
-- **P0-P2 (local-refactor phases)**: COMPLETE (see prior session state for details)
-- **P3 (external gates)**: Still open (5 external gates require operator action)
+- **P0-P2 (local-refactor phases)**: COMPLETE
+- **P3 (external gates)**: S017-002 closed; still open (S017-003, W3-live, AUTH-prod, S017-007)
 
-## Sprint B Remediation Actions
+## Sprint C Local Changes
 
-1. Added `list_evidence_chunks` and `get_evidence_batch` to `IEvidenceRepository` port.
-2. Implemented both methods in `SQLiteEvidenceRepository` (including evidence/chunk join query).
-3. Removed assembler `getattr` fallback; now calls `list_evidence_chunks` directly.
-4. Updated ADR-0026 and Sprint B CDD to match the implemented `EvidenceChunk` and `ToolResult.evidence_refs` contracts.
-5. Added `citation_data` parameter to `IArtifactFinalizer` protocol.
-6. Promoted ADR-0026 and Sprint B CDD to `Accepted`.
-7. Fixed `RunStepper` tool-result accumulation cleanup on terminal/failure/cancellation paths.
-8. Updated `docs/progress/runtime-maturity.yaml` `runtime_document_context` gate to `passed`.
+1. Added `--coding-v1` flag to `scripts/run_kimi_live_smoke.py`.
+2. Runner now always emits `agent_sdk_optional` scenario (skipped when env/SDK
+   not enabled) and uses date-based evidence filename.
+3. Added `--coding-v1` flag to `scripts/validate_kimi_live_smoke_evidence.py`.
+4. Validator coding-v1 mode requires `text_k26` + `vision_base64` passed and
+   optional scenarios documented (passed or skipped with reason).
+5. Added coding-v1 unit tests for validator and runner.
+6. Created Sprint C CDD with all 8 product sections.
+7. Updated `docs/progress/runtime-maturity.yaml` with
+   `sprint_c_kimi_live_smoke_gates`: local readiness `passed`, live execution
+   `passed`.
+8. Created Sprint C acceptance report with final GO verdict.
+9. Generated blocked readiness evidence for current UTC date.
+10. Executed live Kimi Coding v1 smoke with operator-provided key:
+    `text_k26=passed`, `vision_base64=passed`, `files_upload=skipped`,
+    `agent_sdk_optional=skipped`.
 
 ## Latest Verification
 
-- Full Python regression: **1777 passed, 3 failed, 8 skipped**
-- New failures: **0**
-- Pre-existing failures: 3 (MCP stdio transport, yfinance StringDtype, Sprint A plan-closure SHA256)
-- Targeted Sprint B tests: all pass
-- Governance validators (`validate_governance_yaml_shape.py`, `validate_alpha_maturity_honesty.py`): pass
+- Focused Sprint C tests: **25 passed**
+- Governance consistency tests: **11 passed**
+- Live Kimi Coding v1 evidence validation:
+  `production/qa/evidence/live/kimi-live-smoke-2026-06-29.json --coding-v1` **passed**
+- Full Python regression: **1784 passed, 2 failed, 8 skipped**
+- New failures introduced by Sprint C: **0**
+- Pre-existing failures: 2
+  - `tests/test_yfinance_adapter.py::test_download_kline_normalizes_columns_and_dtypes`
+  - `tests/unit/qa/test_validate_alpha_pre_commit_readiness.py::test_alpha_pre_commit_readiness_cli_fast`
+    (handoff workspace template SHA256 mismatch from prior commit)
+- Governance validators (`validate_governance_yaml_shape.py`,
+  `validate_alpha_maturity_honesty.py`, `validate_kimi_live_smoke_evidence.py`):
+  pass
 
 ## Posture (unchanged)
 
 - production_ready: false; stable_declaration: forbidden; Level 3 experimental.
-- External gates open: S017-002, S017-003, W3-live, AUTH-prod, S017-007.
-- ADR-0016/0018 remain Proposed (unrelated to Sprint B).
+- External gates open: S017-003, W3-live, AUTH-prod, S017-007.
 
 ## Commits this session
 
-Sprint B implementation and acceptance report produced. Remediation commit pending.
+Sprint C local implementation committed as `98843ef`.
+- CDD promoted from `Proposed` to `Accepted`.
+- Live execution gate closed by `production/qa/evidence/live/kimi-live-smoke-2026-06-29.json`.
 
 ## Do Not Forget
 
-- P3 external gates still require operator action; do NOT fabricate live evidence.
+- Remaining P3 external gates still require operator action; do NOT fabricate live evidence.
 - Do not change production_ready / stable_declaration / Level 3 posture.
-- Next recommended work: generate exact-SHA remote CI evidence for the Sprint B merge commit, then choose Sprint C (Kimi live smoke) or Sprint D (enterprise auth).
+- Rotate the Kimi API key used in chat before reuse.
+- Next recommended work: Sprint D (enterprise auth hardening) or remaining S017
+  external gates.
 
-## Open External Gates (unchanged from prior sessions)
+## Open External Gates
 
-- S017-002: Kimi Files/Vision/Agent SDK live smoke
 - S017-003: Financial provider live approval
 - W3-live: Web research agent live walkthrough
 - AUTH-prod: Enterprise production validation
-- S017-007: Analyst benchmark live eval
+- S017-007: Analyst benchmark live eval / SDK release approval
+
+## Files Modified (git working tree)
+
+- `scripts/run_kimi_live_smoke.py`
+- `scripts/validate_kimi_live_smoke_evidence.py`
+- `tests/unit/qa/test_run_kimi_live_smoke.py`
+- `tests/unit/qa/test_validate_kimi_live_smoke_evidence.py`
+- `docs/progress/runtime-maturity.yaml`
+- `design/cdd/sprint-c-kimi-live-smoke.md` (new)
+- `production/qa/evidence/sprint-c-kimi-live-smoke-acceptance-2026-06-29.md` (new)
+- `production/qa/evidence/live/kimi-live-smoke-2026-06-28.json` (new)
+- `production/qa/evidence/live/kimi-live-smoke-2026-06-28.md` (new)
+- `production/qa/evidence/live/kimi-live-smoke-2026-06-29.json` (new)
+- `production/qa/evidence/live/kimi-live-smoke-2026-06-29.md` (new)

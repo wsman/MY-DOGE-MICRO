@@ -46,7 +46,7 @@ ALLOWED_USAGE_KEYS = {
 }
 
 
-def validate(payload: dict[str, Any], *, allow_blocked: bool = False) -> list[str]:
+def validate(payload: dict[str, Any], *, allow_blocked: bool = False, coding_v1: bool = False) -> list[str]:
     errors: list[str] = []
     if payload.get("schema") != SCHEMA:
         errors.append(f"schema must be {SCHEMA}")
@@ -106,11 +106,14 @@ def validate(payload: dict[str, Any], *, allow_blocked: bool = False) -> list[st
             scenario = _dict(scenario_map.get(name))
             if scenario.get("status") != "passed":
                 errors.append(f"{name}: passed evidence requires status=passed")
-        closure_errors = _full_closure_errors(scenario_map, environment)
-        if closure_errors and allow_blocked:
-            pass
+        if coding_v1:
+            errors.extend(_coding_v1_optional_errors(scenario_map))
         else:
-            errors.extend(closure_errors)
+            closure_errors = _full_closure_errors(scenario_map, environment)
+            if closure_errors and allow_blocked:
+                pass
+            else:
+                errors.extend(closure_errors)
 
     if result == "failed" and not (scenario_map or payload.get("error")):
         errors.append("failed evidence requires scenarios or a redacted error")
@@ -152,6 +155,22 @@ def _validate_scenario(scenario: dict[str, Any], errors: list[str]) -> None:
             errors.append("files_upload: raw file_id must not be recorded")
     if name in OPTIONAL_SCENARIOS and status == "skipped" and not scenario.get("reason"):
         errors.append(f"{name}: skipped scenario requires reason")
+
+
+def _coding_v1_optional_errors(scenario_map: dict[str, dict[str, Any]]) -> list[str]:
+    errors: list[str] = []
+    scenario_names = set(scenario_map)
+    missing = OPTIONAL_SCENARIOS - scenario_names
+    if missing:
+        errors.append(f"coding-v1: missing optional scenarios: {', '.join(sorted(missing))}")
+    for name in sorted(OPTIONAL_SCENARIOS & scenario_names):
+        scenario = _dict(scenario_map.get(name))
+        status = scenario.get("status")
+        if status not in {"passed", "skipped"}:
+            errors.append(f"{name}: coding-v1 optional scenario must be passed or skipped")
+        if status == "skipped" and not scenario.get("reason"):
+            errors.append(f"{name}: coding-v1 skipped optional scenario requires reason")
+    return errors
 
 
 def _full_closure_errors(
@@ -245,11 +264,16 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Validate S017-002 Kimi live smoke evidence JSON.")
     parser.add_argument("evidence", help="Path to Kimi live smoke evidence JSON.")
     parser.add_argument("--allow-blocked", action="store_true", help="Allow blocked evidence for readiness tracking.")
+    parser.add_argument(
+        "--coding-v1",
+        action="store_true",
+        help="Validate Kimi Coding v1 gate semantics: text + Vision required; Files + Agent SDK optional but documented.",
+    )
     args = parser.parse_args(argv)
 
     path = Path(args.evidence)
     payload = json.loads(path.read_text(encoding="utf-8"))
-    errors = validate(payload, allow_blocked=args.allow_blocked)
+    errors = validate(payload, allow_blocked=args.allow_blocked, coding_v1=args.coding_v1)
     result = {"path": str(path), "passed": not errors, "errors": errors}
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0 if not errors else 1

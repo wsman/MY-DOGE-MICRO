@@ -248,3 +248,124 @@ def test_cli_allows_blocked_only_with_flag():
     assert "full closure" in denied.stdout
     assert allowed.returncode == 0
     assert json.loads(allowed.stdout)["passed"] is True
+
+
+def _coding_v1_passed():
+    return {
+        "schema": "doge.kimi_live_smoke.v1",
+        "story_id": "S017-002",
+        "created_at": "2026-06-29T00:00:00+00:00",
+        "result": "passed",
+        "gate": "coding-v1",
+        "environment": {
+            "DOGE_LIVE_KIMI": True,
+            "MOONSHOT_API_KEY_PRESENT": True,
+            "DOGE_LIVE_KIMI_AGENT_SDK": False,
+            "kimi_agent_sdk_installed": False,
+            "base_url": "https://api.moonshot.ai/v1",
+            "general_model": "kimi-k2.6",
+        },
+        "redaction": {
+            "api_key_recorded": False,
+            "raw_file_id_recorded": False,
+            "raw_prompt_recorded": False,
+            "sensitive_fixture_used": False,
+        },
+        "scenarios": [
+            {
+                "name": "text_k26",
+                "status": "passed",
+                "profile": "financial_research",
+                "model": "kimi-k2.6",
+                "latency_ms": 120.5,
+                "event_count": 1,
+                "response_chars": 17,
+                "finish_reasons": ["stop"],
+                "usage": {
+                    "reported": True,
+                    "prompt_tokens": 10,
+                    "completion_tokens": 6,
+                    "total_tokens": 16,
+                },
+            },
+            {
+                "name": "files_upload",
+                "status": "skipped",
+                "profile": "document_extract",
+                "model": "kimi-k2.6",
+                "reason": "configured Kimi endpoint does not support the Files API",
+                "usage": {"reported": False, "reason": "files_upload_optional_not_supported"},
+            },
+            {
+                "name": "vision_base64",
+                "status": "passed",
+                "profile": "vision_analysis",
+                "model": "kimi-k2.6",
+                "latency_ms": 320.0,
+                "event_count": 1,
+                "response_chars": 12,
+                "finish_reasons": ["stop"],
+                "usage": {"reported": False, "reason": "provider_usage_not_reported"},
+            },
+            {
+                "name": "agent_sdk_optional",
+                "status": "skipped",
+                "profile": "agent_automation",
+                "model": "kimi-k2.6",
+                "reason": "kimi_agent_sdk is not installed",
+                "usage": {"reported": False, "reason": "agent_sdk_optional_not_installed"},
+            },
+        ],
+    }
+
+
+def test_coding_v1_passes_with_required_and_documented_optional():
+    assert validate(_coding_v1_passed(), coding_v1=True) == []
+
+
+def test_coding_v1_rejects_missing_optional_scenario():
+    payload = _coding_v1_passed()
+    payload["scenarios"] = [item for item in payload["scenarios"] if item["name"] != "agent_sdk_optional"]
+
+    errors = validate(payload, coding_v1=True)
+
+    assert any("missing optional scenarios" in error for error in errors)
+
+
+def test_coding_v1_rejects_skipped_optional_without_reason():
+    payload = _coding_v1_passed()
+    for scenario in payload["scenarios"]:
+        if scenario["name"] == "files_upload":
+            scenario.pop("reason")
+
+    errors = validate(payload, coding_v1=True)
+
+    assert any("skipped optional scenario requires reason" in error for error in errors)
+
+
+def test_coding_v1_fails_when_required_scenario_fails():
+    payload = _coding_v1_passed()
+    for scenario in payload["scenarios"]:
+        if scenario["name"] == "text_k26":
+            scenario["status"] = "failed"
+
+    errors = validate(payload, coding_v1=True)
+
+    assert any("text_k26: passed evidence requires status=passed" in error for error in errors)
+
+
+def test_coding_v1_cli_flag():
+    script = ROOT / "scripts" / "validate_kimi_live_smoke_evidence.py"
+    coding_v1_path = ROOT / "production" / "qa" / "evidence" / "live" / "kimi-live-smoke-coding-v1-fixture.json"
+    coding_v1_path.write_text(json.dumps(_coding_v1_passed()), encoding="utf-8")
+    try:
+        result = subprocess.run(
+            [sys.executable, str(script), str(coding_v1_path), "--coding-v1"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0
+        assert json.loads(result.stdout)["passed"] is True
+    finally:
+        coding_v1_path.unlink(missing_ok=True)
