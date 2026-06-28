@@ -12,6 +12,12 @@ def test_numerical_consistency_returns_none_without_comparable_numbers():
     assert NumericalConsistencyService().score_numbers([], [1.0]) is None
 
 
+def test_numerical_consistency_scores_single_claim_numbers():
+    service = NumericalConsistencyService()
+
+    assert service.score_claim_numbers("Revenue grew 12%.", ["Revenue grew 12.1%."]) == 1.0
+
+
 def test_numerical_consistency_ignores_boolean_tool_flags():
     service = NumericalConsistencyService()
     events = [

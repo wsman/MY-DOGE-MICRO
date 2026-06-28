@@ -307,5 +307,55 @@
       {"metric": "cloud_revenue_billion", "value": 135.0, "tolerance": 0.1},
       {"metric": "technology_weight_pct", "value": 67.1, "tolerance": 0.2}
     ]
+  },
+  {
+    "id": "relation_support_revenue_exact",
+    "category": "relation_support",
+    "execution_profile": "financial_research",
+    "question": "Classify whether the evidence supports the revenue growth claim.",
+    "materials": [{"document_id": "doc-rel-revenue", "filename": "revenue-note.pdf", "kind": "annual_report"}],
+    "expected_claims": [{"claim_id": "clm-rel-revenue-growth", "text": "Revenue grew 12%.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-rel-revenue-growth", "document_id": "doc-rel-revenue", "page_number": 8}],
+    "expected_numbers": [{"metric": "revenue_growth_pct", "value": 12.0, "tolerance": 0.1}]
+  },
+  {
+    "id": "relation_support_margin_partial",
+    "category": "relation_support",
+    "execution_profile": "financial_research",
+    "question": "Classify partial support for a margin expansion claim.",
+    "materials": [{"document_id": "doc-rel-margin", "filename": "margin-brief.pdf", "kind": "presentation"}],
+    "expected_claims": [{"claim_id": "clm-rel-margin-expansion", "text": "Margin expanded because cost controls improved.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-rel-margin-cost", "document_id": "doc-rel-margin", "page_number": 4}],
+    "expected_numbers": []
+  },
+  {
+    "id": "relation_support_contradicted_cash",
+    "category": "relation_support",
+    "execution_profile": "financial_research",
+    "question": "Classify contradiction for a cash balance claim.",
+    "materials": [{"document_id": "doc-rel-cash", "filename": "cash-note.pdf", "kind": "annual_report"}],
+    "expected_claims": [{"claim_id": "clm-rel-cash", "text": "Cash increased to 5.0 billion.", "expected_status": "contradicted"}],
+    "expected_citations": [{"evidence_id": "evd-rel-cash-decrease", "document_id": "doc-rel-cash", "page_number": 11}],
+    "expected_numbers": [{"metric": "cash_balance_billion", "value": 3.2, "tolerance": 0.1}]
+  },
+  {
+    "id": "relation_support_unrelated_risk",
+    "category": "relation_support",
+    "execution_profile": "financial_research",
+    "question": "Reject unrelated evidence for a risk claim.",
+    "materials": [{"document_id": "doc-rel-risk", "filename": "risk-factors.pdf", "kind": "annual_report"}],
+    "expected_claims": [{"claim_id": "clm-rel-risk", "text": "FX risk is the primary margin driver.", "expected_status": "insufficient_evidence"}],
+    "expected_citations": [],
+    "expected_numbers": []
+  },
+  {
+    "id": "relation_support_portfolio_number",
+    "category": "relation_support",
+    "execution_profile": "financial_research",
+    "question": "Classify support for a portfolio exposure number.",
+    "materials": [{"document_id": "doc-rel-portfolio", "filename": "portfolio.csv", "kind": "portfolio_csv"}],
+    "expected_claims": [{"claim_id": "clm-rel-portfolio-tech", "text": "Technology exposure is 42.5%.", "expected_status": "supported"}],
+    "expected_citations": [{"evidence_id": "evd-rel-portfolio-tech", "document_id": "doc-rel-portfolio", "page_number": 1}],
+    "expected_numbers": [{"metric": "technology_weight_pct", "value": 42.5, "tolerance": 0.1}]
   }
 ]

@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from doge.config import get_settings
-from doge.core.domain.claim_models import CitationRecord, ClaimRecord
+from doge.core.domain.claim_models import CitationRecord, ClaimEvidenceRelation, ClaimRecord
 from doge.core.ports.claim_repository import IClaimRepository
 from doge.infrastructure.database.agent_repositories import bootstrap_agent_schema
 from doge.infrastructure.database.sqlite import SQLiteConnection
@@ -117,3 +117,57 @@ class SQLiteClaimRepository(IClaimRepository):
         with self._connect() as conn:
             rows = conn.execute(sql, params).fetchall()
             return [CitationRecord.from_mapping(dict(row)) for row in rows]
+
+    def save_relation(self, relation: ClaimEvidenceRelation) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO claim_evidence_relations(
+                    relation_id, claim_id, evidence_id, support_status,
+                    confidence, method, metadata, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(relation_id) DO UPDATE SET
+                    claim_id = excluded.claim_id,
+                    evidence_id = excluded.evidence_id,
+                    support_status = excluded.support_status,
+                    confidence = excluded.confidence,
+                    method = excluded.method,
+                    metadata = excluded.metadata
+                """,
+                (
+                    relation.relation_id,
+                    relation.claim_id,
+                    relation.evidence_id,
+                    relation.support_status,
+                    relation.confidence,
+                    relation.method,
+                    json.dumps(relation.metadata, ensure_ascii=False),
+                    relation.created_at,
+                ),
+            )
+            conn.commit()
+
+    def list_relations_for_claim(self, claim_id: str) -> list[ClaimEvidenceRelation]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM claim_evidence_relations
+                WHERE claim_id = ?
+                ORDER BY created_at ASC
+                """,
+                (claim_id,),
+            ).fetchall()
+            return [ClaimEvidenceRelation.from_mapping(dict(row)) for row in rows]
+
+    def list_relations_for_evidence(self, evidence_id: str) -> list[ClaimEvidenceRelation]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM claim_evidence_relations
+                WHERE evidence_id = ?
+                ORDER BY created_at ASC
+                """,
+                (evidence_id,),
+            ).fetchall()
+            return [ClaimEvidenceRelation.from_mapping(dict(row)) for row in rows]

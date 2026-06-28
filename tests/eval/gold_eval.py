@@ -14,6 +14,7 @@ REQUIRED_CATEGORIES = {
     "portfolio_csv",
     "unsupported_claim",
     "multi_turn",
+    "relation_support",
 }
 
 
@@ -82,6 +83,8 @@ def score_observations(cases: list[dict[str, Any]], observations: dict[str, dict
             "retrieval_recall": _average_metric(per_case, "retrieval_recall"),
             "retrieval_precision": _average_metric(per_case, "retrieval_precision"),
             "citation_precision": _average_metric(per_case, "citation_precision"),
+            "claim_evidence_precision": _average_metric(per_case, "claim_evidence_precision"),
+            "support_classification_accuracy": _average_metric(per_case, "support_classification_accuracy"),
             "numerical_consistency": _average_metric(per_case, "numerical_consistency"),
             "usage_cost_record_coverage": sum(1 for item in per_case if item["usage_recorded"]) / len(per_case)
             if per_case else 0.0,
@@ -135,12 +138,22 @@ def _score_case(case: dict[str, Any], observed: dict[str, Any]) -> dict[str, Any
     cited = set(observed.get("cited_evidence_ids", []))
     numbers = observed.get("numbers", {})
     usage = observed.get("usage", {})
+    expected_claims = case.get("expected_claims", [])
     return {
         "id": case["id"],
         "observed": bool(observed),
         "retrieval_recall": _recall(retrieved, expected_evidence),
         "retrieval_precision": _precision(retrieved, expected_evidence),
         "citation_precision": _precision(cited, expected_evidence),
+        "claim_evidence_precision": _claim_evidence_precision(
+            observed.get("claim_evidence_relations", []),
+            expected_claims,
+            expected_evidence,
+        ),
+        "support_classification_accuracy": _support_classification_accuracy(
+            observed.get("claims", []),
+            expected_claims,
+        ),
         "numerical_consistency": _numerical_score(case.get("expected_numbers", []), numbers),
         "usage_recorded": bool(usage),
         "cost_usd": _optional_float(usage.get("cost_usd") if isinstance(usage, dict) else None),
@@ -174,6 +187,62 @@ def _numerical_score(expected_numbers: list[dict[str, Any]], observed: dict[str,
         if actual is not None and abs(actual - expected) <= tolerance:
             matches += 1
     return matches / len(expected_numbers)
+
+
+def _claim_evidence_precision(
+    observed_relations: Any,
+    expected_claims: list[dict[str, Any]],
+    expected_evidence: set[str],
+) -> float | None:
+    if not isinstance(observed_relations, list) or not observed_relations:
+        return None
+    expected_claim_ids = {claim.get("claim_id") for claim in expected_claims if claim.get("claim_id")}
+    if not expected_claim_ids or not expected_evidence:
+        return 0.0
+    valid = 0
+    for relation in observed_relations:
+        if not isinstance(relation, dict):
+            continue
+        if relation.get("claim_id") in expected_claim_ids and relation.get("evidence_id") in expected_evidence:
+            valid += 1
+    return valid / len(observed_relations)
+
+
+def _support_classification_accuracy(
+    observed_claims: Any,
+    expected_claims: list[dict[str, Any]],
+) -> float | None:
+    if not isinstance(observed_claims, list) or not observed_claims:
+        return None
+    expected_by_id = {
+        claim.get("claim_id"): _normalize_support_status(claim.get("expected_status"))
+        for claim in expected_claims
+        if claim.get("claim_id")
+    }
+    comparable = [
+        claim
+        for claim in observed_claims
+        if isinstance(claim, dict) and claim.get("claim_id") in expected_by_id
+    ]
+    if not comparable:
+        return None
+    matches = sum(
+        1
+        for claim in comparable
+        if _normalize_support_status(claim.get("support_status")) == expected_by_id[claim.get("claim_id")]
+    )
+    return matches / len(comparable)
+
+
+def _normalize_support_status(value: Any) -> str:
+    status = str(value or "").strip().lower()
+    if status in {"supported", "partial", "unrelated", "contradicted"}:
+        return status
+    if status in {"insufficient_evidence", "unsupported", "unverified"}:
+        return "unrelated"
+    if status in {"conflicted", "conflict", "contradiction"}:
+        return "contradicted"
+    return status
 
 
 def _average_metric(rows: list[dict[str, Any]], key: str) -> float | None:

@@ -218,6 +218,7 @@ def _eval_for(
     quality = {}
     if artifact is not None:
         quality = eval_service.score_artifact(artifact.content, events, evidence_records=evidence_dicts)
+    relation_quality = eval_service.score_claim_evidence_relations(claims, citations, evidence_dicts)
     failed_checks = []
     unsupported = [claim for claim in claims if claim["support_status"] != "supported"]
     if unsupported:
@@ -240,8 +241,16 @@ def _eval_for(
         "supported_claim_count": len([claim for claim in claims if claim["support_status"] == "supported"]),
         "citation_count": len(citations),
         "accessible_citation_count": len([citation for citation in citations if citation.get("accessible", True)]),
+        "claim_evidence_relation_count": relation_quality["claim_evidence_relation_count"],
+        "supported_relation_count": relation_quality["supported_relation_count"],
+        "partial_relation_count": relation_quality["partial_relation_count"],
+        "unrelated_relation_count": relation_quality["unrelated_relation_count"],
+        "classification_confidence_avg": relation_quality["classification_confidence_avg"],
         "failed_checks": failed_checks,
-        "metrics": quality,
+        "metrics": {
+            **quality,
+            "contradicted_relation_count": relation_quality["contradicted_relation_count"],
+        },
     }
 
 

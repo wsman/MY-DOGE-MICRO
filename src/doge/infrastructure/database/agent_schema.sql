@@ -213,6 +213,23 @@ CREATE TABLE IF NOT EXISTS citation_records (
     created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS claim_evidence_relations (
+    relation_id TEXT PRIMARY KEY,
+    claim_id TEXT NOT NULL,
+    evidence_id TEXT NOT NULL,
+    support_status TEXT NOT NULL,
+    confidence REAL NOT NULL,
+    method TEXT NOT NULL,
+    metadata TEXT,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_claim_evidence_relations_claim
+ON claim_evidence_relations(claim_id);
+
+CREATE INDEX IF NOT EXISTS idx_claim_evidence_relations_evidence
+ON claim_evidence_relations(evidence_id);
+
 CREATE TABLE IF NOT EXISTS run_queue (
     queue_id INTEGER PRIMARY KEY AUTOINCREMENT,
     run_id TEXT NOT NULL,

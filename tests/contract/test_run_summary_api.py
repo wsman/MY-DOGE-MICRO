@@ -39,6 +39,9 @@ def test_run_summary_api_returns_structured_resources():
     assert claims.json()["claims"][0]["claim_id"] == "claim-1"
     assert citations.json()["citations"][0]["document_id"] == "doc-allowed"
     assert evaluation.json()["eval"]["coverage_ratio"] == 1.0
+    assert evaluation.json()["eval"]["claim_evidence_relation_count"] == 1
+    assert evaluation.json()["eval"]["supported_relation_count"] == 1
+    assert evaluation.json()["eval"]["classification_confidence_avg"] is not None
 
 
 def test_enterprise_run_citations_redact_denied_document_snippets(tmp_path):

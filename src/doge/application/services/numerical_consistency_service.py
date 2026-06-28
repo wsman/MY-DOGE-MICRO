@@ -25,6 +25,13 @@ class NumericalConsistencyService:
         matched = sum(1 for value in artifact_numbers if any(_near(value, ref) for ref in reference_numbers))
         return matched / len(artifact_numbers)
 
+    def score_claim_numbers(self, claim_text: str, evidence_snippets: list[str]) -> float | None:
+        claim_numbers = _numbers(claim_text)
+        evidence_numbers: list[float] = []
+        for snippet in evidence_snippets:
+            evidence_numbers.extend(_numbers(snippet))
+        return self.score_numbers(claim_numbers, evidence_numbers)
+
 
 def _numbers(value: Any) -> list[float]:
     if isinstance(value, bool):

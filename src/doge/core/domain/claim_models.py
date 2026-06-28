@@ -147,6 +147,80 @@ class CitationRecord:
         )
 
 
+@dataclass(frozen=True)
+class ClaimEvidenceRelation:
+    """Classifier output for how one evidence item supports one claim."""
+
+    relation_id: str
+    claim_id: str
+    evidence_id: str
+    support_status: str
+    confidence: float
+    method: str
+    metadata: dict[str, Any] = field(default_factory=dict)
+    created_at: str = field(default_factory=utc_now)
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        claim_id: str,
+        evidence_id: str,
+        support_status: str,
+        confidence: float,
+        method: str = "deterministic",
+        metadata: dict[str, Any] | None = None,
+    ) -> "ClaimEvidenceRelation":
+        return cls(
+            relation_id=_stable_id("rel", claim_id, evidence_id, method),
+            claim_id=claim_id,
+            evidence_id=evidence_id,
+            support_status=_relation_status(support_status),
+            confidence=max(0.0, min(1.0, float(confidence))),
+            method=method,
+            metadata=metadata or {},
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "relation_id": self.relation_id,
+            "claim_id": self.claim_id,
+            "evidence_id": self.evidence_id,
+            "support_status": self.support_status,
+            "confidence": self.confidence,
+            "method": self.method,
+            "metadata": self.metadata,
+            "created_at": self.created_at,
+        }
+
+    @classmethod
+    def from_mapping(cls, data: dict[str, Any]) -> "ClaimEvidenceRelation":
+        metadata = data.get("metadata") or {}
+        if isinstance(metadata, str):
+            metadata = json.loads(metadata or "{}")
+        return cls(
+            relation_id=data["relation_id"],
+            claim_id=data["claim_id"],
+            evidence_id=data["evidence_id"],
+            support_status=_relation_status(data.get("support_status") or "unrelated"),
+            confidence=float(data.get("confidence") or 0.0),
+            method=data.get("method") or "deterministic",
+            metadata=metadata,
+            created_at=data.get("created_at") or utc_now(),
+        )
+
+
+def _relation_status(status: str) -> str:
+    normalized = status.strip().lower()
+    if normalized in {"supported", "partial", "unrelated", "contradicted"}:
+        return normalized
+    if normalized in {"conflicted", "conflict", "contradiction"}:
+        return "contradicted"
+    if normalized in {"unsupported", "insufficient_evidence", "unverified"}:
+        return "unrelated"
+    return "unrelated"
+
+
 def _stable_id(prefix: str, *parts: str) -> str:
     digest = hashlib.sha256("\x1f".join(parts).encode("utf-8")).hexdigest()[:16]
     return f"{prefix}-{digest}"

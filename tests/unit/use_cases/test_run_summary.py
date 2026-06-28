@@ -43,6 +43,11 @@ def test_build_run_summary_assembles_claims_citations_and_eval():
     assert result["citations"][0]["document_id"] == "doc-1"
     assert result["citations"][0]["accessible"] is True
     assert result["eval"]["coverage_ratio"] == 1.0
+    assert result["eval"]["claim_evidence_relation_count"] == 1
+    assert result["eval"]["supported_relation_count"] == 1
+    assert result["eval"]["partial_relation_count"] == 0
+    assert result["eval"]["unrelated_relation_count"] == 0
+    assert result["eval"]["classification_confidence_avg"] is not None
     assert result["eval"]["metrics"]["cost_usd"] == 0.01
 
 

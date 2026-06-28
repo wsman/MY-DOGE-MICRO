@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from doge.core.domain.claim_models import CitationRecord, ClaimRecord
+from doge.core.domain.claim_models import CitationRecord, ClaimEvidenceRelation, ClaimRecord
 
 
 class IClaimRepository(Protocol):
@@ -25,4 +25,13 @@ class IClaimRepository(Protocol):
         report_id: str | None = None,
         claim_id: str | None = None,
     ) -> list[CitationRecord]:
+        ...
+
+    def save_relation(self, relation: ClaimEvidenceRelation) -> None:
+        ...
+
+    def list_relations_for_claim(self, claim_id: str) -> list[ClaimEvidenceRelation]:
+        ...
+
+    def list_relations_for_evidence(self, evidence_id: str) -> list[ClaimEvidenceRelation]:
         ...
