@@ -32,6 +32,23 @@ from doge.shared.scope import TenantScope
 class RuntimeKernel:
     """Public facade for agent run runtime operations.
 
+    Public operations:
+
+    - ``create_run`` -> ``AgentRun``
+    - ``run_to_pause_or_completion`` -> ``AgentRun``
+    - ``queue_run`` -> ``AgentRun``
+    - ``step`` -> ``AgentRun``
+    - ``resolve_approval`` -> ``AgentRun``
+    - ``cancel_run`` -> ``AgentRun``
+    - ``finalize_cancelled`` -> ``AgentRun``
+    - ``record_failure`` -> ``AgentRun``
+    - ``get_run`` -> ``AgentRun | None``
+    - ``list_events`` -> ``list[AgentEvent]``
+    - ``list_runs`` -> ``list[AgentRun]``
+    - ``list_artifacts`` -> ``list[AgentArtifact]``
+
+    Invariant: Kernel delegates; collaborators decide.
+
     The kernel no longer contains inline business logic. It delegates to
     specialized collaborators:
 

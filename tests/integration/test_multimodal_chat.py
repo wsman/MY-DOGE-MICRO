@@ -66,6 +66,7 @@ async def test_runtime_includes_selected_document_chunks_in_model_context(tmp_pa
     artifact_finalizer = ArtifactFinalizer(
         evaluation_service=artifact_evaluation_service,
     )
+    response_assembler = ModelResponseAssembler()
     context_builder = ContextBuilder(
         document_repository=documents,
         evidence_repository=evidence,
@@ -77,8 +78,11 @@ async def test_runtime_includes_selected_document_chunks_in_model_context(tmp_pa
         artifact_repository=artifact_repository,
         approval_repository=approval_repository,
         context_builder=context_builder,
-        response_assembler=ModelResponseAssembler(),
-        model_execution_service=ModelExecutionService(model=model),
+        response_assembler=response_assembler,
+        model_execution_service=ModelExecutionService(
+            model=model,
+            response_assembler=response_assembler,
+        ),
         tool_execution_service=ToolExecutionService(tool_registry=registry),
         artifact_finalizer=artifact_finalizer,
         transition_recorder=transition_recorder,

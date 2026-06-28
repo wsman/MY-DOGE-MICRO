@@ -13,6 +13,7 @@ from doge.application.agent.run_stepper import RunStepper
 from doge.application.agent.runtime_kernel import RuntimeKernel
 from doge.application.agent.tools import ToolRegistry
 from doge.application.agent.transition_recorder import TransitionRecorder
+from doge.application.agent.web_search_stage import WebSearchStage
 from doge.core.ports.agent_model import IAgentModel
 from doge.core.ports.runtime_transaction import IRuntimeTransaction, IRuntimeTransactionFactory
 from doge.infrastructure.agent.inmemory_repositories import build_inmemory_repositories
@@ -92,7 +93,12 @@ class InMemoryResearchAgentRuntime(PersistedResearchAgentRuntime):
 
     def __init__(self, model: IAgentModel, tool_registry: ToolRegistry) -> None:
         repos = build_inmemory_repositories()
-        model_execution = ModelExecutionService(model=model)
+        response_assembler = ModelResponseAssembler()
+        model_execution = ModelExecutionService(
+            model=model,
+            response_assembler=response_assembler,
+            web_search_stage=WebSearchStage(model, response_assembler=response_assembler),
+        )
         tool_execution = ToolExecutionService(tool_registry=tool_registry)
         artifact_evaluation = ArtifactEvaluationService()
         transition_recorder = TransitionRecorder(
@@ -111,7 +117,7 @@ class InMemoryResearchAgentRuntime(PersistedResearchAgentRuntime):
             artifact_repository=repos["artifacts"],
             approval_repository=repos["approvals"],
             context_builder=context_builder,
-            response_assembler=ModelResponseAssembler(),
+            response_assembler=response_assembler,
             model_execution_service=model_execution,
             tool_execution_service=tool_execution,
             artifact_finalizer=artifact_finalizer,

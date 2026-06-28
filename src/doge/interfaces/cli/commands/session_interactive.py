@@ -5,9 +5,10 @@ from __future__ import annotations
 import asyncio
 
 from doge.application.services.file_upload_service import FileUploadError
-from doge.interfaces.cli.commands.session_embedded import resolve_embedded_approval
+from doge.interfaces.cli.commands.session_embedded import cancel_embedded_run, resolve_embedded_approval
 from doge.interfaces.cli.commands.session_gateway import (
     GatewayArgs,
+    cancel_gateway_run,
     gateway_create_session,
     gateway_create_turn,
     print_gateway_run_field,
@@ -133,6 +134,26 @@ def interactive_loop(
                 run = resolve_embedded_approval(last_run_id, approval_id, approved)
             except KeyError as exc:
                 print(f"approval_error={exc}")
+                continue
+            last_run_id = run.run_id
+            print_run_summary(run)
+            continue
+        if line == "/cancel" or line.startswith("/cancel "):
+            run_id = line.split(maxsplit=1)[1] if " " in line else last_run_id
+            if run_id is None:
+                print("no active run")
+                continue
+            if mode == "gateway":
+                cancel_gateway_run(
+                    GatewayArgs(daemon_url=daemon_url, api_token=api_token),
+                    run_id,
+                )
+                last_run_id = run_id
+                continue
+            try:
+                run = cancel_embedded_run(run_id)
+            except KeyError as exc:
+                print(f"cancel_error={exc}")
                 continue
             last_run_id = run.run_id
             print_run_summary(run)

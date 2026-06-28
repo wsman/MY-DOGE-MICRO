@@ -9,6 +9,7 @@ from doge.application.agent.run_stepper import RunStepper
 from doge.application.agent.runtime_kernel import RuntimeKernel
 from doge.application.agent.tools import ToolRegistry, ToolResult
 from doge.application.agent.transition_recorder import TransitionRecorder
+from doge.application.agent.web_search_stage import WebSearchStage
 from doge.core.ports.runtime_services import ModelExecutionResult
 from doge.infrastructure.database.sqlite_runtime_transaction import SQLiteRuntimeTransactionFactory
 from doge.core.domain.agent_models import EventType, RunStatus
@@ -71,9 +72,11 @@ def _build_kernel(
     model_execution_service=None,
 ):
     """Build a RuntimeKernel from collaborators for unit tests."""
+    response_assembler = ModelResponseAssembler()
     services = _runtime_services(
         model,
         tool_registry,
+        response_assembler=response_assembler,
         governance_repository=governance_repository,
         model_router=model_router,
         agent_backends=agent_backends,
@@ -103,7 +106,7 @@ def _build_kernel(
         artifact_repository=repos["artifacts"],
         approval_repository=repos["approvals"],
         context_builder=context_builder,
-        response_assembler=ModelResponseAssembler(),
+        response_assembler=response_assembler,
         model_execution_service=services["model_execution_service"],
         tool_execution_service=services["tool_execution_service"],
         artifact_finalizer=artifact_finalizer,
@@ -142,6 +145,7 @@ def _runtime_services(
     model,
     tool_registry,
     *,
+    response_assembler,
     governance_repository=None,
     model_router=None,
     agent_backends=None,
@@ -150,7 +154,9 @@ def _runtime_services(
     return {
         "model_execution_service": model_execution_service or ModelExecutionService(
             model=model,
+            response_assembler=response_assembler,
             model_router=model_router,
+            web_search_stage=WebSearchStage(model, response_assembler=response_assembler),
             agent_backends=agent_backends,
         ),
         "tool_execution_service": ToolExecutionService(

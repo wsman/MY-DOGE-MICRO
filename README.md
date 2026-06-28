@@ -35,11 +35,11 @@ stable_declaration: forbidden
 No README, release note, or docs entry should claim Stable, GA, or Production
 readiness while those values remain unchanged.
 
-Remote verification is SHA-specific. The latest remotely verified SHA is
+Remote verification is SHA-specific. The promoted remote baseline remains
 `b5ab80bc802df36b58a1e56225a87b0f2473b29e`; the current pushed HEAD
-`03bfe4f6fd3256b3285d5538ecc68ace984a7815` has local architecture evidence but
-must not be called remotely verified until matching exact-SHA CI evidence is
-stored.
+`f619d3947bd4de11209e5ff40e6e0aebccbb2979` also has exact-SHA CI evidence:
+GitHub Actions run `28314323538`, stored at
+`production/qa/evidence/ci/remote-ci-f619d39.json`.
 
 ## Documentation Map
 

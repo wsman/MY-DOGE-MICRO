@@ -13,6 +13,7 @@ from doge.application.agent.run_lifecycle_service import RunLifecycleService
 from doge.application.agent.run_stepper import RunStepper
 from doge.application.agent.runtime_kernel import RuntimeKernel
 from doge.application.agent.transition_recorder import TransitionRecorder
+from doge.application.agent.web_search_stage import WebSearchStage
 from doge.config import get_settings
 from doge.infrastructure.agent.backends import KimiAgentSdkBackend
 from doge.infrastructure.agent.inmemory_runtime import InMemoryResearchAgentRuntime
@@ -64,6 +65,7 @@ def build_agent_runtime_kernel(
         tool_registry = default_tool_registry_fn()
     model_router = build_model_router(document_repository=repos["documents"])
     agent_backends = build_agent_backends(gateway_container_fn, secret_provider)
+    response_assembler = ModelResponseAssembler()
     transition_recorder = TransitionRecorder(
         transaction_factory=repositories.build_runtime_transaction_factory(db_path),
         event_publisher=event_publisher,
@@ -80,10 +82,12 @@ def build_agent_runtime_kernel(
             session_repository=repos["sessions"],
             run_repository=repos["runs"],
         ),
-        response_assembler=ModelResponseAssembler(),
+        response_assembler=response_assembler,
         model_execution_service=ModelExecutionService(
             model=model,
+            response_assembler=response_assembler,
             model_router=model_router,
+            web_search_stage=WebSearchStage(model, response_assembler=response_assembler),
             agent_backends=agent_backends,
         ),
         tool_execution_service=ToolExecutionService(

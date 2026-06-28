@@ -98,6 +98,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_session.add_argument("--mode", default="embedded", choices=["embedded", "gateway"])
     p_session.add_argument("--approve", help="approval id or run_id:approval_id to approve")
     p_session.add_argument("--deny", help="approval id or run_id:approval_id to deny")
+    p_session.add_argument("--cancel", help="run id to cancel")
     p_session.add_argument("--daemon-url", default="http://127.0.0.1:8901")
     p_session.add_argument("--api-token", help="bearer token for gateway mode")
     p_session.add_argument("--list", action="store_true", help="list recent sessions")

@@ -49,6 +49,65 @@ def test_python_sdk_session_run_sets_execution_profile():
     assert seen_body["document_ids"] == ["doc-1"]
 
 
+def test_python_sdk_get_run():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET"
+        assert request.url.path == "/v1/runs/run-test"
+        return httpx.Response(200, json={"run_id": "run-test", "status": "completed"})
+
+    client = DogeClient(base_url="http://testserver", transport=httpx.MockTransport(handler))
+
+    run = client.runs.get("run-test")
+
+    assert run == {"run_id": "run-test", "status": "completed"}
+
+
+def test_python_sdk_get_run_events():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET"
+        assert request.url.path == "/v1/runs/run-test/events"
+        assert request.url.params["after_sequence"] == "2"
+        return httpx.Response(200, json={"events": [{"sequence": 3, "event_type": "run_queued"}]})
+
+    client = DogeClient(base_url="http://testserver", transport=httpx.MockTransport(handler))
+
+    events = client.runs.events("run-test", after_sequence=2)
+
+    assert events == [{"sequence": 3, "event_type": "run_queued"}]
+
+
+def test_python_sdk_cancel_run():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert request.url.path == "/v1/runs/run-test/cancel"
+        return httpx.Response(202, json={"run_id": "run-test", "status": "cancelling"})
+
+    client = DogeClient(base_url="http://testserver", transport=httpx.MockTransport(handler))
+
+    run = client.runs.cancel("run-test")
+
+    assert run == {"run_id": "run-test", "status": "cancelling"}
+
+
+def test_python_sdk_list_and_get_sessions():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/v1/sessions" and request.method == "GET":
+            assert request.url.params["limit"] == "2"
+            return httpx.Response(200, json={"sessions": [{"session_id": "ses-test", "title": "Test"}]})
+        if request.url.path == "/v1/sessions/ses-test":
+            return httpx.Response(200, json={"session_id": "ses-test", "title": "Test", "turns": []})
+        return httpx.Response(404, json={"error": {"message": "not found"}})
+
+    client = DogeClient(base_url="http://testserver", transport=httpx.MockTransport(handler))
+
+    sessions = client.sessions.list(limit=2)
+    session = client.sessions.get("ses-test")
+
+    assert sessions == [{"session_id": "ses-test", "title": "Test"}]
+    assert session.session_id == "ses-test"
+    assert session.data["turns"] == []
+
+
 def test_python_sdk_sends_bearer_and_request_id_and_redacts_error():
     seen_headers = {}
 

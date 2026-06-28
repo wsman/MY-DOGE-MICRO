@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 LATEST_REMOTE_SHA = "b5ab80bc802df36b58a1e56225a87b0f2473b29e"
-CURRENT_HEAD_SHA = "03bfe4f6fd3256b3285d5538ecc68ace984a7815"
+CURRENT_HEAD_SHA = "f619d3947bd4de11209e5ff40e6e0aebccbb2979"
 
 
 def _read(path: str) -> str:
@@ -22,25 +22,29 @@ def test_runtime_maturity_separates_latest_remote_sha_from_current_head() -> Non
 
     assert "current_pushed_head_local_evidence:" in maturity
     assert CURRENT_HEAD_SHA in maturity
-    assert "remote_ci_result: pending_exact_sha_evidence" in maturity
-    assert "remote-ci-03bfe4f.json" in maturity
+    assert "remote_ci_result: passed" in maturity
+    assert "remote_ci_run_id: 28314323538" in maturity
+    assert "remote-ci-f619d39.json" in maturity
 
 
 def test_readme_does_not_claim_current_head_is_remotely_verified() -> None:
     readme = _read("README.md")
 
-    assert f"latest remotely verified SHA is\n`{LATEST_REMOTE_SHA}`" in readme
+    assert f"promoted remote baseline remains\n`{LATEST_REMOTE_SHA}`" in readme
     assert f"current pushed HEAD\n`{CURRENT_HEAD_SHA}`" in readme
-    assert "must not be called remotely verified" in readme
+    assert "GitHub Actions run `28314323538`" in readme
+    assert "remote-ci-f619d39.json" in readme
 
 
 def test_acceptance_report_targets_current_head_remote_ci_evidence() -> None:
     report = _read("production/qa/evidence/architecture-remediation-acceptance-2026-06-28.md")
 
     assert f"**Committed SHA**: `{CURRENT_HEAD_SHA}`" in report
-    assert f"--head-sha {CURRENT_HEAD_SHA}" in report
+    assert "production/qa/evidence/ci/remote-ci-f619d39.json" in report
+    assert "GitHub Actions run `28314323538`" in report
     assert "Post-amend architecture remediation acceptance report" in report
-    assert "pending_exact_sha_evidence" in report
+    assert "pending_exact_sha_evidence" not in report
+    assert "03bfe4f6fd3256b3285d5538ecc68ace984a7815" not in report
     assert "78107e3e5b489a71f76337124309d8d290b26946" not in report
 
 

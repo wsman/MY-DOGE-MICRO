@@ -24,6 +24,28 @@ def _reset_agent_deps(monkeypatch, tmp_path):
     deps._enterprise_governance_repository = None
 
 
+def _create_run(client: TestClient) -> str:
+    session = client.post("/v1/sessions", json={"title": "API"}).json()
+    return client.post(
+        f"/v1/sessions/{session['session_id']}/turns",
+        json={"message": "Analyze"},
+    ).json()["run_id"]
+
+
+def _wait_for_run(client: TestClient, run_id: str, statuses: set[str], timeout: float = 4.0) -> dict:
+    deadline = time.monotonic() + timeout
+    body = {}
+    while time.monotonic() < deadline:
+        response = client.get(f"/v1/runs/{run_id}")
+        assert response.status_code == 200
+        body = response.json()
+        if body["status"] in statuses:
+            return body
+        time.sleep(0.1)
+    assert body.get("status") in statuses
+    return body
+
+
 def test_v1_post_turns_returns_202_with_run_id(tmp_path, monkeypatch):
     _reset_agent_deps(monkeypatch, tmp_path)
     with TestClient(app) as client:
@@ -46,6 +68,60 @@ def test_v1_get_run_returns_status(tmp_path, monkeypatch):
 
     assert response.status_code == 200
     assert response.json()["status"] in {"queued", "running", "awaiting_approval", "completed"}
+
+
+def test_v1_get_run_events_returns_sequence(tmp_path, monkeypatch):
+    _reset_agent_deps(monkeypatch, tmp_path)
+    with TestClient(app) as client:
+        run_id = _create_run(client)
+
+        response = client.get(f"/v1/runs/{run_id}/events")
+
+    assert response.status_code == 200
+    events = response.json()["events"]
+    assert events[0]["sequence"] == 1
+    assert events[0]["event_type"] == "run_created"
+
+
+def test_v1_cancel_run_returns_accepted(tmp_path, monkeypatch):
+    _reset_agent_deps(monkeypatch, tmp_path)
+    with TestClient(app) as client:
+        run_id = _create_run(client)
+
+        response = client.post(f"/v1/runs/{run_id}/cancel")
+
+    assert response.status_code == 202
+    assert response.json()["run_id"] == run_id
+    assert response.json()["status"] in {"cancelling", "cancelled", "completed"}
+
+
+def test_v1_resolve_approval_returns_accepted(tmp_path, monkeypatch):
+    _reset_agent_deps(monkeypatch, tmp_path)
+    with TestClient(app) as client:
+        run_id = _create_run(client)
+        run = _wait_for_run(client, run_id, {"awaiting_approval"})
+        approval_id = run["approvals"][0]["approval_id"]
+
+        response = client.post(f"/v1/runs/{run_id}/approvals/{approval_id}", json={"approved": True})
+
+    assert response.status_code == 202
+    assert response.json()["run_id"] == run_id
+    assert response.json()["status"] in {"queued", "running", "completed"}
+
+
+def test_v1_stream_run_returns_sse_events(tmp_path, monkeypatch):
+    _reset_agent_deps(monkeypatch, tmp_path)
+    with TestClient(app) as client:
+        run_id = _create_run(client)
+        _wait_for_run(client, run_id, {"awaiting_approval", "completed"})
+
+        with client.stream("GET", f"/v1/runs/{run_id}/stream") as response:
+            body = response.read().decode("utf-8")
+
+    assert response.status_code == 200
+    assert "text/event-stream" in response.headers["content-type"]
+    assert "event: run_created" in body
+    assert "data:" in body
 
 
 def test_optional_api_token_auth(tmp_path, monkeypatch):

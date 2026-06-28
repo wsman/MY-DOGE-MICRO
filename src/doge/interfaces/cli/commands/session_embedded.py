@@ -23,6 +23,13 @@ def resolve_embedded_approval(run_id: str, approval_id: str, approved: bool):
     return run
 
 
+def cancel_embedded_run(run_id: str):
+    from doge.interfaces.cli.commands import session as _session
+
+    runtime = _session._runtime_container().build_persisted_research_agent_runtime()
+    return asyncio.run(runtime.cancel_run(TenantScope.local(), run_id))
+
+
 def find_run_for_approval(session, approval_id: str) -> str | None:
     from doge.interfaces.cli.commands import session as _session
 
@@ -41,6 +48,12 @@ def find_run_for_approval(session, approval_id: str) -> str | None:
 def cmd_embedded_session(args) -> None:
     """Create, list, or resume a persisted agent session in embedded mode."""
     from doge.interfaces.cli.commands import session as _session
+
+    cancel_run_id = getattr(args, "cancel", None)
+    if cancel_run_id:
+        run = cancel_embedded_run(cancel_run_id)
+        print_run_summary(run)
+        return
 
     if getattr(args, "list", False):
         sessions = _session._runtime_container().build_list_sessions_use_case().execute(limit=args.limit)

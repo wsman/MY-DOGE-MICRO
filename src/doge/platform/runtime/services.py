@@ -1,9 +1,15 @@
-"""Runtime execution services used by RuntimeKernel."""
+"""Platform runtime orchestration services.
+
+This module owns model routing, backend dispatch, tool ACL filtering, and
+artifact metrics. State-machine transitions, approval coordination, session
+lifecycle, response assembly, and web-search staging stay outside this layer
+and are injected through core ports.
+"""
 
 from __future__ import annotations
 
 import inspect
-from typing import Any, AsyncIterator, Callable
+from typing import Any, Callable
 
 from doge.application.services.citation_service import CitationService
 from doge.application.services.numerical_consistency_service import NumericalConsistencyService
@@ -13,10 +19,15 @@ from doge.core.domain.execution_profile import ProfileRegistry
 from doge.core.domain.model_policy import ModelPolicy
 from doge.core.domain.run_execution_context import RunExecutionContext
 from doge.core.ports.agent_backend import IAgentBackend
-from doge.core.ports.agent_model import AgentMessage, AgentResponse, IAgentModel
+from doge.core.ports.agent_model import IAgentModel
 from doge.core.ports.enterprise_governance import EnterpriseAuditEvent, IEnterpriseGovernanceRepository
 from doge.core.ports.model_router import IModelRouter, RoutingDecision
-from doge.core.ports.runtime_services import ModelExecutionResult, ToolResult
+from doge.core.ports.runtime_services import (
+    IModelResponseAssembler,
+    IWebSearchStage,
+    ModelExecutionResult,
+    ToolResult,
+)
 
 
 class ModelExecutionService:
@@ -26,13 +37,15 @@ class ModelExecutionService:
         self,
         *,
         model: IAgentModel,
-        response_assembler: Any = None,
+        response_assembler: IModelResponseAssembler,
         model_router: IModelRouter | None = None,
-        web_search_stage: Any = None,
+        web_search_stage: IWebSearchStage | None = None,
         agent_backends: dict[str, IAgentBackend] | None = None,
     ) -> None:
+        if response_assembler is None:
+            raise ValueError("response_assembler is required")
         self._model = model
-        self._response_assembler = response_assembler or _ModelResponseAssembler()
+        self._response_assembler = response_assembler
         self._model_router = model_router
         self._web_search_stage = web_search_stage
         self._agent_backends = agent_backends or {}
@@ -49,8 +62,9 @@ class ModelExecutionService:
     ) -> ModelExecutionResult:
         profile = ProfileRegistry.get(policy.execution_profile)
         if policy.web_search_enabled or (policy.web_search_enabled is None and profile.web_search_enabled):
-            stage = self._web_search_stage or _WebSearchStage(self._model)
-            messages = await stage.execute(messages, run.question)
+            if self._web_search_stage is None:
+                raise RuntimeError("web search is enabled but web_search_stage is not configured")
+            messages = await self._web_search_stage.execute(messages, run.question)
         routing = self._route_model(run, policy, execution_context)
         tool_schemas = tool_schemas_for(routing)
         chat_kwargs = self._chat_kwargs(run, policy, routing, tool_schemas, enterprise_context, execution_context)
@@ -358,105 +372,3 @@ The requested research memo requires source-backed validation and human approval
 2. What downside scenario should be approved for client-facing material?
 3. What unresolved data gaps should remain marked as unavailable?
 """
-
-
-class _ModelResponseAssembler:
-    async def assemble(self, chunks: AsyncIterator[AgentResponse]) -> AgentResponse | None:
-        role = "assistant"
-        content_parts: list[str] = []
-        reasoning_parts: list[str] = []
-        tool_calls: dict[int, dict[str, Any]] = {}
-        finish_reason = None
-        usage = None
-        raw = None
-
-        async for chunk in chunks:
-            message = chunk.message
-            role = message.role or role
-            if message.content:
-                content_parts.append(str(message.content))
-            if message.reasoning_content:
-                reasoning_parts.append(message.reasoning_content)
-            for fallback_index, call_delta in enumerate(message.tool_calls or []):
-                index = int(call_delta.get("index", fallback_index) or 0)
-                current = tool_calls.setdefault(
-                    index,
-                    {"id": call_delta.get("id"), "type": call_delta.get("type", "function"), "function": {}},
-                )
-                if call_delta.get("id"):
-                    current["id"] = call_delta["id"]
-                if call_delta.get("type"):
-                    current["type"] = call_delta["type"]
-                function_delta = call_delta.get("function", {}) or {}
-                function = current.setdefault("function", {})
-                if function_delta.get("name"):
-                    function["name"] = function_delta["name"]
-                if "arguments" in function_delta:
-                    function["arguments"] = function.get("arguments", "") + (function_delta.get("arguments") or "")
-            finish_reason = chunk.finish_reason or finish_reason
-            usage = chunk.usage or usage
-            raw = chunk.raw or raw
-
-        if not content_parts and not reasoning_parts and not tool_calls and finish_reason is None:
-            return None
-
-        calls = [tool_calls[index] for index in sorted(tool_calls)]
-        for idx, call in enumerate(calls):
-            call.setdefault("id", f"call-{idx}")
-            call.setdefault("type", "function")
-            call.setdefault("function", {}).setdefault("arguments", "{}")
-        return AgentResponse(
-            message=AgentMessage(
-                role=role,
-                content="".join(content_parts),
-                reasoning_content="".join(reasoning_parts) or None,
-                tool_calls=calls,
-            ),
-            finish_reason=finish_reason,
-            usage=usage,
-            raw=raw,
-        )
-
-
-class _WebSearchStage:
-    def __init__(
-        self,
-        model: IAgentModel,
-        *,
-        response_assembler: _ModelResponseAssembler | None = None,
-        max_tokens: int = 4096,
-    ) -> None:
-        self._model = model
-        self._response_assembler = response_assembler or _ModelResponseAssembler()
-        self._max_tokens = max_tokens
-
-    async def execute(self, messages: list[AgentMessage], query: str) -> list[AgentMessage]:
-        search_messages = [
-            AgentMessage(
-                role="system",
-                content=(
-                    "Collect concise web-search context for the user query. "
-                    "Return facts only; do not draft the final report."
-                ),
-            ),
-            AgentMessage(role="user", content=query),
-        ]
-        response = await self._response_assembler.assemble(
-            self._model.chat(
-                search_messages,
-                tools=None,
-                tool_choice=None,
-                max_tokens=self._max_tokens,
-                stream=False,
-                thinking_enabled=False,
-            )
-        )
-        if response is None or not response.message.content:
-            return messages
-        return [
-            *messages,
-            AgentMessage(
-                role="system",
-                content=f"Web search context from non-thinking stage:\n{response.message.content}",
-            ),
-        ]

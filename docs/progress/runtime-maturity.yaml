@@ -16,13 +16,15 @@ latest_remotely_verified_sha:
     - "A future commit containing further platformization work (composition-root closure, interface splits, workspace bounded-context migration) will require its own exact-SHA GitHub Actions evidence before that newer HEAD is called remotely verified."
 
 current_pushed_head_local_evidence:
-  head_sha: "03bfe4f6fd3256b3285d5538ecc68ace984a7815"
+  head_sha: "f619d3947bd4de11209e5ff40e6e0aebccbb2979"
   evidence: production/qa/evidence/architecture-remediation-acceptance-2026-06-28.md
+  remote_ci_evidence: production/qa/evidence/ci/remote-ci-f619d39.json
   local_architecture_status: passed
-  remote_ci_result: pending_exact_sha_evidence
+  remote_ci_result: passed
+  remote_ci_run_id: 28314323538
   notes:
-    - "Current pushed HEAD 03bfe4f6fd3256b3285d5538ecc68ace984a7815 has local architecture remediation evidence and is already on origin/main."
-    - "Current pushed HEAD must not be called remotely verified until production/qa/evidence/ci/remote-ci-03bfe4f.json exists and validates for this exact SHA."
+    - "Current pushed HEAD f619d3947bd4de11209e5ff40e6e0aebccbb2979 has local architecture remediation evidence and is already on origin/main."
+    - "Exact-SHA remote CI for current pushed HEAD f619d39 passed: GitHub Actions run 28314323538 completed with conclusion=success on a push event for the CI workflow; evidence is stored at production/qa/evidence/ci/remote-ci-f619d39.json."
 
 maturity_labels:
   level_1_embedded_cli_session: preview

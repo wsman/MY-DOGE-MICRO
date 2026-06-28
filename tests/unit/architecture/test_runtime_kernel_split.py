@@ -52,7 +52,8 @@ def test_runtime_services_define_split_boundaries() -> None:
         "class ModelExecutionService",
         "class ToolExecutionService",
         "class ArtifactEvaluationService",
-        "from doge.core.ports.runtime_services import ModelExecutionResult, ToolResult",
+        "ModelExecutionResult",
+        "ToolResult",
     ]:
         assert required in source
 

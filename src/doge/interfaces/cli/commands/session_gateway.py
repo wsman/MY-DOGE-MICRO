@@ -69,6 +69,10 @@ def gateway_resolve_approval(args, run_id: str, approval_id: str, approved: bool
     return with_gateway_client(args, lambda client: client.runs.approve(run_id, approval_id, approved))
 
 
+def gateway_cancel_run(args, run_id: str) -> dict[str, Any]:
+    return with_gateway_client(args, lambda client: client.runs.cancel(run_id))
+
+
 def gateway_upload_document(args, path: str) -> dict[str, Any]:
     return with_gateway_client(args, lambda client: client.documents.upload_path(path))
 
@@ -119,7 +123,18 @@ def resolve_gateway_approval(args, run_id: str, approval_id: str, approved: bool
         print(f"status={status}")
 
 
+def cancel_gateway_run(args, run_id: str) -> None:
+    payload = gateway_cancel_run(args, run_id)
+    status = payload.get("status") or payload.get("run", {}).get("status") or payload.get("status_code")
+    print(f"gateway_cancelled run_id={run_id} status={status or '-'}")
+
+
 def cmd_gateway_session(args) -> None:
+    cancel_run_id = getattr(args, "cancel", None)
+    if cancel_run_id:
+        cancel_gateway_run(args, cancel_run_id)
+        return
+
     if getattr(args, "list", False):
         sessions = gateway_list_sessions(args, limit=args.limit)
         for session in sessions:

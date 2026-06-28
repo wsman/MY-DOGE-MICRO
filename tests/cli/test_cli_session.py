@@ -235,6 +235,57 @@ def test_cli_gateway_session_commands_use_sdk_client(monkeypatch, capsys):
     assert calls.count(("closed",)) == 3
 
 
+def test_cli_gateway_cancel_uses_sdk_client(monkeypatch, capsys):
+    calls = []
+
+    class FakeRuns:
+        def cancel(self, run_id):
+            calls.append(("cancel", run_id))
+            return {"run_id": run_id, "status": "cancelling"}
+
+    class FakeGatewayClient:
+        def __init__(self):
+            self.runs = FakeRuns()
+
+        def close(self):
+            calls.append(("closed",))
+
+    monkeypatch.setattr(session_command, "_gateway_client", lambda args: FakeGatewayClient())
+
+    main(["session", "--mode", "gateway", "--cancel", "run-gateway"])
+
+    out = capsys.readouterr().out
+    assert "gateway_cancelled run_id=run-gateway status=cancelling" in out
+    assert calls == [("cancel", "run-gateway"), ("closed",)]
+
+
+def test_cli_embedded_cancel_uses_runtime(monkeypatch, capsys):
+    calls = []
+
+    class FakeRuntime:
+        async def cancel_run(self, scope, run_id):
+            calls.append(("cancel", scope.tenant_id, run_id))
+            return SimpleNamespace(
+                run_id=run_id,
+                status=SimpleNamespace(value="cancelling"),
+                artifacts=[],
+                approvals=[],
+                session_id="ses-cli",
+            )
+
+    class FakeRuntimeContainer:
+        def build_persisted_research_agent_runtime(self):
+            return FakeRuntime()
+
+    monkeypatch.setattr(session_command, "_runtime_container", lambda: FakeRuntimeContainer())
+
+    main(["session", "--cancel", "run-cli"])
+
+    out = capsys.readouterr().out
+    assert "run_id=run-cli status=cancelling" in out
+    assert calls == [("cancel", "local", "run-cli")]
+
+
 def test_cli_gateway_session_message_jsonl_streams_sdk_events(monkeypatch, capsys):
     calls = []
 

@@ -18,6 +18,7 @@ from doge.bootstrap import build_gateway_container, build_runtime_container
 from doge.interfaces.cli.commands.session_embedded import cmd_embedded_session
 from doge.interfaces.cli.commands.session_gateway import (
     GatewayArgs,
+    cancel_gateway_run,
     cmd_gateway_session,
     resolve_gateway_approval,
 )
@@ -72,5 +73,6 @@ def _load_doge_client():
 _interactive_loop = interactive_loop
 _cmd_gateway_session = cmd_gateway_session
 _resolve_gateway_approval = resolve_gateway_approval
+_cancel_gateway_run = cancel_gateway_run
 _print_pending_approvals = print_pending_approvals
 _print_last_run = print_last_run

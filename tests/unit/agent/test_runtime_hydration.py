@@ -56,7 +56,11 @@ def _build_kernel(db, model, tool_registry, *, run_repository=None):
         "artifacts": SQLiteArtifactRepository(db),
         "approvals": SQLiteApprovalRepository(db),
     }
-    model_execution = ModelExecutionService(model=model)
+    response_assembler = ModelResponseAssembler()
+    model_execution = ModelExecutionService(
+        model=model,
+        response_assembler=response_assembler,
+    )
     tool_execution = ToolExecutionService(tool_registry=tool_registry)
     artifact_evaluation = ArtifactEvaluationService()
     transition_recorder = TransitionRecorder(
@@ -74,7 +78,7 @@ def _build_kernel(db, model, tool_registry, *, run_repository=None):
             session_repository=None,
             run_repository=repos["runs"],
         ),
-        response_assembler=ModelResponseAssembler(),
+        response_assembler=response_assembler,
         model_execution_service=model_execution,
         tool_execution_service=tool_execution,
         artifact_finalizer=artifact_finalizer,

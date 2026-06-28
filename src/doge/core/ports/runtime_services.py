@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-from doge.core.domain.agent_models import AgentEvent, AgentRun
+from doge.core.domain.agent_models import AgentArtifact, AgentEvent, AgentRun
 from doge.core.domain.enterprise_context import EnterpriseContext
 from doge.core.domain.model_policy import ModelPolicy
 from doge.core.domain.run_execution_context import RunExecutionContext
@@ -40,6 +40,16 @@ class ToolResult:
             "error": self.error,
             "safe_error": self.safe_error,
         }, ensure_ascii=False)
+
+
+class IModelResponseAssembler(Protocol):
+    async def assemble(self, chunks: AsyncIterator[Any]) -> Any | None:
+        ...
+
+
+class IWebSearchStage(Protocol):
+    async def execute(self, messages: list[Any], query: str) -> list[Any]:
+        ...
 
 
 class IModelExecutionService(Protocol):
