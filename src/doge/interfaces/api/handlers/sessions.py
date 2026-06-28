@@ -40,24 +40,45 @@ class CreateSessionHandler:
     def __init__(self, sessions) -> None:
         self._sessions = sessions
 
-    def handle(self, *, title: str, tenant_id: str | None = None):
-        return CreateSession(self._sessions).execute(title=title, scope=_scope_for_tenant_id(tenant_id))
+    def handle(self, *, title: str, scope: TenantScope | None = None, tenant_id: str | None = None):
+        return CreateSession(self._sessions).execute(
+            title=title,
+            scope=scope or _scope_for_tenant_id(tenant_id),
+        )
 
 
 class ListSessionsHandler:
     def __init__(self, sessions) -> None:
         self._sessions = sessions
 
-    def handle(self, *, limit: int = 20, tenant_id: str | None = None):
-        return ListSessions(self._sessions).execute(limit=limit, scope=_scope_for_tenant_id(tenant_id))
+    def handle(
+        self,
+        *,
+        limit: int = 20,
+        scope: TenantScope | None = None,
+        tenant_id: str | None = None,
+    ):
+        return ListSessions(self._sessions).execute(
+            limit=limit,
+            scope=scope or _scope_for_tenant_id(tenant_id),
+        )
 
 
 class GetSessionHandler:
     def __init__(self, sessions) -> None:
         self._sessions = sessions
 
-    def handle(self, *, session_id: str, tenant_id: str | None = None):
-        return ResumeSession(self._sessions).execute(session_id, scope=_scope_for_tenant_id(tenant_id))
+    def handle(
+        self,
+        *,
+        session_id: str,
+        scope: TenantScope | None = None,
+        tenant_id: str | None = None,
+    ):
+        return ResumeSession(self._sessions).execute(
+            session_id,
+            scope=scope or _scope_for_tenant_id(tenant_id),
+        )
 
 
 class SubmitSessionTurnHandler:

@@ -191,8 +191,8 @@ class OneStepRunStepper(RunStepper):
         self._runs = run_repository
         self._recorder = transition_recorder
 
-    async def step(self, run_id, *, tenant_id=None):
-        run = self._runs.get(run_id, tenant_id=tenant_id)
+    async def step(self, scope, run_id):
+        run = self._runs.get(run_id, tenant_id=scope.tenant_id)
         run.status = RunStatus.COMPLETED
         return run
 
@@ -204,8 +204,8 @@ class ApprovalStepper(RunStepper):
         self._runs = run_repository
         self._recorder = transition_recorder
 
-    async def step(self, run_id, *, tenant_id=None):
-        run = self._runs.get(run_id, tenant_id=tenant_id)
+    async def step(self, scope, run_id):
+        run = self._runs.get(run_id, tenant_id=scope.tenant_id)
         run.status = RunStatus.AWAITING_APPROVAL
         return run
 
@@ -217,8 +217,8 @@ class FailingStepper(RunStepper):
         self._runs = run_repository
         self._recorder = transition_recorder
 
-    async def step(self, run_id, *, tenant_id=None):
-        run = self._runs.get(run_id, tenant_id=tenant_id)
+    async def step(self, scope, run_id):
+        run = self._runs.get(run_id, tenant_id=scope.tenant_id)
         run.status = RunStatus.FAILED
         return run
 
@@ -230,8 +230,8 @@ class LoopingStepper(RunStepper):
         self._runs = run_repository
         self._recorder = transition_recorder
 
-    async def step(self, run_id, *, tenant_id=None):
-        run = self._runs.get(run_id, tenant_id=tenant_id)
+    async def step(self, scope, run_id):
+        run = self._runs.get(run_id, tenant_id=scope.tenant_id)
         run.status = RunStatus.RUNNING
         return run
 
@@ -283,7 +283,7 @@ def lifecycle_service(run_repository, event_repository, artifact_repository, app
 
 @pytest.mark.asyncio
 async def test_lifecycle_service_create_run_persists_run(lifecycle_service, run_repository):
-    run = await lifecycle_service.create_run({"question": "Analyze AAPL"})
+    run = await lifecycle_service.create_run(TenantScope.local(), {"question": "Analyze AAPL"})
 
     assert run.run_id in run_repository.runs
     assert run.question == "Analyze AAPL"
@@ -292,14 +292,14 @@ async def test_lifecycle_service_create_run_persists_run(lifecycle_service, run_
 
 @pytest.mark.asyncio
 async def test_lifecycle_service_create_run_records_created_event(lifecycle_service, run_repository):
-    run = await lifecycle_service.create_run({"question": "Analyze AAPL"})
+    run = await lifecycle_service.create_run(TenantScope.local(), {"question": "Analyze AAPL"})
 
     assert any(e.event_type == EventType.RUN_CREATED for e in run.events)
 
 
 @pytest.mark.asyncio
 async def test_lifecycle_service_create_run_with_model_policy(lifecycle_service, run_repository):
-    run = await lifecycle_service.create_run({
+    run = await lifecycle_service.create_run(TenantScope.local(), {
         "question": "Analyze AAPL",
         "model_policy": {"max_tool_rounds": 5},
     })
@@ -321,7 +321,7 @@ async def test_lifecycle_service_run_to_pause_or_completion_completes(run_reposi
     run.status = RunStatus.QUEUED
     run_repository.save(run, TenantScope.local())
 
-    result = await service.run_to_pause_or_completion(run.run_id)
+    result = await service.run_to_pause_or_completion(TenantScope.local(), run.run_id)
 
     assert result.status == RunStatus.COMPLETED
 
@@ -340,7 +340,7 @@ async def test_lifecycle_service_run_to_pause_or_completion_stops_on_approval(ru
     run.status = RunStatus.QUEUED
     run_repository.save(run, TenantScope.local())
 
-    result = await service.run_to_pause_or_completion(run.run_id)
+    result = await service.run_to_pause_or_completion(TenantScope.local(), run.run_id)
 
     assert result.status == RunStatus.AWAITING_APPROVAL
 
@@ -359,7 +359,7 @@ async def test_lifecycle_service_run_to_pause_or_completion_stops_on_failure(run
     run.status = RunStatus.QUEUED
     run_repository.save(run, TenantScope.local())
 
-    result = await service.run_to_pause_or_completion(run.run_id)
+    result = await service.run_to_pause_or_completion(TenantScope.local(), run.run_id)
 
     assert result.status == RunStatus.FAILED
 
@@ -379,7 +379,7 @@ async def test_lifecycle_service_run_to_pause_or_completion_respects_max_rounds(
     run.model_policy = ModelPolicy(max_tool_rounds=3)
     run_repository.save(run, TenantScope.local())
 
-    result = await service.run_to_pause_or_completion(run.run_id)
+    result = await service.run_to_pause_or_completion(TenantScope.local(), run.run_id)
 
     assert result.status == RunStatus.FAILED
 

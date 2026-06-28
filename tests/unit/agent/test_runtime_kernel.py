@@ -28,6 +28,7 @@ from doge.platform.runtime.services import (
     ModelExecutionService,
     ToolExecutionService,
 )
+from doge.shared.scope import TenantScope
 
 
 def _schema(name: str):
@@ -192,8 +193,8 @@ async def test_kernel_step_rebuilds_messages_from_events(tmp_path):
     kernel = _kernel(tmp_path)
     run = await kernel.create_run({"question": "Analyze AAPL"})
 
-    await kernel.step(run.run_id)
-    await kernel.step(run.run_id)
+    await kernel.step(TenantScope.local(), run.run_id)
+    await kernel.step(TenantScope.local(), run.run_id)
 
     loaded = kernel.get_run(run.run_id)
     assert loaded is not None
@@ -550,7 +551,7 @@ async def test_kernel_filters_enterprise_tool_schemas_by_persistent_acl(tmp_path
         "identity_snapshot": _enterprise_identity(),
     })
 
-    await kernel.step(run.run_id)
+    await kernel.step(_enterprise_scope(), run.run_id)
 
     assert [schema["function"]["name"] for schema in model.tools] == ["stock_overview"]
     assert "model_route" in [event.event_type for event in governance.list_audit_events("tenant-a")]
@@ -577,7 +578,7 @@ async def test_kernel_passes_run_execution_context_to_model_execution(tmp_path):
         },
     })
 
-    await kernel.step(run.run_id)
+    await kernel.step(_enterprise_scope(), run.run_id)
 
     assert capture.execution_context is not None
     assert capture.execution_context.request_id == "req-runtime"
@@ -622,7 +623,7 @@ async def test_kernel_denies_enterprise_tool_call_without_persistent_acl(tmp_pat
         "identity_snapshot": _enterprise_identity(),
     })
 
-    stepped = await kernel.step(run.run_id)
+    stepped = await kernel.step(_enterprise_scope(), run.run_id)
 
     tool_results = [event for event in stepped.events if event.event_type == EventType.TOOL_RESULT]
     assert tool_results[-1].payload["result"]["ok"] is False
@@ -643,7 +644,7 @@ async def test_kernel_redacts_tool_error_before_persisting_event(tmp_path):
     kernel = _build_kernel(db, model, registry)
     run = await kernel.create_run({"question": "Analyze AAPL"})
 
-    stepped = await kernel.step(run.run_id)
+    stepped = await kernel.step(TenantScope.local(), run.run_id)
 
     result = [
         event.payload["result"]
@@ -698,7 +699,7 @@ async def test_kernel_allows_enterprise_tool_call_with_persistent_acl(tmp_path):
         "identity_snapshot": _enterprise_identity(),
     })
 
-    stepped = await kernel.step(run.run_id)
+    stepped = await kernel.step(_enterprise_scope(), run.run_id)
 
     tool_results = [event for event in stepped.events if event.event_type == EventType.TOOL_RESULT]
     assert tool_results[-1].payload["result"]["ok"] is True
@@ -713,6 +714,10 @@ def _enterprise_identity() -> dict:
         "role": "analyst",
         "request_id": "req-runtime",
     }
+
+
+def _enterprise_scope() -> TenantScope:
+    return TenantScope.enterprise("tenant-a", "user-a")
 
 
 def _tool_grant(tool_name: str) -> EnterpriseAclGrant:

@@ -329,7 +329,7 @@ async def test_run_stepper_step_completes_run_when_model_returns_content(stepper
     run.status = RunStatus.QUEUED
     run_repository.save(run, TenantScope.local())
 
-    result = await stepper.step(run.run_id)
+    result = await stepper.step(TenantScope.local(), run.run_id)
 
     assert result.status == RunStatus.COMPLETED
     assert len(result.artifacts) == 1
@@ -340,7 +340,7 @@ async def test_run_stepper_step_records_model_response_event(stepper, run_reposi
     run.status = RunStatus.QUEUED
     run_repository.save(run, TenantScope.local())
 
-    await stepper.step(run.run_id)
+    await stepper.step(TenantScope.local(), run.run_id)
 
     assert any(e.event_type == EventType.MODEL_RESPONSE for e in run.events)
 
@@ -350,7 +350,7 @@ async def test_run_stepper_step_records_artifact_created_event(stepper, run_repo
     run.status = RunStatus.QUEUED
     run_repository.save(run, TenantScope.local())
 
-    await stepper.step(run.run_id)
+    await stepper.step(TenantScope.local(), run.run_id)
 
     assert any(e.event_type == EventType.ARTIFACT_CREATED for e in run.events)
 
@@ -360,7 +360,7 @@ async def test_run_stepper_step_returns_unchanged_when_already_completed(stepper
     run.status = RunStatus.COMPLETED
     run_repository.save(run, TenantScope.local())
 
-    result = await stepper.step(run.run_id)
+    result = await stepper.step(TenantScope.local(), run.run_id)
 
     assert result.status == RunStatus.COMPLETED
 
@@ -370,7 +370,7 @@ async def test_run_stepper_step_cancels_when_status_is_cancelling(stepper, run_r
     run.status = RunStatus.CANCELLING
     run_repository.save(run, TenantScope.local())
 
-    result = await stepper.step(run.run_id)
+    result = await stepper.step(TenantScope.local(), run.run_id)
 
     assert result.status == RunStatus.CANCELLED
 
@@ -393,7 +393,7 @@ async def test_run_stepper_step_fails_when_model_returns_none(run_repository, ev
     run.status = RunStatus.QUEUED
     run_repository.save(run, TenantScope.local())
 
-    result = await stepper.step(run.run_id)
+    result = await stepper.step(TenantScope.local(), run.run_id)
 
     assert result.status == RunStatus.FAILED
 
@@ -416,7 +416,7 @@ async def test_run_stepper_step_fails_when_budget_exceeded(run_repository, event
     run.status = RunStatus.QUEUED
     run_repository.save(run, TenantScope.local())
 
-    result = await stepper.step(run.run_id)
+    result = await stepper.step(TenantScope.local(), run.run_id)
 
     assert result.status == RunStatus.FAILED
 
@@ -440,7 +440,7 @@ async def test_run_stepper_step_executes_tool_and_records_tool_events(run_reposi
     run.status = RunStatus.QUEUED
     run_repository.save(run, TenantScope.local())
 
-    result = await stepper.step(run.run_id)
+    result = await stepper.step(TenantScope.local(), run.run_id)
 
     assert result.status == RunStatus.RUNNING
     assert any(e.event_type == EventType.TOOL_CALL for e in run.events)
@@ -474,7 +474,7 @@ async def test_run_stepper_step_requests_approval_when_tool_returns_approval_req
     run.status = RunStatus.QUEUED
     run_repository.save(run, TenantScope.local())
 
-    result = await stepper.step(run.run_id)
+    result = await stepper.step(TenantScope.local(), run.run_id)
 
     assert result.status == RunStatus.AWAITING_APPROVAL
     assert len(result.approvals) == 1
@@ -517,7 +517,7 @@ async def test_run_stepper_step_cancels_mid_tool_execution(run_repository, event
         transition_recorder=transition_recorder,
     )
 
-    result = await stepper.step(run.run_id)
+    result = await stepper.step(TenantScope.local(), run.run_id)
 
     assert result.status == RunStatus.CANCELLED
 
@@ -525,4 +525,4 @@ async def test_run_stepper_step_cancels_mid_tool_execution(run_repository, event
 @pytest.mark.asyncio
 async def test_run_stepper_step_raises_when_run_not_found(stepper):
     with pytest.raises(KeyError, match="run not found"):
-        await stepper.step("nonexistent")
+        await stepper.step(TenantScope.local(), "nonexistent")

@@ -127,9 +127,8 @@ class AsyncioWorker:
         run_id: str,
         *,
         scope: TenantScope | None = None,
-        tenant_id: str | None = None,
     ) -> None:
-        resolved_scope = scope or TenantScope.from_tenant_id(tenant_id)
+        resolved_scope = scope or self._scope_for_run(run_id)
         run = self._runtime.get_run(resolved_scope, run_id)
         if run is None:
             raise KeyError(f"run not found: {run_id}")
@@ -147,9 +146,8 @@ class AsyncioWorker:
         approved: bool,
         *,
         scope: TenantScope | None = None,
-        tenant_id: str | None = None,
     ) -> AgentRun:
-        resolved_scope = scope or TenantScope.from_tenant_id(tenant_id)
+        resolved_scope = scope or self._scope_for_run(run_id)
         run = await self._runtime.resolve_approval(resolved_scope, run_id, approval_id, approved)
         if approved and run.status == RunStatus.QUEUED:
             await self.enqueue_continuation(run_id, scope=resolved_scope)
@@ -161,9 +159,8 @@ class AsyncioWorker:
         run_id: str,
         *,
         scope: TenantScope | None = None,
-        tenant_id: str | None = None,
     ) -> AgentRun:
-        run = await self._runtime.cancel_run(scope or TenantScope.from_tenant_id(tenant_id), run_id)
+        run = await self._runtime.cancel_run(scope or self._scope_for_run(run_id), run_id)
         task = self._active_tasks.get(run_id)
         if task is not None and not task.done():
             task.cancel()

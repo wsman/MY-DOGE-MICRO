@@ -10,9 +10,12 @@ from doge.application.agent.run_lifecycle_service import RunLifecycleService
 from doge.application.agent.run_stepper import RunStepper
 from doge.application.agent.runtime_args import (
     approval_args,
+    create_run_args,
     failure_args,
+    list_runs_args,
     queue_args,
     run_args,
+    run_execution_args,
 )
 from doge.application.agent.transition_recorder import TransitionRecorder
 from doge.core.domain.agent_models import AgentArtifact, AgentEvent, AgentRun
@@ -54,11 +57,25 @@ class RuntimeKernel:
         self._approval = approval_coordinator
         self._artifact_finalizer = artifact_finalizer
 
-    async def create_run(self, request: dict[str, Any], *, tenant_id: str | None = None) -> AgentRun:
-        return await self._lifecycle.create_run(request, tenant_id=tenant_id)
+    async def create_run(
+        self,
+        scope: TenantScope | dict[str, Any],
+        request: dict[str, Any] | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun:
+        resolved_scope, resolved_request = create_run_args(scope, request, tenant_id=tenant_id)
+        return await self._lifecycle.create_run(resolved_scope, resolved_request)
 
-    async def run_to_pause_or_completion(self, run_id: str, *, tenant_id: str | None = None) -> AgentRun:
-        return await self._lifecycle.run_to_pause_or_completion(run_id, tenant_id=tenant_id)
+    async def run_to_pause_or_completion(
+        self,
+        scope: TenantScope | str | None,
+        run_id: str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun:
+        resolved_scope, resolved_run_id = run_execution_args(scope, run_id, tenant_id=tenant_id)
+        return await self._lifecycle.run_to_pause_or_completion(resolved_scope, resolved_run_id)
 
     async def queue_run(
         self,
@@ -71,8 +88,15 @@ class RuntimeKernel:
         resolved_scope, resolved_run_id, resolved_reason = queue_args(scope, run_id, reason, tenant_id=tenant_id)
         return await self._lifecycle.queue_run(resolved_scope, resolved_run_id, resolved_reason)
 
-    async def step(self, run_id: str, *, tenant_id: str | None = None) -> AgentRun:
-        return await self._stepper.step(run_id, tenant_id=tenant_id)
+    async def step(
+        self,
+        scope: TenantScope | str | None,
+        run_id: str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun:
+        resolved_scope, resolved_run_id = run_args(scope, run_id, tenant_id=tenant_id)
+        return await self._stepper.step(resolved_scope, resolved_run_id)
 
     async def resolve_approval(
         self,
@@ -160,8 +184,6 @@ class RuntimeKernel:
         *,
         tenant_id: str | None = None,
     ) -> list[AgentRun]:
-        from doge.application.agent.runtime_args import list_runs_args
-
         resolved_scope, resolved_session_id = list_runs_args(scope, session_id, tenant_id=tenant_id)
         return self._lifecycle.list_runs(resolved_scope, resolved_session_id, limit)
 

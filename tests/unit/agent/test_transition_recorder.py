@@ -202,27 +202,6 @@ async def test_transition_recorder_mark_failed_redacts_secrets(run):
     assert "err-" in payload["error"]["internal_reference"]
 
 
-def test_transition_recorder_effective_tenant_id_from_run_identity(run):
-    from doge.core.domain.enterprise_context import IdentitySnapshot
-
-    run.identity_snapshot = IdentitySnapshot(tenant_id="tenant-a", user_hash="u1", role="r1")
-    recorder = TransitionRecorder(transaction_factory=FakeTransactionFactory())
-
-    assert recorder.effective_tenant_id(run) == "tenant-a"
-
-
-def test_transition_recorder_effective_tenant_id_from_argument(run):
-    recorder = TransitionRecorder(transaction_factory=FakeTransactionFactory())
-
-    assert recorder.effective_tenant_id(run, tenant_id="tenant-b") == "tenant-b"
-
-
-def test_transition_recorder_effective_tenant_id_returns_none_when_no_identity(run):
-    recorder = TransitionRecorder(transaction_factory=FakeTransactionFactory())
-
-    assert recorder.effective_tenant_id(run) is None
-
-
 def test_transition_recorder_noop_publisher_returns_publisher():
     recorder = TransitionRecorder(transaction_factory=FakeTransactionFactory())
     pub = recorder.noop_publisher()

@@ -11,6 +11,7 @@ from doge.core.domain.enterprise_context import EnterpriseContext
 from doge.core.domain.model_policy import ModelPolicy
 from doge.core.domain.run_execution_context import RunExecutionContext
 from doge.core.ports.model_router import RoutingDecision
+from doge.shared.scope import TenantScope
 
 
 @dataclass(frozen=True)
@@ -111,19 +112,17 @@ class ITransitionRecorder(Protocol):
 
 
 class IRunStepper(Protocol):
-    async def step(self, run_id: str, *, tenant_id: str | None = None) -> AgentRun:
+    async def step(self, scope: TenantScope, run_id: str) -> AgentRun:
         ...
 
 
 class IApprovalCoordinator(Protocol):
     async def resolve(
         self,
-        scope: Any,
-        run_id: str | None,
-        approval_id: str | bool | None,
+        scope: TenantScope,
+        run_id: str,
+        approval_id: str,
         approved: bool,
-        *,
-        tenant_id: str | None = None,
     ) -> AgentRun:
         ...
 
@@ -141,83 +140,67 @@ class IArtifactFinalizer(Protocol):
 
 
 class IRunLifecycleService(Protocol):
-    async def create_run(self, request: dict[str, Any], *, tenant_id: str | None = None) -> AgentRun:
+    async def create_run(self, scope: TenantScope, request: dict[str, Any]) -> AgentRun:
         ...
 
-    async def run_to_pause_or_completion(self, run_id: str, *, tenant_id: str | None = None) -> AgentRun:
+    async def run_to_pause_or_completion(self, scope: TenantScope, run_id: str) -> AgentRun:
         ...
 
     async def queue_run(
         self,
-        scope: Any,
-        run_id: str | None = None,
+        scope: TenantScope,
+        run_id: str,
         reason: str = "queued",
-        *,
-        tenant_id: str | None = None,
     ) -> AgentRun:
         ...
 
     async def cancel_run(
         self,
-        scope: Any,
-        run_id: str | None = None,
-        *,
-        tenant_id: str | None = None,
+        scope: TenantScope,
+        run_id: str,
     ) -> AgentRun:
         ...
 
     async def finalize_cancelled(
         self,
-        scope: Any,
-        run_id: str | None = None,
-        *,
-        tenant_id: str | None = None,
+        scope: TenantScope,
+        run_id: str,
     ) -> AgentRun:
         ...
 
     async def record_failure(
         self,
-        scope: Any,
-        run_id: str | None = None,
-        message: str | None = None,
-        *,
-        tenant_id: str | None = None,
+        scope: TenantScope,
+        run_id: str,
+        message: str,
     ) -> AgentRun:
         ...
 
     def get_run(
         self,
-        scope: Any,
-        run_id: str | None = None,
-        *,
-        tenant_id: str | None = None,
+        scope: TenantScope,
+        run_id: str,
     ) -> AgentRun | None:
         ...
 
     def list_events(
         self,
-        scope: Any,
-        run_id: str | None = None,
-        *,
-        tenant_id: str | None = None,
+        scope: TenantScope,
+        run_id: str,
     ) -> list[AgentEvent]:
         ...
 
     def list_runs(
         self,
-        scope: Any | None = None,
+        scope: TenantScope,
         session_id: str | None = None,
         limit: int = 20,
-        *,
-        tenant_id: str | None = None,
     ) -> list[AgentRun]:
         ...
 
     def list_artifacts(
         self,
-        scope: Any,
-        run_id: str | None = None,
-        *,
-        tenant_id: str | None = None,
+        scope: TenantScope,
+        run_id: str,
     ) -> list[Any]:
         ...

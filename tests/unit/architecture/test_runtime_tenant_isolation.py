@@ -41,18 +41,10 @@ def test_tenant_scope_local_is_explicit_and_enterprise_rejects_blank_tenant() ->
 
 
 def test_core_ports_do_not_accept_optional_tenant_id_parameters() -> None:
-    """Core ports that sit above the scope-first boundary must not have optional tenant_id.
-
-    ``runtime_services.py`` is excluded because IRunLifecycleService and its
-    collaborators live *below* the PersistedResearchAgentRuntime adapter. They
-    receive a resolved tenant_id from the adapter and therefore legitimately use
-    ``tenant_id: str | None = None`` as a kernel-level parameter.
-    """
+    """Core ports that sit above or define the runtime boundary must not expose optional tenant_id."""
     ports_root = Path("src/doge/core/ports")
     offenders: list[str] = []
     for path in ports_root.glob("*.py"):
-        if path.name == "runtime_services.py":
-            continue
         source = path.read_text(encoding="utf-8")
         if "tenant_id: str | None" in source or "tenant_id=None" in source or "tenant_id: str | None = None" in source:
             offenders.append(path.name)

@@ -43,8 +43,7 @@ async def create_session(
     body: CreateSessionRequest,
     sessions: ISessionRepository = Depends(deps.get_agent_session_repository),
 ):
-    tenant_id = _tenant_id_for_request(request)
-    return serialize(CreateSessionHandler(sessions).handle(title=body.title, tenant_id=tenant_id))
+    return serialize(CreateSessionHandler(sessions).handle(title=body.title, scope=request_run_access(request).scope))
 
 
 @router.get("/sessions")
@@ -53,7 +52,7 @@ async def list_sessions(
     limit: int = 20,
     sessions: ISessionRepository = Depends(deps.get_agent_session_repository),
 ):
-    return {"sessions": serialize(ListSessionsHandler(sessions).handle(limit=limit, tenant_id=_tenant_id_for_request(request)))}
+    return {"sessions": serialize(ListSessionsHandler(sessions).handle(limit=limit, scope=request_run_access(request).scope))}
 
 
 @router.get("/sessions/{session_id}")
@@ -62,7 +61,7 @@ async def get_session(
     session_id: str,
     sessions: ISessionRepository = Depends(deps.get_agent_session_repository),
 ):
-    session = GetSessionHandler(sessions).handle(session_id=session_id, tenant_id=_tenant_id_for_request(request))
+    session = GetSessionHandler(sessions).handle(session_id=session_id, scope=request_run_access(request).scope)
     if session is None:
         raise HTTPException(404, "session not found")
     return serialize(session)
@@ -79,7 +78,7 @@ async def create_turn(
     worker=Depends(deps.get_daemon_worker),
     governance: IEnterpriseGovernanceRepository = Depends(deps.get_enterprise_governance_repository),
 ):
-    tenant_id = _tenant_id_for_request(request)
+    access = request_run_access(request)
     try:
         run_id = await SubmitSessionTurnHandler(
             sessions=sessions,
@@ -95,9 +94,8 @@ async def create_turn(
                 portfolio_id=body.portfolio_id,
                 model_policy=body.model_policy,
                 idempotency_key=idempotency_key,
-                tenant_id=tenant_id,
             ),
-            access=request_run_access(request),
+            access=access,
         )
     except SessionNotFound:
         raise HTTPException(404, "session not found")
@@ -105,7 +103,3 @@ async def create_turn(
         raise HTTPException(403, str(exc))
     response.status_code = status.HTTP_202_ACCEPTED
     return {"status": "accepted", "run_id": run_id}
-
-
-def _tenant_id_for_request(request: Request) -> str | None:
-    return request_run_access(request).tenant_id

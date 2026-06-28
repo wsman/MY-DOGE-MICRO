@@ -7,7 +7,7 @@ from typing import Any
 from doge.application.agent.artifact_finalizer import ArtifactFinalizer
 from doge.application.agent.context_builder import ContextBuilder
 from doge.application.agent.model_response_assembler import ModelResponseAssembler
-from doge.application.agent.runtime_args import tenant_id_for_run, tool_safe_error_payload
+from doge.application.agent.runtime_args import tool_safe_error_payload
 from doge.application.agent.transition_recorder import TransitionRecorder
 from doge.core.domain.agent_models import AgentRun, EventType, RunStatus
 from doge.core.domain.run_execution_context import RunExecutionContext
@@ -18,6 +18,7 @@ from doge.core.ports.agent_repository import (
     IRunRepository,
 )
 from doge.core.ports.runtime_services import IModelExecutionService, IToolExecutionService
+from doge.shared.scope import TenantScope
 
 
 class RunStepper:
@@ -48,21 +49,20 @@ class RunStepper:
         self._artifact_finalizer = artifact_finalizer
         self._recorder = transition_recorder
 
-    async def step(self, run_id: str, *, tenant_id: str | None = None) -> AgentRun:
-        run = self._require_run(run_id, tenant_id=tenant_id)
+    async def step(self, scope: TenantScope, run_id: str) -> AgentRun:
+        run = self._require_run(scope, run_id)
         if run.status in {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED}:
-            return self._hydrate(run, tenant_id=tenant_id)
+            return self._hydrate(scope, run)
         if run.status == RunStatus.CANCELLING:
             await self._recorder.mark_cancelled(run)
-            return self._hydrate(run, tenant_id=tenant_id)
+            return self._hydrate(scope, run)
 
         await self._recorder.record(run, status=RunStatus.RUNNING)
-        run = self._require_run(run_id, tenant_id=tenant_id)
+        run = self._require_run(scope, run_id)
         execution_context = RunExecutionContext.from_run(run)
         policy = execution_context.model_policy
-        effective_tenant_id = tenant_id or tenant_id_for_run(run)
         enterprise_context = execution_context.enterprise_context
-        events = self._events.list_for_run(run.run_id, tenant_id=effective_tenant_id)
+        events = self._events.list_for_run(run.run_id, tenant_id=scope.tenant_id)
         messages = self._context_builder.build(
             run,
             events,
@@ -90,13 +90,13 @@ class RunStepper:
             request_id=execution_context.request_id,
         )
         response = model_result.response
-        run = self._require_run(run_id, tenant_id=tenant_id)
+        run = self._require_run(scope, run_id)
         if run.status == RunStatus.CANCELLING:
             await self._recorder.mark_cancelled(run)
-            return self._hydrate(run, tenant_id=tenant_id)
+            return self._hydrate(scope, run)
         if response is None:
             await self._recorder.mark_failed(run, "model unavailable", code="model_unavailable")
-            return self._hydrate(run, tenant_id=tenant_id)
+            return self._hydrate(scope, run)
 
         await self._recorder.record(
             run,
@@ -109,14 +109,14 @@ class RunStepper:
         )
         if model_result.budget_exceeded:
             await self._recorder.mark_failed(run, "run budget exceeded", code="run_budget_exceeded")
-            return self._hydrate(run, tenant_id=tenant_id)
+            return self._hydrate(scope, run)
 
         if response.message.tool_calls:
             for call in response.message.tool_calls:
-                run = self._require_run(run_id, tenant_id=tenant_id)
+                run = self._require_run(scope, run_id)
                 if run.status == RunStatus.CANCELLING:
                     await self._recorder.mark_cancelled(run)
-                    return self._hydrate(run, tenant_id=tenant_id)
+                    return self._hydrate(scope, run)
                 function = call.get("function", {})
                 name = function.get("name", "")
                 arguments = function.get("arguments", "{}")
@@ -130,10 +130,10 @@ class RunStepper:
                     timeout_seconds=float(timeout) if timeout else None,
                     request_id=execution_context.request_id,
                 )
-                run = self._require_run(run_id, tenant_id=tenant_id)
+                run = self._require_run(scope, run_id)
                 if run.status == RunStatus.CANCELLING:
                     await self._recorder.mark_cancelled(run)
-                    return self._hydrate(run, tenant_id=tenant_id)
+                    return self._hydrate(scope, run)
                 result_payload: dict[str, Any] = {
                     "ok": result.ok,
                     "name": result.name,
@@ -166,14 +166,14 @@ class RunStepper:
                             "risk_level": approval.risk_level,
                         })],
                     )
-                    return self._hydrate(run, tenant_id=tenant_id)
+                    return self._hydrate(scope, run)
             await self._recorder.record(run, status=RunStatus.RUNNING)
-            return self._hydrate(run, tenant_id=tenant_id)
+            return self._hydrate(scope, run)
 
         content = self._artifact_finalizer.build_artifact(
             run,
             response.message.content,
-            self._events.list_for_run(run.run_id, tenant_id=effective_tenant_id),
+            self._events.list_for_run(run.run_id, tenant_id=scope.tenant_id),
             usage=response.usage or {},
         )
         await self._recorder.record(
@@ -186,17 +186,17 @@ class RunStepper:
                 "title": content.title,
             })],
         )
-        return self._hydrate(run, tenant_id=tenant_id)
+        return self._hydrate(scope, run)
 
-    def _require_run(self, run_id: str, *, tenant_id: str | None = None) -> AgentRun:
+    def _require_run(self, scope: TenantScope, run_id: str) -> AgentRun:
         get_header = getattr(self._runs, "get_run_header", None)
-        run = get_header(run_id, tenant_id=tenant_id) if get_header is not None else self._runs.get(run_id, tenant_id=tenant_id)
+        run = get_header(run_id, tenant_id=scope.tenant_id) if get_header is not None else self._runs.get(run_id, tenant_id=scope.tenant_id)
         if run is None:
             raise KeyError(f"run not found: {run_id}")
         return run
 
-    def _hydrate(self, run: AgentRun, *, tenant_id: str | None = None) -> AgentRun:
-        run.events = self._events.list_for_run(run.run_id, tenant_id=tenant_id)
-        run.artifacts = self._artifacts.list_for_run(run.run_id, tenant_id=tenant_id)
-        run.approvals = self._approvals.list_for_run(run.run_id, tenant_id=tenant_id)
+    def _hydrate(self, scope: TenantScope, run: AgentRun) -> AgentRun:
+        run.events = self._events.list_for_run(run.run_id, tenant_id=scope.tenant_id)
+        run.artifacts = self._artifacts.list_for_run(run.run_id, tenant_id=scope.tenant_id)
+        run.approvals = self._approvals.list_for_run(run.run_id, tenant_id=scope.tenant_id)
         return run

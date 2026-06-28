@@ -90,13 +90,5 @@ class TransitionRecorder:
         )
 
     @staticmethod
-    def effective_tenant_id(run: AgentRun, tenant_id: str | None = None) -> str | None:
-        if tenant_id is not None:
-            return tenant_id
-        if run.identity_snapshot is None:
-            return None
-        return run.identity_snapshot.tenant_id
-
-    @staticmethod
     def noop_publisher() -> IEventPublisher:
         return _NoopEventPublisher()
