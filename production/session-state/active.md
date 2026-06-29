@@ -5,11 +5,11 @@
 
 ## Current Task
 
-Sprint D: Enterprise Auth Hardening — **GO_LOCAL / PENDING_LIVE**. All local implementation items complete; five operator-dependent gates remain open.
+Sprint D: Enterprise Auth Hardening — **TOOLING COMPLETE / GO_LOCAL / PENDING_LIVE**. All local implementation items and internal external-gate tooling are complete; strict operator/live evidence remains pending.
 
 ## Phase Status
 
-- **Sprint D (Enterprise Auth Hardening)**: **COMPLETE / GO_LOCAL / PENDING_LIVE**
+- **Sprint D (Enterprise Auth Hardening)**: **COMPLETE / TOOLING COMPLETE / GO_LOCAL / PENDING_LIVE**
   - Story: S017-004 / AUTH-prod
   - Gate: Enterprise auth boundary (AUTH-001 through AUTH-008)
   - Local implementation: **COMPLETE**
@@ -25,7 +25,11 @@ Sprint D: Enterprise Auth Hardening — **GO_LOCAL / PENDING_LIVE**. All local i
     - Remote bind gate: `production/qa/evidence/manual/doged-remote-bind-gate-smoke-2026-06-22.json`
   - Test Review: APPROVED (85 focused tests passed)
   - Runtime/Gate Review: APPROVED
-  - Overall Verdict: **GO_LOCAL / PENDING_LIVE**
+  - Internal external-gate tooling: **COMPLETE**
+    - Unified IdP/JWKS operator tool: `scripts/doge_idp_jwks_operator_tool.py`
+    - Enterprise production evidence builder/validator/templates: complete
+    - External gate preflight/handoff tooling: complete
+  - Overall Strict Live Verdict: **GO_LOCAL / PENDING_LIVE**
 
 - **Sprint C (Kimi Live Smoke Closure)**: **COMPLETE / GO**
   - Story: S017-002
@@ -37,7 +41,7 @@ Sprint D: Enterprise Auth Hardening — **GO_LOCAL / PENDING_LIVE**. All local i
   - Acceptance report: `production/qa/evidence/sprint-b-citation-evidence-acceptance-2026-06-28.md`
 
 - **P0-P2 (local-refactor phases)**: COMPLETE
-- **P3 (external gates)**: S017-002 closed; still open (S017-003, W3-live, AUTH-prod, S017-007)
+- **P3 (external gates)**: internal tooling complete. Strict live/operator evidence still open for S017-003, W3-live, AUTH-prod, and S017-007.
 
 ## Sprint D Local Changes
 
@@ -51,7 +55,8 @@ Sprint D: Enterprise Auth Hardening — **GO_LOCAL / PENDING_LIVE**. All local i
 4. SDK external consumer smoke passed.
 5. Created Sprint D QA plan: `production/qa/qa-plan-sprint-d.md`.
 6. Production validation evidence template, builder, and validator exist with passing tests.
-7. 147 enterprise-focused tests passed; full regression 1784 passed, 2 pre-existing failures, 8 skipped.
+7. Unified IdP/JWKS operator tool added for `jwks-inspect`, `env-template`, `make-invalid-signature`, `run-smoke`, and `build-evidence`.
+8. 147 enterprise-focused tests passed; full regression 1784 passed, 2 pre-existing failures, 8 skipped.
 
 ## Latest Verification
 
@@ -64,11 +69,14 @@ Sprint D: Enterprise Auth Hardening — **GO_LOCAL / PENDING_LIVE**. All local i
   - `tests/unit/qa/test_validate_alpha_pre_commit_readiness.py::test_alpha_pre_commit_readiness_cli_fast` — handoff workspace template SHA256 mismatch from prior commit `b11b2e3` (unrelated).
 - Git diff check: **Clean — no whitespace errors in staged/unstaged changes**
 - Governance validators (`validate_governance_yaml_shape.py`, `validate_alpha_maturity_honesty.py`, `validate_enterprise_production_validation_evidence.py --allow-template`): pass
+- IdP/JWKS operator tool tests: **8 passed**
+- doged live IdP/JWKS smoke script tests: **9 passed**
 
 ## Posture (unchanged)
 
 - production_ready: false; stable_declaration: forbidden; Level 3 experimental.
-- External gates open: S017-003, W3-live, AUTH-prod (local complete, live pending), S017-007.
+- External gate tooling: complete under the internal runner/builder/validator/template completion posture.
+- Strict live/operator gates open: S017-003, W3-live, AUTH-prod (local/tooling complete, live pending), S017-007.
 
 ## Open External Gates (Sprint D)
 
@@ -86,13 +94,14 @@ Sprint D local implementation and acceptance is committed in the current Sprint 
 - Co-author trailers removed from the Sprint D commit.
 - 2026-06-29 closure recheck: local focused Sprint D tests passed (`162 passed`), governance validators passed, strict enterprise production validation remains blocked because current evidence is still a template/preflight artifact.
 - Live enterprise auth gates remain `pending_operator_action`.
+- 2026-06-29 internal tooling posture update: added unified IdP/JWKS operator tool and documented Sprint D external-gate tooling as complete while preserving strict live pending status.
 
 ## Do Not Forget
 
 - Remaining P3 external gates still require operator action; do NOT fabricate live evidence.
 - Do not change production_ready / stable_declaration / Level 3 posture.
 - ADR-0015 remains Proposed until all live evidence lands.
-- Next recommended work: Execute operator-dependent live gates or continue with remaining S017 external gates.
+- Next recommended work: commit the tooling-complete update, then execute operator-dependent live gates only if strict production/live closure is required.
 
 ## Files Modified (git working tree)
 

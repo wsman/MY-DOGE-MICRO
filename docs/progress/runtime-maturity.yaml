@@ -1348,6 +1348,28 @@ sprint_d_enterprise_auth_hardening:
       - production/qa/evidence/manual/doged-remote-bind-gate-smoke-2026-06-22.json
       - production/qa/evidence/sdk/sdk-external-consumer-smoke.json
     blocked_by: []
+  external_gate_tooling:
+    status: passed
+    evidence:
+      - scripts/doge_idp_jwks_operator_tool.py
+      - scripts/doged_live_idp_jwks_auth_smoke.py
+      - scripts/build_enterprise_production_validation_evidence.py
+      - scripts/validate_enterprise_production_validation_evidence.py
+      - scripts/preflight_plan_closure_external.py
+      - scripts/export_plan_closure_manifest.py
+      - scripts/prepare_plan_closure_handoff.py
+      - production/qa/evidence/enterprise/enterprise-production-observations-template-2026-06-22.json
+      - production/qa/evidence/enterprise/enterprise-production-validation-template-2026-06-22.json
+      - production/qa/evidence/enterprise/live-idp-jwks-operator-input-guide-2026-06-29.md
+      - tests/unit/qa/test_doge_idp_jwks_operator_tool.py
+      - tests/unit/qa/test_doged_live_idp_jwks_auth_smoke_script.py
+      - tests/unit/qa/test_build_enterprise_production_validation_evidence.py
+      - tests/unit/qa/test_validate_enterprise_production_validation_evidence.py
+      - tests/unit/qa/test_preflight_plan_closure_external.py
+    blocked_by: []
+    notes:
+      - "Management tooling posture: if external gates are considered complete once internal runner/builder/validator/template support exists, Sprint D external-gate tooling is complete."
+      - "Strict production/live evidence posture remains pending_operator_action for the live gate entries below; this does not promote production_ready, stable_declaration, Level 3, or ADR-0015."
   live_idp_jwks:
     status: pending_operator_action
     evidence: []
@@ -1368,6 +1390,11 @@ sprint_d_enterprise_auth_hardening:
     evidence: []
     blocked_by:
       - "Production data-isolation review in an operator-approved environment"
+  siem_worm_export:
+    status: pending_operator_action
+    evidence: []
+    blocked_by:
+      - "Production SIEM/WORM sink integration and operator sign-off"
   sdk_registry_release:
     status: pending_operator_action
     evidence: []

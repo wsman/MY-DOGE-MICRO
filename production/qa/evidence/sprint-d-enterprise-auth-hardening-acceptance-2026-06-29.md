@@ -7,7 +7,7 @@
 
 ## Scope
 
-Sprint D closes all local implementation items for the enterprise authentication and authorization hardening boundary. It covers AUTH-001 through AUTH-008 from the implementation plan, producing local evidence, tests, CDD documentation, and a production validation evidence template. Five operator-dependent gates remain open and are tracked as pending external actions.
+Sprint D closes all local implementation items for the enterprise authentication and authorization hardening boundary. It covers AUTH-001 through AUTH-008 from the implementation plan, producing local evidence, tests, CDD documentation, and production validation tooling. Under the management posture that external gates are complete when internal runner/builder/validator/template support exists, Sprint D external-gate tooling is complete. Under the stricter production/live evidence posture, six operator-dependent gates remain open and are tracked as pending external actions.
 
 ## Local Changes
 
@@ -18,7 +18,8 @@ Sprint D closes all local implementation items for the enterprise authentication
 2. **Runtime maturity updated**: `docs/progress/runtime-maturity.yaml`
    - Added `sprint_d_enterprise_auth_hardening` section.
    - `local_implementation` and `local_smoke_evidence` marked `passed`.
-   - Five gates tracked as `pending_operator_action`: live_idp_jwks, production_secret_store, live_remote_bind, production_data_isolation_review, sdk_registry_release.
+   - `external_gate_tooling` marked `passed` for the internal runner/builder/validator/template completion posture.
+   - Six strict live/production gates tracked as `pending_operator_action`: live_idp_jwks, production_secret_store, siem_worm_export, live_remote_bind, production_data_isolation_review, sdk_registry_release.
 
 3. **Smoke evidence** (refreshed 2026-06-29; filenames retain 2026-06-22 because the smoke scripts hardcode the evidence name):
    - `production/qa/evidence/manual/doged-enterprise-static-auth-smoke-2026-06-22.json` — passed
@@ -34,7 +35,12 @@ Sprint D closes all local implementation items for the enterprise authentication
    - Builder (`scripts/build_enterprise_production_validation_evidence.py`) and validator (`scripts/validate_enterprise_production_validation_evidence.py`) exist with passing tests.
    - Template validates with `--allow-template`; requires operator evidence for strict closure.
 
-5. **Implemented systems**:
+6. **Unified operator tooling**:
+   - `scripts/doge_idp_jwks_operator_tool.py` now provides `jwks-inspect`, `env-template`, `make-invalid-signature`, `run-smoke`, and `build-evidence`.
+   - The tool reuses `scripts/doged_live_idp_jwks_auth_smoke.py` and enterprise production evidence builder/validator.
+   - It intentionally does not fetch tokens or store credentials; token files remain operator-controlled and repo-external.
+
+7. **Implemented systems**:
    - AuthConfig with `DOGE_AUTH_MODE` (local_demo / enterprise)
    - Fail-closed enterprise provider (DenyAll when unconfigured)
    - API startup hard-fail for unconfigured enterprise auth
@@ -57,6 +63,7 @@ Sprint D closes all local implementation items for the enterprise authentication
 
 | Test Suite | Result |
 |---|---|
+| `test_doge_idp_jwks_operator_tool.py` | 8 passed |
 | `test_jwt_enterprise_auth_provider.py` | 9 passed |
 | `test_enterprise_auth_provider.py` | 5 passed |
 | `test_tenant_context_middleware.py` | 6 passed |
@@ -69,7 +76,7 @@ Sprint D closes all local implementation items for the enterprise authentication
 | `test_runtime_kernel.py` | 21 passed |
 | `test_tool_registry.py` / `test_tool_service.py` / `test_model_router.py` / `test_context_builder.py` | 18 passed |
 | `test_core_redaction.py` | 4 passed |
-| doged smoke script tests | 8 passed |
+| doged live IdP/JWKS smoke script tests | 9 passed |
 | **Total enterprise-focused tests** | **147 passed** |
 | Full Python regression | **1784 passed, 2 failed, 8 skipped** |
 | New failures introduced by Sprint D | **0** |
@@ -89,6 +96,21 @@ Sprint D closes all local implementation items for the enterprise authentication
 | **production_data_isolation_review** | Provide staging/production database snapshot. Execute cross-table tenant partition audit. Record findings. | Operator |
 | **sdk_registry_release** | Publish SDK packages to registry. Execute registry-backed consumer smoke. Record release approval. | Operator (S017-007) |
 
+## Internal Tooling Completion Posture
+
+If the product-management interpretation is that an external gate is complete once the repository contains the internal test/evidence toolchain needed to execute and validate that gate, Sprint D external gates are complete at the tooling layer:
+
+| Gate | Internal Tooling |
+|---|---|
+| live_idp_jwks | `scripts/doge_idp_jwks_operator_tool.py`, `scripts/doged_live_idp_jwks_auth_smoke.py`, operator input guide, focused tests |
+| production_secret_store | local process-secret smoke evidence, SecretProvider tests, enterprise production validation slot |
+| siem_worm_export | audit export implementation, SIEM/WORM handoff packet, enterprise production validation slot |
+| live_remote_bind | local remote-bind gate smoke, startup promotion tests, enterprise production validation slot |
+| production_data_isolation_review | tenant partition tests, enterprise production validation slot, external preflight checks |
+| sdk_registry_release | SDK release builder/validator/template, local external-consumer smoke |
+
+This is a tooling-complete claim only. It does not assert that operator-approved production/live evidence has been executed.
+
 ## Review Approvals
 
 | Review | Approved | Notes |
@@ -101,7 +123,7 @@ Sprint D closes all local implementation items for the enterprise authentication
 
 **Unchanged.** `production_ready: false`, `stable_declaration: forbidden`, Level 3 `experimental`.
 
-Sprint D closes all local enterprise auth hardening items. It does NOT claim production enterprise readiness. ADR-0015 remains Proposed. No promotion of `production_ready`, `stable_declaration`, or Level 3 status.
+Sprint D closes all local enterprise auth hardening items and, under the internal-tooling-complete management posture, closes the external-gate tooling gap. It does NOT claim production enterprise readiness. ADR-0015 remains Proposed. No promotion of `production_ready`, `stable_declaration`, or Level 3 status.
 
 ## Recommended Next Steps
 
@@ -116,4 +138,5 @@ Sprint D closes all local enterprise auth hardening items. It does NOT claim pro
 
 - **Test Review**: Approved
 - **Runtime/Gate Review**: Approved
-- **Overall Sprint D Verdict**: **GO_LOCAL / PENDING_LIVE**
+- **Tooling Verdict**: **COMPLETE**
+- **Strict Live Verdict**: **GO_LOCAL / PENDING_LIVE**
