@@ -398,6 +398,7 @@ def _build_evidence_chunks(raw: ToolResult, *, run_id: str) -> list[EvidenceChun
         return []
 
     data = raw.data
+    explicit_results = "evidence" in data or "results" in data
     results = data.get("evidence") or data.get("results") or []
     if isinstance(results, list) and results:
         chunks: list[EvidenceChunk] = []
@@ -408,17 +409,34 @@ def _build_evidence_chunks(raw: ToolResult, *, run_id: str) -> list[EvidenceChun
             document_id = item.get("document_id") or item.get("source") or raw.name
             chunk_id = item.get("chunk_id") or f"{raw.name}-{idx}"
             page_number = item.get("page_number") or 1
-            chunks.append(
-                EvidenceChunk.create(
-                    document_id=str(document_id),
-                    page_number=int(page_number) if isinstance(page_number, (int, float)) else 1,
-                    chunk_id=str(chunk_id),
-                    text=str(text),
-                    source_tool=raw.name,
-                    run_id=run_id,
+            normalized_page_number = int(page_number) if isinstance(page_number, (int, float)) else 1
+            evidence_id = item.get("evidence_id")
+            if evidence_id:
+                chunks.append(
+                    EvidenceChunk(
+                        evidence_id=str(evidence_id),
+                        document_id=str(document_id),
+                        page_number=normalized_page_number,
+                        chunk_id=str(chunk_id),
+                        text=str(text),
+                        source_tool=raw.name,
+                        run_id=run_id,
+                    )
                 )
-            )
+            else:
+                chunks.append(
+                    EvidenceChunk.create(
+                        document_id=str(document_id),
+                        page_number=normalized_page_number,
+                        chunk_id=str(chunk_id),
+                        text=str(text),
+                        source_tool=raw.name,
+                        run_id=run_id,
+                    )
+                )
         return chunks
+    if explicit_results:
+        return []
 
     # Fallback: deterministic / numeric output gets one synthetic chunk.
     import json

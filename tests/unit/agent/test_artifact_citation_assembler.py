@@ -220,7 +220,24 @@ def test_assembler_injects_inline_markers(assembler, run, evidence_chunk):
 
     artifact = assembler.assemble(run, content, tool_results)
 
-    assert "[^evd-" in artifact.content or "[^?]" in artifact.content
+    assert f"[^{evidence_chunk.evidence_id}]" in artifact.content
+    assert "[^evd-evd-" not in artifact.content
+
+
+def test_assembler_does_not_duplicate_existing_inline_marker(assembler, run, evidence_chunk):
+    marker = f"[^{evidence_chunk.evidence_id}]"
+    content = f"NVDA leads the semiconductor ranking.{marker}"
+    tool_results = [
+        ToolResult(
+            name="stock_overview",
+            data={"ticker": "NVDA"},
+            evidence_refs=[evidence_chunk.to_dict()],
+        )
+    ]
+
+    artifact = assembler.assemble(run, content, tool_results)
+
+    assert artifact.content.count(marker) == 1
 
 
 def test_assembler_appends_citation_section(assembler, run, evidence_chunk):

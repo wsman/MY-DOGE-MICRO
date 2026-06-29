@@ -90,7 +90,13 @@ class TestBuildEvidenceChunks:
             name="lookup_evidence",
             data={
                 "results": [
-                    {"document_id": "doc-1", "chunk_id": "chk-1", "page_number": 3, "text": "Revenue grew 12%."},
+                    {
+                        "evidence_id": "evd-revenue-growth",
+                        "document_id": "doc-1",
+                        "chunk_id": "chk-1",
+                        "page_number": 3,
+                        "text": "Revenue grew 12%.",
+                    },
                     {"document_id": "doc-2", "chunk_id": "chk-2", "page_number": 5, "text": "Margins stable."},
                 ]
             },
@@ -98,6 +104,7 @@ class TestBuildEvidenceChunks:
         chunks = _build_evidence_chunks(raw, run_id="run-2")
 
         assert len(chunks) == 2
+        assert chunks[0].evidence_id == "evd-revenue-growth"
         assert chunks[0].document_id == "doc-1"
         assert chunks[0].chunk_id == "chk-1"
         assert chunks[0].page_number == 3
@@ -120,6 +127,14 @@ class TestBuildEvidenceChunks:
         assert len(chunks) == 1
         assert chunks[0].document_id == "doc-a"
         assert chunks[0].text == "Claim A"
+
+    def test_explicit_empty_results_do_not_create_fallback_chunk(self):
+        raw = ToolResult(
+            name="lookup_evidence",
+            data={"query": "unsupported claim", "results": [], "result_count": 0},
+        )
+        chunks = _build_evidence_chunks(raw, run_id="run-no-evidence")
+        assert chunks == []
 
     def test_empty_list_when_no_data(self):
         raw = ToolResult(name="noop", data={})

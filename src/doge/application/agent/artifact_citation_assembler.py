@@ -40,7 +40,7 @@ class ArtifactCitationAssembler:
         max_citations_per_claim: int = 3,
         min_confidence: float = 0.2,
         enable_inline_citations: bool = True,
-        citation_marker_format: str = "[^evd-{id}]",
+        citation_marker_format: str = "[^{id}]",
     ) -> None:
         self._evidence_repo = evidence_repository
         self._citation_service = citation_service
@@ -345,6 +345,8 @@ class ArtifactCitationAssembler:
                     for relation in sorted(claim_relations, key=lambda r: r.confidence, reverse=True):
                         if relation.evidence_id in chunk_map:
                             marker = self._marker_format.format(id=relation.evidence_id)
+                            if marker in modified_line:
+                                continue
                             markers.append(marker)
                     if markers:
                         # Append markers after the claim text in this line
