@@ -5,6 +5,7 @@ import subprocess
 import sys
 
 from scripts.build_enterprise_production_validation_evidence import build_evidence
+import scripts.doged_live_idp_jwks_auth_smoke as live_smoke
 from scripts.doged_live_idp_jwks_auth_smoke import _mask_operator_values, build_observations, redact_secrets
 from scripts.validate_enterprise_production_validation_evidence import REQUIRED_CHECK_IDS, validate
 
@@ -122,3 +123,53 @@ def test_live_idp_success_observations_build_valid_enterprise_evidence(tmp_path)
 
     assert payload["result"] == "failed"
     assert validate(payload) == []
+
+
+def test_live_idp_observations_apply_custom_issue_ref_to_blocked_checks(tmp_path):
+    detailed = tmp_path / "live-idp-jwks-smoke-2026-06-29.json"
+    detailed.write_text("{}", encoding="utf-8")
+
+    observations = build_observations(
+        detailed_smoke_path=detailed,
+        live_passed=True,
+        operator_evidence_ref="operator-secure-store://enterprise/live_idp_jwks/2026-06-29",
+        executed_at="2026-06-29T00:00:00Z",
+        issue_ref="AUTH-PROD-LIVE-IDP-001",
+    )
+
+    for check_id, check in observations["checks"].items():
+        if check_id == "live_idp_jwks":
+            continue
+        assert check["issue_ref"] == "AUTH-PROD-LIVE-IDP-001"
+        assert "AUTH-PROD-LIVE-IDP-001" in check["evidence_ref"]
+
+
+def test_live_idp_main_reports_smoke_failure_without_traceback(monkeypatch, capsys):
+    def fail(_args):
+        raise live_smoke.SmokeExecutionError("failed Authorization: Bearer abc.def.ghi")
+
+    monkeypatch.setattr(live_smoke, "run_smoke", fail)
+
+    result = live_smoke.main(["--date", "2026-06-29"])
+    captured = capsys.readouterr()
+
+    assert result == 1
+    assert "smoke_failed" in captured.err
+    assert "Bearer [REDACTED]" in captured.err
+    assert "abc.def.ghi" not in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_live_idp_main_reports_unexpected_error_without_traceback(monkeypatch, capsys):
+    def fail(_args):
+        raise RuntimeError("network unavailable")
+
+    monkeypatch.setattr(live_smoke, "run_smoke", fail)
+
+    result = live_smoke.main(["--date", "2026-06-29"])
+    captured = capsys.readouterr()
+
+    assert result == 1
+    assert "smoke_error" in captured.err
+    assert "network unavailable" in captured.err
+    assert "Traceback" not in captured.err

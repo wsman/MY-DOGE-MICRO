@@ -38,28 +38,18 @@ REQUIRED_ENV = (
     "DOGE_LIVE_IDP_EXPECTED_TENANT_ID",
     "DOGE_LIVE_IDP_OPERATOR_EVIDENCE_REF",
 )
-BLOCKED_CHECK_REFS = {
-    "production_secret_store_command": (
-        "operator-secure-store://enterprise/auth-prod/blocker-log/"
-        f"{DEFAULT_ISSUE_REF}/production_secret_store_command"
-    ),
-    "siem_worm_export": (
-        "operator-secure-store://enterprise/auth-prod/blocker-log/"
-        f"{DEFAULT_ISSUE_REF}/siem_worm_export"
-    ),
-    "live_remote_bind_deployment": (
-        "operator-secure-store://enterprise/auth-prod/blocker-log/"
-        f"{DEFAULT_ISSUE_REF}/live_remote_bind_deployment"
-    ),
-    "production_data_isolation_review": (
-        "operator-secure-store://enterprise/auth-prod/blocker-log/"
-        f"{DEFAULT_ISSUE_REF}/production_data_isolation_review"
-    ),
-}
 
 
 class SmokeConfigError(RuntimeError):
     pass
+
+
+class SmokeExecutionError(RuntimeError):
+    pass
+
+
+def _blocked_check_ref(check_id: str, issue_ref: str) -> str:
+    return f"operator-secure-store://enterprise/auth-prod/blocker-log/{issue_ref}/{check_id}"
 
 
 def _free_port() -> int:
@@ -337,7 +327,7 @@ def run_smoke(args: argparse.Namespace, config: dict[str, Any] | None = None) ->
         _validate_observations(observations)
 
     if result != "passed":
-        raise SystemExit(f"live IdP/JWKS auth smoke failed; see {detailed_path}")
+        raise SmokeExecutionError(f"live IdP/JWKS auth smoke failed; see {detailed_path}")
     return evidence
 
 
@@ -508,8 +498,8 @@ def build_observations(
     for check_id in sorted(REQUIRED_CHECK_IDS - {"live_idp_jwks"}):
         checks[check_id] = {
             "status": "blocked",
-            "evidence_ref": BLOCKED_CHECK_REFS[check_id],
-            "issue_ref": DEFAULT_ISSUE_REF,
+            "evidence_ref": _blocked_check_ref(check_id, issue_ref),
+            "issue_ref": issue_ref,
             "notes": f"Pending operator-approved {check_id} validation.",
         }
 
@@ -570,6 +560,18 @@ def main(argv: list[str] | None = None) -> int:
     except SmokeConfigError as exc:
         print(json.dumps({"result": "config_error", "error": str(exc)}, indent=2, sort_keys=True), file=sys.stderr)
         return 2
+    except SmokeExecutionError as exc:
+        print(
+            json.dumps({"result": "smoke_failed", "error": redact_secrets(str(exc))}, indent=2, sort_keys=True),
+            file=sys.stderr,
+        )
+        return 1
+    except Exception as exc:
+        print(
+            json.dumps({"result": "smoke_error", "error": redact_secrets(str(exc))}, indent=2, sort_keys=True),
+            file=sys.stderr,
+        )
+        return 1
     print(json.dumps({"result": evidence["result"], "checks": evidence["checks"]}, indent=2, sort_keys=True))
     return 0
 
