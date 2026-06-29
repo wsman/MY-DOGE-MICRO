@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-ROUTER_DIR = Path("src/doge/interfaces/api/routers/v1")
+ROUTER_DIR = Path("src/doge/interfaces/gateway/routers")
 
 # platform.py is now a thin aggregator; the focused sub-routers and the shared
 # _platform_common module hold the routes, models, service factories, and helpers.

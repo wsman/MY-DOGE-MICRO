@@ -7,14 +7,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 
 _LEGACY_ROUTER_PREFIXES = {
-    "src/doge/interfaces/api/routers/agent.py": "/api/agent",
-    "src/doge/interfaces/api/routers/analysis.py": "/api/analysis",
-    "src/doge/interfaces/api/routers/config.py": "/api/config",
-    "src/doge/interfaces/api/routers/data.py": "/api/data",
-    "src/doge/interfaces/api/routers/documents.py": "/api/documents",
-    "src/doge/interfaces/api/routers/macro.py": "/api/macro",
-    "src/doge/interfaces/api/routers/notes.py": "/api/notes",
-    "src/doge/interfaces/api/routers/scan.py": "/api/scan",
+    "src/doge/interfaces/api_legacy/routers/agent.py": "/api/agent",
+    "src/doge/interfaces/api_legacy/routers/analysis.py": "/api/analysis",
+    "src/doge/interfaces/api_legacy/routers/config.py": "/api/config",
+    "src/doge/interfaces/api_legacy/routers/data.py": "/api/data",
+    "src/doge/interfaces/api_legacy/routers/documents.py": "/api/documents",
+    "src/doge/interfaces/api_legacy/routers/macro.py": "/api/macro",
+    "src/doge/interfaces/api_legacy/routers/notes.py": "/api/notes",
+    "src/doge/interfaces/api_legacy/routers/scan.py": "/api/scan",
 }
 
 _EXPECTED_LEGACY_ROUTES = {

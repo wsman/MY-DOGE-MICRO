@@ -25,16 +25,16 @@ from doge.config import get_settings
 from doge.core.ports.repository import ISchemaBrowser
 from doge.interfaces.api import deps
 from doge.interfaces.api.middleware.tenant_context import TenantContextMiddleware
-from doge.interfaces.api.routers import scan, data, notes, macro, analysis, config, agent, documents
-from doge.interfaces.api.routers.v1 import audit as v1_audit
-from doge.interfaces.api.routers.v1 import documents as v1_documents
-from doge.interfaces.api.routers.v1 import enterprise as v1_enterprise
-from doge.interfaces.api.routers.v1 import health as v1_health
-from doge.interfaces.api.routers.v1 import platform as v1_platform
-from doge.interfaces.api.routers.v1 import portfolios as v1_portfolios
-from doge.interfaces.api.routers.v1 import runs as v1_runs
-from doge.interfaces.api.routers.v1 import sessions as v1_sessions
-from doge.interfaces.api.routers.v1 import tools as v1_tools
+from doge.interfaces.api_legacy.routers import scan, data, notes, macro, analysis, config, agent, documents
+from doge.interfaces.gateway.routers import audit as v1_audit
+from doge.interfaces.gateway.routers import documents as v1_documents
+from doge.interfaces.gateway.routers import enterprise as v1_enterprise
+from doge.interfaces.gateway.routers import health as v1_health
+from doge.interfaces.gateway.routers import platform as v1_platform
+from doge.interfaces.gateway.routers import portfolios as v1_portfolios
+from doge.interfaces.gateway.routers import runs as v1_runs
+from doge.interfaces.gateway.routers import sessions as v1_sessions
+from doge.interfaces.gateway.routers import tools as v1_tools
 
 logger = logging.getLogger("doge.api")
 _LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}

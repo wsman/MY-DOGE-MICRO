@@ -232,6 +232,22 @@ def test_v1_documents_keeps_json_registration_compatibility(tmp_path, monkeypatc
     assert fetched.json()["parsing_status"] == "parsed"
 
 
+def test_legacy_documents_route_uses_persisted_repository(tmp_path, monkeypatch):
+    _reset_agent_deps(monkeypatch, tmp_path)
+    with TestClient(app) as client:
+        created = client.post(
+            "/api/documents",
+            json={"document_id": "doc-legacy", "filename": "legacy.md", "content": "# legacy"},
+        )
+        fetched = client.get("/v1/documents/doc-legacy")
+
+    assert created.status_code == 200
+    assert created.json()["document_id"] == "doc-legacy"
+    assert fetched.status_code == 200
+    assert fetched.json()["filename"] == "legacy.md"
+    assert fetched.json()["parsing_status"] == "parsed"
+
+
 def test_v1_portfolio_import_persists_csv_holdings(tmp_path, monkeypatch):
     _reset_agent_deps(monkeypatch, tmp_path)
     csv_payload = (

@@ -167,7 +167,7 @@ constants:
     range: 1-65535
     owner: runtime-configuration
     source: "src/doge/config/settings.py:51"
-    also_at: "src/doge/interfaces/api/routers/scan.py (duplicate)"
+    also_at: "src/doge/interfaces/api_legacy/routers/scan.py (duplicate)"
     notes: "TDX protocol-fixed."
 
   - name: tdx.us_port
@@ -175,7 +175,7 @@ constants:
     unit: TCP port
     owner: runtime-configuration
     source: "src/doge/config/settings.py:52"
-    also_at: "src/doge/interfaces/api/routers/scan.py"
+    also_at: "src/doge/interfaces/api_legacy/routers/scan.py"
 
   - name: tdx.timeout
     value: 5
@@ -426,24 +426,24 @@ constants:
   - name: api.data.page.default
     value: 1
     owner: fastapi-service
-    source: "src/doge/interfaces/api/routers/data.py"
+    source: "src/doge/interfaces/api_legacy/routers/data.py"
 
   - name: api.data.page_size.default
     value: 50
     owner: fastapi-service
-    source: "src/doge/interfaces/api/routers/data.py"
+    source: "src/doge/interfaces/api_legacy/routers/data.py"
     notes: "max 500 (Query(le=500))."
 
   - name: api.data.days.default
     value: 120
     owner: fastapi-service
-    source: "src/doge/interfaces/api/routers/data.py"
+    source: "src/doge/interfaces/api_legacy/routers/data.py"
     notes: "kline days; max 365 (Query(le=365))."
 
   - name: api.notes.search.min_length
     value: 1
     owner: fastapi-service
-    source: "src/doge/interfaces/api/routers/notes.py"
+    source: "src/doge/interfaces/api_legacy/routers/notes.py"
 
   # --- DeepSeek / LLM (Module #4) ---
   - name: deepseek.default_base_url
@@ -551,7 +551,7 @@ constants:
   - name: notes.default.market
     value: "cn"
     owner: research-insight-knowledge-base
-    source: "src/ai_analysis/stock_notes.py:52; src/doge/interfaces/api/routers/notes.py"
+    source: "src/ai_analysis/stock_notes.py:52; src/doge/interfaces/api_legacy/routers/notes.py"
     notes: "NOT VALIDATED — any string accepted; non-cn falls through to US price DB."
 
   - name: notes.default.note_type
@@ -567,7 +567,7 @@ constants:
   - name: notes.search.default_limit
     value: 50
     owner: research-insight-knowledge-base
-    source: "src/ai_analysis/stock_notes.py:200; src/doge/interfaces/api/routers/notes.py"
+    source: "src/ai_analysis/stock_notes.py:200; src/doge/interfaces/api_legacy/routers/notes.py"
 
   - name: notes.recent.default_days
     value: 7
@@ -713,99 +713,99 @@ entities:
     - {num: 1, method: GET, path: "/api/health", router: main, source: "src/doge/interfaces/api/main.py"}
     - {num: 2, method: GET, path: "/api/stats", router: main, source: "src/doge/interfaces/api/main.py"}
     # scan router
-    - {num: 3, method: GET, path: "/api/scan/servers", router: scan, source: "src/doge/interfaces/api/routers/scan.py"}
-    - {num: 4, method: POST, path: "/api/scan/servers/test", router: scan, source: "src/doge/interfaces/api/routers/scan.py"}
-    - {num: 5, method: GET, path: "/api/scan/status", router: scan, source: "src/doge/interfaces/api/routers/scan.py"}
-    - {num: 6, method: POST, path: "/api/scan/{market}", router: scan, source: "src/doge/interfaces/api/routers/scan.py", notes: "SSE stream; one in-flight per market (409 on concurrent)"}
+    - {num: 3, method: GET, path: "/api/scan/servers", router: scan, source: "src/doge/interfaces/api_legacy/routers/scan.py"}
+    - {num: 4, method: POST, path: "/api/scan/servers/test", router: scan, source: "src/doge/interfaces/api_legacy/routers/scan.py"}
+    - {num: 5, method: GET, path: "/api/scan/status", router: scan, source: "src/doge/interfaces/api_legacy/routers/scan.py"}
+    - {num: 6, method: POST, path: "/api/scan/{market}", router: scan, source: "src/doge/interfaces/api_legacy/routers/scan.py", notes: "SSE stream; one in-flight per market (409 on concurrent)"}
     # data router
-    - {num: 7, method: GET, path: "/api/data/{market}/tables", router: data, source: "src/doge/interfaces/api/routers/data.py"}
-    - {num: 8, method: GET, path: "/api/data/{market}/table/{table_name}", router: data, source: "src/doge/interfaces/api/routers/data.py"}
-    - {num: 9, method: GET, path: "/api/data/{market}/ticker/{ticker}/kline", router: data, source: "src/doge/interfaces/api/routers/data.py"}
-    - {num: 10, method: GET, path: "/api/data/{market}/ticker-names", router: data, source: "src/doge/interfaces/api/routers/data.py"}
+    - {num: 7, method: GET, path: "/api/data/{market}/tables", router: data, source: "src/doge/interfaces/api_legacy/routers/data.py"}
+    - {num: 8, method: GET, path: "/api/data/{market}/table/{table_name}", router: data, source: "src/doge/interfaces/api_legacy/routers/data.py"}
+    - {num: 9, method: GET, path: "/api/data/{market}/ticker/{ticker}/kline", router: data, source: "src/doge/interfaces/api_legacy/routers/data.py"}
+    - {num: 10, method: GET, path: "/api/data/{market}/ticker-names", router: data, source: "src/doge/interfaces/api_legacy/routers/data.py"}
     # notes router
-    - {num: 11, method: GET, path: "/api/notes/ticker/{ticker}", router: notes, source: "src/doge/interfaces/api/routers/notes.py"}
-    - {num: 12, method: POST, path: "/api/notes", router: notes, source: "src/doge/interfaces/api/routers/notes.py"}
-    - {num: 13, method: GET, path: "/api/notes/search", router: notes, source: "src/doge/interfaces/api/routers/notes.py"}
-    - {num: 14, method: GET, path: "/api/notes/recent", router: notes, source: "src/doge/interfaces/api/routers/notes.py"}
-    - {num: 15, method: GET, path: "/api/notes/tracked", router: notes, source: "src/doge/interfaces/api/routers/notes.py"}
-    - {num: 16, method: DELETE, path: "/api/notes/{note_id}", router: notes, source: "src/doge/interfaces/api/routers/notes.py", notes: "200 {ok:true} / 404 not found (soft delete)"}
+    - {num: 11, method: GET, path: "/api/notes/ticker/{ticker}", router: notes, source: "src/doge/interfaces/api_legacy/routers/notes.py"}
+    - {num: 12, method: POST, path: "/api/notes", router: notes, source: "src/doge/interfaces/api_legacy/routers/notes.py"}
+    - {num: 13, method: GET, path: "/api/notes/search", router: notes, source: "src/doge/interfaces/api_legacy/routers/notes.py"}
+    - {num: 14, method: GET, path: "/api/notes/recent", router: notes, source: "src/doge/interfaces/api_legacy/routers/notes.py"}
+    - {num: 15, method: GET, path: "/api/notes/tracked", router: notes, source: "src/doge/interfaces/api_legacy/routers/notes.py"}
+    - {num: 16, method: DELETE, path: "/api/notes/{note_id}", router: notes, source: "src/doge/interfaces/api_legacy/routers/notes.py", notes: "200 {ok:true} / 404 not found (soft delete)"}
     # macro router
-    - {num: 17, method: GET, path: "/api/macro/reports", router: macro, source: "src/doge/interfaces/api/routers/macro.py"}
-    - {num: 18, method: GET, path: "/api/macro/reports/latest", router: macro, source: "src/doge/interfaces/api/routers/macro.py"}
-    - {num: 19, method: GET, path: "/api/macro/reports/{report_id}", router: macro, source: "src/doge/interfaces/api/routers/macro.py"}
-    - {num: 20, method: POST, path: "/api/macro/run", router: macro, source: "src/doge/interfaces/api/routers/macro.py", notes: "SSE stream"}
+    - {num: 17, method: GET, path: "/api/macro/reports", router: macro, source: "src/doge/interfaces/api_legacy/routers/macro.py"}
+    - {num: 18, method: GET, path: "/api/macro/reports/latest", router: macro, source: "src/doge/interfaces/api_legacy/routers/macro.py"}
+    - {num: 19, method: GET, path: "/api/macro/reports/{report_id}", router: macro, source: "src/doge/interfaces/api_legacy/routers/macro.py"}
+    - {num: 20, method: POST, path: "/api/macro/run", router: macro, source: "src/doge/interfaces/api_legacy/routers/macro.py", notes: "SSE stream"}
     # analysis router
-    - {num: 21, method: GET, path: "/api/analysis/reports", router: analysis, source: "src/doge/interfaces/api/routers/analysis.py"}
-    - {num: 22, method: GET, path: "/api/analysis/reports/{report_id}", router: analysis, source: "src/doge/interfaces/api/routers/analysis.py"}
+    - {num: 21, method: GET, path: "/api/analysis/reports", router: analysis, source: "src/doge/interfaces/api_legacy/routers/analysis.py"}
+    - {num: 22, method: GET, path: "/api/analysis/reports/{report_id}", router: analysis, source: "src/doge/interfaces/api_legacy/routers/analysis.py"}
     # config router
-    - {num: 23, method: GET, path: "/api/config", router: config, source: "src/doge/interfaces/api/routers/config.py"}
-    - {num: 24, method: GET, path: "/api/config/settings", router: config, source: "src/doge/interfaces/api/routers/config.py"}
-    - {num: 25, method: PUT, path: "/api/config/settings", router: config, source: "src/doge/interfaces/api/routers/config.py"}
-    - {num: 26, method: POST, path: "/api/config/validate-tdx", router: config, source: "src/doge/interfaces/api/routers/config.py"}
+    - {num: 23, method: GET, path: "/api/config", router: config, source: "src/doge/interfaces/api_legacy/routers/config.py"}
+    - {num: 24, method: GET, path: "/api/config/settings", router: config, source: "src/doge/interfaces/api_legacy/routers/config.py"}
+    - {num: 25, method: PUT, path: "/api/config/settings", router: config, source: "src/doge/interfaces/api_legacy/routers/config.py"}
+    - {num: 26, method: POST, path: "/api/config/validate-tdx", router: config, source: "src/doge/interfaces/api_legacy/routers/config.py"}
     # agent compatibility router
-    - {num: 27, method: POST, path: "/api/agent/runs", router: agent, source: "src/doge/interfaces/api/routers/agent.py"}
-    - {num: 28, method: GET, path: "/api/agent/runs/{run_id}", router: agent, source: "src/doge/interfaces/api/routers/agent.py"}
-    - {num: 29, method: GET, path: "/api/agent/runs/{run_id}/events", router: agent, source: "src/doge/interfaces/api/routers/agent.py"}
-    - {num: 30, method: GET, path: "/api/agent/runs/{run_id}/stream", router: agent, source: "src/doge/interfaces/api/routers/agent.py", notes: "SSE stream"}
-    - {num: 31, method: GET, path: "/api/agent/runs/{run_id}/artifacts", router: agent, source: "src/doge/interfaces/api/routers/agent.py"}
-    - {num: 32, method: GET, path: "/api/agent/runs/{run_id}/approvals", router: agent, source: "src/doge/interfaces/api/routers/agent.py"}
-    - {num: 33, method: POST, path: "/api/agent/runs/{run_id}/approvals/{approval_id}", router: agent, source: "src/doge/interfaces/api/routers/agent.py"}
+    - {num: 27, method: POST, path: "/api/agent/runs", router: agent, source: "src/doge/interfaces/api_legacy/routers/agent.py"}
+    - {num: 28, method: GET, path: "/api/agent/runs/{run_id}", router: agent, source: "src/doge/interfaces/api_legacy/routers/agent.py"}
+    - {num: 29, method: GET, path: "/api/agent/runs/{run_id}/events", router: agent, source: "src/doge/interfaces/api_legacy/routers/agent.py"}
+    - {num: 30, method: GET, path: "/api/agent/runs/{run_id}/stream", router: agent, source: "src/doge/interfaces/api_legacy/routers/agent.py", notes: "SSE stream"}
+    - {num: 31, method: GET, path: "/api/agent/runs/{run_id}/artifacts", router: agent, source: "src/doge/interfaces/api_legacy/routers/agent.py"}
+    - {num: 32, method: GET, path: "/api/agent/runs/{run_id}/approvals", router: agent, source: "src/doge/interfaces/api_legacy/routers/agent.py"}
+    - {num: 33, method: POST, path: "/api/agent/runs/{run_id}/approvals/{approval_id}", router: agent, source: "src/doge/interfaces/api_legacy/routers/agent.py"}
     # documents compatibility router
-    - {num: 34, method: POST, path: "/api/documents", router: documents, source: "src/doge/interfaces/api/routers/documents.py"}
+    - {num: 34, method: POST, path: "/api/documents", router: documents, source: "src/doge/interfaces/api_legacy/routers/documents.py"}
     # v1 health/session/run/document/tool routes
-    - {num: 35, method: GET, path: "/health", router: v1_health, source: "src/doge/interfaces/api/routers/v1/health.py"}
-    - {num: 36, method: GET, path: "/health/ready", router: v1_health, source: "src/doge/interfaces/api/routers/v1/health.py"}
-    - {num: 37, method: POST, path: "/v1/sessions", router: v1_sessions, source: "src/doge/interfaces/api/routers/v1/sessions.py"}
-    - {num: 38, method: GET, path: "/v1/sessions", router: v1_sessions, source: "src/doge/interfaces/api/routers/v1/sessions.py"}
-    - {num: 39, method: GET, path: "/v1/sessions/{session_id}", router: v1_sessions, source: "src/doge/interfaces/api/routers/v1/sessions.py"}
-    - {num: 40, method: POST, path: "/v1/sessions/{session_id}/turns", router: v1_sessions, source: "src/doge/interfaces/api/routers/v1/sessions.py"}
-    - {num: 41, method: GET, path: "/v1/runs/{run_id}", router: v1_runs, source: "src/doge/interfaces/api/routers/v1/runs.py"}
-    - {num: 42, method: POST, path: "/v1/runs/{run_id}/cancel", router: v1_runs, source: "src/doge/interfaces/api/routers/v1/runs.py"}
-    - {num: 43, method: GET, path: "/v1/runs/{run_id}/events", router: v1_runs, source: "src/doge/interfaces/api/routers/v1/runs.py"}
-    - {num: 44, method: GET, path: "/v1/runs/{run_id}/stream", router: v1_runs, source: "src/doge/interfaces/api/routers/v1/runs.py", notes: "SSE stream with Last-Event-ID replay"}
-    - {num: 45, method: GET, path: "/v1/runs/{run_id}/artifacts", router: v1_runs, source: "src/doge/interfaces/api/routers/v1/runs.py"}
-    - {num: 46, method: GET, path: "/v1/runs/{run_id}/approvals", router: v1_runs, source: "src/doge/interfaces/api/routers/v1/runs.py"}
-    - {num: 47, method: POST, path: "/v1/runs/{run_id}/approvals/{approval_id}", router: v1_runs, source: "src/doge/interfaces/api/routers/v1/runs.py"}
-    - {num: 48, method: GET, path: "/v1/runs/{run_id}/summary", router: v1_runs, source: "src/doge/interfaces/api/routers/v1/runs.py", notes: "feature-flagged run summary API"}
-    - {num: 49, method: GET, path: "/v1/runs/{run_id}/claims", router: v1_runs, source: "src/doge/interfaces/api/routers/v1/runs.py", notes: "feature-flagged run claims API"}
-    - {num: 50, method: GET, path: "/v1/runs/{run_id}/citations", router: v1_runs, source: "src/doge/interfaces/api/routers/v1/runs.py", notes: "feature-flagged citation API with ACL redaction"}
-    - {num: 51, method: GET, path: "/v1/runs/{run_id}/eval", router: v1_runs, source: "src/doge/interfaces/api/routers/v1/runs.py", notes: "feature-flagged run eval API"}
-    - {num: 52, method: POST, path: "/v1/documents", router: v1_documents, source: "src/doge/interfaces/api/routers/v1/documents.py"}
-    - {num: 53, method: GET, path: "/v1/documents", router: v1_documents, source: "src/doge/interfaces/api/routers/v1/documents.py"}
-    - {num: 54, method: GET, path: "/v1/documents/{document_id}", router: v1_documents, source: "src/doge/interfaces/api/routers/v1/documents.py"}
-    - {num: 55, method: GET, path: "/v1/workspaces", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged platform objects API"}
-    - {num: 56, method: POST, path: "/v1/workspaces", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged platform objects API"}
-    - {num: 57, method: GET, path: "/v1/workspaces/{workspace_id}", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged platform objects API"}
-    - {num: 58, method: GET, path: "/v1/projects", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged platform objects API"}
-    - {num: 59, method: POST, path: "/v1/projects", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged platform objects API"}
-    - {num: 60, method: GET, path: "/v1/projects/{project_id}", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged platform objects API"}
-    - {num: 61, method: GET, path: "/v1/research-cases", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged platform objects API"}
-    - {num: 62, method: POST, path: "/v1/research-cases", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged platform objects API"}
-    - {num: 63, method: GET, path: "/v1/research-cases/{case_id}", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged platform objects API"}
-    - {num: 64, method: POST, path: "/v1/research-cases/{case_id}/runs", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged case-run link API"}
-    - {num: 65, method: GET, path: "/v1/home-queue", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged platform work queue API"}
-    - {num: 66, method: GET, path: "/v1/research-cases/{case_id}/assets", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged case assets API"}
-    - {num: 67, method: POST, path: "/v1/research-cases/{case_id}/assets", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged case assets API"}
-    - {num: 68, method: DELETE, path: "/v1/research-cases/{case_id}/assets/{asset_link_id}", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged case assets API"}
-    - {num: 69, method: GET, path: "/v1/research-cases/{case_id}/decisions", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged case decision API"}
-    - {num: 70, method: POST, path: "/v1/research-cases/{case_id}/decisions", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged case decision API"}
-    - {num: 71, method: POST, path: "/v1/research-cases/{case_id}/executions/preflight", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged workflow execution preflight API"}
-    - {num: 72, method: POST, path: "/v1/research-cases/{case_id}/executions", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged workflow execution API"}
-    - {num: 73, method: GET, path: "/v1/research-cases/{case_id}/executions", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged workflow execution API"}
-    - {num: 74, method: GET, path: "/v1/research-cases/{case_id}/executions/{execution_id}", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged workflow execution API"}
-    - {num: 75, method: GET, path: "/v1/research-cases/{case_id}/review", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged case review API"}
-    - {num: 76, method: GET, path: "/v1/workflow-templates", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged workflow templates API"}
-    - {num: 77, method: POST, path: "/v1/workflow-templates", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged workflow templates API"}
-    - {num: 78, method: GET, path: "/v1/workflow-templates/{template_id}", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged workflow templates API"}
-    - {num: 79, method: GET, path: "/v1/capabilities", router: v1_platform, source: "src/doge/interfaces/api/routers/v1/platform.py", notes: "feature-flagged capability registry API"}
-    - {num: 80, method: GET, path: "/v1/tools", router: v1_tools, source: "src/doge/interfaces/api/routers/v1/tools.py"}
-    - {num: 81, method: POST, path: "/v1/portfolios/import", router: v1_portfolios, source: "src/doge/interfaces/api/routers/v1/portfolios.py"}
-    - {num: 82, method: GET, path: "/v1/audit/events", router: v1_audit, source: "src/doge/interfaces/api/routers/v1/audit.py"}
-    - {num: 83, method: GET, path: "/v1/audit/events/export", router: v1_audit, source: "src/doge/interfaces/api/routers/v1/audit.py"}
-    - {num: 84, method: POST, path: "/v1/audit/events/retention", router: v1_audit, source: "src/doge/interfaces/api/routers/v1/audit.py"}
-    - {num: 85, method: GET, path: "/v1/enterprise/acl/grants", router: v1_enterprise, source: "src/doge/interfaces/api/routers/v1/enterprise.py"}
-    - {num: 86, method: POST, path: "/v1/enterprise/acl/grants", router: v1_enterprise, source: "src/doge/interfaces/api/routers/v1/enterprise.py"}
-    - {num: 87, method: DELETE, path: "/v1/enterprise/acl/grants", router: v1_enterprise, source: "src/doge/interfaces/api/routers/v1/enterprise.py"}
+    - {num: 35, method: GET, path: "/health", router: v1_health, source: "src/doge/interfaces/gateway/routers/health.py"}
+    - {num: 36, method: GET, path: "/health/ready", router: v1_health, source: "src/doge/interfaces/gateway/routers/health.py"}
+    - {num: 37, method: POST, path: "/v1/sessions", router: v1_sessions, source: "src/doge/interfaces/gateway/routers/sessions.py"}
+    - {num: 38, method: GET, path: "/v1/sessions", router: v1_sessions, source: "src/doge/interfaces/gateway/routers/sessions.py"}
+    - {num: 39, method: GET, path: "/v1/sessions/{session_id}", router: v1_sessions, source: "src/doge/interfaces/gateway/routers/sessions.py"}
+    - {num: 40, method: POST, path: "/v1/sessions/{session_id}/turns", router: v1_sessions, source: "src/doge/interfaces/gateway/routers/sessions.py"}
+    - {num: 41, method: GET, path: "/v1/runs/{run_id}", router: v1_runs, source: "src/doge/interfaces/gateway/routers/runs.py"}
+    - {num: 42, method: POST, path: "/v1/runs/{run_id}/cancel", router: v1_runs, source: "src/doge/interfaces/gateway/routers/runs.py"}
+    - {num: 43, method: GET, path: "/v1/runs/{run_id}/events", router: v1_runs, source: "src/doge/interfaces/gateway/routers/runs.py"}
+    - {num: 44, method: GET, path: "/v1/runs/{run_id}/stream", router: v1_runs, source: "src/doge/interfaces/gateway/routers/runs.py", notes: "SSE stream with Last-Event-ID replay"}
+    - {num: 45, method: GET, path: "/v1/runs/{run_id}/artifacts", router: v1_runs, source: "src/doge/interfaces/gateway/routers/runs.py"}
+    - {num: 46, method: GET, path: "/v1/runs/{run_id}/approvals", router: v1_runs, source: "src/doge/interfaces/gateway/routers/runs.py"}
+    - {num: 47, method: POST, path: "/v1/runs/{run_id}/approvals/{approval_id}", router: v1_runs, source: "src/doge/interfaces/gateway/routers/runs.py"}
+    - {num: 48, method: GET, path: "/v1/runs/{run_id}/summary", router: v1_runs, source: "src/doge/interfaces/gateway/routers/runs.py", notes: "feature-flagged run summary API"}
+    - {num: 49, method: GET, path: "/v1/runs/{run_id}/claims", router: v1_runs, source: "src/doge/interfaces/gateway/routers/runs.py", notes: "feature-flagged run claims API"}
+    - {num: 50, method: GET, path: "/v1/runs/{run_id}/citations", router: v1_runs, source: "src/doge/interfaces/gateway/routers/runs.py", notes: "feature-flagged citation API with ACL redaction"}
+    - {num: 51, method: GET, path: "/v1/runs/{run_id}/eval", router: v1_runs, source: "src/doge/interfaces/gateway/routers/runs.py", notes: "feature-flagged run eval API"}
+    - {num: 52, method: POST, path: "/v1/documents", router: v1_documents, source: "src/doge/interfaces/gateway/routers/documents.py"}
+    - {num: 53, method: GET, path: "/v1/documents", router: v1_documents, source: "src/doge/interfaces/gateway/routers/documents.py"}
+    - {num: 54, method: GET, path: "/v1/documents/{document_id}", router: v1_documents, source: "src/doge/interfaces/gateway/routers/documents.py"}
+    - {num: 55, method: GET, path: "/v1/workspaces", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged platform objects API"}
+    - {num: 56, method: POST, path: "/v1/workspaces", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged platform objects API"}
+    - {num: 57, method: GET, path: "/v1/workspaces/{workspace_id}", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged platform objects API"}
+    - {num: 58, method: GET, path: "/v1/projects", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged platform objects API"}
+    - {num: 59, method: POST, path: "/v1/projects", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged platform objects API"}
+    - {num: 60, method: GET, path: "/v1/projects/{project_id}", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged platform objects API"}
+    - {num: 61, method: GET, path: "/v1/research-cases", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged platform objects API"}
+    - {num: 62, method: POST, path: "/v1/research-cases", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged platform objects API"}
+    - {num: 63, method: GET, path: "/v1/research-cases/{case_id}", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged platform objects API"}
+    - {num: 64, method: POST, path: "/v1/research-cases/{case_id}/runs", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged case-run link API"}
+    - {num: 65, method: GET, path: "/v1/home-queue", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged platform work queue API"}
+    - {num: 66, method: GET, path: "/v1/research-cases/{case_id}/assets", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged case assets API"}
+    - {num: 67, method: POST, path: "/v1/research-cases/{case_id}/assets", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged case assets API"}
+    - {num: 68, method: DELETE, path: "/v1/research-cases/{case_id}/assets/{asset_link_id}", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged case assets API"}
+    - {num: 69, method: GET, path: "/v1/research-cases/{case_id}/decisions", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged case decision API"}
+    - {num: 70, method: POST, path: "/v1/research-cases/{case_id}/decisions", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged case decision API"}
+    - {num: 71, method: POST, path: "/v1/research-cases/{case_id}/executions/preflight", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged workflow execution preflight API"}
+    - {num: 72, method: POST, path: "/v1/research-cases/{case_id}/executions", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged workflow execution API"}
+    - {num: 73, method: GET, path: "/v1/research-cases/{case_id}/executions", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged workflow execution API"}
+    - {num: 74, method: GET, path: "/v1/research-cases/{case_id}/executions/{execution_id}", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged workflow execution API"}
+    - {num: 75, method: GET, path: "/v1/research-cases/{case_id}/review", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged case review API"}
+    - {num: 76, method: GET, path: "/v1/workflow-templates", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged workflow templates API"}
+    - {num: 77, method: POST, path: "/v1/workflow-templates", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged workflow templates API"}
+    - {num: 78, method: GET, path: "/v1/workflow-templates/{template_id}", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged workflow templates API"}
+    - {num: 79, method: GET, path: "/v1/capabilities", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged capability registry API"}
+    - {num: 80, method: GET, path: "/v1/tools", router: v1_tools, source: "src/doge/interfaces/gateway/routers/tools.py"}
+    - {num: 81, method: POST, path: "/v1/portfolios/import", router: v1_portfolios, source: "src/doge/interfaces/gateway/routers/portfolios.py"}
+    - {num: 82, method: GET, path: "/v1/audit/events", router: v1_audit, source: "src/doge/interfaces/gateway/routers/audit.py"}
+    - {num: 83, method: GET, path: "/v1/audit/events/export", router: v1_audit, source: "src/doge/interfaces/gateway/routers/audit.py"}
+    - {num: 84, method: POST, path: "/v1/audit/events/retention", router: v1_audit, source: "src/doge/interfaces/gateway/routers/audit.py"}
+    - {num: 85, method: GET, path: "/v1/enterprise/acl/grants", router: v1_enterprise, source: "src/doge/interfaces/gateway/routers/enterprise.py"}
+    - {num: 86, method: POST, path: "/v1/enterprise/acl/grants", router: v1_enterprise, source: "src/doge/interfaces/gateway/routers/enterprise.py"}
+    - {num: 87, method: DELETE, path: "/v1/enterprise/acl/grants", router: v1_enterprise, source: "src/doge/interfaces/gateway/routers/enterprise.py"}
   api_router_prefixes:
     scan: "/api/scan"
     data: "/api/data"

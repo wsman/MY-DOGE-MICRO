@@ -1,5 +1,8 @@
-"""Canonical FastAPI routers for the MY-DOGE API interface layer."""
+"""Compatibility shims for legacy FastAPI routers.
 
-from doge.interfaces.api.routers import agent, analysis, config, data, documents, macro, notes, scan
+Canonical implementations live under ``doge.interfaces.api_legacy.routers``.
+"""
+
+from doge.interfaces.api_legacy.routers import agent, analysis, config, data, documents, macro, notes, scan
 
 __all__ = ["agent", "analysis", "config", "data", "documents", "macro", "notes", "scan"]

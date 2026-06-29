@@ -78,9 +78,9 @@ Two response modes are used (`design/cdd/fastapi-service.md` §9.1):
    `Content-Type: application/json`. Request and response bodies are JSON.
 2. **Server-Sent Events (SSE)** — three endpoints return an
    `EventSourceResponse` with `Content-Type: text/event-stream`:
-  - `POST /api/scan/{market}` (`src/doge/interfaces/api/routers/scan.py`)
-   - `POST /api/macro/run` (`src/doge/interfaces/api/routers/macro.py`)
-   - `GET /api/agent/runs/{run_id}/stream` (`src/doge/interfaces/api/routers/agent.py`)
+  - `POST /api/scan/{market}` (`src/doge/interfaces/api_legacy/routers/scan.py`)
+   - `POST /api/macro/run` (`src/doge/interfaces/api_legacy/routers/macro.py`)
+   - `GET /api/agent/runs/{run_id}/stream` (`src/doge/interfaces/api_legacy/routers/agent.py`)
 
    See [SSE Contract](#sse-contract) for the event format.
 
@@ -119,7 +119,7 @@ code cannot drift.
 | 1 | GET | `/api/health` | Liveness probe → `{"status":"ok"}` | `src/doge/interfaces/api/main.py` |
 | 2 | GET | `/api/stats` | Per-DB per-table row counts | `src/doge/interfaces/api/main.py` |
 
-### scan router — prefix `/api/scan` (`src/doge/interfaces/api/routers/scan.py`)
+### scan router — prefix `/api/scan` (`src/doge/interfaces/api_legacy/routers/scan.py`)
 
 | # | Method | Path | Purpose | file:line |
 |---|---|---|---|---|
@@ -128,7 +128,7 @@ code cannot drift.
 | 5 | GET | `/api/scan/status` | In-memory scan status | `scan.py:147-149` |
 | 6 | POST | `/api/scan/{market}` | Start scan (SSE) | `scan.py:152-268` |
 
-### data router — prefix `/api/data` (`src/doge/interfaces/api/routers/data.py`)
+### data router — prefix `/api/data` (`src/doge/interfaces/api_legacy/routers/data.py`)
 
 | # | Method | Path | Purpose | file:line |
 |---|---|---|---|---|
@@ -137,7 +137,7 @@ code cannot drift.
 | 9 | GET | `/api/data/{market}/ticker/{ticker}/kline` | OHLCV + MA kline (DuckDB) | `data.py:103-143` |
 | 10 | GET | `/api/data/{market}/ticker-names` | Ticker→name map | `data.py:191-198` |
 
-### notes router — prefix `/api/notes` (`src/doge/interfaces/api/routers/notes.py`)
+### notes router — prefix `/api/notes` (`src/doge/interfaces/api_legacy/routers/notes.py`)
 
 | # | Method | Path | Purpose | file:line |
 |---|---|---|---|---|
@@ -148,7 +148,7 @@ code cannot drift.
 | 15 | GET | `/api/notes/tracked` | Tracked tickers | `notes.py:61-64` |
 | 16 | DELETE | `/api/notes/{note_id}` | Soft-delete a note | `notes.py:67-79` |
 
-### macro router — prefix `/api/macro` (`src/doge/interfaces/api/routers/macro.py`)
+### macro router — prefix `/api/macro` (`src/doge/interfaces/api_legacy/routers/macro.py`)
 
 | # | Method | Path | Purpose | file:line |
 |---|---|---|---|---|
@@ -157,14 +157,14 @@ code cannot drift.
 | 19 | GET | `/api/macro/reports/{report_id}` | Single macro report | `macro.py:56-68` |
 | 20 | POST | `/api/macro/run` | Run macro analysis (SSE) | `macro.py:71-129` |
 
-### analysis router — prefix `/api/analysis` (`src/doge/interfaces/api/routers/analysis.py`)
+### analysis router — prefix `/api/analysis` (`src/doge/interfaces/api_legacy/routers/analysis.py`)
 
 | # | Method | Path | Purpose | file:line |
 |---|---|---|---|---|
 | 21 | GET | `/api/analysis/reports` | List research reports | `analysis.py:13-25` |
 | 22 | GET | `/api/analysis/reports/{report_id}` | Single research report | `analysis.py:28-40` |
 
-### config router — prefix `/api/config` (`src/doge/interfaces/api/routers/config.py`)
+### config router — prefix `/api/config` (`src/doge/interfaces/api_legacy/routers/config.py`)
 
 | # | Method | Path | Purpose | file:line |
 |---|---|---|---|---|
@@ -173,7 +173,7 @@ code cannot drift.
 | 25 | PUT | `/api/config/settings` | Update `user_settings.json` | `config.py:66-74` |
 | 26 | POST | `/api/config/validate-tdx` | Validate TDX vipdoc path | `config.py:77-88` |
 
-### agent router — prefix `/api/agent` (`src/doge/interfaces/api/routers/agent.py`)
+### agent router — prefix `/api/agent` (`src/doge/interfaces/api_legacy/routers/agent.py`)
 
 | # | Method | Path | Purpose | file:line |
 |---|---|---|---|---|
@@ -185,13 +185,13 @@ code cannot drift.
 | 32 | GET | `/api/agent/runs/{run_id}/approvals` | Read pending/resolved approvals | `agent.py` |
 | 33 | POST | `/api/agent/runs/{run_id}/approvals/{approval_id}` | Approve or deny a high-risk action | `agent.py` |
 
-### documents router — prefix `/api/documents` (`src/doge/interfaces/api/routers/documents.py`)
+### documents router — prefix `/api/documents` (`src/doge/interfaces/api_legacy/routers/documents.py`)
 
 | # | Method | Path | Purpose | file:line |
 |---|---|---|---|---|
 | 34 | POST | `/api/documents` | Register a demo document payload | `documents.py` |
 
-### v1 daemon routes — prefix `/v1` plus health (`src/doge/interfaces/api/routers/v1/`)
+### v1 daemon routes — prefix `/v1` plus health (`src/doge/interfaces/gateway/routers/`)
 
 | # | Method | Path | Purpose | file:line |
 |---|---|---|---|---|

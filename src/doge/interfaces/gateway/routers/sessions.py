@@ -1,0 +1,105 @@
+"""v1 session routes."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
+from pydantic import BaseModel, Field
+
+from doge.core.ports.agent_repository import ISessionRepository
+from doge.core.ports.enterprise_governance import IEnterpriseGovernanceRepository
+from doge.interfaces.api import deps
+from doge.interfaces.api.handlers import (
+    CreateSessionHandler,
+    GetSessionHandler,
+    ListSessionsHandler,
+    SessionNotFound,
+    SubmitSessionTurnCommand,
+    SubmitSessionTurnHandler,
+)
+from doge.interfaces.gateway.routers._common import serialize
+from doge.interfaces.gateway.routers._runs_common import request_run_access
+
+router = APIRouter(dependencies=[Depends(deps.require_api_token)])
+
+
+class CreateSessionRequest(BaseModel):
+    title: str = "Research session"
+
+
+class CreateTurnRequest(BaseModel):
+    message: str
+    market: str = "us"
+    language: str = "en"
+    document_ids: list[str] = Field(default_factory=list)
+    portfolio_id: str | None = None
+    model_policy: dict[str, Any] = Field(default_factory=dict)
+
+
+@router.post("/sessions")
+async def create_session(
+    request: Request,
+    body: CreateSessionRequest,
+    sessions: ISessionRepository = Depends(deps.get_agent_session_repository),
+):
+    return serialize(CreateSessionHandler(sessions).handle(title=body.title, scope=request_run_access(request).scope))
+
+
+@router.get("/sessions")
+async def list_sessions(
+    request: Request,
+    limit: int = 20,
+    sessions: ISessionRepository = Depends(deps.get_agent_session_repository),
+):
+    return {"sessions": serialize(ListSessionsHandler(sessions).handle(limit=limit, scope=request_run_access(request).scope))}
+
+
+@router.get("/sessions/{session_id}")
+async def get_session(
+    request: Request,
+    session_id: str,
+    sessions: ISessionRepository = Depends(deps.get_agent_session_repository),
+):
+    session = GetSessionHandler(sessions).handle(session_id=session_id, scope=request_run_access(request).scope)
+    if session is None:
+        raise HTTPException(404, "session not found")
+    return serialize(session)
+
+
+@router.post("/sessions/{session_id}/turns", status_code=status.HTTP_202_ACCEPTED)
+async def create_turn(
+    request: Request,
+    session_id: str,
+    body: CreateTurnRequest,
+    response: Response,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    sessions: ISessionRepository = Depends(deps.get_agent_session_repository),
+    worker=Depends(deps.get_daemon_worker),
+    governance: IEnterpriseGovernanceRepository = Depends(deps.get_enterprise_governance_repository),
+):
+    access = request_run_access(request)
+    try:
+        run_id = await SubmitSessionTurnHandler(
+            sessions=sessions,
+            worker=worker,
+            governance=governance,
+        ).handle_and_audit(
+            SubmitSessionTurnCommand(
+                session_id=session_id,
+                message=body.message,
+                market=body.market,
+                language=body.language,
+                document_ids=body.document_ids,
+                portfolio_id=body.portfolio_id,
+                model_policy=body.model_policy,
+                idempotency_key=idempotency_key,
+            ),
+            access=access,
+        )
+    except SessionNotFound:
+        raise HTTPException(404, "session not found")
+    except PermissionError as exc:
+        raise HTTPException(403, str(exc))
+    response.status_code = status.HTTP_202_ACCEPTED
+    return {"status": "accepted", "run_id": run_id}
