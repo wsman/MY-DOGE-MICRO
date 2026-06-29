@@ -19,7 +19,7 @@ class IAgentUnitOfWork(ABC):
         market: str = "us",
         language: str = "en",
         document_ids: list[str] | None = None,
-        portfolio_id: str | None = "portfolio-demo",
+        portfolio_id: str | None = None,
         model_policy: dict[str, Any] | None = None,
         identity_snapshot: dict[str, Any] | None = None,
         idempotency_key: str | None = None,

@@ -10,7 +10,7 @@
     <n-space size="small" align="center">
       <n-button size="small" :loading="loading" @click="input?.click()">Import CSV</n-button>
       <n-tag v-if="portfolio?.portfolio_id" size="small" type="success">{{ portfolio.portfolio_id }}</n-tag>
-      <n-tag v-else size="small">portfolio-demo</n-tag>
+      <n-tag v-else size="small">No portfolio</n-tag>
     </n-space>
     <n-alert v-if="error" type="error" :show-icon="false">{{ error.message }}</n-alert>
     <div v-if="previewRows.length" class="preview" aria-label="Portfolio preview">

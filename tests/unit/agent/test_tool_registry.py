@@ -128,6 +128,14 @@ def test_default_registry_uses_provider_owned_descriptors():
     }
 
 
+def test_portfolio_tool_schemas_require_explicit_portfolio_id():
+    registry = build_default_tool_registry()
+    schemas = {schema["function"]["name"]: schema for schema in registry.schemas}
+
+    for name in ("get_portfolio_exposure", "portfolio_risk", "scenario_analysis"):
+        assert "portfolio_id" in schemas[name]["function"]["parameters"]["required"]
+
+
 def test_tool_provider_descriptors_match_execution_methods():
     providers = [
         MarketToolProvider(),

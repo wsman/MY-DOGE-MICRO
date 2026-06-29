@@ -25,7 +25,7 @@ class ExecuteRun:
         market: str = "us",
         language: str = "en",
         document_ids: list[str] | None = None,
-        portfolio_id: str | None = "portfolio-demo",
+        portfolio_id: str | None = None,
         model_policy: dict[str, Any] | ModelPolicy | None = None,
     ) -> AgentRun:
         scope = TenantScope.local()

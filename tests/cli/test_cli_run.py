@@ -32,7 +32,7 @@ def test_cli_run_uses_runtime_container(monkeypatch, capsys):
             session="ses-cli",
             market="us",
             language="en",
-            portfolio="portfolio-demo",
+            portfolio=None,
             max_tool_rounds=3,
             json=False,
             trace=False,
@@ -50,7 +50,7 @@ def test_cli_run_uses_runtime_container(monkeypatch, capsys):
             "session_id": "ses-cli",
             "market": "us",
             "language": "en",
-            "portfolio_id": "portfolio-demo",
+            "portfolio_id": None,
             "model_policy": {"max_tool_rounds": 3},
         },
     }

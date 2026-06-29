@@ -14,7 +14,7 @@ class PortfolioService:
     def __init__(self, repository: IPortfolioRepository) -> None:
         self._repository = repository
 
-    def get_exposure(self, portfolio_id: str = "portfolio-demo") -> dict[str, Any]:
+    def get_exposure(self, portfolio_id: str) -> dict[str, Any]:
         portfolio = self._require_portfolio(portfolio_id)
         total = portfolio.total_market_value
         return {
@@ -55,7 +55,7 @@ class RiskService:
         self._repository = repository
         self._risk_factors = risk_factor_source or _DefaultRiskFactorSource()
 
-    def portfolio_risk(self, portfolio_id: str = "portfolio-demo") -> dict[str, Any]:
+    def portfolio_risk(self, portfolio_id: str) -> dict[str, Any]:
         portfolio = self._repository.get(portfolio_id)
         if portfolio is None:
             raise KeyError(f"portfolio not found: {portfolio_id}")
@@ -90,7 +90,7 @@ class ScenarioService:
         self._repository = repository
         self._risk_factors = risk_factor_source or _DefaultRiskFactorSource()
 
-    def rate_shock(self, portfolio_id: str = "portfolio-demo", basis_points: float = 100.0) -> dict[str, Any]:
+    def rate_shock(self, portfolio_id: str, basis_points: float = 100.0) -> dict[str, Any]:
         portfolio = self._repository.get(portfolio_id)
         if portfolio is None:
             raise KeyError(f"portfolio not found: {portfolio_id}")

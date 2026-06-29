@@ -25,7 +25,7 @@ class IndustryAnalyzerAgentUseCase:
         question: str | None = None,
         session_id: str | None = None,
         document_ids: list[str] | None = None,
-        portfolio_id: str | None = "portfolio-demo",
+        portfolio_id: str | None = None,
         model_policy: dict | ModelPolicy | None = None,
     ) -> AgentRun:
         scope = TenantScope.local()

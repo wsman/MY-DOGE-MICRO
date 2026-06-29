@@ -37,14 +37,16 @@ class PortfolioToolProvider:
         return (
             ToolDescriptor(
                 name="get_portfolio_exposure",
-                description="Get demo portfolio exposure.",
+                description="Get portfolio exposure.",
                 properties={"portfolio_id": {"type": "string"}},
+                required=("portfolio_id",),
                 category=ToolCategory.READ_ONLY,
             ),
             ToolDescriptor(
                 name="portfolio_risk",
                 description="Get deterministic portfolio risk approximations.",
                 properties={"portfolio_id": {"type": "string"}},
+                required=("portfolio_id",),
                 category=ToolCategory.ANALYTICAL,
             ),
             ToolDescriptor(
@@ -54,17 +56,18 @@ class PortfolioToolProvider:
                     "portfolio_id": {"type": "string"},
                     "basis_points": {"type": "number"},
                 },
+                required=("portfolio_id",),
                 category=ToolCategory.ANALYTICAL,
             ),
         )
 
-    def get_portfolio_exposure(self, portfolio_id: str = "portfolio-demo") -> dict[str, Any]:
+    def get_portfolio_exposure(self, portfolio_id: str) -> dict[str, Any]:
         return self._portfolio_service().get_exposure(portfolio_id)
 
-    def portfolio_risk(self, portfolio_id: str = "portfolio-demo") -> dict[str, Any]:
+    def portfolio_risk(self, portfolio_id: str) -> dict[str, Any]:
         return self._risk_service().portfolio_risk(portfolio_id)
 
-    def scenario_analysis(self, portfolio_id: str = "portfolio-demo", basis_points: float = 100.0) -> dict[str, Any]:
+    def scenario_analysis(self, portfolio_id: str, basis_points: float = 100.0) -> dict[str, Any]:
         return self._scenario_service().rate_shock(portfolio_id, basis_points)
 
     def _portfolio_service(self):

@@ -64,10 +64,10 @@ _EXPORTS = {
     "ToolApplicationService": ("doge.application.agent.tool_service", "ToolApplicationService"),
     "ToolExecutionProviderRegistry": ("doge.application.capabilities.registry", "ToolExecutionProviderRegistry"),
     "ToolExecutionService": ("doge.platform.runtime.services", "ToolExecutionService"),
-    "ToolRegistry": ("doge.application.agent.tools", "ToolRegistry"),
+    "ToolRegistry": ("doge.application.tools", "ToolRegistry"),
     "ToolResult": ("doge.core.ports.runtime_services", "ToolResult"),
     "TransitionRecorder": ("doge.application.agent.transition_recorder", "TransitionRecorder"),
-    "build_default_tool_registry": ("doge.application.agent.tools", "build_default_tool_registry"),
+    "build_default_tool_registry": ("doge.application.tools", "build_default_tool_registry"),
     "can_transition": ("doge.application.agent.state_machine", "can_transition"),
     "ensure_transition": ("doge.application.agent.state_machine", "ensure_transition"),
 }

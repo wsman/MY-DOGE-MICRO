@@ -193,13 +193,13 @@ class ToolApplicationService:
     def list_views(self) -> dict[str, Any]:
         return self._provider_execute("list_views")
 
-    def get_portfolio_exposure(self, portfolio_id: str = "portfolio-demo") -> dict[str, Any]:
+    def get_portfolio_exposure(self, portfolio_id: str) -> dict[str, Any]:
         return self._provider_execute("get_portfolio_exposure", portfolio_id)
 
-    def portfolio_risk(self, portfolio_id: str = "portfolio-demo") -> dict[str, Any]:
+    def portfolio_risk(self, portfolio_id: str) -> dict[str, Any]:
         return self._provider_execute("portfolio_risk", portfolio_id)
 
-    def scenario_analysis(self, portfolio_id: str = "portfolio-demo", basis_points: float = 100.0) -> dict[str, Any]:
+    def scenario_analysis(self, portfolio_id: str, basis_points: float = 100.0) -> dict[str, Any]:
         return self._provider_execute("scenario_analysis", portfolio_id, basis_points)
 
     def validate_financial_claims(

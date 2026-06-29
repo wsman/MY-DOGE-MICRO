@@ -12,7 +12,7 @@ from doge.config.settings import FEATURE_LIFECYCLES
 from doge.core.domain.tool_descriptor import ToolDescriptor
 
 if TYPE_CHECKING:
-    from doge.application.agent.tools import ToolRegistry
+    from doge.application.tools import ToolRegistry
 
 
 class ToolExecutionProviderRegistry:
