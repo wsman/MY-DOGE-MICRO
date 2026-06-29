@@ -36,7 +36,7 @@ review approves a maturity change.
 | C-03 CLI gateway SDK path | Gateway-mode CLI calls the Python SDK for sessions, turns, approvals, and document upload. | Locally complete. |
 | C-04 SDK contract drift gate | `tools/ci/sdk-contract-check.py` checks OpenAPI, Python SDK, TypeScript SDK, and Web client shared contract surfaces and is wired into CI. | Locally complete. |
 | D-01 exact-SHA CI evidence | Current work is uncommitted on top of `HEAD 2ffdb66`; there is no release-candidate SHA with completed remote CI evidence. `docs/archive/audits/piped-donut-pre-remote-ci-package-2026-06-24.md` records the post-commit handoff and is checked by `scripts/validate_piped_donut_pre_remote_ci_package.py`. | Blocked on remote CI for a committed/pushed release candidate. |
-| D-02 real provider and enterprise validation | Shared S017 closure gate remains `open` with 5 open / 1 passed; external preflight is infrastructure-ready but pending operator inputs. | Open pending real operator evidence. |
+| D-02 real provider and enterprise validation | Shared S017 closure gate remains `open` with 4 open / 2 passed; external preflight is infrastructure-ready but pending operator inputs. | Open pending real operator evidence. |
 | D-03 production gate criteria | Production gate table is defined, but provider, evidence-quality, release-evidence, and strict external closure requirements are not satisfied. | Open pending strict external closure and promotion review. |
 
 ## Shared External Closure Gates
@@ -58,11 +58,13 @@ local implementation.
 
 | Gate | Required Result | Current Evidence | Close Validator | Next Required Input |
 |---|---|---|---|---|
-| S017-002 | `passed` | `production/qa/evidence/live/kimi-live-smoke-2026-06-22.json` is blocked evidence. | `scripts/validate_kimi_live_smoke_evidence.py` | Operator-approved Kimi live window with `DOGE_LIVE_KIMI=1`, `MOONSHOT_API_KEY`, live network/spend, and optional Agent SDK env. |
 | S017-003 | `approved` | `production/qa/evidence/provider/financial-provider-approval-template-2026-06-22.json` is still template/preflight evidence. | `scripts/validate_financial_provider_approval_evidence.py` | Product/operator provider decisions, license scope, fixture storage policy, freshness/provenance, and reviewer sign-off. |
 | W3-live | `passed` | `production/qa/evidence/eval/analyst-benchmark-template-2026-06-22.json` is still template/preflight evidence. | `scripts/validate_analyst_benchmark_evidence.py` | Real materials, human citation/numerical labels, live Kimi observations, accepted thresholds, and trend-history rows. |
 | AUTH-prod | `passed` | `production/qa/evidence/enterprise/enterprise-production-validation-template-2026-06-22.json` is still template/preflight evidence. | `scripts/validate_enterprise_production_validation_evidence.py` | Live IdP/JWKS, production secret-store command, SIEM/WORM sink, remote deployment, and data-isolation evidence refs. |
 | S017-007 | `approved` | `production/qa/evidence/sdk/sdk-release-approval-template-2026-06-22.json` is still template/preflight evidence. | `scripts/validate_sdk_release_approval_evidence.py` | Registry target, package ownership, version/changelog policy, registry-backed consumer smoke, security review, and release-manager sign-off. |
+
+S017-002 is already passed for Kimi Coding v1 with
+`production/qa/evidence/live/kimi-live-smoke-2026-06-29.json`.
 
 S017-006 is already passed with
 `production/qa/evidence/manual/research-agent-screen-reader-manual-2026-06-22.json`.
@@ -74,13 +76,13 @@ Latest local verification for this remediation plan:
 - `.\.venv\Scripts\python.exe -m pytest -q` -> `1431 passed, 9 skipped, 11 warnings`
 - `.\.venv\Scripts\python.exe tools\ci\sdk-contract-check.py` -> passed
 - `.\.venv\Scripts\python.exe scripts\validate_piped_donut_pre_remote_ci_package.py` -> passed
-- `.\.venv\Scripts\python.exe scripts\validate_plan_closure_gate.py --allow-open` -> `result=open`, 5 open / 1 passed
+- `.\.venv\Scripts\python.exe scripts\validate_plan_closure_gate.py --allow-open` -> `result=open`, 4 open / 2 passed
 - `.\.venv\Scripts\python.exe scripts\preflight_plan_closure_external.py` -> `infrastructure_ready=true`, `result=pending_external_inputs`
 
 Strict external checks must remain nonzero until real external evidence exists:
 
-- `.\.venv\Scripts\python.exe scripts\validate_plan_closure_gate.py` -> expected exit 1, `result=open`, 5 open / 1 passed
-- `.\.venv\Scripts\python.exe scripts\preflight_plan_closure_external.py --require-external-inputs --handoff-workspace production\qa\evidence\plan-closure\handoffs\9b77f9c-2026-06-22` -> expected exit 1, missing Kimi env vars and unfilled external handoff drafts
+- `.\.venv\Scripts\python.exe scripts\validate_plan_closure_gate.py` -> expected exit 1, `result=open`, 4 open / 2 passed
+- `.\.venv\Scripts\python.exe scripts\preflight_plan_closure_external.py --require-external-inputs --handoff-workspace production\qa\evidence\plan-closure\handoffs\9b77f9c-2026-06-22` -> expected exit 1, unfilled external handoff drafts
 
 ## Completion Rule
 

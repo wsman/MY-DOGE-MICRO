@@ -12,7 +12,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$repoRoot = 'D:\Users\Aby\Desktop\CodingTask\MY-DOGE-MICRO'
+$repoRoot = '/mnt/d/users/wsman/desktop/coding task/my-doge-micro'
 Set-Location -LiteralPath $repoRoot
 $python = Join-Path $repoRoot '.venv\Scripts\python.exe'
 if (-not (Test-Path -LiteralPath $python)) {
@@ -41,7 +41,7 @@ if ($TaskId -ne 'all') {
 # Close condition: result must pass text, Files upload, Vision, and Agent SDK scenarios; partial or blocked evidence remains open
 if ($TaskId -in @('all', 'S017-002')) {
     & $python scripts\run_kimi_live_smoke.py --output-dir production/qa/evidence/live
-    & $python scripts\validate_kimi_live_smoke_evidence.py 'production/qa/evidence/live/kimi-live-smoke-2026-06-22.json'
+    & $python scripts\validate_kimi_live_smoke_evidence.py --coding-v1 'production/qa/evidence/live/kimi-live-smoke-2026-06-22.json'
 }
 
 # S017-003 - Financial provider fixture approval

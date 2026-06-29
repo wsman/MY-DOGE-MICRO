@@ -9,10 +9,10 @@ evidence outputs in this handoff workspace.
 ## Gate Contract
 
 - Required result: `passed`
-- Current status: `open` / `passed`
+- Current status: `passed` / `passed`
 - Close condition: result must pass text, Files upload, Vision, and Agent SDK scenarios; partial or blocked evidence remains open
 - Completed evidence belongs in: `production/qa/evidence/live/kimi-live-smoke-2026-06-22.json`
-- Strict validator: `.\.venv\Scripts\python.exe scripts\validate_kimi_live_smoke_evidence.py production/qa/evidence/live/kimi-live-smoke-2026-06-22.json`
+- Strict validator: `.\.venv\Scripts\python.exe scripts\validate_kimi_live_smoke_evidence.py --coding-v1 production/qa/evidence/live/kimi-live-smoke-2026-06-22.json`
 - Builder/runner: `.\.venv\Scripts\python.exe scripts\run_kimi_live_smoke.py --output-dir production/qa/evidence/live`
 
 ## Fill Before Running

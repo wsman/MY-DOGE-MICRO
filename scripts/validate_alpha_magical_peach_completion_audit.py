@@ -39,7 +39,7 @@ EXPECTED_MATRIX = {
     "Handoff workspace is fresh and valid": "proved",
     "ADR-0016 through ADR-0020 have intentional disposition": "proved",
     "Runtime maturity honesty scan finds no unauthorized promotion claims": "proved",
-    "All five open external gates have real passed/approved evidence, or each has current next-action card with blocker refs": "proved_for_current_alpha_plan",
+    "All current open external gates have real passed/approved evidence, or each has current next-action card with blocker refs": "proved_for_current_alpha_plan",
     "Strict closure gate passes without `--allow-open`, or plan explicitly remains Alpha with controlled open gates": "proved_for_current_alpha_plan",
     "`production_ready: false`, `stable_declaration: forbidden`, and `level_3_sdk_platform: experimental` remain unchanged": "proved",
 }

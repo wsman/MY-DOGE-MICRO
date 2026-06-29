@@ -46,7 +46,7 @@ def test_s017_qa_plan_tracks_external_closure_gates_without_closing_them():
 
     assert "QA plan: `production/qa/qa-plan-sprint-017.md`" in sprint
     assert "qa_plan: production/qa/qa-plan-sprint-017.md" in status
-    assert "5 open / 1 passed" in plan
+    assert "4 open / 2 passed" in plan
     assert "production_ready` stays `false" in plan
     assert "stable_declaration` stays `forbidden" in plan
     assert "scripts/validate_plan_closure_gate.py" in plan
@@ -151,7 +151,7 @@ def test_financial_provider_approval_template_is_ready_but_not_done():
         assert "build_financial_provider_approval_evidence.py" in text
 
 
-def test_kimi_live_smoke_readiness_is_review_not_done():
+def test_kimi_live_smoke_coding_v1_gate_is_done():
     sprint = _read("production/sprint-status.yaml")
     sprint_plan = _read("production/sprints/sprint-017-external-validation-and-provider-hardening.md")
     maturity = _read("docs/progress/runtime-maturity.yaml")
@@ -160,28 +160,36 @@ def test_kimi_live_smoke_readiness_is_review_not_done():
     live_runner = _read("scripts/run_kimi_live_smoke.py")
     live_validator = _read("scripts/validate_kimi_live_smoke_evidence.py")
     live_validator_test = _read("tests/unit/qa/test_validate_kimi_live_smoke_evidence.py")
-    evidence = json.loads(_read("production/qa/evidence/live/kimi-live-smoke-2026-06-22.json"))
+    evidence = json.loads(_read("production/qa/evidence/live/kimi-live-smoke-2026-06-29.json"))
 
     body = re.search(r"- id: S017-002(?P<body>.*?)(?=\n\n      - id: S017-003)", sprint, re.S).group("body")
-    assert "status: review" in body
-    assert "Ready for operator execution, not done" in body
+    assert "status: done" in body
+    assert "strict Kimi Coding v1 evidence" in body
+    assert "kimi-live-smoke-2026-06-29.json" in body
+    assert "--coding-v1" in body
+    assert "without --allow-blocked" in body
     assert evidence["schema"] == "doge.kimi_live_smoke.v1"
     assert evidence["story_id"] == "S017-002"
-    if evidence["result"] == "blocked":
-        assert evidence["blockers"] == ["DOGE_LIVE_KIMI=1", "MOONSHOT_API_KEY"]
-        assert evidence["scenarios"] == []
-    else:
-        assert evidence["result"] == "passed"
-        scenarios = {item["name"]: item for item in evidence["scenarios"]}
-        assert scenarios["text_k26"]["status"] == "passed"
-        assert scenarios["vision_base64"]["status"] == "passed"
-        assert scenarios["files_upload"]["status"] in {"failed", "skipped"}
-        assert scenarios.get("agent_sdk_optional", {}).get("status") != "passed"
-    for text in [sprint_plan, maturity, audit]:
+    assert evidence["result"] == "passed"
+    scenarios = {item["name"]: item for item in evidence["scenarios"]}
+    assert scenarios["text_k26"]["status"] == "passed"
+    assert scenarios["vision_base64"]["status"] == "passed"
+    assert scenarios["files_upload"]["status"] == "skipped"
+    assert scenarios["files_upload"]["reason"]
+    assert scenarios["agent_sdk_optional"]["status"] == "skipped"
+    assert scenarios["agent_sdk_optional"]["reason"]
+    for text in [sprint_plan, maturity]:
         assert "scripts/run_kimi_live_smoke.py" in text
         assert "scripts/validate_kimi_live_smoke_evidence.py" in text
-        assert "Files cleanup" in text or "file-cleanup" in text or "cleanup confirmation" in text
-    assert "validates only with `--allow-blocked`" in sprint_plan
+        assert "Kimi Coding v1" in text
+        assert "kimi-live-smoke-2026-06-29.json" in text
+    assert "scripts/validate_kimi_live_smoke_evidence.py" in audit
+    assert "Kimi Coding v1" in audit
+    assert "kimi-live-smoke-2026-06-29.json" in audit
+    assert "cleanup" in live_runner
+    assert "production/qa/evidence/live/kimi-live-smoke-2026-06-29.json" in sprint_plan
+    assert "--coding-v1" in sprint_plan
+    assert "without `--allow-blocked`" in sprint_plan
     assert "S017_KIMI_TEXT_OK" in live_test
     assert "S017_AGENT_SDK_OK" in live_test
     assert "S016_" not in live_test
@@ -222,7 +230,7 @@ def test_glowing_weaving_kettle_audit_separates_local_completion_from_external_c
     assert "C:\\Users\\Aby\\.claude\\plans\\glowing-weaving-kettle.md" in text
     assert "Track B platformization is locally implemented" in text
     assert "Track A external closure is not complete" in text
-    assert "5 open / 1 passed" in text
+    assert "4 open / 2 passed" in text
     assert "production_ready` remains `false" in text
     assert "stable_declaration` remains `forbidden" in text
     assert "level_3_sdk_platform` remains `experimental" in text
@@ -391,17 +399,19 @@ def test_external_gate_next_action_audit_covers_open_closure_gates():
     assert "preflight_plan_closure_external.py" in normalized_audit
     assert "validate_plan_closure_handoff.py" in normalized_audit
 
-    open_gate_ids = ["S017-002", "S017-003", "W3-live", "AUTH-prod", "S017-007"]
+    current_open_gate_ids = ["S017-003", "W3-live", "AUTH-prod", "S017-007"]
+    current_passed_gate_ids = ["S017-002", "S017-006"]
     manifest_tasks = {item["id"]: item for item in manifest["tasks"]}
     assert manifest["closure_gate"]["summary"] == {
         "failed": 0,
         "invalid": 0,
-        "open": 5,
-        "passed": 1,
+        "open": 4,
+        "passed": 2,
         "total": 6,
     }
-    assert manifest_tasks["S017-006"]["can_close_now"] is True
-    for gate_id in open_gate_ids:
+    for gate_id in current_passed_gate_ids:
+        assert manifest_tasks[gate_id]["can_close_now"] is True
+    for gate_id in current_open_gate_ids:
         assert gate_id in audit
         assert gate_id in maturity
         assert gate_id in sprint_plan
@@ -528,8 +538,10 @@ def test_alpha_magical_peach_completion_audit_is_requirement_by_requirement():
         assert gate_id in audit
     assert "S017-006" in audit
     assert "Total gates: 6" in audit
-    assert "Open gates: 5" in audit
-    assert "Passed gates: 1" in audit
+    assert "Open gates: 4" in audit
+    assert "Passed gates: 2" in audit
+    assert "Passed gate: S017-002" in audit
+    assert "Passed gate: S017-006" in audit
 
     for posture in [
         "production_ready: false",
@@ -674,7 +686,7 @@ def test_plan_closure_gate_aggregates_remaining_external_evidence():
         assert gate_id in gate_script
         assert gate_id in runbook
     for evidence in [
-        "kimi-live-smoke-2026-06-22.json",
+        "kimi-live-smoke-2026-06-29.json",
         "financial-provider-approval-template-2026-06-22.json",
         "analyst-benchmark-template-2026-06-22.json",
         "enterprise-production-validation-template-2026-06-22.json",
@@ -890,15 +902,16 @@ def test_plan_closure_gate_aggregates_remaining_external_evidence():
     assert manifest["source_plan_check"]["exists"] is False
     assert manifest["source_plan_check"]["sha256"] is None
     assert manifest["source_plan_check"]["external_to_repo"] is True
-    assert manifest["closure_gate"]["summary"]["open"] == 5
-    assert manifest["closure_gate"]["summary"]["passed"] == 1
+    assert manifest["closure_gate"]["summary"]["open"] == 4
+    assert manifest["closure_gate"]["summary"]["passed"] == 2
     assert len(manifest["tasks"]) == 6
     manifest_tasks = {item["id"]: item for item in manifest["tasks"]}
+    assert manifest_tasks["S017-002"]["can_close_now"] is True
     assert manifest_tasks["S017-006"]["can_close_now"] is True
     assert all(
         item["can_close_now"] is False
         for item in manifest["tasks"]
-        if item["id"] != "S017-006"
+        if item["id"] not in {"S017-002", "S017-006"}
     )
     assert all(item["handoff"]["input_refs"] for item in manifest["tasks"])
     assert any(item["handoff"]["input_templates"] for item in manifest["tasks"])

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
+from dataclasses import field
 import json
 from pathlib import Path
 import re
@@ -35,27 +36,28 @@ class EvidenceGate:
     next_action: str
     strict_command: str
     completed_glob: str | None = None
+    validator_kwargs: dict[str, Any] = field(default_factory=dict)
 
 
 GATES = [
     EvidenceGate(
         gate_id="S017-002",
         title="Live Kimi smoke execution",
-        path=ROOT / "production" / "qa" / "evidence" / "live" / "kimi-live-smoke-2026-06-22.json",
+        path=ROOT / "production" / "qa" / "evidence" / "live" / "kimi-live-smoke-2026-06-29.json",
         validator=validate_kimi_live,
         allow_kwarg="allow_blocked",
-        open_results=frozenset({"blocked", "failed", "passed"}),
+        open_results=frozenset({"blocked", "failed"}),
         passing_results=frozenset({"passed"}),
         next_action=(
-            "Run scripts/run_kimi_live_smoke.py in an operator-approved Kimi credential/spend window with "
-            "DOGE_LIVE_KIMI=1, MOONSHOT_API_KEY, a normal-size Vision image set, a /files-capable provider "
-            "configuration, and DOGE_LIVE_KIMI_AGENT_SDK=1 with kimi_agent_sdk installed. Text/Vision-only "
-            "live evidence is retained as progress but does not close S017-002."
+            "S017-002 is closed for the Kimi Coding v1 gate by 2026-06-29 evidence: text_k26 and "
+            "vision_base64 passed, while files_upload and agent_sdk_optional are optional capability "
+            "observations documented as skipped with reasons."
         ),
         strict_command=(
             ".\\.venv\\Scripts\\python.exe scripts\\validate_kimi_live_smoke_evidence.py "
-            "production/qa/evidence/live/kimi-live-smoke-2026-06-22.json"
+            "--coding-v1 production/qa/evidence/live/kimi-live-smoke-2026-06-29.json"
         ),
+        validator_kwargs={"coding_v1": True},
     ),
     EvidenceGate(
         gate_id="S017-003",
@@ -183,8 +185,8 @@ def _validate_gate(gate: EvidenceGate, *, allow_open: bool) -> dict[str, Any]:
     if not evidence_path.exists():
         return _gate_result(gate, status="invalid", result=None, strict_errors=[f"missing evidence: {evidence_path}"])
     payload = json.loads(evidence_path.read_text(encoding="utf-8"))
-    strict_errors = gate.validator(payload)
-    allowed_errors = gate.validator(payload, **{gate.allow_kwarg: True})
+    strict_errors = gate.validator(payload, **gate.validator_kwargs)
+    allowed_errors = gate.validator(payload, **{**gate.validator_kwargs, gate.allow_kwarg: True})
     result = payload.get("result")
 
     if not strict_errors:

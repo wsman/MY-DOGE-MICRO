@@ -23,8 +23,8 @@ def test_build_plan_closure_manifest_from_gate_output():
     assert manifest["closure_gate"]["acceptable_with_open_items"] is True
     assert manifest["closure_gate"]["summary"] == {
         "total": 6,
-        "passed": 1,
-        "open": 5,
+        "passed": 2,
+        "open": 4,
         "failed": 0,
         "invalid": 0,
     }
@@ -39,17 +39,19 @@ def test_build_plan_closure_manifest_from_gate_output():
         "S017-007",
     }
     by_id = {item["id"]: item for item in manifest["tasks"]}
+    assert by_id["S017-002"]["current_status"] == "passed"
+    assert by_id["S017-002"]["can_close_now"] is True
     assert by_id["S017-006"]["current_status"] == "passed"
     assert by_id["S017-006"]["can_close_now"] is True
     assert all(
         item["current_status"] == "open"
         for item in manifest["tasks"]
-        if item["id"] != "S017-006"
+        if item["id"] not in {"S017-002", "S017-006"}
     )
     assert all(
         item["can_close_now"] is False
         for item in manifest["tasks"]
-        if item["id"] != "S017-006"
+        if item["id"] not in {"S017-002", "S017-006"}
     )
     assert all(item["validator_command"].startswith(".\\.venv\\Scripts\\python.exe scripts\\validate_") for item in manifest["tasks"])
     assert all(item["current_evidence"] in item["validator_command"] for item in manifest["tasks"])

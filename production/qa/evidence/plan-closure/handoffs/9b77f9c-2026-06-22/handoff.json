@@ -11,8 +11,8 @@
     "summary": {
       "failed": 0,
       "invalid": 0,
-      "open": 5,
-      "passed": 1,
+      "open": 4,
+      "passed": 2,
       "total": 6
     }
   },
@@ -21,7 +21,7 @@
   "handoff_json": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/handoff.json",
   "operator_checklist": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/operator-checklist.md",
   "operator_commands": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/operator-commands.ps1",
-  "prepared_at": "2026-06-25T09:21:21.116089+00:00",
+  "prepared_at": "2026-06-29T15:41:19.935814+00:00",
   "readme": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/README.md",
   "schema": "doge.plan_closure_handoff_workspace.v1",
   "source_manifest": "production/qa/evidence/plan-closure/9b77f9c-external-closure-manifest.json",
@@ -38,15 +38,10 @@
     {
       "build_or_run_command": ".\\.venv\\Scripts\\python.exe scripts\\run_kimi_live_smoke.py --output-dir production/qa/evidence/live",
       "close_condition": "result must pass text, Files upload, Vision, and Agent SDK scenarios; partial or blocked evidence remains open",
-      "current_blockers": [
-        "missing full-closure scenarios: agent_sdk_optional",
-        "files_upload: full closure requires status=passed",
-        "passed evidence for full closure requires environment.DOGE_LIVE_KIMI_AGENT_SDK=true",
-        "passed evidence for full closure requires environment.kimi_agent_sdk_installed=true"
-      ],
-      "current_evidence": "production/qa/evidence/live/kimi-live-smoke-2026-06-22.json",
+      "current_blockers": [],
+      "current_evidence": "production/qa/evidence/live/kimi-live-smoke-2026-06-29.json",
       "current_result": "passed",
-      "current_status": "open",
+      "current_status": "passed",
       "handoff_kind": "live_runner",
       "id": "S017-002",
       "input_refs": [
@@ -57,7 +52,7 @@
         "optional:env:DOGE_LIVE_KIMI_VISION_IMAGE"
       ],
       "input_templates": [],
-      "next_action": "Run scripts/run_kimi_live_smoke.py in an operator-approved Kimi credential/spend window with DOGE_LIVE_KIMI=1, MOONSHOT_API_KEY, a normal-size Vision image set, a /files-capable provider configuration, and DOGE_LIVE_KIMI_AGENT_SDK=1 with kimi_agent_sdk installed. Text/Vision-only live evidence is retained as progress but does not close S017-002.",
+      "next_action": "S017-002 is closed for the Kimi Coding v1 gate by 2026-06-29 evidence: text_k26 and vision_base64 passed, while files_upload and agent_sdk_optional are optional capability observations documented as skipped with reasons.",
       "operator_input_guide": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/inputs/s017-002/operator-input-guide.md",
       "output_ref": "production/qa/evidence/live/kimi-live-smoke-2026-06-22.json",
       "prepared_inputs": [],
@@ -65,7 +60,7 @@
         "passed"
       ],
       "title": "Live Kimi smoke execution",
-      "validator_command": ".\\.venv\\Scripts\\python.exe scripts\\validate_kimi_live_smoke_evidence.py production/qa/evidence/live/kimi-live-smoke-2026-06-22.json",
+      "validator_command": ".\\.venv\\Scripts\\python.exe scripts\\validate_kimi_live_smoke_evidence.py --coding-v1 production/qa/evidence/live/kimi-live-smoke-2026-06-29.json",
       "workspace_command_plan": {
         "command_template": ".\\.venv\\Scripts\\python.exe scripts\\run_kimi_live_smoke.py --output-dir production/qa/evidence/live",
         "command_with_draft_inputs": ".\\.venv\\Scripts\\python.exe scripts\\run_kimi_live_smoke.py --output-dir production/qa/evidence/live",
@@ -101,9 +96,9 @@
           "action": "preserved_existing_template_draft",
           "differs_from_source_template": false,
           "prepared_input": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/inputs/s017-003/provider-decisions-draft-2026-06-22.json",
-          "prepared_input_sha256": "90dc24bc2f54722ffea9638e4c4f7f0541502764f27ee1938b99c1859c710e99",
+          "prepared_input_sha256": "0877bd007ecc65af67c0e559dd62e0c7ecbab89f9c3de845acdb8f8a1404f02a",
           "source_template": "production/qa/evidence/provider/provider-decisions-template-2026-06-22.json",
-          "source_template_sha256": "90dc24bc2f54722ffea9638e4c4f7f0541502764f27ee1938b99c1859c710e99"
+          "source_template_sha256": "0877bd007ecc65af67c0e559dd62e0c7ecbab89f9c3de845acdb8f8a1404f02a"
         }
       ],
       "required_results": [
@@ -162,41 +157,41 @@
           "action": "preserved_existing_template_draft",
           "differs_from_source_template": false,
           "prepared_input": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/inputs/w3-live/live-kimi-observations-draft-2026-06-22.json",
-          "prepared_input_sha256": "786844e3c63032eda97718785117ca64a56a2df8161abb772f003c582c882066",
+          "prepared_input_sha256": "6eae095e8f78dc278c37b2d2b989b67172526bb0850d56f6b3ab16c5c4a67dc2",
           "source_template": "production/qa/evidence/eval/live-kimi-observations-template-2026-06-22.json",
-          "source_template_sha256": "786844e3c63032eda97718785117ca64a56a2df8161abb772f003c582c882066"
+          "source_template_sha256": "6eae095e8f78dc278c37b2d2b989b67172526bb0850d56f6b3ab16c5c4a67dc2"
         },
         {
           "action": "preserved_existing_template_draft",
           "differs_from_source_template": false,
           "prepared_input": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/inputs/w3-live/approved-thresholds-draft-2026-06-22.json",
-          "prepared_input_sha256": "02c80148023346049bea628a26abc49af8f3747f5d1ae308520ec5a030119969",
+          "prepared_input_sha256": "971c442cb946566445f20fc688e5994bd98cfd622271fbd445167d0867d6f33d",
           "source_template": "production/qa/evidence/eval/approved-thresholds-template-2026-06-22.json",
-          "source_template_sha256": "02c80148023346049bea628a26abc49af8f3747f5d1ae308520ec5a030119969"
+          "source_template_sha256": "971c442cb946566445f20fc688e5994bd98cfd622271fbd445167d0867d6f33d"
         },
         {
           "action": "preserved_existing_template_draft",
           "differs_from_source_template": false,
           "prepared_input": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/inputs/w3-live/material-manifest-draft-2026-06-22.json",
-          "prepared_input_sha256": "af3fea3d107852fa81237b3c6701f81deb9dab220e9c904ba6205fc148c5b12f",
+          "prepared_input_sha256": "ea5ce8e6b7cb48d87b38128cbaed917c6d9e0c9d2b40c1277cbd28186cf807b0",
           "source_template": "production/qa/evidence/eval/material-manifest-template-2026-06-22.json",
-          "source_template_sha256": "af3fea3d107852fa81237b3c6701f81deb9dab220e9c904ba6205fc148c5b12f"
+          "source_template_sha256": "ea5ce8e6b7cb48d87b38128cbaed917c6d9e0c9d2b40c1277cbd28186cf807b0"
         },
         {
           "action": "preserved_existing_template_draft",
           "differs_from_source_template": false,
           "prepared_input": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/inputs/w3-live/label-manifest-draft-2026-06-22.json",
-          "prepared_input_sha256": "4ff26c6b88771da5f8b0ad968ba57f291d9257dd3f93b46da3fe4ade6aa6b5be",
+          "prepared_input_sha256": "a1be0f205766bf6400b20a772e1b38a15ac63fb7fcf517155734a00822a31bbf",
           "source_template": "production/qa/evidence/eval/label-manifest-template-2026-06-22.json",
-          "source_template_sha256": "4ff26c6b88771da5f8b0ad968ba57f291d9257dd3f93b46da3fe4ade6aa6b5be"
+          "source_template_sha256": "a1be0f205766bf6400b20a772e1b38a15ac63fb7fcf517155734a00822a31bbf"
         },
         {
           "action": "preserved_existing_template_draft",
           "differs_from_source_template": false,
           "prepared_input": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/inputs/w3-live/trend-history-draft-2026-06-22.jsonl",
-          "prepared_input_sha256": "bb4a12b2e2d8304ac9ce13fc7aec65dd3f513748577bffc5cf7feb4a7fa209f0",
+          "prepared_input_sha256": "6cf375667a29b73d4aa6c00516307cf0caae38a7aff1f710c3cdf86906a790fc",
           "source_template": "production/qa/evidence/eval/trend-history-template-2026-06-22.jsonl",
-          "source_template_sha256": "bb4a12b2e2d8304ac9ce13fc7aec65dd3f513748577bffc5cf7feb4a7fa209f0"
+          "source_template_sha256": "6cf375667a29b73d4aa6c00516307cf0caae38a7aff1f710c3cdf86906a790fc"
         }
       ],
       "required_results": [
@@ -268,9 +263,9 @@
           "action": "preserved_existing_template_draft",
           "differs_from_source_template": false,
           "prepared_input": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/inputs/auth-prod/enterprise-production-observations-draft-2026-06-22.json",
-          "prepared_input_sha256": "57704b1403a1cf01ffd6ad3b5b2efda7d0cbee6a10f57199d1f0997e25e2f420",
+          "prepared_input_sha256": "36fc17ffdcb47c912cb3bb151e28cb570ae487feccdbb283585e142fe4df2100",
           "source_template": "production/qa/evidence/enterprise/enterprise-production-observations-template-2026-06-22.json",
-          "source_template_sha256": "57704b1403a1cf01ffd6ad3b5b2efda7d0cbee6a10f57199d1f0997e25e2f420"
+          "source_template_sha256": "36fc17ffdcb47c912cb3bb151e28cb570ae487feccdbb283585e142fe4df2100"
         }
       ],
       "required_results": [
@@ -319,9 +314,9 @@
           "action": "preserved_existing_operator_draft",
           "differs_from_source_template": true,
           "prepared_input": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/inputs/s017-006/screen-reader-observations-draft-2026-06-22.json",
-          "prepared_input_sha256": "79ddbf987f70d17264739347513e4e0babf46da480ad5edadb61ea21b273bf63",
+          "prepared_input_sha256": "ef93bb6e7187301fdfb13e1ab381f5f9d477dbf0eb2d8d09c171298016f63a82",
           "source_template": "production/qa/evidence/manual/screen-reader-observations-template-2026-06-22.json",
-          "source_template_sha256": "6617c5f6f56a6781f00439daecf705786ee3ee442bb006dfcf438e3e114ef2f9"
+          "source_template_sha256": "f64e1d8bf150f2a88c04187b0f6079ee8f8fc73baf46c0567ae323efff2fab9d"
         }
       ],
       "required_results": [
@@ -372,9 +367,9 @@
           "action": "preserved_existing_template_draft",
           "differs_from_source_template": false,
           "prepared_input": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/inputs/s017-007/sdk-release-decisions-draft-2026-06-22.json",
-          "prepared_input_sha256": "ee9eab15ce7350961b210867f8e8aaac614ffdaf874bcf8aab92b450c0be9d5f",
+          "prepared_input_sha256": "7f1396a1a550d66312c68268556188d52848dc0ad72d1808b1077395cd3d0dab",
           "source_template": "production/qa/evidence/sdk/sdk-release-decisions-template-2026-06-22.json",
-          "source_template_sha256": "ee9eab15ce7350961b210867f8e8aaac614ffdaf874bcf8aab92b450c0be9d5f"
+          "source_template_sha256": "7f1396a1a550d66312c68268556188d52848dc0ad72d1808b1077395cd3d0dab"
         }
       ],
       "required_results": [

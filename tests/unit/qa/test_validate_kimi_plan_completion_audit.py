@@ -82,8 +82,8 @@ def test_kimi_plan_completion_audit_cli():
 
 def _gate_output_with_s017006_passed():
     payload = deepcopy(validate_all(allow_open=True))
-    payload["summary"]["open"] = 5
-    payload["summary"]["passed"] = 1
+    payload["summary"]["open"] = 4
+    payload["summary"]["passed"] = 2
     for gate in payload["gates"]:
         if gate["id"] == "S017-006":
             gate["status"] = "passed"

@@ -18,8 +18,8 @@ def test_plan_closure_gate_reports_controlled_open_items():
     assert result["acceptable"] is True
     assert result["summary"] == {
         "total": 6,
-        "passed": 1,
-        "open": 5,
+        "passed": 2,
+        "open": 4,
         "failed": 0,
         "invalid": 0,
     }
@@ -35,10 +35,13 @@ def test_plan_closure_gate_reports_controlled_open_items():
         assert gate["next_action"]
         assert gate["strict_command"].startswith(".\\.venv\\Scripts\\python.exe scripts\\validate_")
         assert gate["evidence"] in gate["strict_command"]
-        if gate["id"] == "S017-006":
+        if gate["id"] in {"S017-002", "S017-006"}:
             assert gate["status"] == "passed"
             assert gate["strict_errors"] == []
-            assert gate["evidence"].endswith("research-agent-screen-reader-manual-2026-06-22.json")
+            if gate["id"] == "S017-002":
+                assert gate["evidence"].endswith("kimi-live-smoke-2026-06-29.json")
+            else:
+                assert gate["evidence"].endswith("research-agent-screen-reader-manual-2026-06-22.json")
         else:
             assert gate["status"] == "open"
             assert gate["strict_errors"]
@@ -54,10 +57,10 @@ def test_plan_closure_gate_strict_mode_does_not_accept_open_items():
 
     assert result["result"] == "open"
     assert result["acceptable"] is False
-    assert result["summary"]["open"] == 5
-    assert result["summary"]["passed"] == 1
-    assert [item["status"] for item in result["gates"]].count("open") == 5
-    assert [item["status"] for item in result["gates"]].count("passed") == 1
+    assert result["summary"]["open"] == 4
+    assert result["summary"]["passed"] == 2
+    assert [item["status"] for item in result["gates"]].count("open") == 4
+    assert [item["status"] for item in result["gates"]].count("passed") == 2
     assert all(item["strict_errors"] for item in result["gates"] if item["status"] == "open")
     assert all(item["strict_errors"] == [] for item in result["gates"] if item["status"] == "passed")
     assert all(item["next_action"] for item in result["gates"])
@@ -81,14 +84,14 @@ def test_plan_closure_gate_cli_requires_allow_open_for_zero_exit():
     assert strict.returncode == 1
     strict_payload = json.loads(strict.stdout)
     assert strict_payload["acceptable"] is False
-    assert strict_payload["summary"]["open"] == 5
-    assert strict_payload["summary"]["passed"] == 1
+    assert strict_payload["summary"]["open"] == 4
+    assert strict_payload["summary"]["passed"] == 2
 
     assert allowed.returncode == 0
     allowed_payload = json.loads(allowed.stdout)
     assert allowed_payload["acceptable"] is True
-    assert allowed_payload["summary"]["open"] == 5
-    assert allowed_payload["summary"]["passed"] == 1
+    assert allowed_payload["summary"]["open"] == 4
+    assert allowed_payload["summary"]["passed"] == 2
 
 
 def test_plan_closure_gate_prefers_completed_evidence_over_template(tmp_path):

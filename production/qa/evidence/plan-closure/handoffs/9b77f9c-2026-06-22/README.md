@@ -1,6 +1,6 @@
 # 9b77f9c External Closure Handoff Workspace
 
-Prepared: 2026-06-25T09:21:21.116089+00:00
+Prepared: 2026-06-29T15:41:19.935814+00:00
 Date token: 2026-06-22
 Source manifest: `production/qa/evidence/plan-closure/9b77f9c-external-closure-manifest.json`
 Source plan SHA-256: `unavailable`
@@ -20,11 +20,11 @@ validator command.
 ### S017-002 - Live Kimi smoke execution
 
 - Required result: `passed`
-- Current status: `open` / `passed`
+- Current status: `passed` / `passed`
 - Handoff kind: `live_runner`
 - Close condition: result must pass text, Files upload, Vision, and Agent SDK scenarios; partial or blocked evidence remains open
 - Output ref: `production/qa/evidence/live/kimi-live-smoke-2026-06-22.json`
-- Validator: `.\.venv\Scripts\python.exe scripts\validate_kimi_live_smoke_evidence.py production/qa/evidence/live/kimi-live-smoke-2026-06-22.json`
+- Validator: `.\.venv\Scripts\python.exe scripts\validate_kimi_live_smoke_evidence.py --coding-v1 production/qa/evidence/live/kimi-live-smoke-2026-06-29.json`
 - Builder/runner: `.\.venv\Scripts\python.exe scripts\run_kimi_live_smoke.py --output-dir production/qa/evidence/live`
 - Operator input guide: `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/inputs/s017-002/operator-input-guide.md`
 - Prepared draft inputs: none; use the listed env/input refs.
@@ -36,7 +36,7 @@ validator command.
   - `optional:env:DOGE_LIVE_KIMI_VISION_IMAGE`
 - Workspace command: `.\.venv\Scripts\python.exe scripts\run_kimi_live_smoke.py --output-dir production/qa/evidence/live`
 
-Next action: Run scripts/run_kimi_live_smoke.py in an operator-approved Kimi credential/spend window with DOGE_LIVE_KIMI=1, MOONSHOT_API_KEY, a normal-size Vision image set, a /files-capable provider configuration, and DOGE_LIVE_KIMI_AGENT_SDK=1 with kimi_agent_sdk installed. Text/Vision-only live evidence is retained as progress but does not close S017-002.
+Next action: S017-002 is closed for the Kimi Coding v1 gate by 2026-06-29 evidence: text_k26 and vision_base64 passed, while files_upload and agent_sdk_optional are optional capability observations documented as skipped with reasons.
 
 ### S017-003 - Financial provider fixture approval
 

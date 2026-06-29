@@ -36,7 +36,7 @@ FAST_COMMANDS = [
     _py("plan_closure_handoff", "scripts/validate_plan_closure_handoff.py", HANDOFF),
     _py("plan_closure_runbook", "scripts/validate_plan_closure_runbook.py"),
     _py("governance_yaml_shape", "scripts/validate_governance_yaml_shape.py"),
-    _cmd("git_diff_check", "git", "diff", "--check"),
+    _py("git_diff_check", "scripts/check_diff_whitespace.py"),
 ]
 
 PENDING_SCOPE_COMMAND_IDS = {
@@ -139,10 +139,12 @@ def validate(
 
 
 def _run(command: list[str]) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
+    return subprocess.run(command, cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace")
 
 
-def _tail(text: str, *, limit: int = 1200) -> str:
+def _tail(text: str | None, *, limit: int = 1200) -> str:
+    if text is None:
+        return ""
     text = text.strip()
     if len(text) <= limit:
         return text

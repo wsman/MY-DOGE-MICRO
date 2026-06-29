@@ -32,7 +32,7 @@ The next remote-CI candidate commit must include these local closure artifacts.
 | Migration and tenant closure | `migrations/`, `src/doge/infrastructure/database/migration_runner.py`, `src/doge/infrastructure/database/tenant_guard.py`, `tests/unit/infrastructure/test_migration_runner.py` | Keeps context-owned migrations and tenant guardrails in the release-candidate payload. |
 | Runtime closure | `src/doge/infrastructure/database/sqlite_runtime_transaction.py`, `src/doge/infrastructure/database/event_subscriber.py`, `src/doge/application/agent/outbox_publisher.py`, `tests/contract/test_event_sequence_concurrency.py`, `tests/unit/agent/test_runtime_transaction.py`, `tests/unit/agent/test_event_subscriber.py`, `tests/unit/agent/test_worker_queue.py` | Preserves transaction, event, SSE, outbox, and worker-lease safety changes. |
 | Code execution and module boundary closure | `src/doge/core/ports/code_executor.py`, `src/doge/infrastructure/code_execution/`, `src/doge/bootstrap/container.py`, `src/doge/bootstrap/runtime.py`, `src/doge/bootstrap/gateway.py`, `src/doge/bootstrap/workspace.py`, `src/doge/core/domain/run_execution_context.py`, `src/doge/core/domain/tool_descriptor.py`, `tests/unit/capabilities/test_code_executor.py`, `tests/unit/core/domain/test_run_execution_context.py` | Preserves default-off Python execution, split bootstrap, unified tool descriptor, and run execution context. |
-| Shared external closure package | `docs/progress/9b77f9c-external-closure-runbook.md`, `production/qa/evidence/plan-closure/9b77f9c-external-closure-manifest.json`, `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/`, `scripts/validate_plan_closure_gate.py`, `scripts/preflight_plan_closure_external.py` | Preserves the shared S017 external gates: 6 total gates: 5 open / 1 passed. |
+| Shared external closure package | `docs/progress/9b77f9c-external-closure-runbook.md`, `production/qa/evidence/plan-closure/9b77f9c-external-closure-manifest.json`, `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/`, `scripts/validate_plan_closure_gate.py`, `scripts/preflight_plan_closure_external.py` | Preserves the shared S017 external gates: 6 total gates: 4 open / 2 passed. |
 
 ## Required Local Validation Before Commit
 
@@ -50,7 +50,7 @@ Expected current result before commit:
 
 ```text
 local pytest = 1431 passed, 9 skipped, 11 warnings
-plan closure gate = result open, 5 open / 1 passed
+plan closure gate = result open, 4 open / 2 passed
 external preflight = infrastructure_ready true, result pending_external_inputs
 remote CI = pending_remote_ci until a post-commit SHA exists
 ```
@@ -83,16 +83,20 @@ path = production/qa/evidence/ci/remote-ci-<shortsha>.json
 This package does not close D-02 or D-03. The external closure gate remains:
 
 ```text
-6 total gates: 5 open / 1 passed
+6 total gates: 4 open / 2 passed
 ```
 
 Still-open external gates:
 
-- S017-002
 - S017-003
 - W3-live
 - AUTH-prod
 - S017-007
+
+Passed external gates:
+
+- S017-002
+- S017-006
 
 The required runtime posture remains:
 

@@ -52,7 +52,7 @@
     "screen_reader_version": "10.0.19041.4522",
     "web_url": "http://127.0.0.1:5173/"
   },
-  "executed_at": "2026-06-22T18:56:29.8085343+08:00",
+  "executed_at": "2026-06-22T18:56:29.808534+08:00",
   "fixtures": {
     "documents": [
       "non-sensitive research fixture documents already present in the local demo workspace"

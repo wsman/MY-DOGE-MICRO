@@ -11,12 +11,12 @@
     "summary": {
       "failed": 0,
       "invalid": 0,
-      "open": 5,
-      "passed": 1,
+      "open": 4,
+      "passed": 2,
       "total": 6
     }
   },
-  "generated_at": "2026-06-25T09:20:17.880821+00:00",
+  "generated_at": "2026-06-29T15:30:51.552780+00:00",
   "operator_rule": "Complete each task to its required_results, run its validator_command without allow-template/allow-blocked flags, then run scripts/validate_plan_closure_gate.py without --allow-open.",
   "schema": "doge.plan_closure_execution_manifest.v1",
   "source_plan": "C:\\Users\\Aby\\.claude\\plans\\9b77f9c-kimi-twinkly-map.md",
@@ -30,18 +30,13 @@
   },
   "tasks": [
     {
-      "can_close_now": false,
+      "can_close_now": true,
       "completed_evidence_glob": null,
-      "current_blockers": [
-        "missing full-closure scenarios: agent_sdk_optional",
-        "files_upload: full closure requires status=passed",
-        "passed evidence for full closure requires environment.DOGE_LIVE_KIMI_AGENT_SDK=true",
-        "passed evidence for full closure requires environment.kimi_agent_sdk_installed=true"
-      ],
-      "current_evidence": "production/qa/evidence/live/kimi-live-smoke-2026-06-22.json",
+      "current_blockers": [],
+      "current_evidence": "production/qa/evidence/live/kimi-live-smoke-2026-06-29.json",
       "current_result": "passed",
-      "current_status": "open",
-      "fallback_evidence": "production/qa/evidence/live/kimi-live-smoke-2026-06-22.json",
+      "current_status": "passed",
+      "fallback_evidence": "production/qa/evidence/live/kimi-live-smoke-2026-06-29.json",
       "handoff": {
         "build_or_run_command": ".\\.venv\\Scripts\\python.exe scripts\\run_kimi_live_smoke.py --output-dir production/qa/evidence/live",
         "close_condition": "result must pass text, Files upload, Vision, and Agent SDK scenarios; partial or blocked evidence remains open",
@@ -57,12 +52,12 @@
         "output_ref": "production/qa/evidence/live/kimi-live-smoke-2026-06-22.json"
       },
       "id": "S017-002",
-      "next_action": "Run scripts/run_kimi_live_smoke.py in an operator-approved Kimi credential/spend window with DOGE_LIVE_KIMI=1, MOONSHOT_API_KEY, a normal-size Vision image set, a /files-capable provider configuration, and DOGE_LIVE_KIMI_AGENT_SDK=1 with kimi_agent_sdk installed. Text/Vision-only live evidence is retained as progress but does not close S017-002.",
+      "next_action": "S017-002 is closed for the Kimi Coding v1 gate by 2026-06-29 evidence: text_k26 and vision_base64 passed, while files_upload and agent_sdk_optional are optional capability observations documented as skipped with reasons.",
       "required_results": [
         "passed"
       ],
       "title": "Live Kimi smoke execution",
-      "validator_command": ".\\.venv\\Scripts\\python.exe scripts\\validate_kimi_live_smoke_evidence.py production/qa/evidence/live/kimi-live-smoke-2026-06-22.json"
+      "validator_command": ".\\.venv\\Scripts\\python.exe scripts\\validate_kimi_live_smoke_evidence.py --coding-v1 production/qa/evidence/live/kimi-live-smoke-2026-06-29.json"
     },
     {
       "can_close_now": false,

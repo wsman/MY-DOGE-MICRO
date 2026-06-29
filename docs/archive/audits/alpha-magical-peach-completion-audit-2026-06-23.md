@@ -34,8 +34,8 @@ The next remote CI target must be the post-commit SHA, not `e6398da`.
 | Handoff workspace is fresh and valid | proved | `scripts/validate_plan_closure_handoff.py production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22` passes; `scripts/preflight_plan_closure_external.py --handoff-workspace ...` reports infrastructure ready and pending external inputs | Handoff is valid, but most external inputs are still templates or missing env credentials. |
 | ADR-0016 through ADR-0020 have intentional disposition | proved | `docs/archive/audits/adr-0016-0020-disposition-review-2026-06-23.md` records `Verdict: Keep Proposed` | This is a disposition review, not an ADR acceptance review. |
 | Runtime maturity honesty scan finds no unauthorized promotion claims | proved | `docs/progress/runtime-maturity.yaml`, `scripts/validate_alpha_maturity_honesty.py`, `scripts/validate_governance_yaml_shape.py`, and S017 governance tests preserve non-production posture | Maturity labels remain preview/alpha/experimental with `production_ready: false`. |
-| All five open external gates have real passed/approved evidence, or each has current next-action card with blocker refs | proved_for_current_alpha_plan | `docs/archive/audits/external-gate-next-actions-2026-06-23.md` records next-action/blocker cards for S017-002, S017-003, W3-live, AUTH-prod, and S017-007 | This satisfies the Alpha plan alternative, not external closure. The five gates still need real evidence before Beta/Production promotion. |
-| Strict closure gate passes without `--allow-open`, or plan explicitly remains Alpha with controlled open gates | proved_for_current_alpha_plan | `scripts/validate_plan_closure_gate.py --allow-open` reports `result=open`, 5 open / 1 passed; `alpha-magical-peach.md` explicitly remains Alpha with controlled open gates | Strict closure is intentionally not passed. |
+| All current open external gates have real passed/approved evidence, or each has current next-action card with blocker refs | proved_for_current_alpha_plan | `docs/archive/audits/external-gate-next-actions-2026-06-23.md` records next-action/blocker cards for S017-003, W3-live, AUTH-prod, and S017-007; S017-002 is now passed for Kimi Coding v1. | This satisfies the Alpha plan alternative, not external closure. The four open gates still need real evidence before Beta/Production promotion. |
+| Strict closure gate passes without `--allow-open`, or plan explicitly remains Alpha with controlled open gates | proved_for_current_alpha_plan | `scripts/validate_plan_closure_gate.py --allow-open` reports `result=open`, 4 open / 2 passed; `alpha-magical-peach.md` explicitly remains Alpha with controlled open gates | Strict closure is intentionally not passed. |
 | `production_ready: false`, `stable_declaration: forbidden`, and `level_3_sdk_platform: experimental` remain unchanged | proved | `docs/progress/runtime-maturity.yaml` and plan posture blocks preserve these values | No production, stable, GA, or enterprise Beta promotion is claimed. |
 
 ## External Gate State
@@ -43,18 +43,21 @@ The next remote CI target must be the post-commit SHA, not `e6398da`.
 Current closure gate posture:
 
 - Total gates: 6
-- Passed gates: 1
-- Open gates: 5
+- Passed gates: 2
+- Open gates: 4
+- Passed gate: S017-002
 - Passed gate: S017-006
-- Open gates: S017-002, S017-003, W3-live, AUTH-prod, S017-007
+- Open gates: S017-003, W3-live, AUTH-prod, S017-007
 
-The five open gates remain controlled-open. They require real operator evidence:
+The four open gates remain controlled-open. They require real operator evidence:
 
-- S017-002: live Kimi credentials/spend/network window.
 - S017-003: provider decision, license scope, storage/freshness/provenance policy, reviewer approval.
 - W3-live: authorized materials, analyst labels, live Kimi observations, thresholds, trend history.
 - AUTH-prod: live IdP/JWKS, production secret-store command, SIEM/WORM sink, live remote-bind deployment, data-isolation review.
 - S017-007: registry target, package ownership, version/changelog policy, registry-backed consumer smoke, release-manager approval.
+
+S017-002 is already passed for Kimi Coding v1 with
+`production/qa/evidence/live/kimi-live-smoke-2026-06-29.json`.
 
 ## Remote CI State
 

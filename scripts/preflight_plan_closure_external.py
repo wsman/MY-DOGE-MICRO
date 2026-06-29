@@ -106,11 +106,20 @@ def build_preflight(
         if not requested_task_ids or task.get("id") in requested_task_ids
     ]
     tasks = [
-        _preflight_task(task, handoff_task=handoff_tasks.get(task.get("id")))
+        _preflight_task(
+            task,
+            handoff_task=handoff_tasks.get(task.get("id")),
+            force_external_checks=task.get("id") in requested_task_ids,
+        )
         for task in selected_tasks
     ]
     handoff_errors = validate_workspace(handoff_workspace, manifest_path=manifest_path) if handoff_workspace else []
-    optional_checks = _optional_checks(include_live_kimi=(not requested_task_ids or "S017-002" in requested_task_ids))
+    optional_checks = _optional_checks(
+        include_live_kimi=any(
+            task["id"] == "S017-002" and task["external_inputs_required"]
+            for task in tasks
+        )
+    )
 
     infrastructure_errors = []
     infrastructure_errors.extend(f"manifest: {error}" for error in manifest_errors)
@@ -160,7 +169,12 @@ def build_preflight(
     }
 
 
-def _preflight_task(task: dict[str, Any], *, handoff_task: dict[str, Any] | None = None) -> dict[str, Any]:
+def _preflight_task(
+    task: dict[str, Any],
+    *,
+    handoff_task: dict[str, Any] | None = None,
+    force_external_checks: bool = False,
+) -> dict[str, Any]:
     handoff = task.get("handoff", {})
     infrastructure_errors: list[str] = []
     external_blockers: list[str] = []
@@ -194,21 +208,23 @@ def _preflight_task(task: dict[str, Any], *, handoff_task: dict[str, Any] | None
         )
         for input_ref in handoff.get("input_refs", [])
     ]
-    for check in input_ref_checks:
-        if check["kind"] == "required_env" and not check["ready"]:
-            external_blockers.append(f"{task['id']}: required env not ready: {check['name']}")
-        if check["kind"] == "required_file" and not check["ready"]:
-            external_blockers.append(f"{task['id']}: required file not ready: {check['path']}")
-        if check["kind"] == "dated_file_placeholder":
-            external_blockers.append(f"{task['id']}: dated input ref must be filled: {check['path']}")
-        if check["kind"] == "workspace_draft_input" and not check["ready"]:
-            if not check["exists"]:
-                reason = "missing"
-            elif not check["differs_from_template"]:
-                reason = "still matches source template"
-            else:
-                reason = "invalid content: " + "; ".join(check["content_errors"])
-            external_blockers.append(f"{task['id']}: workspace draft input not ready ({reason}): {check['path']}")
+    external_inputs_required = force_external_checks or not _task_is_already_passed(task)
+    if external_inputs_required:
+        for check in input_ref_checks:
+            if check["kind"] == "required_env" and not check["ready"]:
+                external_blockers.append(f"{task['id']}: required env not ready: {check['name']}")
+            if check["kind"] == "required_file" and not check["ready"]:
+                external_blockers.append(f"{task['id']}: required file not ready: {check['path']}")
+            if check["kind"] == "dated_file_placeholder":
+                external_blockers.append(f"{task['id']}: dated input ref must be filled: {check['path']}")
+            if check["kind"] == "workspace_draft_input" and not check["ready"]:
+                if not check["exists"]:
+                    reason = "missing"
+                elif not check["differs_from_template"]:
+                    reason = "still matches source template"
+                else:
+                    reason = "invalid content: " + "; ".join(check["content_errors"])
+                external_blockers.append(f"{task['id']}: workspace draft input not ready ({reason}): {check['path']}")
 
     return {
         "id": task["id"],
@@ -216,6 +232,7 @@ def _preflight_task(task: dict[str, Any], *, handoff_task: dict[str, Any] | None
         "required_results": task["required_results"],
         "current_status": task["current_status"],
         "current_result": task["current_result"],
+        "external_inputs_required": external_inputs_required,
         "command_checks": command_checks,
         "current_evidence": current_evidence,
         "output_dir": output_dir,
@@ -225,6 +242,10 @@ def _preflight_task(task: dict[str, Any], *, handoff_task: dict[str, Any] | None
         "external_blockers": external_blockers,
         "next_action": task["next_action"],
     }
+
+
+def _task_is_already_passed(task: dict[str, Any]) -> bool:
+    return task.get("current_status") == "passed" and task.get("can_close_now") is True
 
 
 def _command_check(kind: str, command: str | None) -> dict[str, Any]:

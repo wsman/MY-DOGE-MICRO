@@ -139,16 +139,20 @@ This package does not close enterprise Beta or Production. The external closure
 gate remains:
 
 ```text
-6 total gates: 5 open / 1 passed
+6 total gates: 4 open / 2 passed
 ```
 
 Still-open external gates:
 
-- S017-002
 - S017-003
 - W3-live
 - AUTH-prod
 - S017-007
+
+Passed external gates:
+
+- S017-002
+- S017-006
 
 The required runtime posture remains:
 

@@ -46,7 +46,7 @@ REQUIRED_SNIPPETS = [
     "scripts/validate_piped_donut_completion_audit.py",
     "scripts/validate_piped_donut_pre_remote_ci_package.py",
     "1431 passed, 9 skipped, 11 warnings",
-    "6 total gates: 5 open / 1 passed",
+    "6 total gates: 4 open / 2 passed",
     "stable_declaration: forbidden",
     "production_ready: false",
 ]
@@ -143,12 +143,12 @@ def _validate_gate_state(text: str, gate_output: dict[str, Any], errors: list[st
     summary = gate_output.get("summary", {})
     if gate_output.get("result") != "open" or not gate_output.get("acceptable"):
         errors.append("closure gate must remain acceptable controlled-open before remote CI")
-    if summary.get("total") != 6 or summary.get("open") != 5 or summary.get("passed") != 1:
+    if summary.get("total") != 6 or summary.get("open") != 4 or summary.get("passed") != 2:
         errors.append(
-            "closure gate summary must remain 6 total / 5 open / 1 passed, "
+            "closure gate summary must remain 6 total / 4 open / 2 passed, "
             f"found {summary}"
         )
-    for gate_id in ["S017-002", "S017-003", "W3-live", "AUTH-prod", "S017-007"]:
+    for gate_id in ["S017-003", "W3-live", "AUTH-prod", "S017-007"]:
         if gate_id not in text:
             errors.append(f"package missing open external gate id: {gate_id}")
 

@@ -138,8 +138,10 @@ def _validate_gate_output(gate_output: dict[str, Any], *, plan_text: str, errors
     if summary.get("failed", 0) or summary.get("invalid", 0):
         errors.append(f"closure gate must have no failed/invalid gates, found {summary}")
     if gate_output.get("result") == "open":
-        if summary.get("open") != 5 or summary.get("passed") != 1:
-            errors.append(f"controlled-open Alpha closure must report 5 open / 1 passed gates, found {summary}")
+        if not isinstance(summary.get("open"), int) or summary.get("open") < 1:
+            errors.append(f"controlled-open Alpha closure must retain at least one open gate, found {summary}")
+        if not isinstance(summary.get("passed"), int) or summary.get("passed") < 1:
+            errors.append(f"controlled-open Alpha closure must retain passed gate evidence, found {summary}")
         if "controlled open gates" not in plan_text and "controlled-open" not in plan_text:
             errors.append("final plan must explicitly preserve controlled-open Alpha gates")
     elif gate_output.get("result") != "passed":

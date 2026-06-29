@@ -73,8 +73,8 @@ def test_piped_donut_completion_audit_cli():
 
 def _gate_output_with_s017007_passed():
     payload = deepcopy(validate_all(allow_open=True))
-    payload["summary"]["open"] = 4
-    payload["summary"]["passed"] = 2
+    payload["summary"]["open"] = 3
+    payload["summary"]["passed"] = 3
     for gate in payload["gates"]:
         if gate["id"] == "S017-007":
             gate["status"] = "passed"
@@ -93,7 +93,7 @@ def _audit_text_with_s017007_completed() -> str:
         if not line.startswith("| S017-007 |")
     ]
     text = "\n".join(lines)
-    text = text.replace("5 open / 1 passed", "4 open / 2 passed")
+    text = text.replace("4 open / 2 passed", "3 open / 3 passed")
     text += (
         "\n\nS017-007 is already passed with "
         "`production\\qa\\evidence\\sdk\\sdk-release-approval-2026-06-24.json`.\n"

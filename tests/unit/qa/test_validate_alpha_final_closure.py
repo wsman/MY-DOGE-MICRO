@@ -207,9 +207,9 @@ def _controlled_open_gate() -> dict[str, object]:
         "schema": "doge.plan_closure_gate.v1",
         "acceptable": True,
         "result": "open",
-        "summary": {"total": 6, "open": 5, "passed": 1, "failed": 0, "invalid": 0},
+        "summary": {"total": 6, "open": 4, "passed": 2, "failed": 0, "invalid": 0},
         "gates": [
-            _gate("S017-002", "open", "blocked"),
+            _gate("S017-002", "passed", "passed"),
             _gate("S017-003", "open", "not_run"),
             _gate("W3-live", "open", "not_run"),
             _gate("AUTH-prod", "open", "not_run"),

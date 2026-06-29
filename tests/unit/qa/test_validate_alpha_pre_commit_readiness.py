@@ -26,7 +26,7 @@ def test_alpha_pre_commit_readiness_fast_runs_required_validators():
     assert "scripts/validate_alpha_commit_scope.py" in command_text
     assert "scripts/validate_plan_closure_gate.py --allow-open" in command_text
     assert "scripts/validate_plan_closure_handoff.py" in command_text
-    assert "git diff --check" in command_text
+    assert "scripts/check_diff_whitespace.py" in command_text
 
 
 def test_alpha_pre_commit_readiness_full_adds_focused_tests():
@@ -77,7 +77,7 @@ def test_alpha_pre_commit_readiness_reports_failed_command():
 
 def test_alpha_pre_commit_readiness_reports_failed_git_diff_check():
     def runner(command: list[str]) -> subprocess.CompletedProcess[str]:
-        if command == ["git", "diff", "--check"]:
+        if any("check_diff_whitespace.py" in part for part in command):
             return subprocess.CompletedProcess(command, 1, stdout="", stderr="whitespace")
         return subprocess.CompletedProcess(command, 0, stdout="ok", stderr="")
 

@@ -25,12 +25,25 @@ def test_preflight_plan_closure_external_reports_pending_external_inputs(monkeyp
     assert payload["infrastructure_ready"] is True
     assert payload["external_inputs_ready"] is False
     assert payload["secret_values_redacted"] is True
-    assert payload["closure_gate"]["summary"]["open"] == 5
-    assert payload["closure_gate"]["summary"]["passed"] == 1
+    assert payload["closure_gate"]["summary"]["open"] == 4
+    assert payload["closure_gate"]["summary"]["passed"] == 2
     assert payload["closure_gate"]["production_ready_false"] is True
     assert payload["closure_gate"]["stable_declaration_forbidden"] is True
-    assert any("MOONSHOT_API_KEY" in blocker for blocker in payload["external_blockers"])
+    assert not any(blocker.startswith("S017-002:") for blocker in payload["external_blockers"])
+    assert any(blocker.startswith("S017-003:") for blocker in payload["external_blockers"])
     assert "secret-value" not in json.dumps(payload)
+
+
+def test_preflight_task_scoped_kimi_rerun_checks_live_env(monkeypatch):
+    monkeypatch.delenv("DOGE_LIVE_KIMI", raising=False)
+    monkeypatch.delenv("MOONSHOT_API_KEY", raising=False)
+    monkeypatch.delenv("DOGE_LIVE_KIMI_AGENT_SDK", raising=False)
+
+    payload = build_preflight(manifest_path=MANIFEST, task_ids={"S017-002"})
+
+    assert payload["requested_task_ids"] == ["S017-002"]
+    assert payload["tasks"][0]["external_inputs_required"] is True
+    assert any("MOONSHOT_API_KEY" in blocker for blocker in payload["external_blockers"])
 
 
 def test_preflight_plan_closure_external_accepts_valid_handoff_workspace(tmp_path, monkeypatch):

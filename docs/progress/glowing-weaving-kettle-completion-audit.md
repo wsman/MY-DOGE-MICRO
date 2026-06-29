@@ -8,8 +8,8 @@ Source plan: `C:\Users\Aby\.claude\plans\glowing-weaving-kettle.md`
 
 Track B platformization is locally implemented and verified behind feature
 flags. Track A external closure is not complete: the strict closure gate remains
-open with 5 open / 1 passed until real operator evidence replaces the current
-blocked/template artifacts.
+open with 4 open / 2 passed until real operator evidence replaces the current
+template artifacts.
 
 This audit does not promote the product. `production_ready` remains `false`,
 `stable_declaration` remains `forbidden`, and `level_3_sdk_platform` remains `experimental`.
@@ -18,7 +18,7 @@ This audit does not promote the product. `production_ready` remains `false`,
 
 | Area | Current Evidence | Status |
 |---|---|---|
-| Track A external closure | `scripts/validate_plan_closure_gate.py --allow-open` returns `open`, 5 open / 1 passed. `scripts/preflight_plan_closure_external.py --handoff-workspace production\qa\evidence\plan-closure\handoffs\9b77f9c-2026-06-22` returns infrastructure ready and pending external inputs. The handoff workspace includes one `operator-input-guide.md` per gate. | Open pending real operator evidence. |
+| Track A external closure | `scripts/validate_plan_closure_gate.py --allow-open` returns `open`, 4 open / 2 passed. `scripts/preflight_plan_closure_external.py --handoff-workspace production\qa\evidence\plan-closure\handoffs\9b77f9c-2026-06-22` returns infrastructure ready and pending external inputs. The handoff workspace includes one `operator-input-guide.md` per gate. | Open pending real operator evidence. |
 | Phase 0 governance | Platform CDDs, Proposed ADR-0016 through ADR-0020, TR-059 through TR-070, architecture registry, entity registry, module index, and progress docs exist. `scripts/validate_governance_yaml_shape.py` passes. | Locally complete. |
 | Phase 1 run summary/citation/eval API | Run summary use case and v1 routes exist; contract and SDK tests passed in the platform/API targeted set. | Locally complete behind feature flag. |
 | Phase 2 workspace/project/research-case objects | Platform domain models, repository port/adapter, CRUD routes, SDK helpers, and repository/API tests exist. | Locally complete behind feature flag. |
@@ -31,12 +31,13 @@ This audit does not promote the product. `production_ready` remains `false`,
 
 | Gate | Required Result | Current Evidence | Close Validator | Next Required Input |
 |---|---|---|---|---|
-| S017-002 | `passed` | `production\qa\evidence\live\kimi-live-smoke-2026-06-22.json` is blocked evidence. | `scripts\validate_kimi_live_smoke_evidence.py` | Operator-approved Kimi live window with `DOGE_LIVE_KIMI=1`, `MOONSHOT_API_KEY`, live network/spend, and optional Agent SDK env. |
 | S017-003 | `approved` | `production\qa\evidence\provider\financial-provider-approval-template-2026-06-22.json` and handoff draft exist; draft still matches template. | `scripts\validate_financial_provider_approval_evidence.py` | Product/operator provider decisions, license scope, fixture storage policy, freshness/provenance, and reviewer sign-off. |
 | W3-live | `passed` | `production\qa\evidence\eval\analyst-benchmark-template-2026-06-22.json` and handoff drafts exist; drafts still match templates. | `scripts\validate_analyst_benchmark_evidence.py` | Real materials, human citation/numerical labels, live Kimi observations, accepted thresholds, and trend-history rows. |
 | AUTH-prod | `passed` | `production\qa\evidence\enterprise\enterprise-production-validation-template-2026-06-22.json` and handoff draft exist; draft still matches template. | `scripts\validate_enterprise_production_validation_evidence.py` | Live IdP/JWKS, production secret-store command, SIEM/WORM sink, remote deployment, and data-isolation evidence refs. |
 | S017-007 | `approved` | `production\qa\evidence\sdk\sdk-release-approval-template-2026-06-22.json` and handoff draft exist; draft still matches template. | `scripts\validate_sdk_release_approval_evidence.py` | Registry target, package ownership, version/changelog policy, registry-backed consumer smoke, security review, and release-manager sign-off. |
 
+S017-002 is already passed for Kimi Coding v1 with
+`production\qa\evidence\live\kimi-live-smoke-2026-06-29.json`.
 S017-006 is already passed with
 `production\qa\evidence\manual\research-agent-screen-reader-manual-2026-06-22.json`.
 

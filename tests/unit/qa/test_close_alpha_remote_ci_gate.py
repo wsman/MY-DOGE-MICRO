@@ -310,9 +310,9 @@ def _gate_output() -> dict:
         "schema": "doge.plan_closure_gate.v1",
         "acceptable": True,
         "result": "open",
-        "summary": {"failed": 0, "invalid": 0, "open": 5, "passed": 1, "total": 6},
+        "summary": {"failed": 0, "invalid": 0, "open": 4, "passed": 2, "total": 6},
         "gates": [
-            _gate("S017-002", "open", "blocked"),
+            _gate("S017-002", "passed", "passed"),
             _gate("S017-003", "open", "not_run"),
             _gate("W3-live", "open", "not_run"),
             _gate("AUTH-prod", "open", "not_run"),

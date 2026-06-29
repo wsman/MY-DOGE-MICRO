@@ -29,7 +29,7 @@ level_3_sdk_platform: experimental
 | ID | Task | Owner | Acceptance Criteria |
 |----|------|-------|---------------------|
 | S017-001 | Browser and Node/Web verification | qa-lead + typescript-specialist | Done: automated verification passed with temporary Node v24.17.0/npm 11.13.0; browser evidence covers upload, document select, profile select, portfolio import, run/SSE completion, approval path, citation drill-down fixture, cost/eval panel, browser-runtime SDK SSE reconnect/replay, and real doged Research Agent reconnect through approval completion. |
-| S017-002 | Live Kimi smoke execution | operator + python-specialist | `scripts/run_kimi_live_smoke.py` and `tests/live/test_kimi_live_smoke.py` run with `DOGE_LIVE_KIMI=1` and `MOONSHOT_API_KEY`; `scripts/validate_kimi_live_smoke_evidence.py` validates required text + Vision evidence, optional Files and Agent SDK status, true live env gates, per-required-scenario usage summary, and, when Files succeeds, redacted file id hash plus Files cleanup without secrets. |
+| S017-002 | Live Kimi smoke execution | operator + python-specialist | Done for Kimi Coding v1: strict evidence validates required text + Vision evidence; optional Files and Agent SDK are documented as skipped with reasons. |
 | S017-003 | Financial provider fixture approval | product owner + python-specialist | Provider choices and license scope are approved; safe provider-shaped fixtures matching `tests/fixtures/financial_connectors/provider_fixture_contract.json` are available. Status: review; approval packet exists at `docs/progress/financial-provider-approval-packet.md`; synthetic safe samples exist at `tests/fixtures/financial_connectors/provider_fixture_samples.json`. |
 | S017-004 | Enterprise auth boundary and implementation plan | security-engineer | Done: implementation choices are recorded in `docs/progress/enterprise-auth-implementation-plan.md`; AuthConfig/provider/startup gate/middleware, JWT fixture validation, tenant metadata for documents/portfolios/sessions/runs/events/artifacts/approvals/evidence, ACL/audit persistence, admin ACL APIs, runtime tool ACL, audit export/retention, audit export integrity handoff headers, SecretProvider env/process rollout, production secret-store process bridge selection, remote-bind promotion gate, SDK bearer/request-id plus API/SSE error redaction, audit export redaction, CLI trace/artifact redaction paths, real doged static-bearer loopback smoke, real doged local-JWKS loopback smoke, real doged process-secret loopback smoke, and real doged remote-bind gate smoke have tests/evidence. |
 
@@ -38,12 +38,12 @@ level_3_sdk_platform: experimental
 | ID | Status | Evidence / Blocker |
 |----|--------|--------------------|
 | S017-001 | done | `production/qa/evidence/manual/research-agent-browser-walkthrough-2026-06-22.md`; `production/qa/evidence/manual/browser-sdk-sse-reconnect-2026-06-22.md`; `production/qa/evidence/manual/research-agent-doged-reconnect-2026-06-22.md`. |
-| S017-002 | review | Runner and validator exist at `scripts/run_kimi_live_smoke.py` and `scripts/validate_kimi_live_smoke_evidence.py`; current redacted blocked evidence exists at `production/qa/evidence/live/kimi-live-smoke-2026-06-22.json`/`.md` and validates only with `--allow-blocked`. Real execution remains blocked on `MOONSHOT_API_KEY`, `DOGE_LIVE_KIMI=1`, live network/spend, and a normal-size Vision image; Files upload is optional for the Kimi Coding v1 gate and requires a `/files`-capable Moonshot key only if the operator elects to test it. |
-| S017-003 | review | `docs/progress/financial-provider-approval-packet.md`; synthetic safe fixtures exist; approval template and validator exist at `production/qa/evidence/provider/financial-provider-approval-template-2026-06-22.json` and `scripts/validate_financial_provider_approval_evidence.py`. The template validates only with `--allow-template`; product/operator approval, provider/license scope, and any real provider-derived fixtures remain pending. |
+| S017-002 | done | Closed by strict Kimi Coding v1 evidence at `production/qa/evidence/live/kimi-live-smoke-2026-06-29.json`/`.md`. `scripts/validate_kimi_live_smoke_evidence.py --coding-v1` passes without `--allow-blocked`; `text_k26` and `vision_base64` passed, while `files_upload` and `agent_sdk_optional` are skipped with documented reasons. |
+| S017-003 | review | Sprint F disposition: remains review/external. `docs/progress/financial-provider-approval-packet.md`; synthetic safe fixtures exist; approval template and validator exist at `production/qa/evidence/provider/financial-provider-approval-template-2026-06-22.json` and `scripts/validate_financial_provider_approval_evidence.py`. The template validates only with `--allow-template`; product/operator approval, provider/license scope, and any real provider-derived fixtures remain pending. |
 | S017-004 | done | `docs/progress/enterprise-auth-implementation-plan.md`; AuthConfig/provider/startup gate/middleware boundary tests, JWT/OIDC local fixture validation, document/portfolio/session/run/event/artifact/approval/evidence tenant metadata and migration tests, ACL/audit persistence and API enforcement tests, tenant-scoped admin ACL API tests, trusted run policy injection, runtime tool ACL tests, tenant-scoped audit listing/export/retention tests, audit export integrity handoff header tests, SecretProvider env/process rollout tests, production secret-store process bridge documentation, remote-bind promotion gate tests, RAG/citation ACL filtering tests, SDK bearer/request-id pass-through plus API/SSE error redaction tests, audit export redaction tests, CLI trace/artifact redaction tests, local operational audit review, audit SIEM/WORM handoff packet, local SDK package compatibility, real doged enterprise static-bearer loopback smoke, real doged local-JWKS loopback smoke, real doged process-secret loopback smoke, real doged remote-bind gate smoke, and unified enterprise production validation template/builder/validator passed locally. Live IdP/JWKS smoke against an operator-approved provider, production secret-store command smoke/rotation evidence, SDK registry publication/release approval, production SIEM/WORM sink integration/operator sign-off, live remote-bind deployment smoke, and production data-isolation review in an operator-approved network remain follow-on work. |
 | S017-005 | done | One-hour local loopback daemon soak executed. Evidence: `production/qa/evidence/soak/daemon-soak-run-20260622T044433/daemon-soak-20260621T204434Z.json` and `production/qa/evidence/soak/daemon-soak-run-20260622T044433/soak-summary.md`; result `3602.76s`, `653` iterations, `0` failures, no API tracebacks/errors, listener RSS growth below threshold. |
 | S017-006 | done | Manual screen-reader pass evidence exists and strictly validates at `production/qa/evidence/manual/research-agent-screen-reader-manual-2026-06-22.json`; handoff observations are recorded at `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22/inputs/s017-006/screen-reader-observations-draft-2026-06-22.json`. Automated/local adjuncts are also closed: Web accessibility tests passed, Chrome accessibility-tree smoke passed, real doged Research Agent reconnect passed through approval completion, and keyboard traversal reached the primary Research Agent controls without a focus trap. |
-| S017-007 | review | SDK release approval packet exists at `docs/progress/sdk-release-approval-packet.md`; Python wheel, TypeScript npm pack dry-run, and local external-consumer artifact smoke evidence exist. Release approval template and validator exist at `production/qa/evidence/sdk/sdk-release-approval-template-2026-06-22.json` and `scripts/validate_sdk_release_approval_evidence.py`. The template validates only with `--allow-template`; registry target, package name ownership, version/changelog policy, registry-backed consumer smoke, and release approval remain pending. |
+| S017-007 | review | Sprint F disposition: remains review/external. SDK release approval packet exists at `docs/progress/sdk-release-approval-packet.md`; Python wheel, TypeScript npm pack dry-run, and local external-consumer artifact smoke evidence exist. Release approval template and validator exist at `production/qa/evidence/sdk/sdk-release-approval-template-2026-06-22.json` and `scripts/validate_sdk_release_approval_evidence.py`. The template validates only with `--allow-template`; registry target, package name ownership, version/changelog policy, registry-backed consumer smoke, and release approval remain pending. |
 
 ## Should Have
 
@@ -82,7 +82,7 @@ level_3_sdk_platform: experimental
 | Full Python regression | PASS: `1240 passed, 9 skipped in 112.93s`; live Kimi tests skipped without credentials. |
 | Eval smoke | PASS: `7 passed in 1.00s`. |
 | External closure validator suite | PASS: focused plan-closure repair set `57 passed in 9.14s`; completed external evidence, edited handoff drafts, and builder inputs now reject unresolved template placeholders such as `*-TEMPLATE`, `TEMPLATE_*`, `YYYY-MM-DD`, `$createdAt`, and `<...>` tokens, obvious unredacted credential-shaped values, missing explicit false redaction/security-review flags, stale source-plan fingerprints, incomplete S017-002 live Kimi env/required-scenario usage evidence or unredacted optional Files evidence, incomplete S017-003 provider approval details, incomplete W3-live per-case observation and trend-history details, incomplete AUTH-prod enterprise production observations, incomplete S017-006 screen-reader timestamps/observations, and incomplete S017-007 SDK release/security-review details. |
-| Closure gate posture | `scripts/validate_plan_closure_gate.py --allow-open` reports 5 controlled open gates and 1 passed gate (`S017-006`); strict mode exits `1` until the remaining external gates have real passed/approved evidence. |
+| Closure gate posture | `scripts/validate_plan_closure_gate.py --allow-open` reports 4 controlled open gates and 2 passed gates (`S017-002`, `S017-006`); strict mode exits `1` until the remaining external gates have real passed/approved evidence. |
 | External handoff workspace | PASS: `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22` prepared and validated; 6 tasks, 9 draft inputs, `operator-commands.ps1`, and `operator-checklist.md` are staged, but copied templates remain blocked until edited with real operator evidence. |
 
 ## Planning Artifacts
@@ -99,14 +99,14 @@ level_3_sdk_platform: experimental
   `tests/unit/qa/test_validate_glowing_weaving_kettle_completion_audit.py`
   keep the follow-on platformization plan separate from the external closure
   gate: Track B may be locally implemented while Track A still reports
-  5 controlled-open gates and 1 passed gate.
+  4 controlled-open gates and 2 passed gates.
 - `docs/archive/audits/adr-0016-0020-disposition-review-2026-06-23.md`
   records the intentional disposition for the platformization ADRs:
   ADR-0016 through ADR-0020 stay Proposed, local feature-flagged slices are
   Alpha evidence only, and no ADR promotion implies production readiness.
 - `docs/archive/audits/external-gate-next-actions-2026-06-23.md` records the
-  current next-action/blocker cards for the five still-open external closure
-  gates: S017-002, S017-003, W3-live, AUTH-prod, and S017-007. It does not
+  historical next-action/blocker cards. Current still-open external closure
+  gates are S017-003, W3-live, AUTH-prod, and S017-007. It does not
   close gates, and strict closure remains open until completed evidence passes.
 - `docs/archive/audits/remote-ci-handoff-2026-06-23.md` records the current
   remote CI boundary: committed HEAD `e6398da` has failed push run
@@ -332,9 +332,12 @@ level_3_sdk_platform: experimental
   evidence still requires issue references.
 - `scripts/run_kimi_live_smoke.py`, `tests/live/test_kimi_live_smoke.py`, and
   `scripts/validate_kimi_live_smoke_evidence.py` are the S017-002 live-smoke
-  runner/test/validator set. Current evidence is blocked, not a live pass.
-  Strict completed evidence must record the live env gates as true, store only
-  the redacted `sha256:<prefix>` Files id hash, and confirm provider file
+  runner/test/validator set. S017-002 is closed for the Kimi Coding v1 gate by
+  `production/qa/evidence/live/kimi-live-smoke-2026-06-29.json`: required text
+  and Vision scenarios passed, while Files upload and Agent SDK are optional
+  capability observations documented as skipped with reasons. Future
+  full-capability Files evidence must record the live env gates as true, store
+  only the redacted `sha256:<prefix>` Files id hash, and confirm provider file
   cleanup. The runner captures each required scenario independently, so a
   provider/account/network failure keeps any partial scenario results and
   records only redacted scenario errors.
