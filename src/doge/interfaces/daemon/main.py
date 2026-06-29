@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import os
 import sys
 
@@ -22,6 +23,9 @@ def build_parser() -> argparse.ArgumentParser:
     serve.add_argument("--role", choices=_PROCESS_ROLES, default=None)
     status = sub.add_parser("status", help="check daemon health")
     status.add_argument("--port", type=int, default=None)
+    doctor = sub.add_parser("doctor", help="show daemon readiness checks")
+    doctor.add_argument("--port", type=int, default=None)
+    doctor.add_argument("--json", action="store_true")
     return parser
 
 
@@ -40,17 +44,34 @@ def main(argv: list[str] | None = None) -> None:
         _run_api_server(args.port, args.reload)
         return
     if args.cmd == "status":
-        import httpx
-
-        port = args.port if args.port is not None else get_settings().daemon.port
         try:
-            response = httpx.get(f"http://127.0.0.1:{port}/health/ready", timeout=2.0)
-            response.raise_for_status()
+            _fetch_readiness(args.port)
         except Exception as exc:  # noqa: BLE001 - CLI status path
             print(f"not ready: {exc}", file=sys.stderr)
             sys.exit(1)
             return
         print("ready")
+        return
+    if args.cmd == "doctor":
+        try:
+            payload = _fetch_readiness(args.port)
+        except Exception as exc:  # noqa: BLE001 - CLI doctor path
+            payload = {
+                "status": "not_ready",
+                "checks": {
+                    "daemon_http": {
+                        "ok": False,
+                        "message": str(exc),
+                    }
+                },
+            }
+        if args.json:
+            print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+        else:
+            _print_readiness(payload)
+        if payload.get("status") != "ready":
+            sys.exit(1)
+        return
 
 
 def main_api(argv: list[str] | None = None) -> None:
@@ -72,6 +93,33 @@ def _run_api_server(port: int | None, reload: bool) -> None:
 
     resolved_port = port if port is not None else get_settings().daemon.port
     uvicorn.run("doge.interfaces.api.main:app", host=_resolve_bind_host(), port=resolved_port, reload=reload)
+
+
+def _fetch_readiness(port: int | None) -> dict:
+    import httpx
+
+    resolved_port = port if port is not None else get_settings().daemon.port
+    response = httpx.get(f"http://127.0.0.1:{resolved_port}/health/ready", timeout=2.0)
+    response.raise_for_status()
+    try:
+        payload = response.json()
+    except Exception:
+        return {"status": "ready", "checks": {}}
+    if not isinstance(payload, dict):
+        return {"status": "not_ready", "checks": {"daemon_http": {"ok": False, "message": "invalid payload"}}}
+    return payload
+
+
+def _print_readiness(payload: dict) -> None:
+    print(f"status={payload.get('status', 'unknown')}")
+    checks = payload.get("checks", {})
+    if not isinstance(checks, dict):
+        return
+    for name in sorted(checks):
+        check = checks[name] if isinstance(checks[name], dict) else {"ok": False}
+        status = "ok" if check.get("ok") else "failed"
+        suffix = f": {check['message']}" if check.get("message") else ""
+        print(f"{name}={status}{suffix}")
 
 
 def _run_worker_process() -> None:

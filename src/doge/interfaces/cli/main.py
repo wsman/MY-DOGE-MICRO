@@ -7,6 +7,7 @@ Usage:
     doge anomaly [--min-ratio 3.0] [--top 20]
     doge demo [--market cn] [--top 5]
     doge macro [--verbose]
+    doge doctor [--json]
     doge session [--title "..."]
     doge run "question" [--session <session_id>] [--json] [--trace] [--follow] [--jsonl]
     doge template list|show|seed
@@ -40,6 +41,7 @@ from doge.interfaces.cli.commands import (
     cmd_breadth,
     cmd_case,
     cmd_demo,
+    cmd_doctor,
     cmd_macro,
     cmd_run,
     cmd_rsrs,
@@ -89,6 +91,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_macro.add_argument("--verbose", action="store_true", help="verbose output")
     p_macro.add_argument("--config-file", help="ignored — accepted for forward compatibility")
 
+    # doctor
+    p_doctor = sub.add_parser("doctor", help="run local diagnostics")
+    p_doctor.add_argument("--json", action="store_true")
+
     # session
     p_session = sub.add_parser("session", help="create or resume an agent session")
     p_session.add_argument("--title", default="Research session")
@@ -113,7 +119,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--session", help="attach the run to an existing session")
     p_run.add_argument("--market", default="us", choices=["cn", "us"])
     p_run.add_argument("--language", default="en")
-    p_run.add_argument("--portfolio", default="portfolio-demo")
+    p_run.add_argument("--portfolio", default=None)
     p_run.add_argument("--max-tool-rounds", type=int, default=8)
     p_run.add_argument("--json", action="store_true", help="emit JSON only")
     p_run.add_argument("--trace", action="store_true", help="print event trace after the summary")
@@ -190,6 +196,7 @@ def main(argv: list[str] | None = None) -> None:
         "breadth": cmd_breadth,
         "anomaly": cmd_anomaly,
         "demo": cmd_demo,
+        "doctor": cmd_doctor,
         "macro": cmd_macro,
         "session": cmd_session,
         "run": cmd_run,

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from doge.config import reset_settings
 from doge.interfaces.daemon import main as doged_main
 
@@ -7,6 +9,17 @@ from doge.interfaces.daemon import main as doged_main
 class _ReadyResponse:
     def raise_for_status(self) -> None:
         return None
+
+
+class _ReadinessResponse:
+    def __init__(self, payload):
+        self._payload = payload
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def json(self):
+        return self._payload
 
 
 def test_doged_status_uses_configured_daemon_port(monkeypatch, capsys):
@@ -47,6 +60,52 @@ def test_doged_status_port_argument_overrides_config(monkeypatch):
         reset_settings()
 
     assert calls == ["http://127.0.0.1:9013/health/ready"]
+
+
+def test_doged_doctor_outputs_readiness_json(monkeypatch, capsys):
+    calls: list[str] = []
+    payload = {
+        "status": "ready",
+        "checks": {
+            "database": {"ok": True},
+            "document_storage": {"ok": True},
+        },
+    }
+
+    def fake_get(url: str, *, timeout: float):
+        calls.append(url)
+        assert timeout == 2.0
+        return _ReadinessResponse(payload)
+
+    monkeypatch.setattr("httpx.get", fake_get)
+    reset_settings()
+
+    try:
+        doged_main.main(["doctor", "--port", "9015", "--json"])
+    finally:
+        reset_settings()
+
+    assert calls == ["http://127.0.0.1:9015/health/ready"]
+    assert json.loads(capsys.readouterr().out) == payload
+
+
+def test_doged_doctor_text_reports_checks(monkeypatch, capsys):
+    payload = {
+        "status": "ready",
+        "checks": {
+            "database": {"ok": True},
+            "document_storage": {"ok": True},
+        },
+    }
+
+    monkeypatch.setattr("httpx.get", lambda _url, *, timeout: _ReadinessResponse(payload))
+
+    doged_main.main(["doctor"])
+
+    out = capsys.readouterr().out
+    assert "status=ready" in out
+    assert "database=ok" in out
+    assert "document_storage=ok" in out
 
 
 def test_doged_serve_api_role_starts_uvicorn(monkeypatch):
