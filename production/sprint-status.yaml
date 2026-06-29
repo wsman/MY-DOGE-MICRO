@@ -21,7 +21,7 @@
 # READ BY: /sprint-status, /story-readiness, /story-done, CI sprint-gate jobs.
 
 version: 1
-last_updated: "2026-06-24"
+last_updated: "2026-06-29"
 # 2026-06-12 (Wave 4 cleanup): Sprint 002 implementation complete. All 13
 # stories shipped: S002-001..013 done. ADR governance — ADR-0002/0003/0005
 # Accepted in S002; ADR-0009/0010 Accepted by Wave 4 review. ADR-0004/0007
@@ -161,8 +161,8 @@ last_updated: "2026-06-24"
 # 2026-06-22 (9b77f9c plan closure gate): scripts/validate_plan_closure_gate.py
 # aggregates the remaining external evidence gates. Before S017-006 closure it
 # reported every external item open under --allow-open; after S017-006 closure
-# it reports 5 controlled open items and 1 passed item. Strict mode
-# remains nonzero until all external evidence is completed. The gate emits per-item next_action
+# it now reports 4 controlled open items and 2 passed items after S017-002
+# Coding v1 closure. Strict mode remains nonzero until all external evidence is completed. The gate emits per-item next_action
 # strict_command, and passing_results fields, prefers non-template completed
 # evidence before template fallbacks, and is paired with
 # docs/progress/9b77f9c-external-closure-runbook.md plus
@@ -209,7 +209,7 @@ last_updated: "2026-06-24"
 # 2026-06-22 (S017-006 manual closure): User confirmed the manual screen-reader
 # protocol passed. Built and strictly validated
 # production/qa/evidence/manual/research-agent-screen-reader-manual-2026-06-22.json.
-# Closure gate now reports S017-006 passed with 5 controlled open gates left.
+# Closure gate now reports S017-002 and S017-006 passed with 4 controlled open gates left.
 # 2026-06-24 (swift-frost remediation progress): Exact-SHA remote CI evidence
 # for 625285f was fetched and remains failed (GitHub Actions run 28089385791).
 # Local remediation fixed the Linux CI external-plan-path validator fallback,
@@ -228,8 +228,142 @@ last_updated: "2026-06-24"
 # regression is 1477 passed, 9 skipped, 11 warnings. This does not close S017
 # external gates or remote-CI release evidence; a future fixed SHA still needs
 # successful exact-SHA GitHub Actions evidence.
+# 2026-06-29 (Sprint F evaluation-quality closure): S017-002 Kimi Coding v1
+# live smoke is now closed by strict 2026-06-29 evidence. S017-003 and S017-007
+# remain review/external because product/provider approval and SDK registry
+# release approval still require operator decisions. Sprint F local engineering
+# scope is complete: runtime-backed citation benchmark, targeted citation fix,
+# local trend-history automation, and governance sync are done; W3-live remains open.
 
 sprints:
+  - id: SF
+    name: "Evaluation Quality Closure"
+    plan: production/sprints/sprint-f-evaluation-quality-closure.md
+    qa_plan: production/qa/qa-plan-sprint-f.md
+    start: "2026-06-29"
+    status: done
+    source: "C:\\Users\\WSMAN\\.claude\\plans\\my-doge-micro-0-lexical-meteor.md"
+    goal: >-
+      Establish a deterministic local retrieval/citation quality baseline
+      through the persisted runtime, package W3-live observation input without
+      closing operator gates, and synchronize governance status.
+    exit_criteria:
+      - "S017-002 strict Kimi Coding v1 evidence is reflected in status docs."
+      - "35-case gold set runs through PersistedResearchAgentRuntime."
+      - "Citation-quality baseline JSON and markdown summary are generated."
+      - "W3-live mapping is present but explicitly non-closing."
+      - "Runtime maturity preserves production_ready=false and stable_declaration=forbidden."
+      - "Measured citation precision gap is fixed and locked at 1.0 for the deterministic benchmark."
+      - "Local trend-history JSONL can be appended repeatably and validates."
+    stories:
+      - id: SF-001
+        title: "Governance status reconciliation"
+        epic: ep-governance-evaluation
+        tr: null
+        source: "Sprint F WP1"
+        priority: HIGH
+        effort: S
+        owner: governance
+        status: done
+        blocking_gate: true
+        note: "S017-002 strict Kimi Coding v1 evidence validates; S017-003/S017-007 remain external approval gates."
+
+      - id: SF-002
+        title: "Runtime-backed gold-set benchmark"
+        epic: ep-governance-evaluation
+        tr: null
+        source: "Sprint F WP2"
+        priority: HIGH
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "Implemented tests/eval/gold_set_seed.py, tests/eval/gold_set_runner.py, and tests/eval/test_gold_set_runtime.py. Benchmark uses isolated SQLite/storage, seeded exact evidence IDs, persisted runtime, case-aware scripted model, and benchmark lookup_evidence tool."
+
+      - id: SF-003
+        title: "Baseline evidence artifact"
+        epic: ep-governance-evaluation
+        tr: null
+        source: "Sprint F WP2/WP3"
+        priority: HIGH
+        effort: S
+        owner: qa-lead
+        status: done
+        blocking_gate: true
+        note: "Generated production/qa/evidence/eval/citation-quality-baseline-2026-06-29.json and .md through scripts/run_citation_quality_benchmark.py."
+
+      - id: SF-004
+        title: "Regression test"
+        epic: ep-governance-evaluation
+        tr: null
+        source: "Sprint F WP2"
+        priority: HIGH
+        effort: S
+        owner: qa-lead
+        status: done
+        blocking_gate: true
+        note: "tests/eval/test_gold_set_runtime.py enforces complete 35-case observations and non-None aggregate metrics without first-run aggressive thresholds."
+
+      - id: SF-005
+        title: "W3-live packaging bridge"
+        epic: ep-governance-evaluation
+        tr: null
+        source: "Sprint F WP3"
+        priority: HIGH
+        effort: S
+        owner: python-specialist
+        status: done
+        blocking_gate: true
+        note: "Baseline JSON includes w3_live_observation_input and w3_live_closure_allowed=false; CLI supports --observations-output. This does not create analyst-benchmark passed evidence."
+
+      - id: SF-006
+        title: "Runtime maturity sync"
+        epic: ep-governance-evaluation
+        tr: null
+        source: "Sprint F WP5"
+        priority: HIGH
+        effort: S
+        owner: governance
+        status: done
+        blocking_gate: true
+        note: "docs/progress/runtime-maturity.yaml records local benchmark and preserves AUTH-prod live gates as pending_operator_action."
+
+      - id: SF-007
+        title: "Retrieval/citation targeted fixes"
+        epic: ep-governance-evaluation
+        tr: null
+        source: "Sprint F WP4"
+        priority: MED
+        effort: M
+        owner: python-specialist
+        status: done
+        blocking_gate: false
+        note: "Fixed measured citation_precision gap from 0.8636363636363636 to 1.0 by preserving explicit tool-result evidence_id values, avoiding fallback chunks for explicit empty evidence results, and preventing doubled citation markers. tests/eval/test_gold_set_runtime.py locks citation_precision == 1.0."
+
+      - id: SF-008
+        title: "Trend history automation"
+        epic: ep-governance-evaluation
+        tr: null
+        source: "Sprint F WP3"
+        priority: MED
+        effort: S
+        owner: qa-lead
+        status: done
+        blocking_gate: false
+        note: "scripts/analyst_trend_history.py now supports append-local-baseline and validate. production/qa/evidence/eval/citation-quality-trend-history-2026-06-29.jsonl contains one validated local baseline row; repeated append returns changed=false. This remains local baseline evidence and does not close W3-live."
+
+      - id: SF-009
+        title: "Sprint F QA plan"
+        epic: ep-governance-evaluation
+        tr: null
+        source: "Sprint F WP5"
+        priority: HIGH
+        effort: S
+        owner: qa-lead
+        status: done
+        blocking_gate: true
+        note: "Created production/qa/qa-plan-sprint-f.md."
+
   - id: S016
     name: "Kimi Research Copilot Closure"
     plan: production/sprints/sprint-016-kimi-research-copilot-closure.md
@@ -407,9 +541,9 @@ sprints:
         priority: HIGH
         effort: S
         owner: operator
-        status: review
+        status: done
         blocking_gate: true
-        note: "Runner and validator exist at scripts/run_kimi_live_smoke.py and scripts/validate_kimi_live_smoke_evidence.py. Current redacted evidence at production/qa/evidence/live/kimi-live-smoke-2026-06-22.json records result=blocked because DOGE_LIVE_KIMI=1 and MOONSHOT_API_KEY are unavailable. Required closure is text + Vision passed; Files is optional for the Kimi Coding v1 gate and remains recorded as a capability observation. Ready for operator execution, not done."
+        note: "Closed by strict Kimi Coding v1 evidence at production/qa/evidence/live/kimi-live-smoke-2026-06-29.json and .md. scripts/validate_kimi_live_smoke_evidence.py --coding-v1 passes without --allow-blocked. Required scenarios text_k26 and vision_base64 passed; files_upload and agent_sdk_optional are documented as skipped with reasons under the optional capability posture."
 
       - id: S017-003
         title: "Financial provider fixture approval"
@@ -421,7 +555,7 @@ sprints:
         owner: product-owner
         status: review
         blocking_gate: true
-        note: "Approval packet exists at docs/progress/financial-provider-approval-packet.md. Synthetic safe provider-shaped fixtures exist at tests/fixtures/financial_connectors/provider_fixture_samples.json. Approval template and validator exist at production/qa/evidence/provider/financial-provider-approval-template-2026-06-22.json and scripts/validate_financial_provider_approval_evidence.py; the template validates only with --allow-template. Product/operator approval, provider/license scope, and any real provider-derived fixtures are still pending."
+        note: "Sprint F disposition: remains review/external. Approval packet exists at docs/progress/financial-provider-approval-packet.md. Synthetic safe provider-shaped fixtures exist at tests/fixtures/financial_connectors/provider_fixture_samples.json. Approval template and validator exist at production/qa/evidence/provider/financial-provider-approval-template-2026-06-22.json and scripts/validate_financial_provider_approval_evidence.py; the template validates only with --allow-template. Product/operator approval, provider/license scope, and any real provider-derived fixtures are still pending."
 
       - id: S017-004
         title: "Enterprise auth implementation plan and boundary"
@@ -469,7 +603,7 @@ sprints:
         owner: release-manager
         status: review
         blocking_gate: true
-        note: "SDK release approval packet exists at docs/progress/sdk-release-approval-packet.md. Python wheel, TypeScript npm pack dry-run, and local external-consumer artifact smoke passed with evidence at production/qa/evidence/sdk/sdk-external-consumer-smoke.json. Release approval template and validator exist at production/qa/evidence/sdk/sdk-release-approval-template-2026-06-22.json and scripts/validate_sdk_release_approval_evidence.py; the template validates only with --allow-template. Registry target, package name ownership, version/changelog policy, registry-backed consumer smoke, and release-manager approval remain pending."
+        note: "Sprint F disposition: remains review/external. SDK release approval packet exists at docs/progress/sdk-release-approval-packet.md. Python wheel, TypeScript npm pack dry-run, and local external-consumer artifact smoke passed with evidence at production/qa/evidence/sdk/sdk-external-consumer-smoke.json. Release approval template and validator exist at production/qa/evidence/sdk/sdk-release-approval-template-2026-06-22.json and scripts/validate_sdk_release_approval_evidence.py; the template validates only with --allow-template. Registry target, package name ownership, version/changelog policy, registry-backed consumer smoke, and release-manager approval remain pending."
 
   - id: S015
     name: "Polish, Performance, And Promotion Review"
@@ -2172,8 +2306,8 @@ rollup:
     todo: 0
     in_progress: 0
     blocked: 0
-    review: 3
-    done: 4
+    review: 2
+    done: 5
     deferred: 0
   by_priority:
     HIGH: 6
@@ -2186,10 +2320,8 @@ rollup:
     ep-release-quality: 3
     ep-sdk-daemon-client-interfaces: 1
   blocking_gated_stories:
-    - S017-002
     - S017-003
     - S017-007
   top_priority_stories:
-    - S017-002
     - S017-003
     - S017-007

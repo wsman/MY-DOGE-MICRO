@@ -5,9 +5,26 @@
 
 ## Current Task
 
-Sprint E: Adaptive Milner Bounded-Context Convergence — **COMPLETE / GO_LOCAL**. Local planning, boundary documentation, facade/tool ownership, Web navigation, runtime maturity tracking, and closure evidence are complete. No commit was requested.
+Sprint F: Evaluation Quality Closure — **LOCAL ENGINEERING COMPLETE / EXTERNAL GATES OPEN**. Runtime-backed 35-case citation-quality benchmark, SF-007 targeted citation fix, SF-008 local trend-history automation, Sprint F CDD/sprint plan/QA plan, W3-live non-closing observation bridge, S017-002 status reconciliation, and runtime maturity sync are complete locally. W3-live, S017-003, AUTH-prod, and S017-007 remain external/operator gated. No commit was requested.
 
 ## Phase Status
+
+- **Sprint F (Evaluation Quality Closure)**: **LOCAL ENGINEERING COMPLETE / EXTERNAL GATES OPEN**
+  - Gate: deterministic local retrieval/citation baseline through persisted runtime
+  - CDD: `design/cdd/sprint-f-evaluation-quality-closure.md`
+  - Sprint plan: `production/sprints/sprint-f-evaluation-quality-closure.md`
+  - QA plan: `production/qa/qa-plan-sprint-f.md`
+  - Runtime benchmark: `tests/eval/test_gold_set_runtime.py`
+  - CLI: `scripts/run_citation_quality_benchmark.py`
+  - Baseline evidence:
+    - `production/qa/evidence/eval/citation-quality-baseline-2026-06-29.json`
+    - `production/qa/evidence/eval/citation-quality-baseline-2026-06-29.md`
+    - `production/qa/evidence/eval/citation-quality-trend-history-2026-06-29.jsonl`
+  - Metrics: 35/35 observations, retrieval recall 1.0, retrieval precision 1.0, citation precision 1.0, claim/evidence precision 1.0, support accuracy 1.0, numerical consistency 1.0, usage coverage 1.0.
+  - SF-007 fix: explicit tool-result `evidence_id` values are preserved, explicit empty evidence results no longer create fallback citation chunks, and doubled `evd-evd-*` markers are blocked.
+  - SF-008 trend history: local trend-history append/validate CLI exists; repeat append of the same baseline reports `changed: false`.
+  - W3-live posture: local baseline includes `w3_live_observation_input` and `w3_live_closure_allowed: false`; W3-live remains open until real analyst/operator evidence exists.
+  - Closure gate posture: `scripts/validate_plan_closure_gate.py --allow-open` now reports 4 open / 2 passed (`S017-002`, `S017-006` passed).
 
 - **Sprint E (Adaptive Milner Bounded-Context Convergence)**: **COMPLETE / GO_LOCAL**
   - Gate: Eight bounded-context convergence under ADR-0021, ADR-0022, and ADR-0024
@@ -47,6 +64,7 @@ Sprint E: Adaptive Milner Bounded-Context Convergence — **COMPLETE / GO_LOCAL*
   - Story: S017-002
   - Gate: Kimi Coding v1 (required text + Vision; optional Files + Agent SDK)
   - Acceptance report: `production/qa/evidence/sprint-c-kimi-live-smoke-acceptance-2026-06-29.md`
+  - Sprint status: S017-002 now `done` in `production/sprint-status.yaml`.
 
 - **Sprint B (Citation/Evidence Closure)**: **COMPLETE / ACCEPTED**
   - Base committed SHA: `fd1768fa690a9a0c3a8d7905a7b72f0af54f6b04`
@@ -72,6 +90,20 @@ Sprint E: Adaptive Milner Bounded-Context Convergence — **COMPLETE / GO_LOCAL*
 
 ## Latest Verification
 
+- Sprint F runtime benchmark: **2 passed**
+- Citation-quality CLI: **passed**, generated `citation-quality-baseline-2026-06-29.json` and `.md`
+- Citation-quality metrics after SF-007: **citation_precision 1.0**
+- Trend-history CLI: **passed**, generated and validated `citation-quality-trend-history-2026-06-29.jsonl`; repeat append returned `changed: false`
+- Sprint F eval suite: **12 passed**
+- Sprint F agent/QA targeted suite: **43 passed**
+- Governance/QA unit suite: **348 passed**
+- Agent unit suite: **233 passed, 83 warnings**
+- Citation integration suite: **4 passed, 7 warnings**
+- Kimi Coding v1 evidence: **passed** with `--coding-v1` and without `--allow-blocked`
+- Plan closure gate: **acceptable open**, 4 open / 2 passed
+- Kimi/glowing completion audit validators: **passed**
+- Plan closure manifest/runbook validators: **passed**
+- Alpha fast pre-commit readiness: **passed**
 - Sprint E focused Python gates: **62 passed**
 - API/Python SDK contracts: **34 passed, 2 FastAPI deprecation warnings**
 - README/governance docs gates: **25 passed**
@@ -84,7 +116,7 @@ Sprint E: Adaptive Milner Bounded-Context Convergence — **COMPLETE / GO_LOCAL*
   - `tests/test_transport.py::TestStdioTransport::test_stdio_initialize` — stdio initialize response absent.
   - `tests/test_yfinance_adapter.py::test_download_kline_normalizes_columns_and_dtypes` — yfinance StringDtype drift.
   - `tests/unit/qa/test_validate_alpha_pre_commit_readiness.py::test_alpha_pre_commit_readiness_cli_fast` — Windows GBK decode path in alpha readiness validator subprocess output handling.
-- CRLF classifier: `git diff --ignore-cr-at-eol --shortstat` reports tracked content changes as `26 files changed, 388 insertions(+), 222 deletions(-)`.
+- CRLF classifier: `git diff --ignore-cr-at-eol --shortstat` reports tracked content changes as `41 files changed, 791 insertions(+), 272 deletions(-)`.
 
 ## Posture (unchanged)
 
@@ -103,26 +135,33 @@ Sprint E: Adaptive Milner Bounded-Context Convergence — **COMPLETE / GO_LOCAL*
 
 ## Commits this session
 
-Sprint D local implementation and acceptance is committed in the current Sprint D commit.
-- CDD promoted from `Proposed` to `Accepted`.
-- Co-author trailers removed from the Sprint D commit.
-- 2026-06-29 closure recheck: local focused Sprint D tests passed (`162 passed`), governance validators passed, strict enterprise production validation remains blocked because current evidence is still a template/preflight artifact.
-- Live enterprise auth gates remain `pending_operator_action`.
-- 2026-06-29 internal tooling posture update: added unified IdP/JWKS operator tool and documented Sprint D external-gate tooling as complete while preserving strict live pending status.
+No commit was requested for Sprint F. Current changes remain in the working tree.
 
 ## Do Not Forget
 
 - Remaining P3 external gates still require operator action; do NOT fabricate live evidence.
 - Do not change production_ready / stable_declaration / Level 3 posture.
 - ADR-0015 remains Proposed until all live evidence lands.
-- Next recommended work: commit the tooling-complete update, then execute operator-dependent live gates only if strict production/live closure is required.
+- Next recommended work: operator-owned W3-live/S017-003/AUTH-prod/S017-007 external gates, when real credentials, approvals, and analyst evidence are available.
 
 ## Files Modified (git working tree)
 
-- `design/cdd/sprint-d-enterprise-auth-hardening.md` (status promoted to Accepted)
-- `production/qa/evidence/sprint-d-enterprise-auth-hardening-acceptance-2026-06-29.md` (new)
-- `production/qa/qa-plan-sprint-d.md` (new)
-- `production/qa/evidence/manual/doged-enterprise-*-smoke-2026-06-22.json` (refreshed contents, CRLF fixed)
-- `production/qa/evidence/manual/doged-enterprise-*-smoke-2026-06-22.md` (refreshed contents, CRLF fixed)
-- `docs/progress/runtime-maturity.yaml` (added `sprint_d_enterprise_auth_hardening`)
+- `tests/eval/gold_set_seed.py` (new)
+- `tests/eval/gold_set_runner.py` (new)
+- `tests/eval/test_gold_set_runtime.py` (new)
+- `scripts/run_citation_quality_benchmark.py` (new)
+- `scripts/analyst_trend_history.py` (local baseline append/validate CLI)
+- `src/doge/platform/runtime/services.py` (explicit evidence ID preservation and empty-result fallback guard)
+- `src/doge/application/agent/artifact_citation_assembler.py` (non-duplicating citation marker format)
+- `production/qa/evidence/eval/citation-quality-baseline-2026-06-29.json` (generated)
+- `production/qa/evidence/eval/citation-quality-baseline-2026-06-29.md` (generated)
+- `production/qa/evidence/eval/citation-quality-trend-history-2026-06-29.jsonl` (generated)
+- `design/cdd/sprint-f-evaluation-quality-closure.md` (new)
+- `production/sprints/sprint-f-evaluation-quality-closure.md` (new)
+- `production/qa/qa-plan-sprint-f.md` (new)
+- `production/sprint-status.yaml` (Sprint F + S017-002 reconciliation)
+- `docs/progress/runtime-maturity.yaml` (Sprint F local benchmark gate)
 - `production/session-state/active.md` (updated)
+- `scripts/validate_plan_closure_gate.py` (Coding v1 S017-002 gate alignment)
+- `docs/progress/9b77f9c-external-closure-runbook.md` and completion audits (4 open / 2 passed gate posture)
+- `tests/unit/agent/test_tool_execution_service.py`, `tests/unit/agent/test_artifact_citation_assembler.py`, and `tests/unit/qa/test_analyst_trend_history.py` (SF-007/SF-008 regression coverage)

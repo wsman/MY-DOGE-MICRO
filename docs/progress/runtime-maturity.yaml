@@ -818,7 +818,7 @@ local_verification:
       feature_flag_deprecation_plan: "docs/archive/audits/feature-flag-deprecation-plan-2026-06-23.md; all five platformization flags remain default-off"
       remote_ci: "production/qa/evidence/ci/remote-ci-0058c5c.json; GitHub Actions run 28016915874 success for 0058c5cd4ad5770fdbbcfd751d1bd3c95374d7c9"
       governance_yaml_shape: "passed; 5 files; 0 findings"
-      closure_gate_allow_open: "passed with controlled-open result; 5 open / 1 passed external gates"
+      closure_gate_allow_open: "passed with controlled-open result; current gate posture is 4 open / 2 passed external gates"
       maturity_honesty: "passed; production_ready false and stable_declaration forbidden preserved"
       governance_adr_tests: "33 passed, 2 skipped"
       layer_architecture_tests: "76 passed, 1 warning"
@@ -1016,14 +1016,14 @@ local_verification:
       analyst_benchmark_validator_tests: "11 passed"
       analyst_benchmark_builder: "scripts/build_analyst_benchmark_evidence.py converts redacted observations plus approved thresholds into validator-ready W3-live evidence, revalidates local trend-history JSONL before writing completed evidence, and requires issue refs for failed evidence"
       analyst_benchmark_builder_tests: "4 passed"
-      plan_closure_gate: "scripts/validate_plan_closure_gate.py reports result=open with 5 controlled open external gates and 1 passed gate under --allow-open, emits next_action/strict_command/passing_results per gate, ignores template files even when they match completed-evidence globs, prefers non-template completed evidence before template fallbacks, and requires each gate to reach its explicit passing_results rather than merely passing structural validation; default strict mode rejects the same open evidence"
+      plan_closure_gate: "scripts/validate_plan_closure_gate.py reports result=open with 4 controlled open external gates and 2 passed gates under --allow-open, emits next_action/strict_command/passing_results per gate, ignores template files even when they match completed-evidence globs, prefers non-template completed evidence before template fallbacks, and requires each gate to reach its explicit passing_results rather than merely passing structural validation; default strict mode rejects the same open evidence"
       plan_closure_runbook: "docs/progress/9b77f9c-external-closure-runbook.md records required results, manifest export/validation commands, and validates against scripts/validate_plan_closure_gate.py through scripts/validate_plan_closure_runbook.py"
       plan_closure_manifest: "scripts/export_plan_closure_manifest.py writes production/qa/evidence/plan-closure/9b77f9c-external-closure-manifest.json with the 6-task external closure checklist, including 5 open gates and the passed S017-006 gate, required_results, validator_command, next_action, blockers, builder/runner handoff commands, input_templates, input_refs, output_ref, close_condition, source_plan_check SHA-256/size metadata, and non-production posture"
       plan_closure_manifest_validator: "scripts/validate_plan_closure_manifest.py verifies the generated manifest still matches the current closure gate and source plan fingerprint; stale task lists, gate metadata, or source_plan_check hashes fail"
-      plan_completion_audit_validator: "scripts/validate_kimi_plan_completion_audit.py verifies docs/progress/kimi-plan-completion-audit.md has the same six closure gates, current 5-open/1-passed posture, required passing results, fallback evidence, completed evidence patterns, and validator scripts as scripts/validate_plan_closure_gate.py"
+      plan_completion_audit_validator: "scripts/validate_kimi_plan_completion_audit.py verifies docs/progress/kimi-plan-completion-audit.md has the same six closure gates, current 4-open/2-passed posture, required passing results, fallback evidence, completed evidence patterns, and validator scripts as scripts/validate_plan_closure_gate.py"
       glowing_plan_completion_audit_validator: "scripts/validate_glowing_weaving_kettle_completion_audit.py verifies docs/progress/glowing-weaving-kettle-completion-audit.md separates Track B local platformization completion from Track A external closure, preserves non-production runtime posture, and stays synchronized with scripts/validate_plan_closure_gate.py open/passed gate state"
       alpha_magical_peach_completion_audit_validator: "scripts/validate_alpha_magical_peach_completion_audit.py verifies docs/archive/audits/alpha-magical-peach-completion-audit-2026-06-23.md keeps the plan locally hardened but not complete, preserves pending exact-SHA remote CI, controlled-open external gates, closure manifest summary, source-plan unchecked DoD items, and non-production runtime labels"
-      alpha_pre_remote_ci_package_validator: "scripts/validate_alpha_pre_remote_ci_package.py verifies docs/archive/audits/alpha-magical-peach-pre-remote-ci-package-2026-06-23.md lists the critical post-repair commit payload, preserves pending remote CI, preserves 5-open/1-passed external gate posture, and keeps non-production runtime labels"
+      alpha_pre_remote_ci_package_validator: "scripts/validate_alpha_pre_remote_ci_package.py verifies docs/archive/audits/alpha-magical-peach-pre-remote-ci-package-2026-06-23.md lists the historical critical post-repair commit payload, preserves pending remote CI context, and keeps non-production runtime labels"
       alpha_pending_payload_validator: "scripts/validate_alpha_pending_payload.py checks git status --porcelain for the critical Alpha pre-remote-CI files that must remain in the pending commit payload before an explicit commit/push creates the next target SHA"
       alpha_commit_scope_validator: "scripts/validate_alpha_commit_scope.py compares git status with unstaged, staged, and untracked material paths so unexpected material paths and missing required material paths fail before the next target SHA is created; it also exposes a post-commit material scope check for the actual target SHA; status-only line-ending/index paths are reported separately"
       alpha_remote_ci_success_applier: "scripts/apply_alpha_remote_ci_success.py applies passed exact-SHA remote CI evidence to C:/Users/Aby/.claude/plans/alpha-magical-peach.md and docs/progress/runtime-maturity.yaml after remote CI succeeds, recording the checked DoD items, target SHA, run URL, and canonical in-repo evidence ref before final closure validation"
@@ -1065,10 +1065,10 @@ local_verification:
       prepared_external_handoff_workspace: "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22; validation passed; includes operator-checklist.md; task-scoped S017-006 preflight with --require-external-inputs is ready using the filled screen-reader observations draft, while the remaining external-gate drafts still require real operator input before their builders can close gates"
       enterprise_auth_implementation_plan: "docs/progress/enterprise-auth-implementation-plan.md"
       financial_provider_approval_packet: "docs/progress/financial-provider-approval-packet.md"
-      kimi_plan_completion_audit: "docs/progress/kimi-plan-completion-audit.md; five remaining open external gates plus the completed S017-006 gate are machine-checked by scripts/validate_kimi_plan_completion_audit.py"
-      glowing_weaving_kettle_completion_audit: "docs/progress/glowing-weaving-kettle-completion-audit.md; Track B local platformization completion and Track A external-open posture are machine-checked by scripts/validate_glowing_weaving_kettle_completion_audit.py"
+      kimi_plan_completion_audit: "docs/progress/kimi-plan-completion-audit.md; four remaining open external gates plus completed S017-002 and S017-006 gates are machine-checked by scripts/validate_kimi_plan_completion_audit.py"
+      glowing_weaving_kettle_completion_audit: "docs/progress/glowing-weaving-kettle-completion-audit.md; Track B local platformization completion and Track A 4-open/2-passed external posture are machine-checked by scripts/validate_glowing_weaving_kettle_completion_audit.py"
       adr_0016_0020_disposition_review: "docs/archive/audits/adr-0016-0020-disposition-review-2026-06-23.md records Keep Proposed for ADR-0016 through ADR-0020, separates local feature-flagged platformization slices from acceptance evidence, and preserves no production-readiness implication"
-      external_gate_next_action_audit: "docs/archive/audits/external-gate-next-actions-2026-06-23.md records current next-action/blocker cards for S017-002, S017-003, W3-live, AUTH-prod, and S017-007 while preserving strict closure as open and production_ready: false"
+      external_gate_next_action_audit: "docs/archive/audits/external-gate-next-actions-2026-06-23.md is retained as historical 2026-06-23 next-action evidence; current open gates are S017-003, W3-live, AUTH-prod, and S017-007 while production_ready remains false"
       remote_ci_handoff: "docs/archive/audits/remote-ci-handoff-2026-06-23.md records failed remote CI run 27967339069 for committed HEAD e6398da, current local repair validation, missing gh CLI, scripts/verify_remote_ci_evidence.py exact-SHA verifier usage, scripts/validate_alpha_remote_ci_success.py post-fetch success validation with canonical evidence path binding, and the requirement for an explicit commit/push plus successful exact-SHA GitHub Actions run before the remote CI DoD can close"
       alpha_magical_peach_completion_audit: "docs/archive/audits/alpha-magical-peach-completion-audit-2026-06-23.md records requirement-by-requirement plan status: local hardening proved, external gates controlled-open, remote CI success pending, and no maturity promotion; scripts/validate_alpha_magical_peach_completion_audit.py machine-checks the source-plan, closure-gate, manifest, and runtime-maturity consistency"
       alpha_pre_remote_ci_package: "docs/archive/audits/alpha-magical-peach-pre-remote-ci-package-2026-06-23.md records the critical commit payload for the next remote CI attempt, including commit-scope validation, the exact-SHA fetcher, post-fetch success validator, success applier, and final closure validator, and is machine-checked by scripts/validate_alpha_pre_remote_ci_package.py"
@@ -1078,8 +1078,8 @@ local_verification:
       alpha_commit_scope: "scripts/validate_alpha_commit_scope.py passed against current git status/material paths, confirming no unexpected material files, no missing required material files, and no missing required material handoff prefix are in the Alpha pending commit scope across unstaged, staged, and untracked changes; post-commit target SHA scope support is covered; status-only line-ending/index paths are reported separately"
       git_diff_check: "passed; LF/CRLF warnings only"
       yaml_shape_check: "scripts/validate_governance_yaml_shape.py passed; 5 files, 0 findings"
-      dependency_check: "Default PATH has no Node/npm; temporary Node was found and used; Kimi live env vars unset; structured S017-002 blocked evidence exists"
-      external_items_remaining: "S017-002 real live Kimi text + Vision execution with optional Files observation, S017-003 completed provider approval/license scope and approved real provider fixture storage, W3 analyst benchmark template execution with real materials/live Kimi observations/human labels/thresholds/trend history, enterprise production validation template execution for live IdP/JWKS, production secret-store command smoke/rotation evidence, SDK registry publication/release approval/registry-backed consumer smoke, production SIEM/WORM sink integration and operator sign-off, live remote-bind deployment smoke, and production data-isolation review"
+      dependency_check: "Default PATH has no Node/npm; temporary Node was found and used; S017-002 Coding v1 live evidence is complete; remaining external dependencies are provider approval, W3-live analyst evidence, AUTH-prod live/operator evidence, and SDK registry release approval"
+      external_items_remaining: "S017-003 completed provider approval/license scope and approved real provider fixture storage, W3 analyst benchmark execution with real materials/live Kimi observations/human labels/thresholds/trend history, enterprise production validation for live IdP/JWKS, production secret-store command smoke/rotation evidence, SDK registry publication/release approval/registry-backed consumer smoke, production SIEM/WORM sink integration and operator sign-off, live remote-bind deployment smoke, and production data-isolation review"
   sprint_017_web_sdk_automated_verification:
     commands:
       - "cd web && npm ci"
@@ -1310,7 +1310,7 @@ remaining_stability_blockers:
   - Financial provider approval packet, evidence template, validator, and synthetic safe provider-shaped fixtures exist; the template validates only with --allow-template, while product/operator approval, provider/license scope, any real provider-derived fixtures, and licensed adapter implementation remain open.
   - The financial eval seed set, analyst benchmark evidence template, and validator exist; real analyst-labeled observations, acceptance thresholds, live Kimi observations, and repeat-run trend history remain open.
   - S015 local performance, accessibility, Chrome accessibility-tree smoke, Kimi retry, soak protocol, soak runner, remote CI evidence, executed one-hour local daemon soak evidence, browser SDK SSE reconnect evidence, real doged Research Agent reconnect evidence, and S017-006 manual screen-reader pass evidence landed; true manual operator-interruption reconnect session remains open.
-  - The unified 9b77f9c plan closure gate exists at scripts/validate_plan_closure_gate.py with tests in tests/unit/qa/test_validate_plan_closure_gate.py and operator steps in docs/progress/9b77f9c-external-closure-runbook.md; it currently reports 5 controlled open gates and 1 passed gate, and keeps the plan result open until live Kimi, provider approval, analyst benchmark, enterprise production validation, and SDK release approval evidence are completed.
+  - The unified 9b77f9c plan closure gate exists at scripts/validate_plan_closure_gate.py with tests in tests/unit/qa/test_validate_plan_closure_gate.py and operator steps in docs/progress/9b77f9c-external-closure-runbook.md; it currently reports 4 controlled open gates and 2 passed gates, and keeps the plan result open until provider approval, analyst benchmark, enterprise production validation, and SDK release approval evidence are completed.
 
 alpha_magical_peach_final_closure:
   result: passed
@@ -1451,3 +1451,67 @@ sprint_e_adaptive_milner_convergence:
     notes:
       - "Sprint E intentionally preserves production_ready=false, stable_declaration=forbidden, and Level 3 experimental."
       - "Full Python regression has three failures reproduced at clean HEAD 87572a0, so Sprint E records them as pre-existing and unrelated."
+
+sprint_f_evaluation_quality_closure:
+  local_runtime_backed_citation_baseline:
+    status: passed
+    evidence:
+      - tests/eval/gold_set_seed.py
+      - tests/eval/gold_set_runner.py
+      - tests/eval/test_gold_set_runtime.py
+      - scripts/run_citation_quality_benchmark.py
+      - scripts/analyst_trend_history.py
+      - production/qa/evidence/eval/citation-quality-baseline-2026-06-29.json
+      - production/qa/evidence/eval/citation-quality-baseline-2026-06-29.md
+      - production/qa/evidence/eval/citation-quality-trend-history-2026-06-29.jsonl
+    blocked_by: []
+    metrics:
+      case_count: 35
+      observed_case_count: 35
+      retrieval_recall: 1.0
+      retrieval_precision: 1.0
+      citation_precision: 1.0
+      claim_evidence_precision: 1.0
+      support_classification_accuracy: 1.0
+      numerical_consistency: 1.0
+      usage_cost_record_coverage: 1.0
+      avg_cost_usd: 0.0
+      avg_latency_ms: 7.5
+    notes:
+      - "This is a deterministic local engineering baseline through PersistedResearchAgentRuntime with a case-aware scripted model."
+      - "SF-007 fixed the measured citation_precision gap from 0.8636363636363636 to 1.0 by preserving explicit evidence IDs, avoiding fallback chunks for explicit empty evidence results, and preventing doubled citation markers."
+      - "tests/eval/test_gold_set_runtime.py now locks citation_precision == 1.0 for the deterministic local benchmark."
+  w3_live_packaging_bridge:
+    status: partial
+    evidence:
+      - scripts/run_citation_quality_benchmark.py
+      - scripts/analyst_trend_history.py
+      - production/qa/evidence/eval/citation-quality-baseline-2026-06-29.json
+      - production/qa/evidence/eval/citation-quality-trend-history-2026-06-29.jsonl
+      - scripts/build_analyst_benchmark_evidence.py
+      - scripts/validate_analyst_benchmark_evidence.py
+    blocked_by:
+      - "Approved material manifest"
+      - "Human citation and numerical labels"
+      - "Approved threshold JSON"
+      - "Redacted live Kimi observations"
+      - "Live analyst trend-history JSONL"
+      - "Analyst role, initials, and review timestamp"
+    notes:
+      - "Baseline JSON includes w3_live_observation_input and w3_live_closure_allowed=false."
+      - "Local baseline trend-history JSONL validates and repeated append is idempotent; it is not live analyst trend history."
+      - "Local/offline baseline output must not be renamed to analyst-benchmark-* or used as passed W3-live evidence."
+  governance_status_reconciliation:
+    status: passed
+    evidence:
+      - production/sprint-status.yaml
+      - production/sprints/sprint-f-evaluation-quality-closure.md
+      - production/qa/qa-plan-sprint-f.md
+      - design/cdd/sprint-f-evaluation-quality-closure.md
+      - production/qa/evidence/live/kimi-live-smoke-2026-06-29.json
+      - scripts/validate_plan_closure_gate.py
+    blocked_by: []
+    notes:
+      - "S017-002 is closed for Kimi Coding v1 by strict 2026-06-29 evidence."
+      - "S017-003 and S017-007 remain review/external; AUTH-prod live gates remain pending_operator_action under sprint_d_enterprise_auth_hardening."
+      - "Sprint F does not change production_ready=false, stable_declaration=forbidden, or Level 3 experimental."

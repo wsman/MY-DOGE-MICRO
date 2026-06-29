@@ -1,0 +1,2593 @@
+{
+  "schema_version": "doge.citation_quality_baseline.v1",
+  "created_at": "2026-06-29T16:07:23.377605+00:00",
+  "source": "local_runtime_scripted_gold_set",
+  "runtime_path": "PersistedResearchAgentRuntime",
+  "w3_live_closure_allowed": false,
+  "gold_set": {
+    "case_count": 35,
+    "categories": [
+      "annual_report",
+      "chart_image",
+      "multi_turn",
+      "portfolio_csv",
+      "presentation",
+      "relation_support",
+      "unsupported_claim"
+    ],
+    "profiles": [
+      "financial_research",
+      "vision_analysis"
+    ],
+    "required_categories_present": [
+      "annual_report",
+      "chart_image",
+      "multi_turn",
+      "portfolio_csv",
+      "presentation",
+      "relation_support",
+      "unsupported_claim"
+    ],
+    "required_categories_missing": [],
+    "citation_label_count": 30,
+    "numerical_label_count": 29,
+    "unsupported_claim_label_count": 6,
+    "human_label_complete": true
+  },
+  "score": {
+    "case_count": 35,
+    "observed_case_count": 35,
+    "results": [
+      {
+        "id": "ar_nvda_revenue_growth",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "ar_nvda_gross_margin",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "ar_msft_cloud_revenue",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "ar_aapl_services_margin",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "ar_tsla_capex",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "ppt_semis_tam",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "ppt_bank_nim",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "ppt_retail_same_store_sales",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "ppt_energy_capacity",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "ppt_healthcare_margin",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "chart_rsrs_breakout",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "chart_revenue_bar",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "chart_margin_line",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "chart_inventory_days",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "chart_drawdown",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "portfolio_sector_exposure",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "portfolio_bond_exposure",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "portfolio_var",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "portfolio_rate_shock",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "portfolio_cash_weight",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "unsupported_no_source_dividend",
+        "observed": true,
+        "retrieval_recall": null,
+        "retrieval_precision": null,
+        "citation_precision": null,
+        "claim_evidence_precision": null,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": null,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "unsupported_no_source_buyback",
+        "observed": true,
+        "retrieval_recall": null,
+        "retrieval_precision": null,
+        "citation_precision": null,
+        "claim_evidence_precision": null,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": null,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "unsupported_no_source_guidance",
+        "observed": true,
+        "retrieval_recall": null,
+        "retrieval_precision": null,
+        "citation_precision": null,
+        "claim_evidence_precision": null,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": null,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "unsupported_chart_claim",
+        "observed": true,
+        "retrieval_recall": null,
+        "retrieval_precision": null,
+        "citation_precision": null,
+        "claim_evidence_precision": null,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": null,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "unsupported_portfolio_claim",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "multi_turn_followup_margin",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "multi_turn_followup_portfolio",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "multi_turn_followup_chart",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "multi_turn_followup_unsupported",
+        "observed": true,
+        "retrieval_recall": null,
+        "retrieval_precision": null,
+        "citation_precision": null,
+        "claim_evidence_precision": null,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": null,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "multi_turn_followup_cross_doc",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "relation_support_revenue_exact",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "relation_support_margin_partial",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": null,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "relation_support_contradicted_cash",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "relation_support_unrelated_risk",
+        "observed": true,
+        "retrieval_recall": null,
+        "retrieval_precision": null,
+        "citation_precision": null,
+        "claim_evidence_precision": null,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": null,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      },
+      {
+        "id": "relation_support_portfolio_number",
+        "observed": true,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 1.0,
+        "citation_precision": 1.0,
+        "claim_evidence_precision": 1.0,
+        "support_classification_accuracy": 1.0,
+        "numerical_consistency": 1.0,
+        "usage_recorded": true,
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    ],
+    "metrics": {
+      "retrieval_recall": 1.0,
+      "retrieval_precision": 1.0,
+      "citation_precision": 1.0,
+      "claim_evidence_precision": 1.0,
+      "support_classification_accuracy": 1.0,
+      "numerical_consistency": 1.0,
+      "usage_cost_record_coverage": 1.0,
+      "avg_cost_usd": 0.0,
+      "avg_latency_ms": 7.5
+    }
+  },
+  "observations": {
+    "ar_nvda_revenue_growth": {
+      "retrieved_evidence_ids": [
+        "evd-ar-nvda-p42-revenue"
+      ],
+      "cited_evidence_ids": [
+        "evd-ar-nvda-p42-revenue"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-ar-nvda-revenue",
+          "evidence_id": "evd-ar-nvda-p42-revenue",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-ar-nvda-revenue",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "revenue_growth_pct": 126.0
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "ar_nvda_gross_margin": {
+      "retrieved_evidence_ids": [
+        "evd-ar-nvda-p45-margin"
+      ],
+      "cited_evidence_ids": [
+        "evd-ar-nvda-p45-margin"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-ar-nvda-margin",
+          "evidence_id": "evd-ar-nvda-p45-margin",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-ar-nvda-margin",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "gross_margin_pct": 73.8
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "ar_msft_cloud_revenue": {
+      "retrieved_evidence_ids": [
+        "evd-ar-msft-p36-cloud"
+      ],
+      "cited_evidence_ids": [
+        "evd-ar-msft-p36-cloud"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-ar-msft-cloud",
+          "evidence_id": "evd-ar-msft-p36-cloud",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-ar-msft-cloud",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "cloud_revenue_billion": 135.0
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "ar_aapl_services_margin": {
+      "retrieved_evidence_ids": [
+        "evd-ar-aapl-p31-services-margin"
+      ],
+      "cited_evidence_ids": [
+        "evd-ar-aapl-p31-services-margin"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-ar-aapl-services-margin",
+          "evidence_id": "evd-ar-aapl-p31-services-margin",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-ar-aapl-services-margin",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "services_gross_margin_pct": 70.8
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "ar_tsla_capex": {
+      "retrieved_evidence_ids": [
+        "evd-ar-tsla-p68-capex"
+      ],
+      "cited_evidence_ids": [
+        "evd-ar-tsla-p68-capex"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-ar-tsla-capex",
+          "evidence_id": "evd-ar-tsla-p68-capex",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-ar-tsla-capex",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "capex_billion": 8.9
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "ppt_semis_tam": {
+      "retrieved_evidence_ids": [
+        "evd-ppt-semis-s12-tam"
+      ],
+      "cited_evidence_ids": [
+        "evd-ppt-semis-s12-tam"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-ppt-semis-tam",
+          "evidence_id": "evd-ppt-semis-s12-tam",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-ppt-semis-tam",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "tam_2027_billion": 400.0
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "ppt_bank_nim": {
+      "retrieved_evidence_ids": [
+        "evd-ppt-bank-s08-nim"
+      ],
+      "cited_evidence_ids": [
+        "evd-ppt-bank-s08-nim"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-ppt-bank-nim",
+          "evidence_id": "evd-ppt-bank-s08-nim",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-ppt-bank-nim",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "nim_guidance_pct": 2.35
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "ppt_retail_same_store_sales": {
+      "retrieved_evidence_ids": [
+        "evd-ppt-retail-s15-sss"
+      ],
+      "cited_evidence_ids": [
+        "evd-ppt-retail-s15-sss"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-ppt-retail-sss",
+          "evidence_id": "evd-ppt-retail-s15-sss",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-ppt-retail-sss",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "same_store_sales_pct": 4.2
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "ppt_energy_capacity": {
+      "retrieved_evidence_ids": [
+        "evd-ppt-energy-s09-capacity"
+      ],
+      "cited_evidence_ids": [
+        "evd-ppt-energy-s09-capacity"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-ppt-energy-capacity",
+          "evidence_id": "evd-ppt-energy-s09-capacity",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-ppt-energy-capacity",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "added_capacity_gw": 1.8
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "ppt_healthcare_margin": {
+      "retrieved_evidence_ids": [
+        "evd-ppt-health-s18-margin"
+      ],
+      "cited_evidence_ids": [
+        "evd-ppt-health-s18-margin"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-ppt-health-margin",
+          "evidence_id": "evd-ppt-health-s18-margin",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-ppt-health-margin",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "operating_margin_target_pct": 18.0
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "chart_rsrs_breakout": {
+      "retrieved_evidence_ids": [
+        "evd-chart-rsrs-annotation"
+      ],
+      "cited_evidence_ids": [
+        "evd-chart-rsrs-annotation"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-chart-rsrs",
+          "evidence_id": "evd-chart-rsrs-annotation",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-chart-rsrs",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "rsrs_score": 1.25
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "chart_revenue_bar": {
+      "retrieved_evidence_ids": [
+        "evd-chart-revenue-fy2025"
+      ],
+      "cited_evidence_ids": [
+        "evd-chart-revenue-fy2025"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-chart-revenue",
+          "evidence_id": "evd-chart-revenue-fy2025",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-chart-revenue",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "fy2025_revenue_billion": 52.4
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "chart_margin_line": {
+      "retrieved_evidence_ids": [
+        "evd-chart-margin-latest"
+      ],
+      "cited_evidence_ids": [
+        "evd-chart-margin-latest"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-chart-margin",
+          "evidence_id": "evd-chart-margin-latest",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-chart-margin",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "latest_margin_pct": 31.5
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "chart_inventory_days": {
+      "retrieved_evidence_ids": [
+        "evd-chart-inventory-days"
+      ],
+      "cited_evidence_ids": [
+        "evd-chart-inventory-days"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-chart-inventory",
+          "evidence_id": "evd-chart-inventory-days",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-chart-inventory",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "inventory_days": 89.0
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "chart_drawdown": {
+      "retrieved_evidence_ids": [
+        "evd-chart-drawdown-max"
+      ],
+      "cited_evidence_ids": [
+        "evd-chart-drawdown-max"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-chart-drawdown",
+          "evidence_id": "evd-chart-drawdown-max",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-chart-drawdown",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "max_drawdown_pct": 12.4
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "portfolio_sector_exposure": {
+      "retrieved_evidence_ids": [
+        "evd-portfolio-core-tech"
+      ],
+      "cited_evidence_ids": [
+        "evd-portfolio-core-tech"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-portfolio-tech",
+          "evidence_id": "evd-portfolio-core-tech",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-portfolio-tech",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "technology_weight_pct": 67.1
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "portfolio_bond_exposure": {
+      "retrieved_evidence_ids": [
+        "evd-portfolio-core-bond"
+      ],
+      "cited_evidence_ids": [
+        "evd-portfolio-core-bond"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-portfolio-bond",
+          "evidence_id": "evd-portfolio-core-bond",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-portfolio-bond",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "bond_weight_pct": 25.7
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "portfolio_var": {
+      "retrieved_evidence_ids": [
+        "evd-portfolio-risk-var"
+      ],
+      "cited_evidence_ids": [
+        "evd-portfolio-risk-var"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-portfolio-var",
+          "evidence_id": "evd-portfolio-risk-var",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-portfolio-var",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "var_95_one_day": 1520.0
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "portfolio_rate_shock": {
+      "retrieved_evidence_ids": [
+        "evd-portfolio-rates-shock"
+      ],
+      "cited_evidence_ids": [
+        "evd-portfolio-rates-shock"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-portfolio-rate-shock",
+          "evidence_id": "evd-portfolio-rates-shock",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-portfolio-rate-shock",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "rate_shock_impact": -1260.0
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "portfolio_cash_weight": {
+      "retrieved_evidence_ids": [
+        "evd-portfolio-core-cash"
+      ],
+      "cited_evidence_ids": [
+        "evd-portfolio-core-cash"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-portfolio-cash",
+          "evidence_id": "evd-portfolio-core-cash",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-portfolio-cash",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "cash_weight_pct": 7.1
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "unsupported_no_source_dividend": {
+      "retrieved_evidence_ids": [],
+      "cited_evidence_ids": [],
+      "claim_evidence_relations": [],
+      "claims": [
+        {
+          "claim_id": "clm-unsupported-dividend",
+          "support_status": "insufficient_evidence"
+        }
+      ],
+      "numbers": {},
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "unsupported_no_source_buyback": {
+      "retrieved_evidence_ids": [],
+      "cited_evidence_ids": [],
+      "claim_evidence_relations": [],
+      "claims": [
+        {
+          "claim_id": "clm-unsupported-buyback",
+          "support_status": "insufficient_evidence"
+        }
+      ],
+      "numbers": {},
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "unsupported_no_source_guidance": {
+      "retrieved_evidence_ids": [],
+      "cited_evidence_ids": [],
+      "claim_evidence_relations": [],
+      "claims": [
+        {
+          "claim_id": "clm-unsupported-guidance",
+          "support_status": "insufficient_evidence"
+        }
+      ],
+      "numbers": {},
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "unsupported_chart_claim": {
+      "retrieved_evidence_ids": [],
+      "cited_evidence_ids": [],
+      "claim_evidence_relations": [],
+      "claims": [
+        {
+          "claim_id": "clm-unsupported-chart",
+          "support_status": "insufficient_evidence"
+        }
+      ],
+      "numbers": {},
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "unsupported_portfolio_claim": {
+      "retrieved_evidence_ids": [
+        "evd-portfolio-core-tech"
+      ],
+      "cited_evidence_ids": [
+        "evd-portfolio-core-tech"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-unsupported-portfolio",
+          "evidence_id": "evd-portfolio-core-tech",
+          "support_status": "contradicted"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-unsupported-portfolio",
+          "support_status": "contradicted"
+        }
+      ],
+      "numbers": {
+        "technology_weight_pct": 67.1
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "multi_turn_followup_margin": {
+      "retrieved_evidence_ids": [
+        "evd-ar-nvda-p45-margin"
+      ],
+      "cited_evidence_ids": [
+        "evd-ar-nvda-p45-margin"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-multi-margin",
+          "evidence_id": "evd-ar-nvda-p45-margin",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-multi-margin",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "gross_margin_pct": 73.8
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "multi_turn_followup_portfolio": {
+      "retrieved_evidence_ids": [
+        "evd-portfolio-rates-shock"
+      ],
+      "cited_evidence_ids": [
+        "evd-portfolio-rates-shock"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-multi-rates",
+          "evidence_id": "evd-portfolio-rates-shock",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-multi-rates",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "rate_shock_impact": -1260.0
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "multi_turn_followup_chart": {
+      "retrieved_evidence_ids": [
+        "evd-chart-margin-latest"
+      ],
+      "cited_evidence_ids": [
+        "evd-chart-margin-latest"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-multi-chart-margin",
+          "evidence_id": "evd-chart-margin-latest",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-multi-chart-margin",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "latest_margin_pct": 31.5
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "multi_turn_followup_unsupported": {
+      "retrieved_evidence_ids": [],
+      "cited_evidence_ids": [],
+      "claim_evidence_relations": [],
+      "claims": [
+        {
+          "claim_id": "clm-multi-unsupported",
+          "support_status": "insufficient_evidence"
+        }
+      ],
+      "numbers": {},
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "multi_turn_followup_cross_doc": {
+      "retrieved_evidence_ids": [
+        "evd-ar-msft-p36-cloud",
+        "evd-portfolio-core-tech"
+      ],
+      "cited_evidence_ids": [
+        "evd-ar-msft-p36-cloud",
+        "evd-portfolio-core-tech"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-multi-cross-doc",
+          "evidence_id": "evd-ar-msft-p36-cloud",
+          "support_status": "supported"
+        },
+        {
+          "claim_id": "clm-multi-cross-doc",
+          "evidence_id": "evd-portfolio-core-tech",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-multi-cross-doc",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "cloud_revenue_billion": 135.0,
+        "technology_weight_pct": 67.1
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "relation_support_revenue_exact": {
+      "retrieved_evidence_ids": [
+        "evd-rel-revenue-growth"
+      ],
+      "cited_evidence_ids": [
+        "evd-rel-revenue-growth"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-rel-revenue-growth",
+          "evidence_id": "evd-rel-revenue-growth",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-rel-revenue-growth",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "revenue_growth_pct": 12.0
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "relation_support_margin_partial": {
+      "retrieved_evidence_ids": [
+        "evd-rel-margin-cost"
+      ],
+      "cited_evidence_ids": [
+        "evd-rel-margin-cost"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-rel-margin-expansion",
+          "evidence_id": "evd-rel-margin-cost",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-rel-margin-expansion",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {},
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "relation_support_contradicted_cash": {
+      "retrieved_evidence_ids": [
+        "evd-rel-cash-decrease"
+      ],
+      "cited_evidence_ids": [
+        "evd-rel-cash-decrease"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-rel-cash",
+          "evidence_id": "evd-rel-cash-decrease",
+          "support_status": "contradicted"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-rel-cash",
+          "support_status": "contradicted"
+        }
+      ],
+      "numbers": {
+        "cash_balance_billion": 3.2
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "relation_support_unrelated_risk": {
+      "retrieved_evidence_ids": [],
+      "cited_evidence_ids": [],
+      "claim_evidence_relations": [],
+      "claims": [
+        {
+          "claim_id": "clm-rel-risk",
+          "support_status": "insufficient_evidence"
+        }
+      ],
+      "numbers": {},
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    },
+    "relation_support_portfolio_number": {
+      "retrieved_evidence_ids": [
+        "evd-rel-portfolio-tech"
+      ],
+      "cited_evidence_ids": [
+        "evd-rel-portfolio-tech"
+      ],
+      "claim_evidence_relations": [
+        {
+          "claim_id": "clm-rel-portfolio-tech",
+          "evidence_id": "evd-rel-portfolio-tech",
+          "support_status": "supported"
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "clm-rel-portfolio-tech",
+          "support_status": "supported"
+        }
+      ],
+      "numbers": {
+        "technology_weight_pct": 42.5
+      },
+      "usage": {
+        "cost_usd": 0.0,
+        "latency_ms": 7.5
+      }
+    }
+  },
+  "runs": [
+    {
+      "case_id": "ar_nvda_revenue_growth",
+      "run_id": "run-22ce62bcbb16",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "ar_nvda_gross_margin",
+      "run_id": "run-ac280f36a0ac",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "ar_msft_cloud_revenue",
+      "run_id": "run-cec54cca0204",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "ar_aapl_services_margin",
+      "run_id": "run-734e98bcf0d4",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "ar_tsla_capex",
+      "run_id": "run-8cc2cb58e7a5",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "ppt_semis_tam",
+      "run_id": "run-2e50ff32803e",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "ppt_bank_nim",
+      "run_id": "run-4d2efb1baa7d",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "ppt_retail_same_store_sales",
+      "run_id": "run-e97d20cb45c6",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "ppt_energy_capacity",
+      "run_id": "run-8d4d5ebf63c3",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "ppt_healthcare_margin",
+      "run_id": "run-6647090c68e0",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "chart_rsrs_breakout",
+      "run_id": "run-21507940e9a1",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "chart_revenue_bar",
+      "run_id": "run-5e70d542f927",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "chart_margin_line",
+      "run_id": "run-59ebd4f1b9dd",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "chart_inventory_days",
+      "run_id": "run-ff3efab2c6a7",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "chart_drawdown",
+      "run_id": "run-6c3743c292eb",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "portfolio_sector_exposure",
+      "run_id": "run-5d10c7930c49",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "portfolio_bond_exposure",
+      "run_id": "run-a0f593410a4a",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "portfolio_var",
+      "run_id": "run-63c4158f5d39",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "portfolio_rate_shock",
+      "run_id": "run-2b15e889c543",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "portfolio_cash_weight",
+      "run_id": "run-7596f4dbca4e",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "unsupported_no_source_dividend",
+      "run_id": "run-7d2a9fe62ad9",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "unsupported_no_source_buyback",
+      "run_id": "run-f3e9dc0552f4",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "unsupported_no_source_guidance",
+      "run_id": "run-b059bfc2d8b5",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "unsupported_chart_claim",
+      "run_id": "run-e56201f6fff4",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "unsupported_portfolio_claim",
+      "run_id": "run-05a8e75e95c1",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "multi_turn_followup_margin",
+      "run_id": "run-6d6ed25fc461",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "multi_turn_followup_portfolio",
+      "run_id": "run-f97e7ed20fc6",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "multi_turn_followup_chart",
+      "run_id": "run-7ca2f2ae5303",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "multi_turn_followup_unsupported",
+      "run_id": "run-309d53f24511",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "multi_turn_followup_cross_doc",
+      "run_id": "run-70af73eb9880",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "relation_support_revenue_exact",
+      "run_id": "run-c56c52eee8d9",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "relation_support_margin_partial",
+      "run_id": "run-f428a17f149e",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "relation_support_contradicted_cash",
+      "run_id": "run-3df52e54793c",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "relation_support_unrelated_risk",
+      "run_id": "run-449bdfa6a4d1",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    },
+    {
+      "case_id": "relation_support_portfolio_number",
+      "run_id": "run-63da831a3b81",
+      "status": "completed",
+      "event_count": 6,
+      "artifact_count": 1
+    }
+  ],
+  "w3_live_observation_input": {
+    "schema_version": "doge.w3_live_observation_input.v1",
+    "source": "citation_quality_baseline_local_scripted",
+    "w3_live_closure_allowed": false,
+    "observations": {
+      "ar_nvda_revenue_growth": {
+        "retrieved_evidence_ids": [
+          "evd-ar-nvda-p42-revenue"
+        ],
+        "cited_evidence_ids": [
+          "evd-ar-nvda-p42-revenue"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-ar-nvda-revenue",
+            "evidence_id": "evd-ar-nvda-p42-revenue",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-ar-nvda-revenue",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "revenue_growth_pct": 126.0
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "ar_nvda_gross_margin": {
+        "retrieved_evidence_ids": [
+          "evd-ar-nvda-p45-margin"
+        ],
+        "cited_evidence_ids": [
+          "evd-ar-nvda-p45-margin"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-ar-nvda-margin",
+            "evidence_id": "evd-ar-nvda-p45-margin",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-ar-nvda-margin",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "gross_margin_pct": 73.8
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "ar_msft_cloud_revenue": {
+        "retrieved_evidence_ids": [
+          "evd-ar-msft-p36-cloud"
+        ],
+        "cited_evidence_ids": [
+          "evd-ar-msft-p36-cloud"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-ar-msft-cloud",
+            "evidence_id": "evd-ar-msft-p36-cloud",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-ar-msft-cloud",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "cloud_revenue_billion": 135.0
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "ar_aapl_services_margin": {
+        "retrieved_evidence_ids": [
+          "evd-ar-aapl-p31-services-margin"
+        ],
+        "cited_evidence_ids": [
+          "evd-ar-aapl-p31-services-margin"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-ar-aapl-services-margin",
+            "evidence_id": "evd-ar-aapl-p31-services-margin",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-ar-aapl-services-margin",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "services_gross_margin_pct": 70.8
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "ar_tsla_capex": {
+        "retrieved_evidence_ids": [
+          "evd-ar-tsla-p68-capex"
+        ],
+        "cited_evidence_ids": [
+          "evd-ar-tsla-p68-capex"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-ar-tsla-capex",
+            "evidence_id": "evd-ar-tsla-p68-capex",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-ar-tsla-capex",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "capex_billion": 8.9
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "ppt_semis_tam": {
+        "retrieved_evidence_ids": [
+          "evd-ppt-semis-s12-tam"
+        ],
+        "cited_evidence_ids": [
+          "evd-ppt-semis-s12-tam"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-ppt-semis-tam",
+            "evidence_id": "evd-ppt-semis-s12-tam",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-ppt-semis-tam",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "tam_2027_billion": 400.0
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "ppt_bank_nim": {
+        "retrieved_evidence_ids": [
+          "evd-ppt-bank-s08-nim"
+        ],
+        "cited_evidence_ids": [
+          "evd-ppt-bank-s08-nim"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-ppt-bank-nim",
+            "evidence_id": "evd-ppt-bank-s08-nim",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-ppt-bank-nim",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "nim_guidance_pct": 2.35
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "ppt_retail_same_store_sales": {
+        "retrieved_evidence_ids": [
+          "evd-ppt-retail-s15-sss"
+        ],
+        "cited_evidence_ids": [
+          "evd-ppt-retail-s15-sss"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-ppt-retail-sss",
+            "evidence_id": "evd-ppt-retail-s15-sss",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-ppt-retail-sss",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "same_store_sales_pct": 4.2
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "ppt_energy_capacity": {
+        "retrieved_evidence_ids": [
+          "evd-ppt-energy-s09-capacity"
+        ],
+        "cited_evidence_ids": [
+          "evd-ppt-energy-s09-capacity"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-ppt-energy-capacity",
+            "evidence_id": "evd-ppt-energy-s09-capacity",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-ppt-energy-capacity",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "added_capacity_gw": 1.8
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "ppt_healthcare_margin": {
+        "retrieved_evidence_ids": [
+          "evd-ppt-health-s18-margin"
+        ],
+        "cited_evidence_ids": [
+          "evd-ppt-health-s18-margin"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-ppt-health-margin",
+            "evidence_id": "evd-ppt-health-s18-margin",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-ppt-health-margin",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "operating_margin_target_pct": 18.0
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "chart_rsrs_breakout": {
+        "retrieved_evidence_ids": [
+          "evd-chart-rsrs-annotation"
+        ],
+        "cited_evidence_ids": [
+          "evd-chart-rsrs-annotation"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-chart-rsrs",
+            "evidence_id": "evd-chart-rsrs-annotation",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-chart-rsrs",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "rsrs_score": 1.25
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "chart_revenue_bar": {
+        "retrieved_evidence_ids": [
+          "evd-chart-revenue-fy2025"
+        ],
+        "cited_evidence_ids": [
+          "evd-chart-revenue-fy2025"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-chart-revenue",
+            "evidence_id": "evd-chart-revenue-fy2025",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-chart-revenue",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "fy2025_revenue_billion": 52.4
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "chart_margin_line": {
+        "retrieved_evidence_ids": [
+          "evd-chart-margin-latest"
+        ],
+        "cited_evidence_ids": [
+          "evd-chart-margin-latest"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-chart-margin",
+            "evidence_id": "evd-chart-margin-latest",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-chart-margin",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "latest_margin_pct": 31.5
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "chart_inventory_days": {
+        "retrieved_evidence_ids": [
+          "evd-chart-inventory-days"
+        ],
+        "cited_evidence_ids": [
+          "evd-chart-inventory-days"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-chart-inventory",
+            "evidence_id": "evd-chart-inventory-days",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-chart-inventory",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "inventory_days": 89.0
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "chart_drawdown": {
+        "retrieved_evidence_ids": [
+          "evd-chart-drawdown-max"
+        ],
+        "cited_evidence_ids": [
+          "evd-chart-drawdown-max"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-chart-drawdown",
+            "evidence_id": "evd-chart-drawdown-max",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-chart-drawdown",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "max_drawdown_pct": 12.4
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "portfolio_sector_exposure": {
+        "retrieved_evidence_ids": [
+          "evd-portfolio-core-tech"
+        ],
+        "cited_evidence_ids": [
+          "evd-portfolio-core-tech"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-portfolio-tech",
+            "evidence_id": "evd-portfolio-core-tech",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-portfolio-tech",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "technology_weight_pct": 67.1
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "portfolio_bond_exposure": {
+        "retrieved_evidence_ids": [
+          "evd-portfolio-core-bond"
+        ],
+        "cited_evidence_ids": [
+          "evd-portfolio-core-bond"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-portfolio-bond",
+            "evidence_id": "evd-portfolio-core-bond",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-portfolio-bond",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "bond_weight_pct": 25.7
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "portfolio_var": {
+        "retrieved_evidence_ids": [
+          "evd-portfolio-risk-var"
+        ],
+        "cited_evidence_ids": [
+          "evd-portfolio-risk-var"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-portfolio-var",
+            "evidence_id": "evd-portfolio-risk-var",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-portfolio-var",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "var_95_one_day": 1520.0
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "portfolio_rate_shock": {
+        "retrieved_evidence_ids": [
+          "evd-portfolio-rates-shock"
+        ],
+        "cited_evidence_ids": [
+          "evd-portfolio-rates-shock"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-portfolio-rate-shock",
+            "evidence_id": "evd-portfolio-rates-shock",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-portfolio-rate-shock",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "rate_shock_impact": -1260.0
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "portfolio_cash_weight": {
+        "retrieved_evidence_ids": [
+          "evd-portfolio-core-cash"
+        ],
+        "cited_evidence_ids": [
+          "evd-portfolio-core-cash"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-portfolio-cash",
+            "evidence_id": "evd-portfolio-core-cash",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-portfolio-cash",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "cash_weight_pct": 7.1
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "unsupported_no_source_dividend": {
+        "retrieved_evidence_ids": [],
+        "cited_evidence_ids": [],
+        "claim_evidence_relations": [],
+        "claims": [
+          {
+            "claim_id": "clm-unsupported-dividend",
+            "support_status": "insufficient_evidence"
+          }
+        ],
+        "numbers": {},
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "unsupported_no_source_buyback": {
+        "retrieved_evidence_ids": [],
+        "cited_evidence_ids": [],
+        "claim_evidence_relations": [],
+        "claims": [
+          {
+            "claim_id": "clm-unsupported-buyback",
+            "support_status": "insufficient_evidence"
+          }
+        ],
+        "numbers": {},
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "unsupported_no_source_guidance": {
+        "retrieved_evidence_ids": [],
+        "cited_evidence_ids": [],
+        "claim_evidence_relations": [],
+        "claims": [
+          {
+            "claim_id": "clm-unsupported-guidance",
+            "support_status": "insufficient_evidence"
+          }
+        ],
+        "numbers": {},
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "unsupported_chart_claim": {
+        "retrieved_evidence_ids": [],
+        "cited_evidence_ids": [],
+        "claim_evidence_relations": [],
+        "claims": [
+          {
+            "claim_id": "clm-unsupported-chart",
+            "support_status": "insufficient_evidence"
+          }
+        ],
+        "numbers": {},
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "unsupported_portfolio_claim": {
+        "retrieved_evidence_ids": [
+          "evd-portfolio-core-tech"
+        ],
+        "cited_evidence_ids": [
+          "evd-portfolio-core-tech"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-unsupported-portfolio",
+            "evidence_id": "evd-portfolio-core-tech",
+            "support_status": "contradicted"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-unsupported-portfolio",
+            "support_status": "contradicted"
+          }
+        ],
+        "numbers": {
+          "technology_weight_pct": 67.1
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "multi_turn_followup_margin": {
+        "retrieved_evidence_ids": [
+          "evd-ar-nvda-p45-margin"
+        ],
+        "cited_evidence_ids": [
+          "evd-ar-nvda-p45-margin"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-multi-margin",
+            "evidence_id": "evd-ar-nvda-p45-margin",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-multi-margin",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "gross_margin_pct": 73.8
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "multi_turn_followup_portfolio": {
+        "retrieved_evidence_ids": [
+          "evd-portfolio-rates-shock"
+        ],
+        "cited_evidence_ids": [
+          "evd-portfolio-rates-shock"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-multi-rates",
+            "evidence_id": "evd-portfolio-rates-shock",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-multi-rates",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "rate_shock_impact": -1260.0
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "multi_turn_followup_chart": {
+        "retrieved_evidence_ids": [
+          "evd-chart-margin-latest"
+        ],
+        "cited_evidence_ids": [
+          "evd-chart-margin-latest"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-multi-chart-margin",
+            "evidence_id": "evd-chart-margin-latest",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-multi-chart-margin",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "latest_margin_pct": 31.5
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "multi_turn_followup_unsupported": {
+        "retrieved_evidence_ids": [],
+        "cited_evidence_ids": [],
+        "claim_evidence_relations": [],
+        "claims": [
+          {
+            "claim_id": "clm-multi-unsupported",
+            "support_status": "insufficient_evidence"
+          }
+        ],
+        "numbers": {},
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "multi_turn_followup_cross_doc": {
+        "retrieved_evidence_ids": [
+          "evd-ar-msft-p36-cloud",
+          "evd-portfolio-core-tech"
+        ],
+        "cited_evidence_ids": [
+          "evd-ar-msft-p36-cloud",
+          "evd-portfolio-core-tech"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-multi-cross-doc",
+            "evidence_id": "evd-ar-msft-p36-cloud",
+            "support_status": "supported"
+          },
+          {
+            "claim_id": "clm-multi-cross-doc",
+            "evidence_id": "evd-portfolio-core-tech",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-multi-cross-doc",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "cloud_revenue_billion": 135.0,
+          "technology_weight_pct": 67.1
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "relation_support_revenue_exact": {
+        "retrieved_evidence_ids": [
+          "evd-rel-revenue-growth"
+        ],
+        "cited_evidence_ids": [
+          "evd-rel-revenue-growth"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-rel-revenue-growth",
+            "evidence_id": "evd-rel-revenue-growth",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-rel-revenue-growth",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "revenue_growth_pct": 12.0
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "relation_support_margin_partial": {
+        "retrieved_evidence_ids": [
+          "evd-rel-margin-cost"
+        ],
+        "cited_evidence_ids": [
+          "evd-rel-margin-cost"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-rel-margin-expansion",
+            "evidence_id": "evd-rel-margin-cost",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-rel-margin-expansion",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {},
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "relation_support_contradicted_cash": {
+        "retrieved_evidence_ids": [
+          "evd-rel-cash-decrease"
+        ],
+        "cited_evidence_ids": [
+          "evd-rel-cash-decrease"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-rel-cash",
+            "evidence_id": "evd-rel-cash-decrease",
+            "support_status": "contradicted"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-rel-cash",
+            "support_status": "contradicted"
+          }
+        ],
+        "numbers": {
+          "cash_balance_billion": 3.2
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "relation_support_unrelated_risk": {
+        "retrieved_evidence_ids": [],
+        "cited_evidence_ids": [],
+        "claim_evidence_relations": [],
+        "claims": [
+          {
+            "claim_id": "clm-rel-risk",
+            "support_status": "insufficient_evidence"
+          }
+        ],
+        "numbers": {},
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      },
+      "relation_support_portfolio_number": {
+        "retrieved_evidence_ids": [
+          "evd-rel-portfolio-tech"
+        ],
+        "cited_evidence_ids": [
+          "evd-rel-portfolio-tech"
+        ],
+        "claim_evidence_relations": [
+          {
+            "claim_id": "clm-rel-portfolio-tech",
+            "evidence_id": "evd-rel-portfolio-tech",
+            "support_status": "supported"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "clm-rel-portfolio-tech",
+            "support_status": "supported"
+          }
+        ],
+        "numbers": {
+          "technology_weight_pct": 42.5
+        },
+        "usage": {
+          "cost_usd": 0.0,
+          "latency_ms": 7.5
+        }
+      }
+    }
+  }
+}
