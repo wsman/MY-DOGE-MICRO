@@ -1,0 +1,171 @@
+{
+  "schema_version": 1,
+  "generated_for": "sprint-e-adaptive-milner",
+  "covered_roots": [
+    "src/doge/platform",
+    "src/doge/products",
+    "src/doge/application/capabilities"
+  ],
+  "contexts": {
+    "market": {
+      "display_name": "Market Intelligence",
+      "owner": "doge.products.market",
+      "path_patterns": [
+        "src/doge/products/market/**/*.py",
+        "src/doge/application/capabilities/market_provider.py"
+      ],
+      "allowed_dependencies": [
+        "doge.application.use_cases",
+        "doge.application.capabilities.tool_utils",
+        "doge.core"
+      ],
+      "forbidden_dependencies": [
+        "doge.products.research",
+        "doge.products.portfolio",
+        "doge.products.quant"
+      ],
+      "compatibility_allowlist": []
+    },
+    "research": {
+      "display_name": "Research",
+      "owner": "doge.products.research",
+      "path_patterns": [
+        "src/doge/products/research/**/*.py",
+        "src/doge/application/capabilities/research_provider.py",
+        "src/doge/application/capabilities/fundamental_provider.py"
+      ],
+      "allowed_dependencies": [
+        "doge.application.use_cases",
+        "doge.application.capabilities.tool_utils",
+        "doge.core"
+      ],
+      "forbidden_dependencies": [
+        "doge.products.market",
+        "doge.products.portfolio",
+        "doge.products.quant"
+      ],
+      "compatibility_allowlist": []
+    },
+    "portfolio": {
+      "display_name": "Portfolio & Risk",
+      "owner": "doge.products.portfolio",
+      "path_patterns": [
+        "src/doge/products/portfolio/**/*.py",
+        "src/doge/application/capabilities/portfolio_provider.py"
+      ],
+      "allowed_dependencies": [
+        "doge.application.services",
+        "doge.application.capabilities.tool_utils",
+        "doge.core"
+      ],
+      "forbidden_dependencies": [
+        "doge.products.market",
+        "doge.products.research",
+        "doge.products.quant"
+      ],
+      "compatibility_allowlist": []
+    },
+    "quant": {
+      "display_name": "Quant & Data Lab",
+      "owner": "doge.products.quant",
+      "path_patterns": [
+        "src/doge/products/quant/**/*.py",
+        "src/doge/application/capabilities/quant_provider.py",
+        "src/doge/application/capabilities/executors/**/*.py"
+      ],
+      "allowed_dependencies": [
+        "doge.application.capabilities.tool_utils",
+        "doge.core"
+      ],
+      "forbidden_dependencies": [
+        "doge.products.market",
+        "doge.products.research",
+        "doge.products.portfolio"
+      ],
+      "compatibility_allowlist": []
+    },
+    "workspace": {
+      "display_name": "Workspace & Workflow",
+      "owner": "doge.platform.workspace",
+      "path_patterns": [
+        "src/doge/platform/workspace/**/*.py"
+      ],
+      "allowed_dependencies": [
+        "doge.application.use_cases",
+        "doge.core",
+        "doge.platform.workspace"
+      ],
+      "forbidden_dependencies": [
+        "doge.products.market",
+        "doge.products.research",
+        "doge.products.portfolio",
+        "doge.products.quant"
+      ],
+      "compatibility_allowlist": []
+    },
+    "runtime": {
+      "display_name": "Agent Runtime",
+      "owner": "doge.platform.runtime",
+      "path_patterns": [
+        "src/doge/platform/runtime/**/*.py"
+      ],
+      "allowed_dependencies": [
+        "doge.application.agent",
+        "doge.application.capabilities.registry",
+        "doge.core",
+        "doge.platform.runtime"
+      ],
+      "forbidden_dependencies": [
+        "doge.products.market",
+        "doge.products.research",
+        "doge.products.portfolio",
+        "doge.products.quant"
+      ],
+      "compatibility_allowlist": []
+    },
+    "evidence": {
+      "display_name": "Knowledge & Evidence",
+      "owner": "doge.platform.evidence",
+      "path_patterns": [
+        "src/doge/platform/evidence/**/*.py"
+      ],
+      "allowed_dependencies": [
+        "doge.application.services",
+        "doge.application.use_cases",
+        "doge.core"
+      ],
+      "forbidden_dependencies": [
+        "doge.products.market",
+        "doge.products.research",
+        "doge.products.portfolio",
+        "doge.products.quant"
+      ],
+      "compatibility_allowlist": []
+    },
+    "governance": {
+      "display_name": "Governance & Evaluation",
+      "owner": "doge.platform.governance",
+      "path_patterns": [
+        "src/doge/platform/__init__.py",
+        "src/doge/platform/governance/**/*.py",
+        "src/doge/products/__init__.py",
+        "src/doge/application/capabilities/__init__.py",
+        "src/doge/application/capabilities/compliance_provider.py",
+        "src/doge/application/capabilities/publishing_provider.py",
+        "src/doge/application/capabilities/registry.py",
+        "src/doge/application/capabilities/tool_utils.py"
+      ],
+      "allowed_dependencies": [
+        "doge.application.services",
+        "doge.core"
+      ],
+      "forbidden_dependencies": [
+        "doge.products.market",
+        "doge.products.research",
+        "doge.products.portfolio",
+        "doge.products.quant"
+      ],
+      "compatibility_allowlist": []
+    }
+  }
+}

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import router from './index'
-import { VIEW_REGISTRY } from '../views/registry'
+import { PRIMARY_SCENARIO_NAV_ITEMS, VIEW_REGISTRY } from '../views/registry'
 
 describe('product navigation routes', () => {
   afterEach(() => {
@@ -68,5 +68,14 @@ describe('product navigation routes', () => {
     expect(VIEW_REGISTRY['market-domain'].label).toBe('Market')
     expect(VIEW_REGISTRY['portfolio-domain'].label).toBe('Portfolio')
     expect(VIEW_REGISTRY['quant-domain'].label).toBe('Quant')
+  })
+
+  it('defines the four primary scenario navigation entries', () => {
+    expect(PRIMARY_SCENARIO_NAV_ITEMS).toEqual([
+      { label: 'Market', path: '/market' },
+      { label: 'Research', path: '/research' },
+      { label: 'Portfolio', path: '/portfolio' },
+      { label: 'Workspace', path: '/workspaces' },
+    ])
   })
 })

@@ -89,6 +89,23 @@ def test_default_registry_marks_high_risk_tools():
     assert categories["run_python_analysis"] == "high_risk"
 
 
+def test_high_risk_tool_schemas_include_descriptor_owned_risk_metadata():
+    registry = build_default_tool_registry()
+    metadata = {
+        schema["function"]["name"]: schema["x-doge-metadata"]
+        for schema in registry.schemas
+    }
+
+    for name in {
+        "request_approval",
+        "publish_investment_memo",
+        "propose_portfolio_rebalance",
+        "run_python_analysis",
+    }:
+        assert metadata[name]["risk_level"] == "high"
+        assert metadata[name]["approval_required"] is True
+
+
 def test_default_registry_schemas_are_generated_from_tool_descriptors():
     registry = build_default_tool_registry()
     schemas = {schema["function"]["name"]: schema for schema in registry.schemas}

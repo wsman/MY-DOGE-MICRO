@@ -1,4 +1,7 @@
-"""Fundamental data tool execution provider."""
+"""Fundamental data tool execution provider.
+
+Compatibility implementation; canonical facade is `doge.products.research.tools`.
+"""
 
 from __future__ import annotations
 

@@ -12,17 +12,21 @@ research workflows.
 - A developer maintaining the local API, CLI, web, SDK, and MCP surfaces.
 - A governance reviewer checking that maturity claims match evidence.
 
-## Core Scenarios
+## Primary Scenarios
 
-| Scenario | Primary context | Surfaces |
-|----------|-----------------|----------|
-| Scan market momentum and breadth | Market Intelligence | CLI, API, Web, MCP, PyQt |
-| Produce or review macro/company/industry research | Research | CLI, API, Web, PyQt |
-| Upload documents and ground claims in citations | Knowledge & Evidence | API, Web, SDK |
-| Track workspace/project/case organization | Workspace & Workflow | API, Web, SDK |
-| Review portfolio exposure and scenarios | Portfolio & Risk | API, Web, agent tools |
-| Run governed agent workflows | Agent Runtime | API, Web, SDK, CLI |
-| Check capability and maturity status | Governance & Evaluation | API, Web, docs |
+The product surface is organized around four primary user scenarios. See
+[user-scenarios.md](user-scenarios.md) for the full scenario contract.
+
+| Scenario | Primary contexts | Surfaces |
+|----------|------------------|----------|
+| Market Scan | Market Intelligence, Quant & Data Lab, Governance & Evaluation | Web Market, CLI, MCP, scanner compatibility |
+| Research Memo | Research, Workspace & Workflow, Agent Runtime, Knowledge & Evidence, Governance & Evaluation | Web Research, `/v1` runs, SDK, CLI |
+| Portfolio Risk | Portfolio & Risk, Market Intelligence, Governance & Evaluation | Web Portfolio, agent tools, portfolio APIs |
+| Governed Agent Workflow | Workspace & Workflow, Agent Runtime, Knowledge & Evidence, Governance & Evaluation | Web Workspace, `/v1` cases/templates/runs, SDK |
+
+Underlying capabilities such as document evidence, capability discovery,
+archive browsing, and admin review remain available, but they are presented as
+parts of these scenarios rather than as separate product modules.
 
 ## Local-First Boundary
 

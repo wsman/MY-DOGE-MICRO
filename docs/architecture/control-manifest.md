@@ -1,6 +1,6 @@
 # Architecture Control Manifest
 
-> **Manifest Version**: 2026-06-25
+> **Manifest Version**: 2026-06-29
 > **Owner**: lead-programmer (architecture); enforced by `/architecture-review`, `/gate-check`, `/story-readiness`, `/story-done`, and CI.
 > **Scope**: MY-DOGE-MICRO — local-first quantitative investment decision-support platform. This manifest is the project's control-plane reference: the quality gates, the BLOCKING vs ADVISORY evidence rules, the ADR lifecycle, the registry-write policy, the forbidden patterns, and the exact verification commands.
 > **How to use**: stories embed this manifest version in their header (`Control Manifest: 2026-06-21`); `/story-done` checks for staleness against this file's header. When a rule changes, bump the version date and re-review open stories.
@@ -66,6 +66,29 @@ From ADR-0021 + ADR-0022. These rules govern the transition from the old
   mounted.
 - TR identifiers remain flat and permanent. Never renumber TRs during bounded
   context consolidation.
+
+### Bounded Context Ownership
+
+Sprint E adds two boundary sources of truth:
+
+- `docs/architecture/module-boundaries.md` is the human-readable contract for
+  owners, public contracts, allowed calls, forbidden calls, user scenarios, and
+  compatibility surfaces.
+- `docs/architecture/module-ownership.yaml` is the machine-readable ownership
+  manifest for Sprint E gate tests. It is stored as a JSON-compatible YAML
+  document so tests can parse it without adding a PyYAML dependency.
+
+Rules:
+
+- Every file under the manifest `covered_roots` must map to exactly one bounded
+  context.
+- Compatibility exceptions must include a path, import root, and reason.
+- Product provider classes must be discoverable from owning context `tools.py`
+  modules before new callers depend on them.
+- `BuildCapabilityRegistry` belongs to Workspace & Workflow, not Governance &
+  Evaluation.
+- Remaining Web `/api/*` calls must be either migrated to `/v1`/SDK or named as
+  ADR-0024 compatibility exceptions.
 
 ---
 
@@ -269,6 +292,8 @@ python -m pytest tests/unit/agent/test_tool_registry.py tests/unit/capabilities 
 python -m pytest tests/cli/test_doged_cli.py tests/unit/agent/test_worker.py tests/contract/test_v1_api.py -q
 python -m pytest tests/contract/test_python_sdk.py -q
 python -m pytest tests/unit/layer_gates/ -q
+python -m pytest tests/unit/layer_gates/test_module_ownership.py tests/unit/layer_gates/test_web_no_legacy_api.py tests/unit/layer_gates/test_new_code_imports.py -q
+python -m pytest tests/unit/architecture/test_facade_import_parity.py tests/unit/architecture/test_facade_completeness.py tests/unit/architecture/test_tool_provider_ownership.py -q
 ```
 
 ---
@@ -305,4 +330,4 @@ The migration is incremental (ADR-0001). Legacy entrypoints stay live until repl
 
 ---
 
-*Manifest Version 2026-06-25. Re-review and bump this date whenever a rule, gate, ADR status, or verification command changes.*
+*Manifest Version 2026-06-29. Re-review and bump this date whenever a rule, gate, ADR status, or verification command changes.*

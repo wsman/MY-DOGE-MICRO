@@ -1,4 +1,8 @@
-"""Publishing and proposal tool execution provider."""
+"""Publishing and proposal tool execution provider.
+
+Compatibility implementation; canonical facade is
+`doge.platform.governance.tools`.
+"""
 
 from __future__ import annotations
 
@@ -28,6 +32,7 @@ class PublishingToolProvider:
                 },
                 required=("memo_id",),
                 category=ToolCategory.HIGH_RISK,
+                metadata={"risk_level": "high", "approval_required": True},
             ),
             ToolDescriptor(
                 name="propose_portfolio_rebalance",
@@ -38,6 +43,7 @@ class PublishingToolProvider:
                 },
                 required=("portfolio_id",),
                 category=ToolCategory.HIGH_RISK,
+                metadata={"risk_level": "high", "approval_required": True},
             ),
         )
 

@@ -1,6 +1,5 @@
 """Market Intelligence facade."""
 
-from doge.application.capabilities.market_provider import MarketToolProvider
 from doge.application.use_cases.generate_anomaly_report import GenerateAnomalyReportUseCase
 from doge.application.use_cases.generate_catalog import GenerateCatalogUseCase
 from doge.application.use_cases.generate_market_overview import GenerateMarketOverviewUseCase
@@ -25,6 +24,7 @@ from doge.core.services.breadth_service import BreadthService
 from doge.core.services.ranking_service import RankingService
 from doge.core.services.stock_service import StockService
 from doge.core.services.view_service import ViewService
+from .tools import MarketToolProvider
 
 __all__ = [
     "AnomalyService",

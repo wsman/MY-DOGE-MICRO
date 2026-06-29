@@ -4,18 +4,43 @@ from __future__ import annotations
 
 from typing import Any
 
-from doge.application.capabilities.compliance_provider import ComplianceToolProvider
-from doge.application.capabilities.fundamental_provider import FundamentalToolProvider
-from doge.application.capabilities.market_provider import MarketToolProvider
-from doge.application.capabilities.portfolio_provider import PortfolioToolProvider
-from doge.application.capabilities.publishing_provider import PublishingToolProvider
 from doge.application.capabilities.executors import DisabledCodeExecutor
-from doge.application.capabilities.quant_provider import QuantToolProvider
 from doge.application.capabilities.registry import ToolExecutionProviderRegistry
-from doge.application.capabilities.research_provider import ResearchToolProvider
 from doge.application.capabilities.tool_utils import ServiceFactory
 from doge.core.domain.tool_descriptor import ToolDescriptor
 from doge.core.ports.code_executor import ICodeExecutor
+from doge.platform.governance.tools import ComplianceToolProvider, PublishingToolProvider
+from doge.products.market.tools import MarketToolProvider
+from doge.products.portfolio.tools import PortfolioToolProvider
+from doge.products.quant.tools import QuantToolProvider
+from doge.products.research.tools import FundamentalToolProvider, ResearchToolProvider
+
+
+COMPATIBILITY_TOOL_METHODS = (
+    "query_stock",
+    "stock_overview",
+    "rsrs_ranking",
+    "market_breadth",
+    "volume_anomalies",
+    "list_views",
+    "get_portfolio_exposure",
+    "portfolio_risk",
+    "scenario_analysis",
+    "validate_financial_claims",
+    "generate_industry_report",
+    "lookup_evidence",
+    "request_approval",
+    "get_financial_statements",
+    "get_company_announcements",
+    "calculate_financial_ratios",
+    "compare_consensus_estimates",
+    "get_industry_classification",
+    "run_sql_query",
+    "run_python_analysis",
+    "screen_compliance_risk",
+    "publish_investment_memo",
+    "propose_portfolio_rebalance",
+)
 
 
 class ToolApplicationService:
@@ -74,6 +99,10 @@ class ToolApplicationService:
     def tool_descriptors(self) -> tuple[ToolDescriptor, ...]:
         """Return provider-owned descriptors for default registry assembly."""
         return self._execution_provider_registry.tool_descriptors()
+
+    def execute(self, method_name: str, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        """Execute a provider-owned tool method by name."""
+        return self._provider_execute(method_name, *args, **kwargs)
 
     def python_analysis_capability_status(self) -> dict[str, Any]:
         """Return capability metadata for the Python analysis executor."""

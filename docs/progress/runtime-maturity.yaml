@@ -1402,3 +1402,52 @@ sprint_d_enterprise_auth_hardening:
       - "SDK registry publication, release-manager approval, package-name ownership, and registry-backed consumer smoke"
     notes:
       - "Maps to S017-007 SDK release approval gate"
+
+sprint_e_adaptive_milner_convergence:
+  boundary_documentation:
+    status: passed
+    evidence:
+      - design/cdd/sprint-e-adaptive-milner-convergence.md
+      - docs/architecture/module-boundaries.md
+      - docs/architecture/module-ownership.yaml
+      - production/qa/qa-plan-sprint-e.md
+      - tests/unit/layer_gates/test_module_ownership.py
+      - tests/unit/layer_gates/test_new_code_imports.py
+      - tests/unit/layer_gates/test_web_no_legacy_api.py
+    blocked_by: []
+  facade_and_tool_ownership:
+    status: passed
+    evidence:
+      - src/doge/platform/runtime/__init__.py
+      - src/doge/platform/evidence/__init__.py
+      - src/doge/platform/governance/__init__.py
+      - src/doge/products/market/__init__.py
+      - src/doge/products/research/__init__.py
+      - src/doge/products/portfolio/__init__.py
+      - src/doge/products/quant/__init__.py
+      - tests/unit/architecture/test_facade_import_parity.py
+      - tests/unit/architecture/test_facade_completeness.py
+      - tests/unit/architecture/test_tool_provider_ownership.py
+      - tests/unit/agent/test_tool_registry.py
+      - tests/unit/agent/test_tool_service.py
+      - tests/unit/agent/test_tool_service_facade.py
+    blocked_by: []
+  web_scenario_navigation:
+    status: passed
+    evidence:
+      - docs/product/user-scenarios.md
+      - docs/reference/module-map.md
+      - web/src/App.vue
+      - web/src/router/index.ts
+      - web/src/api/scanner.ts
+      - web/src/router/productNavigation.spec.ts
+    blocked_by: []
+  maturity_posture:
+    status: passed
+    evidence:
+      - docs/progress/runtime-maturity.yaml
+      - production/qa/evidence/sprint-e-adaptive-milner-convergence-acceptance-2026-06-29.md
+    blocked_by: []
+    notes:
+      - "Sprint E intentionally preserves production_ready=false, stable_declaration=forbidden, and Level 3 experimental."
+      - "Full Python regression has three failures reproduced at clean HEAD 87572a0, so Sprint E records them as pre-existing and unrelated."

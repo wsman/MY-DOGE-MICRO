@@ -5,9 +5,21 @@
 
 ## Current Task
 
-Sprint D: Enterprise Auth Hardening — **TOOLING COMPLETE / GO_LOCAL / PENDING_LIVE**. All local implementation items and internal external-gate tooling are complete; strict operator/live evidence remains pending.
+Sprint E: Adaptive Milner Bounded-Context Convergence — **COMPLETE / GO_LOCAL**. Local planning, boundary documentation, facade/tool ownership, Web navigation, runtime maturity tracking, and closure evidence are complete. No commit was requested.
 
 ## Phase Status
+
+- **Sprint E (Adaptive Milner Bounded-Context Convergence)**: **COMPLETE / GO_LOCAL**
+  - Gate: Eight bounded-context convergence under ADR-0021, ADR-0022, and ADR-0024
+  - CDD: `design/cdd/sprint-e-adaptive-milner-convergence.md` (Accepted)
+  - QA plan: `production/qa/qa-plan-sprint-e.md`
+  - Review log: `design/cdd/reviews/sprint-e-adaptive-milner-convergence-review-log.md`
+  - Acceptance report: `production/qa/evidence/sprint-e-adaptive-milner-convergence-acceptance-2026-06-29.md`
+  - Local focused gates: **PASSED**
+  - Web tests/build: **PASSED**
+  - Runtime maturity: Sprint E recorded as passed without maturity promotion
+  - Full Python regression: **1817 passed, 3 failed, 8 skipped**
+  - The 3 full-regression failures were reproduced in a clean detached `87572a0` worktree and are not Sprint E regressions.
 
 - **Sprint D (Enterprise Auth Hardening)**: **COMPLETE / TOOLING COMPLETE / GO_LOCAL / PENDING_LIVE**
   - Story: S017-004 / AUTH-prod
@@ -60,17 +72,19 @@ Sprint D: Enterprise Auth Hardening — **TOOLING COMPLETE / GO_LOCAL / PENDING_
 
 ## Latest Verification
 
-- Focused enterprise auth tests: **147 passed**
-- Governance consistency tests: **All passed**
-- Full Python regression: **1784 passed, 2 failed, 8 skipped**
-- New failures introduced by Sprint D: **0**
-- Pre-existing failures: 2
-  - `tests/test_yfinance_adapter.py::test_download_kline_normalizes_columns_and_dtypes` — yfinance StringDtype drift (unrelated).
-  - `tests/unit/qa/test_validate_alpha_pre_commit_readiness.py::test_alpha_pre_commit_readiness_cli_fast` — handoff workspace template SHA256 mismatch from prior commit `b11b2e3` (unrelated).
-- Git diff check: **Clean — no whitespace errors in staged/unstaged changes**
-- Governance validators (`validate_governance_yaml_shape.py`, `validate_alpha_maturity_honesty.py`, `validate_enterprise_production_validation_evidence.py --allow-template`): pass
-- IdP/JWKS operator tool tests: **8 passed**
-- doged live IdP/JWKS smoke script tests: **9 passed**
+- Sprint E focused Python gates: **62 passed**
+- API/Python SDK contracts: **34 passed, 2 FastAPI deprecation warnings**
+- README/governance docs gates: **25 passed**
+- Web tests: **15 files passed, 92 tests passed**
+- Web build: **passed**
+- Docs validators: `validate_docs_links.py` validated 61 markdown files; `generate_docs_status.py --check` up to date.
+- Full Python regression: **1817 passed, 3 failed, 8 skipped, 124 warnings**
+- New failures introduced by Sprint E: **0**
+- Pre-existing/baseline failures reproduced at clean `87572a0`: 3
+  - `tests/test_transport.py::TestStdioTransport::test_stdio_initialize` — stdio initialize response absent.
+  - `tests/test_yfinance_adapter.py::test_download_kline_normalizes_columns_and_dtypes` — yfinance StringDtype drift.
+  - `tests/unit/qa/test_validate_alpha_pre_commit_readiness.py::test_alpha_pre_commit_readiness_cli_fast` — Windows GBK decode path in alpha readiness validator subprocess output handling.
+- CRLF classifier: `git diff --ignore-cr-at-eol --shortstat` reports tracked content changes as `26 files changed, 388 insertions(+), 222 deletions(-)`.
 
 ## Posture (unchanged)
 

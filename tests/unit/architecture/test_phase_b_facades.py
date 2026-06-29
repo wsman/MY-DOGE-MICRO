@@ -50,7 +50,8 @@ def test_governance_facade_exports_current_policy_symbols() -> None:
     from doge.application.use_cases.capability_registry import BuildCapabilityRegistry as OldBuildCapabilityRegistry
     from doge.core.ports.enterprise_governance import EnterpriseAuditEvent as OldEnterpriseAuditEvent
     from doge.core.ports.secrets import ISecretProvider as OldISecretProvider
-    from doge.platform.governance import BuildCapabilityRegistry, EnterpriseAuditEvent, ISecretProvider
+    from doge.platform.governance import EnterpriseAuditEvent, ISecretProvider
+    from doge.platform.workspace import BuildCapabilityRegistry
 
     assert BuildCapabilityRegistry is OldBuildCapabilityRegistry
     assert EnterpriseAuditEvent is OldEnterpriseAuditEvent

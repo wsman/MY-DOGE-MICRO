@@ -1,5 +1,9 @@
 # Agent Runtime Levels
 
+> Runtime maturity is authoritative in `docs/progress/runtime-maturity.yaml`.
+> Current posture remains `production_ready: false`,
+> `stable_declaration: forbidden`, and Level 3 `experimental`.
+
 ## Level 1 — Embedded CLI Session
 
 `doge session` and `doge run` execute in the local process through the common
@@ -17,6 +21,30 @@ bus for SSE clients with `Last-Event-ID` replay.
 The Python SDK and TypeScript SDK call the v1 daemon API. Web uses the
 TypeScript SDK for research-agent workflows while legacy `/api/*` endpoints
 remain available for existing screens.
+
+Level 3 remains experimental. SDK/Web progress does not imply Stable or
+Production Ready until all required runtime, external, provider, packaging, and
+operator gates are closed.
+
+## Preferred Stack
+
+ADR-0024 defines the preferred new platform path:
+
+```text
+process roots -> persisted runtime -> /v1/* routes -> SDK/Web/CLI clients
+```
+
+Compatibility surfaces remain available while migration evidence is gathered:
+
+| Surface | Status |
+|---------|--------|
+| Legacy `/api/*` | Compatibility with deprecation headers. |
+| `doge.application.composition` | Compatibility shim for old imports. |
+| In-memory runtime | Demo/test only. |
+| PyQt dashboard | Legacy-maintained local surface. |
+
+Sprint E adds bounded-context ownership and scenario navigation gates, but does
+not promote any runtime level.
 
 ## Maturity Rule
 

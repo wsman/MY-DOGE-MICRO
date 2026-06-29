@@ -1,4 +1,7 @@
-"""Quantitative analysis tool execution provider."""
+"""Quantitative analysis tool execution provider.
+
+Compatibility implementation; canonical facade is `doge.products.quant.tools`.
+"""
 
 from __future__ import annotations
 
@@ -65,7 +68,11 @@ class QuantToolProvider:
                 required=("code",),
                 category=ToolCategory.HIGH_RISK,
                 status=python_status["status"],
-                metadata=python_status["metadata"],
+                metadata={
+                    **python_status["metadata"],
+                    "risk_level": "high",
+                    "approval_required": True,
+                },
             ),
         )
 

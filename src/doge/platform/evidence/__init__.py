@@ -20,6 +20,7 @@ from doge.application.use_cases.run_summary import BuildRunSummary, redact_inacc
 from doge.core.domain.chunk_models import DocumentChunk
 from doge.core.domain.claim_models import CitationRecord, ClaimRecord
 from doge.core.domain.document_models import Document, DocumentStatus
+from doge.core.domain.evidence_chunk_models import EvidenceChunk
 from doge.core.domain.evidence_models import EvidenceRecord
 from doge.core.domain.page_models import DocumentPage
 from doge.core.ports.claim_repository import IClaimRepository
@@ -41,6 +42,7 @@ __all__ = [
     "DocumentStatus",
     "EvidenceBundle",
     "EvidenceBundleRecord",
+    "EvidenceChunk",
     "EvidenceRecord",
     "ExtractionResult",
     "FileUploadError",

@@ -178,6 +178,16 @@ def test_provider_facade_high_risk_tools_still_require_approval():
     assert result.data["risk_level"] == "high"
 
 
+def test_provider_facade_high_risk_metadata_is_descriptor_owned():
+    service = _service(use_capability_providers=True)
+    metadata = {descriptor.name: descriptor.metadata for descriptor in service.tool_descriptors()}
+
+    assert metadata["request_approval"]["approval_required"] is True
+    assert metadata["publish_investment_memo"]["risk_level"] == "high"
+    assert metadata["propose_portfolio_rebalance"]["risk_level"] == "high"
+    assert metadata["run_python_analysis"]["approval_required"] is True
+
+
 def test_provider_facade_forbidden_tools_remain_unavailable():
     registry = build_default_tool_registry(
         service=_service(use_capability_providers=True),

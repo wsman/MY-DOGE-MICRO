@@ -1,7 +1,5 @@
 """Research facade."""
 
-from doge.application.capabilities.fundamental_provider import FundamentalToolProvider
-from doge.application.capabilities.research_provider import ResearchToolProvider
 from doge.application.use_cases.generate_industry_report import GenerateIndustryReportUseCase
 from doge.application.use_cases.generate_macro_report import GenerateMacroReportUseCase
 from doge.application.use_cases.industry_analyzer import IndustryAnalyzerAgentUseCase
@@ -14,6 +12,7 @@ from doge.core.ports.financial_connectors import (
     IIndustryClassificationSource,
 )
 from doge.core.ports.repository import INoteRepository, IReportRepository
+from .tools import FundamentalToolProvider, ResearchToolProvider
 
 __all__ = [
     "FundamentalToolProvider",

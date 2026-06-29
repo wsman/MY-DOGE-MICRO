@@ -15,6 +15,18 @@ export interface ViewRegistryEntry {
   minWidth: number
 }
 
+export interface PrimaryScenarioNavItem {
+  label: string
+  path: string
+}
+
+export const PRIMARY_SCENARIO_NAV_ITEMS: PrimaryScenarioNavItem[] = [
+  { label: 'Market', path: '/market' },
+  { label: 'Research', path: '/research' },
+  { label: 'Portfolio', path: '/portfolio' },
+  { label: 'Workspace', path: '/workspaces' },
+]
+
 export const VIEW_REGISTRY: Record<ViewId, ViewRegistryEntry> = {
   'home-dashboard': {
     id: 'home-dashboard',

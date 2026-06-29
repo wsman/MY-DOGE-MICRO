@@ -1,4 +1,8 @@
-"""Compliance tool execution provider."""
+"""Compliance tool execution provider.
+
+Compatibility implementation; canonical facade is
+`doge.platform.governance.tools`.
+"""
 
 from __future__ import annotations
 
@@ -28,6 +32,7 @@ class ComplianceToolProvider:
                 },
                 required=("action", "risk_level"),
                 category=ToolCategory.HIGH_RISK,
+                metadata={"risk_level": "high", "approval_required": True},
             ),
             ToolDescriptor(
                 name="screen_compliance_risk",

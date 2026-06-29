@@ -10,6 +10,7 @@ import { useSplitTree } from './composables/useSplitTree'
 import { platformShellEnabled } from './config/features'
 import type { ViewId } from './types/splitTree'
 import SplitPane from './components/SplitPane.vue'
+import { PRIMARY_SCENARIO_NAV_ITEMS } from './views/registry'
 
 const splitTree = useSplitTree()
 const route = useRoute()
@@ -36,14 +37,7 @@ const routeViewMap: Record<string, ViewId> = {
   'admin-center': 'admin-center',
 }
 
-const primaryNavItems = [
-  { label: 'Home', path: '/home' },
-  { label: 'Research', path: '/research' },
-  { label: 'Market', path: '/market' },
-  { label: 'Portfolio', path: '/portfolio' },
-  { label: 'Quant', path: '/quant' },
-  { label: 'Admin', path: '/admin' },
-]
+const primaryNavItems = PRIMARY_SCENARIO_NAV_ITEMS
 
 // ---------------------------------------------------------------------------
 // Layout presets
@@ -63,18 +57,24 @@ function isActiveNav(path: string): boolean {
   if (path === '/research') {
     return [
       '/research',
-      '/workspaces',
-      '/templates',
       '/research-agent',
       '/insights',
     ].some(prefix => current === prefix || current.startsWith(`${prefix}/`))
   }
   if (path === '/market') {
-    return ['/market', '/scanner', '/cn-archive', '/us-archive'].includes(current)
+    return ['/market', '/scanner', '/cn-archive', '/us-archive', '/ticker', '/quant', '/analysis'].includes(current)
   }
   if (path === '/portfolio') return current === '/portfolio'
-  if (path === '/quant') return current === '/quant' || current === '/analysis'
-  if (path === '/admin') return current === '/admin'
+  if (path === '/workspaces') {
+    return [
+      '/workspaces',
+      '/projects',
+      '/cases',
+      '/templates',
+      '/runs',
+      '/admin',
+    ].some(prefix => current === prefix || current.startsWith(`${prefix}/`))
+  }
   return current === path
 }
 

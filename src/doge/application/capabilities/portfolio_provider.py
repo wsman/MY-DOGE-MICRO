@@ -1,4 +1,7 @@
-"""Portfolio tool execution provider."""
+"""Portfolio tool execution provider.
+
+Compatibility implementation; canonical facade is `doge.products.portfolio.tools`.
+"""
 
 from __future__ import annotations
 

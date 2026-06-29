@@ -1,4 +1,7 @@
-"""Market data tool execution provider."""
+"""Market data tool execution provider.
+
+Compatibility implementation; canonical facade is `doge.products.market.tools`.
+"""
 
 from __future__ import annotations
 
