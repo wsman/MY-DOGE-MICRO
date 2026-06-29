@@ -1,13 +1,22 @@
 # Active Session State
 
 > Living checkpoint. Gitignored. Read this first after any compaction/crash.
-> Branch: `main` · Date: 2026-06-29
+> Branch: `main` · Date: 2026-06-30
 
 ## Current Task
 
-Sprint F: Evaluation Quality Closure — **LOCAL ENGINEERING COMPLETE / EXTERNAL GATES OPEN**. Runtime-backed 35-case citation-quality benchmark, SF-007 targeted citation fix, SF-008 local trend-history automation, Sprint F CDD/sprint plan/QA plan, W3-live non-closing observation bridge, S017-002 status reconciliation, and runtime maturity sync are complete locally. W3-live, S017-003, AUTH-prod, and S017-007 remain external/operator gated. No commit was requested.
+MY-DOGE-MICRO Runtime Consolidation local remediation — **LOCAL CODE COMPLETE / EXTERNAL GATES OPEN**. Legacy API and gateway router implementations are physically split behind compatibility shims, doctor commands are implemented for `doge` and `doged`, legacy documents registration now uses persisted document services, implicit user-facing `portfolio-demo` defaults were removed, and the agent tool registry was split into `doge.application.tools`. W3-live, S017-003, AUTH-prod, and S017-007 remain external/operator gated. No commit was requested.
 
 ## Phase Status
+
+- **Runtime Consolidation Local Remediation (2026-06-30)**: **LOCAL CODE COMPLETE / EXTERNAL GATES OPEN**
+  - Interface split: legacy router implementations live under `doge.interfaces.api_legacy.routers`; `/v1` gateway router implementations live under `doge.interfaces.gateway.routers`; old `doge.interfaces.api.routers` paths remain re-export shims.
+  - Diagnostics: `doge doctor [--json]` checks local config, database paths, tracked views SQL, agent DB access, document storage writability, and model provider configuration; `doged doctor [--json] [--port]` reports `/health/ready` readiness checks.
+  - Documents: legacy `POST /api/documents` now goes through `FileUploadService` and the persisted repository path instead of an in-memory `_DOCUMENTS` registry.
+  - Portfolio defaults: run/turn/API/CLI/use-case defaults now mean no portfolio unless `portfolio_id` is explicitly supplied; `portfolio-demo` remains limited to seed/demo/test evidence.
+  - Tools: canonical tool-registry imports now come from `doge.application.tools`; `doge.application.agent.tools` remains a compatibility shim.
+  - Governance: `docs/architecture/module-boundaries.md` and `docs/progress/runtime-maturity.yaml` record local structure convergence while preserving `production_ready: false`, `stable_declaration: forbidden`, and Level 3 experimental posture.
+  - Closure gate posture: unchanged controlled-open posture with `S017-003`, `W3-live`, `AUTH-prod`, and `S017-007` still open.
 
 - **Sprint F (Evaluation Quality Closure)**: **LOCAL ENGINEERING COMPLETE / EXTERNAL GATES OPEN**
   - Gate: deterministic local retrieval/citation baseline through persisted runtime
@@ -90,6 +99,13 @@ Sprint F: Evaluation Quality Closure — **LOCAL ENGINEERING COMPLETE / EXTERNAL
 
 ## Latest Verification
 
+- Runtime consolidation CLI suite: **23 passed, 2 warnings**
+- Runtime consolidation contract/API suite: **24 passed, 2 warnings**
+- Layer/governance focused suite: **75 passed, 3 warnings**
+- Tool/portfolio focused suite: **38 passed**
+- Web targeted Research Agent store/view suite: **2 files passed, 4 tests passed**
+- Plan closure gate: **acceptable open**, 4 open / 2 passed (`S017-002`, `S017-006` passed; `S017-003`, `W3-live`, `AUTH-prod`, `S017-007` open)
+- Alpha fast pre-commit readiness: **passed** with `--mode fast --skip-pending-scope`
 - Sprint F runtime benchmark: **2 passed**
 - Citation-quality CLI: **passed**, generated `citation-quality-baseline-2026-06-29.json` and `.md`
 - Citation-quality metrics after SF-007: **citation_precision 1.0**
@@ -135,7 +151,7 @@ Sprint F: Evaluation Quality Closure — **LOCAL ENGINEERING COMPLETE / EXTERNAL
 
 ## Commits this session
 
-No commit was requested for Sprint F. Current changes remain in the working tree.
+No commit was requested for the current Runtime Consolidation remediation. Current changes remain in the working tree.
 
 ## Do Not Forget
 
@@ -145,6 +161,14 @@ No commit was requested for Sprint F. Current changes remain in the working tree
 - Next recommended work: operator-owned W3-live/S017-003/AUTH-prod/S017-007 external gates, when real credentials, approvals, and analyst evidence are available.
 
 ## Files Modified (git working tree)
+
+- Runtime consolidation current themes:
+  - `src/doge/interfaces/api_legacy/routers/*`, `src/doge/interfaces/gateway/routers/*`, and compatibility shims under `src/doge/interfaces/api/routers/*`
+  - `src/doge/interfaces/cli/commands/doctor.py`, `src/doge/interfaces/cli/main.py`, and `src/doge/interfaces/daemon/main.py`
+  - `src/doge/application/tools/*` and `src/doge/application/agent/tools.py` shim
+  - portfolio default cleanup across run/turn/use-case/unit-of-work/API/CLI paths
+  - persisted legacy document route wiring
+  - focused tests and governance docs for the local structure convergence
 
 - `tests/eval/gold_set_seed.py` (new)
 - `tests/eval/gold_set_runner.py` (new)

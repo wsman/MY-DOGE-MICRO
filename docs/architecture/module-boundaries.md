@@ -13,6 +13,12 @@
 - Bootstrap and compatibility composition roots own concrete wiring.
 - Legacy `/api/*`, `doge.application.composition`, in-memory runtime, and PyQt
   are compatibility/demo surfaces under ADR-0024.
+- Legacy router implementations live under `doge.interfaces.api_legacy.routers`;
+  `doge.interfaces.api.routers` is a compatibility shim only.
+- Daemon `/v1/*` router implementations live under `doge.interfaces.gateway.routers`;
+  `doge.interfaces.api.routers.v1` is a compatibility shim only.
+- Tool registry implementations live under `doge.application.tools`;
+  `doge.application.agent.tools` is a compatibility shim only.
 
 ## Scenario Map
 
@@ -131,6 +137,9 @@
 | Surface | Status | Rule | Earliest Removal |
 |---------|--------|------|------------------|
 | Legacy `/api/*` | Compatibility | No new platform feature only under `/api/*`; deprecation headers required. | Not before 2026-09-30 and route parity evidence. |
+| `doge.interfaces.api.routers` | Compatibility shim | New legacy-local router work uses `doge.interfaces.api_legacy.routers`; new gateway work uses `doge.interfaces.gateway.routers`. | After all internal and third-party imports migrate. |
+| `doge.interfaces.api.routers.v1` | Compatibility shim | New `/v1` implementation work uses `doge.interfaces.gateway.routers`. | After API clients and tests no longer import the old v1 module path. |
+| `doge.application.agent.tools` | Compatibility shim | New tool registry work uses `doge.application.tools`. | After runtime and test import parity evidence. |
 | `doge.application.composition` | Compatibility shim | New internal platform work should use process roots/bootstrap. | After import parity and migration notes. |
 | In-memory runtime | Demo/test only | Production-facing flows use persisted runtime. | After deterministic test alternatives exist. |
 | PyQt dashboard | Legacy local surface | Web/SDK/v1 are preferred platform UX paths. | Separate support/removal story. |

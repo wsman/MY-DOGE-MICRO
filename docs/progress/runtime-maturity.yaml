@@ -1,4 +1,4 @@
-generated_at: "2026-06-29"
+generated_at: "2026-06-30"
 stable_declaration: forbidden
 non_runtime_followup_plan: docs/progress/runtime-stability-followup-plan.md
 
@@ -46,9 +46,22 @@ single_stack_direction:
     legacy_api:
       status: compatibility
       route_family: /api/*
+      canonical_module: doge.interfaces.api_legacy.routers
+      compatibility_shim: doge.interfaces.api.routers
       deprecation_headers: true
       removal_not_before: "2026-09-30"
       notes: "Loopback local-demo routes remain mounted for compatibility; no new platform feature should be added only under /api/*."
+    daemon_gateway_routers:
+      status: canonical
+      route_family: /v1/*
+      canonical_module: doge.interfaces.gateway.routers
+      compatibility_shim: doge.interfaces.api.routers.v1
+      notes: "API URLs did not change; implementation files moved out of the legacy API package."
+    tool_registry:
+      status: canonical
+      canonical_module: doge.application.tools
+      compatibility_shim: doge.application.agent.tools
+      notes: "Runtime factory uses doge.application.tools.factory; old import path re-exports during migration."
     application_composition:
       status: compatibility_shim
       module: doge.application.composition
@@ -64,6 +77,25 @@ single_stack_direction:
       entrypoint: src/interface/dashboard.py
       blocker: "Qt DLL bootstrap still contains a machine-specific qt6_bin_path."
       notes: "Optional GUI smoke remains valuable; PyQt does not imply production readiness."
+
+local_structure_convergence_2026_06_30:
+  status: local_complete_external_gates_open
+  scope:
+    - "Physical split of legacy API router implementations to doge.interfaces.api_legacy.routers."
+    - "Physical split of daemon /v1 router implementations to doge.interfaces.gateway.routers."
+    - "doge.application.tools is the canonical tool registry package; doge.application.agent.tools remains a shim."
+    - "doge doctor and doged doctor provide local and daemon diagnostics."
+    - "Legacy POST /api/documents now uses persisted document upload/repository wiring."
+    - "Implicit portfolio-demo run/turn defaults removed; no portfolio is the default unless explicitly supplied."
+  still_open:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
 
 sprint_008_runtime_gates:
   queued_status_and_event:
@@ -84,7 +116,7 @@ sprint_008_runtime_gates:
     status: passed
     evidence:
       - src/doge/application/agent/worker.py
-      - src/doge/interfaces/api/routers/v1/runs.py
+      - src/doge/interfaces/gateway/routers/runs.py
       - tests/integration/test_daemon_worker.py
       - tests/contract/test_agent_router.py
       - tests/cli/test_cli_session.py
@@ -97,7 +129,7 @@ sprint_008_runtime_gates:
     evidence:
       - src/doge/application/agent/runtime_kernel.py
       - src/doge/application/agent/worker.py
-      - src/doge/application/agent/tools.py
+      - src/doge/application/tools/registry.py
       - tests/integration/test_daemon_worker.py
     blocked_by: []
   ci_cd_gate:
@@ -115,7 +147,7 @@ sprint_009_file_pipeline_gates:
       - src/doge/core/ports/document_repository.py
       - src/doge/application/services/file_upload_service.py
       - src/doge/infrastructure/database/agent_repositories.py
-      - src/doge/interfaces/api/routers/v1/documents.py
+      - src/doge/interfaces/gateway/routers/documents.py
       - tests/unit/test_file_upload_service.py
       - tests/contract/test_agent_repositories.py
       - tests/contract/test_v1_api.py
@@ -278,7 +310,7 @@ sprint_013_financial_tool_gates:
     status: passed
     evidence:
       - src/doge/application/services/portfolio_service.py
-      - src/doge/application/agent/tools.py
+      - src/doge/application/tools/registry.py
       - tests/unit/test_portfolio_service.py
       - tests/unit/agent/test_tool_registry.py
     blocked_by: []
@@ -321,7 +353,7 @@ sprint_014_industry_report_modular_gates:
   generate_industry_report_tool:
     status: passed
     evidence:
-      - src/doge/application/agent/tools.py
+      - src/doge/application/tools/registry.py
       - src/doge/application/agent/tool_service.py
       - tests/unit/agent/test_tool_registry.py
     blocked_by: []
@@ -331,7 +363,7 @@ sprint_014_industry_report_modular_gates:
       - src/doge/core/ports/tdx_server_list.py
       - src/doge/infrastructure/data_source/tdx_server_list.py
       - src/doge/infrastructure/data_source/tdx_helpers.py
-      - src/doge/interfaces/api/routers/scan.py
+      - src/doge/interfaces/api_legacy/routers/scan.py
       - tests/contract/test_no_micro_imports_in_interface.py
       - tests/unit/infrastructure/test_tdx_server_list.py
       - tests/unit/infrastructure/test_tdx_helpers.py
@@ -409,7 +441,7 @@ sprint_016_kimi_research_copilot_closure_gates:
       - web/src/components/agent/PortfolioImporter.vue
       - web/src/components/agent/CitationDrilldown.vue
       - web/src/components/agent/CostEvalPanel.vue
-      - src/doge/interfaces/api/routers/v1/portfolios.py
+      - src/doge/interfaces/gateway/routers/portfolios.py
       - src/doge/application/services/portfolio_import_service.py
       - production/qa/evidence/manual/research-agent-wave1-2026-06-21.md
       - production/qa/evidence/manual/research-agent-s016-web-verification-2026-06-22.md
@@ -583,7 +615,7 @@ kimi_enterprise_financial_copilot_gates:
     evidence:
       - src/doge/core/domain/tool_policy.py
       - src/doge/core/ports/tool_entitlement.py
-      - src/doge/application/agent/tools.py
+      - src/doge/application/tools/registry.py
       - tests/unit/agent/test_tool_registry.py
     blocked_by: []
   tenant_context_boundary:
@@ -672,7 +704,7 @@ level_2:
     requirement: required
     status: passed
     evidence:
-      - src/doge/interfaces/api/routers/v1/runs.py
+      - src/doge/interfaces/gateway/routers/runs.py
       - tests/integration/test_agent_sse_stream.py
       - tests/integration/test_event_bus_reconnect.py
     blocked_by: []
@@ -730,7 +762,7 @@ level_3:
     requirement: required
     status: passed
     evidence:
-      - src/doge/application/agent/tools.py
+      - src/doge/application/tools/registry.py
       - tests/unit/agent/test_tool_registry.py
       - tests/integration/test_daemon_worker.py
     blocked_by: []
