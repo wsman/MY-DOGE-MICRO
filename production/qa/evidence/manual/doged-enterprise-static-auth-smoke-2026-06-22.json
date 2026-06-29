@@ -1,6 +1,6 @@
 {
   "auth_mode": "enterprise",
-  "base_url": "http://127.0.0.1:63738",
+  "base_url": "http://127.0.0.1:65355",
   "checks": [
     {
       "name": "missing_bearer_rejected",
@@ -65,5 +65,5 @@
   "provider": "static_bearer_fixture",
   "result": "passed",
   "schema": "doge.doged_enterprise_static_auth_smoke.v1",
-  "started_at": "2026-06-21T22:30:43.061195+00:00"
+  "started_at": "2026-06-29T05:58:36.064014+00:00"
 }

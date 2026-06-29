@@ -1317,3 +1317,61 @@ alpha_magical_peach_final_closure:
   head_sha: b5ab80bc802df36b58a1e56225a87b0f2473b29e
   evidence: production/qa/evidence/ci/remote-ci-b5ab80b.json
   run_url: https://github.com/wsman/MY-DOGE-MICRO/actions/runs/28113019001
+
+sprint_d_enterprise_auth_hardening:
+  local_implementation:
+    status: passed
+    evidence:
+      - tests/unit/infrastructure/test_jwt_enterprise_auth_provider.py
+      - tests/unit/infrastructure/test_enterprise_auth_provider.py
+      - tests/unit/interfaces/test_tenant_context_middleware.py
+      - tests/unit/infrastructure/test_secret_provider.py
+      - tests/unit/infrastructure/test_enterprise_governance_repository.py
+      - tests/contract/test_enterprise_acl_api.py
+      - tests/unit/agent/test_runtime_kernel.py
+      - tests/unit/agent/test_tool_registry.py
+      - tests/unit/agent/test_tool_service.py
+      - tests/unit/agent/test_model_router.py
+      - tests/unit/agent/test_context_builder.py
+      - tests/unit/core/test_redaction.py
+      - tests/contract/test_python_sdk.py
+      - packages/doge-sdk-typescript/src/__tests__/client.spec.ts
+      - docs/architecture/adr-0015-enterprise-identity-and-access.md
+      - docs/security-and-data-boundaries.md
+    blocked_by: []
+  local_smoke_evidence:
+    status: passed
+    evidence:
+      - production/qa/evidence/manual/doged-enterprise-static-auth-smoke-2026-06-22.json
+      - production/qa/evidence/manual/doged-enterprise-jwks-auth-smoke-2026-06-22.json
+      - production/qa/evidence/manual/doged-enterprise-process-secret-auth-smoke-2026-06-22.json
+      - production/qa/evidence/manual/doged-remote-bind-gate-smoke-2026-06-22.json
+      - production/qa/evidence/sdk/sdk-external-consumer-smoke.json
+    blocked_by: []
+  live_idp_jwks:
+    status: pending_operator_action
+    evidence: []
+    blocked_by:
+      - "Live IdP/JWKS smoke against an operator-approved identity provider"
+  production_secret_store:
+    status: pending_operator_action
+    evidence: []
+    blocked_by:
+      - "Live operator KMS/Vault/cloud command smoke, permissions, rotation, and incident-response ownership"
+  live_remote_bind:
+    status: pending_operator_action
+    evidence: []
+    blocked_by:
+      - "Live remote-bind deployment smoke in an operator-approved environment"
+  production_data_isolation_review:
+    status: pending_operator_action
+    evidence: []
+    blocked_by:
+      - "Production data-isolation review in an operator-approved environment"
+  sdk_registry_release:
+    status: pending_operator_action
+    evidence: []
+    blocked_by:
+      - "SDK registry publication, release-manager approval, package-name ownership, and registry-backed consumer smoke"
+    notes:
+      - "Maps to S017-007 SDK release approval gate"

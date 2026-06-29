@@ -1,7 +1,7 @@
 {
   "audience": "doge-api",
   "auth_mode": "enterprise",
-  "base_url": "http://127.0.0.1:63914",
+  "base_url": "http://127.0.0.1:65367",
   "checks": [
     {
       "name": "missing_bearer_rejected",
@@ -62,7 +62,7 @@
     }
   ],
   "issuer": "http://127.0.0.1/local-idp",
-  "jwks_url": "http://127.0.0.1:63913/.well-known/jwks.json",
+  "jwks_url": "http://127.0.0.1:65366/.well-known/jwks.json",
   "process": {
     "forced_shutdown": false,
     "returncode": 1,
@@ -73,5 +73,5 @@
   "provider": "local_jwks_fixture",
   "result": "passed",
   "schema": "doge.doged_enterprise_jwks_auth_smoke.v1",
-  "started_at": "2026-06-21T22:34:48.115480+00:00"
+  "started_at": "2026-06-29T05:58:42.342500+00:00"
 }
