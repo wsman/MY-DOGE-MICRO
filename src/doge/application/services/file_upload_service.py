@@ -7,6 +7,7 @@ import mimetypes
 import shutil
 from pathlib import Path
 from typing import Protocol
+from uuid import uuid4
 
 from doge.application.services.file_purpose_router import route_kimi_file_purpose
 from doge.core.domain.document_models import Document, DocumentStatus
@@ -16,6 +17,10 @@ from doge.shared.scope import TenantScope
 
 class FileUploadError(ValueError):
     """Safe, user-facing upload validation error."""
+
+
+class FileUploadTooLargeError(FileUploadError):
+    """Raised when a streaming upload exceeds the configured byte budget."""
 
 
 class KimiFilesPort(Protocol):
@@ -59,6 +64,7 @@ class FileUploadService:
         parser: DocumentParserPort | None = None,
         kimi_files_client: KimiFilesPort | None = None,
         extraction_service: DocumentExtractionPort | None = None,
+        streaming_threshold_bytes: int = 8 * 1024 * 1024,
     ) -> None:
         self._repository = repository
         self._storage_dir = storage_dir
@@ -67,6 +73,7 @@ class FileUploadService:
         self._parser = parser
         self._kimi_files_client = kimi_files_client
         self._extraction_service = extraction_service
+        self._streaming_threshold_bytes = streaming_threshold_bytes
 
     def register_path(
         self,
@@ -78,7 +85,16 @@ class FileUploadService:
         source = Path(path).expanduser().resolve()
         if not source.exists() or not source.is_file():
             raise FileUploadError(f"file not found: {source}")
-        self._validate_file(source.name, source.stat().st_size)
+        size_bytes = source.stat().st_size
+        self._validate_file(source.name, size_bytes)
+        if size_bytes > self._streaming_threshold_bytes:
+            with source.open("rb") as stream:
+                return self.register_stream(
+                    stream,
+                    source.name,
+                    scope=scope,
+                    tenant_id=tenant_id,
+                )
         payload = source.read_bytes()
         return self.register_bytes(filename=source.name, payload=payload, scope=scope, tenant_id=tenant_id)
 
@@ -99,6 +115,74 @@ class FileUploadService:
             return existing
 
         storage_path = self._persist_payload(filename, file_hash, payload)
+        return self._register_stored_file(
+            filename=filename,
+            file_hash=file_hash,
+            size_bytes=len(payload),
+            storage_path=storage_path,
+            scope=resolved_scope,
+        )
+
+    def register_stream(
+        self,
+        stream,
+        filename: str,
+        *,
+        scope: TenantScope | None = None,
+        tenant_id: str | None = None,
+        chunk_size: int = 1024 * 1024,
+    ) -> dict:
+        resolved_scope = _resolve_scope(scope, tenant_id)
+        self._validate_filename(filename)
+        chunk_size = chunk_size if chunk_size > 0 else 1024 * 1024
+        self._storage_dir.mkdir(parents=True, exist_ok=True)
+        tmp_dir = self._storage_dir / ".uploads"
+        tmp_dir.mkdir(parents=True, exist_ok=True)
+        tmp = tmp_dir / f"upload-{uuid4().hex}.tmp"
+        digest = hashlib.sha256()
+        size_bytes = 0
+        try:
+            with tmp.open("wb") as target:
+                while True:
+                    chunk = stream.read(chunk_size)
+                    if not chunk:
+                        break
+                    if isinstance(chunk, str):
+                        chunk = chunk.encode("utf-8")
+                    if size_bytes + len(chunk) > self._max_file_bytes:
+                        raise FileUploadTooLargeError(f"file exceeds max size: {self._max_file_bytes} bytes")
+                    digest.update(chunk)
+                    target.write(chunk)
+                    size_bytes += len(chunk)
+            if size_bytes <= 0:
+                raise FileUploadError("file is empty")
+            file_hash = digest.hexdigest()
+            existing = self._repository.get_by_hash(file_hash, resolved_scope)
+            if existing is not None:
+                self._extract(existing)
+                return existing
+            storage_path = self._move_streamed_payload(filename, file_hash, tmp)
+            tmp = None
+            return self._register_stored_file(
+                filename=filename,
+                file_hash=file_hash,
+                size_bytes=size_bytes,
+                storage_path=storage_path,
+                scope=resolved_scope,
+            )
+        finally:
+            if tmp is not None and tmp.exists():
+                tmp.unlink()
+
+    def _register_stored_file(
+        self,
+        *,
+        filename: str,
+        file_hash: str,
+        size_bytes: int,
+        storage_path: Path,
+        scope: TenantScope,
+    ) -> dict:
         mime_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
         purpose = route_kimi_file_purpose(filename=filename, mime_type=mime_type)
         kimi_file_id: str | None = None
@@ -128,7 +212,7 @@ class FileUploadService:
             original_filename=filename,
             file_hash=file_hash,
             mime_type=mime_type,
-            size_bytes=len(payload),
+            size_bytes=size_bytes,
             storage_path=str(storage_path),
             kimi_file_id=kimi_file_id,
             kimi_file_purpose=purpose,
@@ -136,7 +220,7 @@ class FileUploadService:
             parser_error=parser_error,
             content=content,
         )
-        return self._save_and_extract(document, scope=resolved_scope)
+        return self._save_and_extract(document, scope=scope)
 
     def register_text(
         self,
@@ -164,26 +248,40 @@ class FileUploadService:
         return self._save_and_extract(document, scope=resolved_scope)
 
     def _validate_file(self, filename: str, size_bytes: int) -> None:
+        self._validate_filename(filename)
+        if size_bytes <= 0:
+            raise FileUploadError("file is empty")
+        if size_bytes > self._max_file_bytes:
+            raise FileUploadTooLargeError(f"file exceeds max size: {self._max_file_bytes} bytes")
+
+    def _validate_filename(self, filename: str) -> None:
         if not filename:
             raise FileUploadError("filename is required")
         suffix = Path(filename).suffix.lower()
         if suffix not in self._allowed_suffixes:
             raise FileUploadError(f"unsupported file type: {suffix or '<none>'}")
-        if size_bytes <= 0:
-            raise FileUploadError("file is empty")
-        if size_bytes > self._max_file_bytes:
-            raise FileUploadError(f"file exceeds max size: {self._max_file_bytes} bytes")
 
     def _persist_payload(self, filename: str, file_hash: str, payload: bytes) -> Path:
-        suffix = Path(filename).suffix.lower()
-        destination_dir = self._storage_dir / file_hash[:2]
-        destination_dir.mkdir(parents=True, exist_ok=True)
-        destination = destination_dir / f"{file_hash}{suffix}"
+        destination = self._destination_path(filename, file_hash)
         if not destination.exists():
             tmp = destination.with_suffix(destination.suffix + ".tmp")
             tmp.write_bytes(payload)
             shutil.move(str(tmp), str(destination))
         return destination
+
+    def _move_streamed_payload(self, filename: str, file_hash: str, tmp: Path) -> Path:
+        destination = self._destination_path(filename, file_hash)
+        if destination.exists():
+            tmp.unlink(missing_ok=True)
+            return destination
+        shutil.move(str(tmp), str(destination))
+        return destination
+
+    def _destination_path(self, filename: str, file_hash: str) -> Path:
+        suffix = Path(filename).suffix.lower()
+        destination_dir = self._storage_dir / file_hash[:2]
+        destination_dir.mkdir(parents=True, exist_ok=True)
+        return destination_dir / f"{file_hash}{suffix}"
 
     def _save_and_extract(self, document: Document, *, scope: TenantScope) -> dict:
         record = document.to_dict()

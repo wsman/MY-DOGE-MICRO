@@ -5,7 +5,11 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
-from doge.application.services.file_upload_service import FileUploadError, FileUploadService
+from doge.application.services.file_upload_service import (
+    FileUploadError,
+    FileUploadService,
+    FileUploadTooLargeError,
+)
 from doge.core.ports.document_repository import IDocumentRepository
 from doge.core.ports.enterprise_governance import IEnterpriseGovernanceRepository
 from doge.interfaces.api import deps
@@ -44,9 +48,9 @@ async def create_document(
             if upload is None or not hasattr(upload, "read"):
                 raise FileUploadError("multipart field 'file' is required")
             filename = getattr(upload, "filename", None) or "document"
-            payload = await upload.read()
+            stream = getattr(upload, "file", upload)
             document = UploadDocumentHandler(upload_service=upload_service).handle(
-                UploadDocumentCommand(filename=filename, payload=payload),
+                UploadDocumentCommand(filename=filename, stream=stream),
                 scope=scope,
             )
             _record_document_create(request, governance, document["document_id"])
@@ -63,6 +67,8 @@ async def create_document(
         )
         _record_document_create(request, governance, document["document_id"])
         return document
+    except FileUploadTooLargeError as exc:
+        raise HTTPException(413, str(exc)) from exc
     except FileUploadError as exc:
         raise HTTPException(400, str(exc)) from exc
 

@@ -109,13 +109,17 @@ class SQLiteRuntimeReadinessProbe:
         if process_role == "api":
             return {"ok": True, "mode": "external", "latest_heartbeat": latest}
         running = bool(getattr(worker, "is_running", lambda: False)()) if worker is not None else False
-        return {
+        check = {
             "ok": running,
             "mode": "in_process",
             "worker_id": getattr(worker, "worker_id", None) if worker is not None else None,
             "loop_running": running,
             "latest_heartbeat": latest,
         }
+        metrics = getattr(worker, "metrics", None) if worker is not None else None
+        if callable(metrics):
+            check["worker_metrics"] = metrics()
+        return check
 
     def _outbox_backlog_check(self) -> dict[str, Any]:
         try:

@@ -30,3 +30,28 @@ def test_document_store_persists_metadata_and_tenant_scope(tmp_path) -> None:
     assert saved["parsing_status"] == "uploaded"
     assert repo.get(document.document_id, tenant_b) is None
     assert repo.list_recent(tenant_b) == []
+
+
+def test_document_store_accepts_streamed_upload_metadata_shape(tmp_path) -> None:
+    db = tmp_path / "agent_state.db"
+    repo = SQLiteDocumentRepository(db)
+    scope = TenantScope.local()
+    document = {
+        "document_id": "doc-streamed",
+        "filename": "large.txt",
+        "original_filename": "large.txt",
+        "file_hash": "hash-streamed",
+        "mime_type": "text/plain",
+        "size_bytes": 4096,
+        "storage_path": str(tmp_path / "large.txt"),
+        "parsing_status": "uploaded",
+        "content": None,
+    }
+
+    repo.save(document, scope)
+
+    saved = repo.get("doc-streamed", scope)
+    assert saved is not None
+    assert saved["file_hash"] == "hash-streamed"
+    assert saved["size_bytes"] == 4096
+    assert saved["storage_path"] == str(tmp_path / "large.txt")

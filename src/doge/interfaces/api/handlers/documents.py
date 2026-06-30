@@ -13,6 +13,7 @@ class UploadDocumentCommand:
     content: str = ""
     document_id: str | None = None
     payload: bytes | None = None
+    stream: object | None = None
 
 
 class UploadDocumentHandler:
@@ -20,6 +21,12 @@ class UploadDocumentHandler:
         self._upload_service = upload_service
 
     def handle(self, command: UploadDocumentCommand, *, scope: TenantScope):
+        if command.stream is not None:
+            return self._upload_service.register_stream(
+                command.stream,
+                command.filename,
+                scope=scope,
+            )
         if command.payload is not None:
             return self._upload_service.register_bytes(
                 filename=command.filename,

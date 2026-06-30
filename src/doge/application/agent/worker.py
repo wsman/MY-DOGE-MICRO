@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from contextlib import suppress
+from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
@@ -51,6 +53,11 @@ class AsyncioWorker:
         self._task: asyncio.Task | None = None
         self._recovered = False
         self._stopping = False
+        self._runs_processed = 0
+        self._runs_failed = 0
+        self._runs_cancelled = 0
+        self._total_processing_latency_ms = 0.0
+        self._last_heartbeat_at: str | None = None
 
     def start(self) -> None:
         if self._task is None or self._task.done():
@@ -63,6 +70,20 @@ class AsyncioWorker:
 
     def is_running(self) -> bool:
         return self._task is not None and not self._task.done()
+
+    def metrics(self) -> dict[str, Any]:
+        return {
+            "runs_processed": self._runs_processed,
+            "runs_failed": self._runs_failed,
+            "runs_cancelled": self._runs_cancelled,
+            "avg_processing_latency_ms": (
+                self._total_processing_latency_ms / self._runs_processed
+                if self._runs_processed
+                else 0
+            ),
+            "last_heartbeat_at": self._last_heartbeat_at,
+            "active_run_count": len(self._active_tasks),
+        }
 
     def recover(self) -> None:
         if self._recovered:
@@ -172,6 +193,7 @@ class AsyncioWorker:
                 return
             has_signal = False
             run_id: str | None = None
+            processing_started_at: float | None = None
             heartbeat_task: asyncio.Task | None = None
             try:
                 try:
@@ -188,13 +210,16 @@ class AsyncioWorker:
                 run_id = self._run_queue.claim_atomic(self._worker_id, self._lease_seconds)
                 if run_id is None:
                     continue
+                processing_started_at = time.monotonic()
                 heartbeat_task = asyncio.create_task(self._heartbeat_loop(run_id))
                 scope = self._scope_for_run(run_id)
                 task = asyncio.create_task(self._runtime.run_to_pause_or_completion(scope, run_id))
                 self._active_tasks[run_id] = task
                 try:
                     run = await task
-                    self._run_queue.release_claim(run_id, self._worker_id, _queue_status_for_run(run))
+                    final_status = _queue_status_for_run(run)
+                    self._run_queue.release_claim(run_id, self._worker_id, final_status)
+                    self._record_processing_result(final_status, processing_started_at)
                 except asyncio.CancelledError:
                     if self._stopping:
                         task.cancel()
@@ -202,7 +227,9 @@ class AsyncioWorker:
                             await task
                         raise
                     run = await self._runtime.finalize_cancelled(self._scope_for_run(run_id), run_id)
-                    self._run_queue.release_claim(run_id, self._worker_id, _queue_status_for_run(run))
+                    final_status = _queue_status_for_run(run)
+                    self._run_queue.release_claim(run_id, self._worker_id, final_status)
+                    self._record_processing_result(final_status, processing_started_at)
                 finally:
                     self._active_tasks.pop(run_id, None)
                     if heartbeat_task is not None:
@@ -215,6 +242,7 @@ class AsyncioWorker:
                         self._runtime, run_id, "runtime failure", self._scope_resolver
                     )
                     self._run_queue.release_claim(run_id, self._worker_id, "failed")
+                    self._record_processing_result("failed", processing_started_at)
             finally:
                 if has_signal:
                     self._queue.task_done()
@@ -252,6 +280,16 @@ class AsyncioWorker:
         while True:
             await asyncio.sleep(self._heartbeat_interval_seconds)
             self._run_queue.heartbeat(self._worker_id, run_id, self._lease_seconds)
+            self._last_heartbeat_at = datetime.now(timezone.utc).isoformat()
+
+    def _record_processing_result(self, final_status: str, started_at: float | None) -> None:
+        self._runs_processed += 1
+        if final_status == "failed":
+            self._runs_failed += 1
+        elif final_status == "cancelled":
+            self._runs_cancelled += 1
+        if started_at is not None:
+            self._total_processing_latency_ms += max(0.0, (time.monotonic() - started_at) * 1000)
 
 
 def _queue_status_for_run(run: AgentRun) -> str:

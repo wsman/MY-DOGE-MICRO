@@ -202,7 +202,16 @@ def test_health_ready_reports_daemon_subsystems(tmp_path, monkeypatch):
         "document_storage",
         "model_provider_configuration",
     }
-    assert body["checks"]["worker_heartbeat"]["loop_running"] is True
+    worker_heartbeat = body["checks"]["worker_heartbeat"]
+    assert worker_heartbeat["loop_running"] is True
+    assert set(worker_heartbeat["worker_metrics"]) == {
+        "runs_processed",
+        "runs_failed",
+        "runs_cancelled",
+        "avg_processing_latency_ms",
+        "last_heartbeat_at",
+        "active_run_count",
+    }
     assert body["checks"]["model_provider_configuration"]["provider"] == "kimi"
 
 
@@ -218,6 +227,7 @@ def test_api_process_role_lifespan_does_not_start_worker(tmp_path, monkeypatch):
         body = response.json()
         assert body["process_role"] == "api"
         assert body["checks"]["worker_heartbeat"]["mode"] == "external"
+        assert "worker_metrics" not in body["checks"]["worker_heartbeat"]
         assert deps._worker is None
     finally:
         monkeypatch.delenv("DOGE_PROCESS_ROLE", raising=False)
