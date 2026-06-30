@@ -1,0 +1,82 @@
+[
+  {
+    "id": "no_portfolio_default",
+    "question": "Analyze AAPL earnings quality without an attached portfolio.",
+    "expected": ["investment_memo", "tool_call", "approval_required"],
+    "expected_tools": ["stock_overview", "request_approval"],
+    "forbidden_tools": ["get_portfolio_exposure"],
+    "expected_approval": true,
+    "expected_artifact": true
+  },
+  {
+    "id": "explicit_portfolio_risk",
+    "question": "Analyze AAPL and explicitly attached portfolio concentration.",
+    "portfolio_id": "portfolio-demo",
+    "expected": ["investment_memo", "tool_call", "approval_required"],
+    "expected_tools": ["stock_overview", "get_portfolio_exposure", "request_approval"],
+    "expected_approval": true,
+    "expected_artifact": true
+  },
+  {
+    "id": "approval_pause",
+    "question": "Prepare a high-risk memo but stop for approval.",
+    "auto_approve": false,
+    "expected": ["approval_required", "tool_call"],
+    "expected_tools": ["stock_overview", "request_approval"],
+    "expected_approval": true,
+    "expected_artifact": false
+  },
+  {
+    "id": "market_brief_no_portfolio",
+    "question": "Prepare a market brief without holdings data.",
+    "expected_tools": ["stock_overview", "request_approval"],
+    "forbidden_tools": ["get_portfolio_exposure"],
+    "expected_artifact": true
+  },
+  {
+    "id": "citation_gap_check",
+    "question": "Validate whether each conclusion has source support.",
+    "expected": ["citation_gap"],
+    "expected_tools": ["stock_overview", "request_approval"],
+    "expected_artifact": true
+  },
+  {
+    "id": "no_fabrication_check",
+    "question": "Report unavailable data without fabricating figures.",
+    "expected": ["no_fabrication"],
+    "expected_tools": ["stock_overview", "request_approval"],
+    "expected_artifact": true
+  },
+  {
+    "id": "cn_market_without_portfolio",
+    "question": "Analyze a China market research prompt without a portfolio.",
+    "market": "cn",
+    "expected_tools": ["stock_overview", "request_approval"],
+    "forbidden_tools": ["get_portfolio_exposure"],
+    "expected_artifact": true
+  },
+  {
+    "id": "language_zh_without_portfolio",
+    "question": "用中文总结投资委员会备忘录风险。",
+    "language": "zh",
+    "expected_tools": ["stock_overview", "request_approval"],
+    "forbidden_tools": ["get_portfolio_exposure"],
+    "expected_artifact": true
+  },
+  {
+    "id": "document_context_without_portfolio",
+    "question": "Analyze uploaded annual report evidence.",
+    "document_ids": ["doc-annual-report"],
+    "expected_tools": ["stock_overview", "request_approval"],
+    "forbidden_tools": ["get_portfolio_exposure"],
+    "expected_artifact": true
+  },
+  {
+    "id": "short_tool_budget",
+    "question": "Analyze with a short deterministic tool budget.",
+    "max_tool_rounds": 4,
+    "expected_tools": ["stock_overview", "request_approval"],
+    "forbidden_tools": ["get_portfolio_exposure"],
+    "expected_artifact": true
+  }
+]

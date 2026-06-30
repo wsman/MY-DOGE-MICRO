@@ -1,0 +1,36 @@
+{
+  "steps": [
+    {
+      "required_tools": [],
+      "reasoning_content": "Need company facts before checking explicit portfolio exposure.",
+      "tool_call": {
+        "id": "call-stock-overview",
+        "name": "stock_overview",
+        "arguments": {
+          "ticker": "AAPL",
+          "market": "us"
+        }
+      }
+    },
+    {
+      "required_tools": ["stock_overview"],
+      "final_memo": "# Portfolio Risk\n\nNo portfolio exposure was used because no authorized portfolio marker was present.\n"
+    },
+    {
+      "required_tools": ["stock_overview"],
+      "required_portfolio_marker": true,
+      "reasoning_content": "Need the explicitly authorized portfolio exposure.",
+      "tool_call": {
+        "id": "call-portfolio",
+        "name": "get_portfolio_exposure",
+        "arguments": {
+          "portfolio_id": "{portfolio_id}"
+        }
+      }
+    },
+    {
+      "required_tools": ["stock_overview", "get_portfolio_exposure"],
+      "final_memo": "# Portfolio Risk\n\nExplicit portfolio exposure reviewed.\n"
+    }
+  ]
+}

@@ -11,6 +11,7 @@ Usage:
     doge session [--title "..."]
     doge run "question" [--session <session_id>] [--json] [--trace] [--follow] [--jsonl]
     doge run --resume <run_id> [--approval <approval_id>] [--deny]
+    doge batch --cases cases.json [--output results.json]
     doge template list|show|seed
     doge case list|show|preflight|execute|review|decision
 
@@ -39,6 +40,7 @@ for _stream_name in ("stdout", "stderr"):
 
 from doge.interfaces.cli.commands import (
     cmd_anomaly,
+    cmd_batch,
     cmd_breadth,
     cmd_case,
     cmd_demo,
@@ -130,6 +132,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--follow", action="store_true", help="print run events after the summary")
     p_run.add_argument("--jsonl", action="store_true", help="emit run summary and events as JSON Lines")
 
+    # batch
+    p_batch = sub.add_parser("batch", help="run offline deterministic research-agent cases")
+    p_batch.add_argument("--cases", required=True, help="case file path")
+    p_batch.add_argument("--output", help="write result to path instead of stdout")
+    p_batch.add_argument("--format", default="json", choices=["json", "markdown"])
+    p_batch.add_argument("--auto-approve", action=argparse.BooleanOptionalAction, default=True)
+    p_batch.add_argument("--max-tool-rounds", type=int, default=8)
+
     # template
     p_template = sub.add_parser("template", help="manage workflow templates")
     template_sub = p_template.add_subparsers(dest="template_cmd", required=True)
@@ -199,6 +209,7 @@ def main(argv: list[str] | None = None) -> None:
         "rsrs": cmd_rsrs,
         "breadth": cmd_breadth,
         "anomaly": cmd_anomaly,
+        "batch": cmd_batch,
         "demo": cmd_demo,
         "doctor": cmd_doctor,
         "macro": cmd_macro,

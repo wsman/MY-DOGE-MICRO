@@ -1,0 +1,20 @@
+{
+  "steps": [
+    {
+      "required_tools": [],
+      "reasoning_content": "Need breadth context before drafting market scan.",
+      "tool_call": {
+        "id": "call-market-breadth",
+        "name": "market_breadth",
+        "arguments": {
+          "market": "us",
+          "days": 10
+        }
+      }
+    },
+    {
+      "required_tools": ["market_breadth"],
+      "final_memo": "# Market Scan\n\nBreadth context reviewed. No unsupported figure is fabricated.\n"
+    }
+  ]
+}

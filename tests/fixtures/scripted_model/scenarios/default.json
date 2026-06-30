@@ -1,0 +1,32 @@
+{
+  "steps": [
+    {
+      "required_tools": [],
+      "reasoning_content": "Need company facts before drafting.",
+      "tool_call": {
+        "id": "call-stock-overview",
+        "name": "stock_overview",
+        "arguments": {
+          "ticker": "AAPL",
+          "market": "us"
+        }
+      }
+    },
+    {
+      "required_tools": ["stock_overview"],
+      "reasoning_content": "The memo contains high-risk publication language; request approval.",
+      "tool_call": {
+        "id": "call-approval",
+        "name": "request_approval",
+        "arguments": {
+          "action": "publish investment committee memo",
+          "risk_level": "high"
+        }
+      }
+    },
+    {
+      "required_tools": ["stock_overview", "request_approval"],
+      "final_memo_path": "memo.md"
+    }
+  ]
+}

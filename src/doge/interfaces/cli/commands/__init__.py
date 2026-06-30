@@ -1,6 +1,7 @@
 """CLI command exports."""
 
 from doge.interfaces.cli.commands.anomaly import cmd_anomaly
+from doge.interfaces.cli.commands.batch import cmd_batch
 from doge.interfaces.cli.commands.breadth import cmd_breadth
 from doge.interfaces.cli.commands.case import cmd_case
 from doge.interfaces.cli.commands.demo import cmd_demo
@@ -17,6 +18,7 @@ __all__ = [
     "cmd_rsrs",
     "cmd_breadth",
     "cmd_anomaly",
+    "cmd_batch",
     "cmd_case",
     "cmd_demo",
     "cmd_doctor",
