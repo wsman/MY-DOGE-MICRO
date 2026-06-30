@@ -32,6 +32,7 @@ _FACTORY_EXPORTS = {
     "build_generate_industry_report_use_case",
     "build_generate_macro_report_use_case",
     "build_generate_market_overview_use_case",
+    "build_get_run_snapshot_use_case",
     "build_industry_report_use_case",
     "build_kimi_agent_model",
     "build_list_sessions_use_case",

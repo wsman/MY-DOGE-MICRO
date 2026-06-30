@@ -347,7 +347,14 @@ class YFinanceDataSource(IMarketDataSource):
             return None
 
         # Date column from the DatetimeIndex.
-        df["date"] = pd.to_datetime(df.index).strftime("%Y-%m-%d")
+        df["date"] = pd.Series(
+            [
+                timestamp.strftime("%Y-%m-%d")
+                for timestamp in pd.to_datetime(df.index)
+            ],
+            index=df.index,
+            dtype=object,
+        )
 
         # amount (turnover) is not available from yfinance daily OHLCV.
         df["amount"] = 0.0

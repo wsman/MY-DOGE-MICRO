@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import json
 import os
-import sqlite3
 import sys
 from pathlib import Path
 from typing import Any
 
 from doge.config import get_settings
+from doge.infrastructure.database.readiness import sqlite_access_check
 
 
 def cmd_doctor(args) -> None:
@@ -79,11 +79,9 @@ def _file_exists_check(path: Path) -> dict[str, Any]:
 def _sqlite_access_check(path: Path) -> dict[str, Any]:
     try:
         _ensure_parent(path)
-        with sqlite3.connect(str(path), timeout=30) as conn:
-            conn.execute("SELECT 1").fetchone()
     except Exception as exc:  # noqa: BLE001 - diagnostics report sanitized status
         return _fail(type(exc).__name__, {"path": str(path)})
-    return {"ok": True, "path": str(path)}
+    return {**sqlite_access_check(path), "path": str(path)}
 
 
 def _writable_directory_check(path: Path) -> dict[str, Any]:
@@ -135,4 +133,3 @@ def _print_text_report(report: dict[str, Any]) -> None:
         status = "ok" if check.get("ok") else "failed"
         suffix = f": {check['message']}" if check.get("message") else ""
         print(f"{name}={status}{suffix}")
-

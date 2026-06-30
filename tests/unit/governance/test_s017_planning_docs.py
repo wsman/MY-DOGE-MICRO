@@ -266,12 +266,13 @@ def test_fastapi_route_count_governance_syncs_to_s017_surface():
         entities_registry,
     )
 
-    assert len(route_rows) == 87
-    assert len(entity_routes) == 87
+    assert len(route_rows) == 88
+    assert len(entity_routes) == 88
     assert set(entity_routes) == set(route_rows)
     for path in [
         "/v1/portfolios/import",
         "/v1/runs/{run_id}/summary",
+        "/v1/runs/{run_id}/resume",
         "/v1/runs/{run_id}/claims",
         "/v1/runs/{run_id}/citations",
         "/v1/runs/{run_id}/eval",
@@ -299,9 +300,9 @@ def test_fastapi_route_count_governance_syncs_to_s017_surface():
         adr_0007,
         imported_state,
     ]:
-        assert "87 product routes" in text
+        assert "88 product routes" in text
         assert "51 product routes" not in text
-    assert "87 canonical product routes" in entities_registry
+    assert "88 canonical product routes" in entities_registry
     assert "51 canonical product routes" not in entities_registry
 
 

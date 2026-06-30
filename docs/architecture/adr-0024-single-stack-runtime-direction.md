@@ -121,6 +121,8 @@ Rules:
 - Runtime maturity docs must distinguish persisted runtime capability from
   in-memory demo support.
 - Any new in-memory usage must name itself as demo/test compatibility.
+- Legacy `deps.get_research_agent_runtime()` creation logs a one-time warning
+  so `/api/*` demo compatibility is not mistaken for the platform runtime.
 
 ### 5. PyQt Desktop Dashboard
 

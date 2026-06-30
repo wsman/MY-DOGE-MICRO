@@ -11,6 +11,17 @@ from doge.config import Settings, get_settings
 from doge.infrastructure.database.migration_runner import registered_migrations
 
 
+def sqlite_access_check(path: Path | str) -> dict[str, Any]:
+    """Return a sanitized SQLite connectivity check for interface diagnostics."""
+
+    try:
+        with sqlite3.connect(str(path), timeout=30) as conn:
+            conn.execute("SELECT 1").fetchone()
+    except Exception as exc:  # noqa: BLE001 - readiness reports sanitized status
+        return {"ok": False, "message": type(exc).__name__}
+    return {"ok": True}
+
+
 class SQLiteRuntimeReadinessProbe:
     """Collect readiness details for the local SQLite daemon topology."""
 

@@ -51,7 +51,7 @@ promotion gates are not fully closed.
 - **Architecture registry**: `docs/registry/architecture.yaml` has eight
   active systems and retains the former mixed modules under
   `superseded_systems`.
-- **API route coverage**: `docs/API.md` enumerates 87 product routes and
+- **API route coverage**: `docs/API.md` enumerates 88 product routes and
   `tests/contract/test_api_doc_route_coverage.py` asserts docs-vs-live parity.
 - **CLI entrypoint**: `docs/CLI.md` promotes `doge ...`; legacy
   `python src/cli.py ...` remains a compatibility shim.
