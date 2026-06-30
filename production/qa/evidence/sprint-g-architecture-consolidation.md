@@ -2,22 +2,26 @@
 
 Date: 2026-06-30
 Plan: `C:\Users\WSMAN\.claude\plans\according-to-a-document-fluttering-raven.md`
-Current pushed HEAD checked: `9f304a82ae603f0d15210d7cbfc4e502a61fea43`
+Sprint G closure SHA checked: `ee4c3283bb69ae21671ffd2d9fef908e4819ce16`
 
-## Current-Head CI
+## Sprint G Closure CI
 
-GitHub API returned one exact-SHA CI run for current pushed HEAD:
+GitHub API returned one exact-SHA CI run for the Sprint G closure SHA:
 
-- Run: `28423757545`
+- Run: `28448012096`
 - Workflow: `CI`
 - Event: `push`
 - Status: `completed`
-- Conclusion: `failure`
-- URL: `https://github.com/wsman/MY-DOGE-MICRO/actions/runs/28423757545`
+- Conclusion: `success`
+- URL: `https://github.com/wsman/MY-DOGE-MICRO/actions/runs/28448012096`
+- Evidence: `production/qa/evidence/ci/remote-ci-ee4c328.json`
 
-Therefore Sprint G must keep
-`latest_remotely_verified_sha.head_sha = 6fd598ac223c390d81ea121d550d52afd3b47c87`
-until a later exact-SHA CI run passes.
+Therefore Sprint G promotes
+`latest_remotely_verified_sha.head_sha = ee4c3283bb69ae21671ffd2d9fef908e4819ce16`.
+
+The prior pushed HEAD `9f304a82ae603f0d15210d7cbfc4e502a61fea43` had exact-SHA
+CI run `28423757545` with conclusion `failure`; the failure was traced to stale
+governance SHA-alignment assertions and fixed before this closure SHA.
 
 ## Focused Evidence Recorded Locally
 

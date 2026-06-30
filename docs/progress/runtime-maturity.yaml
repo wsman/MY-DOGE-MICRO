@@ -3,27 +3,27 @@ stable_declaration: forbidden
 non_runtime_followup_plan: docs/progress/runtime-stability-followup-plan.md
 
 latest_remotely_verified_sha:
-  head_sha: "6fd598ac223c390d81ea121d550d52afd3b47c87"
-  evidence: production/qa/evidence/ci/remote-ci-6fd598a.json
+  head_sha: "ee4c3283bb69ae21671ffd2d9fef908e4819ce16"
+  evidence: production/qa/evidence/ci/remote-ci-ee4c328.json
   remote_ci_result: passed
-  remote_ci_run_id: 28420166050
-  local_remediation_status: latest_remote_verified_current_head_failed
+  remote_ci_run_id: 28448012096
+  local_remediation_status: sprint_g_remote_verified_external_gates_open
   notes:
-    - "Exact-SHA remote CI for the latest remotely verified SHA 6fd598a passed: GitHub Actions run 28420166050 completed with conclusion=success on a push event for the CI workflow (verified via scripts/verify_remote_ci_evidence.py and stored at production/qa/evidence/ci/remote-ci-6fd598a.json)."
+    - "Exact-SHA remote CI for the latest remotely verified SHA ee4c328 passed: GitHub Actions run 28448012096 completed with conclusion=success on a push event for the CI workflow; evidence is stored at production/qa/evidence/ci/remote-ci-ee4c328.json and validated by scripts/validate_alpha_remote_ci_success.py."
     - "Prior verified pushed HEAD fd1768fa690a9a0c3a8d7905a7b72f0af54f6b04 (run 28326916286) is retained as Sprint B citation/evidence closure history."
-    - "This remote CI evidence covers committed HEAD 6fd598a only; current pushed HEAD 9f304a82ae603f0d15210d7cbfc4e502a61fea43 has exact-SHA CI run 28423757545 with conclusion=failure and is not remotely verified."
+    - "Prior pushed HEAD 9f304a82ae603f0d15210d7cbfc4e502a61fea43 had exact-SHA CI run 28423757545 with conclusion=failure; Sprint G repaired the governance SHA-alignment blocker before promoting ee4c328."
 
 current_pushed_head_local_evidence:
-  head_sha: "9f304a82ae603f0d15210d7cbfc4e502a61fea43"
+  head_sha: "ee4c3283bb69ae21671ffd2d9fef908e4819ce16"
   evidence: production/qa/evidence/sprint-g-architecture-consolidation.md
-  remote_ci_evidence: null
+  remote_ci_evidence: production/qa/evidence/ci/remote-ci-ee4c328.json
   local_architecture_status: sprint_g_local_complete_external_gates_open
-  remote_ci_result: failed
-  remote_ci_run_id: 28423757545
+  remote_ci_result: passed
+  remote_ci_run_id: 28448012096
   notes:
-    - "Current pushed HEAD 9f304a82ae603f0d15210d7cbfc4e502a61fea43 is on origin/main but exact-SHA GitHub Actions CI run 28423757545 completed with conclusion=failure."
-    - "Do not claim current pushed HEAD remote CI passed. Keep latest_remotely_verified_sha at 6fd598a until a later exact-SHA CI run passes."
+    - "Sprint G closure SHA ee4c3283bb69ae21671ffd2d9fef908e4819ce16 is on origin/main and has exact-SHA GitHub Actions CI run 28448012096 with conclusion=success."
     - "Sprint G local architecture consolidation evidence is recorded in production/qa/evidence/sprint-g-architecture-consolidation.md."
+    - "External/operator gates remain open and are not closed by this remote CI result."
 
 maturity_labels:
   level_1_embedded_cli_session: preview

@@ -5,7 +5,7 @@
 
 ## Current Task
 
-MY-DOGE-MICRO Sprint G architecture consolidation — **LOCAL IMPLEMENTATION COMPLETE / EXTERNAL GATES OPEN**. Legacy API and gateway router implementations are physically split behind compatibility shims, doctor commands are implemented for `doge` and `doged`, legacy documents registration now uses persisted document services, implicit user-facing `portfolio-demo` defaults were removed, and the agent tool registry was split into `doge.application.tools`. Sprint G adds shim/boundary guards, direct RuntimeKernel lifecycle integration, configurable scripted scenarios, eval/batch cleanup, worker metrics, streaming document upload, and refreshed boundary docs. Current pushed HEAD `9f304a82ae603f0d15210d7cbfc4e502a61fea43` has exact-SHA GitHub Actions CI run `28423757545` with result `failure`; latest remotely verified SHA remains `6fd598ac223c390d81ea121d550d52afd3b47c87` with evidence at `production/qa/evidence/ci/remote-ci-6fd598a.json`. W3-live, S017-003, AUTH-prod, and S017-007 remain external/operator gated. No commit was requested.
+MY-DOGE-MICRO Sprint G architecture consolidation — **LOCAL IMPLEMENTATION COMPLETE / REMOTE CI PASSED / EXTERNAL GATES OPEN**. Legacy API and gateway router implementations are physically split behind compatibility shims, doctor commands are implemented for `doge` and `doged`, legacy documents registration now uses persisted document services, implicit user-facing `portfolio-demo` defaults were removed, and the agent tool registry was split into `doge.application.tools`. Sprint G adds shim/boundary guards, direct RuntimeKernel lifecycle integration, configurable scripted scenarios, eval/batch cleanup, worker metrics, streaming document upload, and refreshed boundary docs. Sprint G closure SHA `ee4c3283bb69ae21671ffd2d9fef908e4819ce16` has exact-SHA GitHub Actions CI run `28448012096` with result `success`; latest remotely verified SHA now points to that SHA with evidence at `production/qa/evidence/ci/remote-ci-ee4c328.json`. W3-live, S017-003, AUTH-prod, and S017-007 remain external/operator gated.
 
 ## Phase Status
 
@@ -23,8 +23,8 @@ MY-DOGE-MICRO Sprint G architecture consolidation — **LOCAL IMPLEMENTATION COM
   - Plan: `C:\Users\WSMAN\.claude\plans\according-to-a-document-fluttering-raven.md`
   - QA plan: `production/qa/qa-plan-sprint-g.md`
   - Evidence: `production/qa/evidence/sprint-g-architecture-consolidation.md`
-  - Current pushed HEAD CI: `9f304a8` exact-SHA run `28423757545` completed with conclusion `failure`; do not claim remote CI success for current HEAD.
-  - Latest remotely verified SHA: `6fd598a` with CI run `28420166050`.
+  - Sprint G closure CI: `ee4c328` exact-SHA run `28448012096` completed with conclusion `success`.
+  - Latest remotely verified SHA: `ee4c328` with CI run `28448012096`.
   - Local additions: API v1 shim parity/boundary guards, direct runtime lifecycle integration tests, configurable scripted scenario fixtures, source eval runner, CLI batch command, worker metrics, streaming document upload, file structure policy, and Sprint G evidence.
   - Maturity posture: `production_ready: false`, `stable_declaration: forbidden`, Level 3 `experimental`.
 
@@ -110,7 +110,7 @@ MY-DOGE-MICRO Sprint G architecture consolidation — **LOCAL IMPLEMENTATION COM
 ## Latest Verification
 
 - Runtime consolidation CLI suite: **23 passed, 2 warnings**
-- Current pushed HEAD exact-SHA CI: **failed**, GitHub Actions run `28423757545` for `9f304a82ae603f0d15210d7cbfc4e502a61fea43`; latest remotely verified SHA remains `6fd598a` with run `28420166050`
+- Sprint G closure exact-SHA CI: **passed**, GitHub Actions run `28448012096` for `ee4c3283bb69ae21671ffd2d9fef908e4819ce16`; latest remotely verified SHA now records `ee4c328`
 - Sprint G final local verification: architecture guard suite **109 passed, 2 warnings**; eval suite **13 passed, 2 warnings**; CLI/worker/upload suite **34 passed, 2 warnings**
 - Sprint G CLI batch smoke: **10/10 cases passed** with `tests\eval\cases_expanded.json`
 - Sprint G focused suites: WP1/WP3/WP4/WP5 **21 passed**; WP6 **13 passed**; WP7 **20 passed**; WP2 **42 passed**

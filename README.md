@@ -102,14 +102,14 @@ stable_declaration: forbidden
 ```
 
 The latest remotely verified SHA remains
-`6fd598ac223c390d81ea121d550d52afd3b47c87`, with GitHub Actions run
-`28420166050` recorded in
-`production/qa/evidence/ci/remote-ci-6fd598a.json`.
+`ee4c3283bb69ae21671ffd2d9fef908e4819ce16`, with GitHub Actions run
+`28448012096` recorded in
+`production/qa/evidence/ci/remote-ci-ee4c328.json`.
 
-The current pushed HEAD is
-`9f304a82ae603f0d15210d7cbfc4e502a61fea43`. Its exact-SHA GitHub Actions CI
-run `28423757545` completed with result `failure`, so it is not promoted to the
-latest remotely verified SHA.
+The prior pushed HEAD
+`9f304a82ae603f0d15210d7cbfc4e502a61fea43` had exact-SHA GitHub Actions CI
+run `28423757545` with result `failure`; Sprint G repaired that blocker before
+promoting the new verified SHA above.
 
 No README, release note, or docs entry should claim Stable, GA, or Production
 Ready while those values remain unchanged. See
