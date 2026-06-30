@@ -9,7 +9,7 @@ from doge.application.agent.context_builder import ContextBuilder
 from doge.application.agent.model_response_assembler import ModelResponseAssembler
 from doge.application.agent.run_stepper import RunStepper
 from doge.application.agent.transition_recorder import TransitionRecorder
-from doge.core.domain.agent_models import AgentEvent, AgentRun, EventType, RunStatus
+from doge.core.domain.agent_models import AgentRun, EventType, RunStatus
 from doge.core.domain.enterprise_context import EnterpriseContext
 from doge.core.domain.model_policy import ModelPolicy
 from doge.core.domain.run_execution_context import RunExecutionContext

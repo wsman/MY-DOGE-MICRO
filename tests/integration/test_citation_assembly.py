@@ -313,6 +313,43 @@ async def test_citation_assembly_kernel_tool_results_passed_to_assembler(tmp_pat
 
 
 @pytest.mark.asyncio
+async def test_citation_assembly_rehydrates_tool_results_after_fresh_kernel(tmp_path):
+    """A fresh RunStepper must rebuild citation inputs from persisted TOOL_RESULT events."""
+    db = tmp_path / "agent_state.db"
+    chunk = _evidence_chunk()
+    registry = _registry_with_evidence(chunk)
+
+    kernel1 = _build_kernel_with_citations(db, ToolThenMemoModel(), registry, SQLiteEvidenceRepository(db))
+    run = await kernel1.create_run({"question": "Analyze NVDA revenue"})
+
+    stepped = await kernel1.step(TenantScope.local(), run.run_id)
+
+    assert stepped.status == RunStatus.RUNNING
+    persisted_after_tool = SQLiteEventRepository(db).list_for_run(run.run_id)
+    tool_results_after_tool = [
+        event for event in persisted_after_tool
+        if event.event_type == EventType.TOOL_RESULT
+    ]
+    assert len(tool_results_after_tool) == 1
+    assert tool_results_after_tool[0].payload["result"]["evidence_refs"]
+
+    kernel2 = _build_kernel_with_citations(db, ToolThenMemoModel(), registry, SQLiteEvidenceRepository(db))
+
+    completed = await kernel2.step(TenantScope.local(), run.run_id)
+
+    assert completed.status == RunStatus.COMPLETED
+    assert len(completed.artifacts) == 1
+    artifact = completed.artifacts[0]
+    assert "## Sources" in artifact.content
+    assert artifact.data["citations"]
+    assert artifact.data["relations"]
+    assert [
+        event for event in SQLiteEventRepository(db).list_for_run(run.run_id)
+        if event.event_type == EventType.TOOL_RESULT
+    ] == tool_results_after_tool
+
+
+@pytest.mark.asyncio
 async def test_citation_assembly_kernel_preserves_claims_in_artifact_data(tmp_path):
     """Artifact data from citation assembler is preserved in the final artifact."""
     db = tmp_path / "agent_state.db"

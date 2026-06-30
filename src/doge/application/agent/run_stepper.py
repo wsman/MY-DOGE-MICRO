@@ -10,6 +10,7 @@ from doge.application.agent.model_response_assembler import ModelResponseAssembl
 from doge.application.agent.runtime_args import tool_safe_error_payload
 from doge.application.agent.transition_recorder import TransitionRecorder
 from doge.core.domain.agent_models import AgentRun, EventType, RunStatus
+from doge.core.domain.evidence_chunk_models import EvidenceChunk
 from doge.core.domain.run_execution_context import RunExecutionContext
 from doge.core.ports.agent_repository import (
     IApprovalRepository,
@@ -17,7 +18,7 @@ from doge.core.ports.agent_repository import (
     IEventRepository,
     IRunRepository,
 )
-from doge.core.ports.runtime_services import IModelExecutionService, IToolExecutionService
+from doge.core.ports.runtime_services import IModelExecutionService, IToolExecutionService, ToolResult
 from doge.shared.scope import TenantScope
 
 
@@ -50,7 +51,6 @@ class RunStepper:
         self._artifact_finalizer = artifact_finalizer
         self._recorder = transition_recorder
         self._citation_assembler = citation_assembler
-        self._tool_results_by_run: dict[str, list[Any]] = {}
 
     async def step(self, scope: TenantScope, run_id: str) -> AgentRun:
         run = self._require_run(scope, run_id)
@@ -68,6 +68,7 @@ class RunStepper:
         policy = execution_context.model_policy
         enterprise_context = execution_context.enterprise_context
         events = self._events.list_for_run(run.run_id, tenant_id=scope.tenant_id)
+        tool_results = _tool_results_from_events(events)
         messages = self._context_builder.build(
             run,
             events,
@@ -120,8 +121,6 @@ class RunStepper:
             return self._hydrate(scope, run)
 
         if response.message.tool_calls:
-            if run.run_id not in self._tool_results_by_run:
-                self._tool_results_by_run[run.run_id] = []
             for call in response.message.tool_calls:
                 run = self._require_run(scope, run_id)
                 if run.status == RunStatus.CANCELLING:
@@ -141,7 +140,7 @@ class RunStepper:
                     timeout_seconds=float(timeout) if timeout else None,
                     request_id=execution_context.request_id,
                 )
-                self._tool_results_by_run[run.run_id].append(result)
+                tool_results.append(result)
                 run = self._require_run(scope, run_id)
                 if run.status == RunStatus.CANCELLING:
                     await self._recorder.mark_cancelled(run)
@@ -186,7 +185,6 @@ class RunStepper:
             return self._hydrate(scope, run)
 
         citation_data = None
-        tool_results = self._tool_results_by_run.get(run.run_id, [])
         if self._citation_assembler is not None:
             try:
                 cited_artifact = self._citation_assembler.assemble(
@@ -225,7 +223,7 @@ class RunStepper:
         return self._hydrate(scope, run)
 
     def _cleanup_tool_results(self, run_id: str) -> None:
-        self._tool_results_by_run.pop(run_id, None)
+        return None
 
     def _require_run(self, scope: TenantScope, run_id: str) -> AgentRun:
         get_header = getattr(self._runs, "get_run_header", None)
@@ -239,3 +237,52 @@ class RunStepper:
         run.artifacts = self._artifacts.list_for_run(run.run_id, tenant_id=scope.tenant_id)
         run.approvals = self._approvals.list_for_run(run.run_id, tenant_id=scope.tenant_id)
         return run
+
+
+def _tool_results_from_events(events: list[Any]) -> list[ToolResult]:
+    """Rebuild persisted tool results for restart-safe artifact assembly."""
+    results: list[ToolResult] = []
+    for event in sorted(events, key=lambda item: getattr(item, "sequence", 0)):
+        if event.event_type != EventType.TOOL_RESULT:
+            continue
+        result = _tool_result_from_event(event)
+        if result is not None:
+            results.append(result)
+    return results
+
+
+def _tool_result_from_event(event: Any) -> ToolResult | None:
+    payload = getattr(event, "payload", {}) or {}
+    result_payload = payload.get("result") or {}
+    if not isinstance(result_payload, dict):
+        return None
+    data = result_payload.get("data")
+    if data is None:
+        data = {}
+    elif not isinstance(data, dict):
+        data = {"value": data}
+    return ToolResult(
+        name=str(result_payload.get("name") or payload.get("name") or ""),
+        data=data,
+        ok=bool(result_payload.get("ok", True)),
+        error=result_payload.get("error"),
+        safe_error=result_payload.get("safe_error"),
+        evidence_refs=_evidence_refs_from_payload(result_payload.get("evidence_refs")),
+    )
+
+
+def _evidence_refs_from_payload(value: Any) -> list[EvidenceChunk] | None:
+    if not isinstance(value, list):
+        return None
+    refs: list[EvidenceChunk] = []
+    for item in value:
+        if isinstance(item, EvidenceChunk):
+            refs.append(item)
+            continue
+        if not isinstance(item, dict):
+            continue
+        try:
+            refs.append(EvidenceChunk.from_mapping(item))
+        except (KeyError, TypeError, ValueError):
+            continue
+    return refs or None
