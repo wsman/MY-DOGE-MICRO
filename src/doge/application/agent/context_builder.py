@@ -55,7 +55,11 @@ class ContextBuilder:
         messages = [
             AgentMessage(
                 role="system",
-                content=self._system_prompt(context, execution_context),
+                content=self._system_prompt(
+                    context,
+                    execution_context,
+                    portfolio_id=run.portfolio_id,
+                ),
             ),
         ]
         document_ids = self._authorized_document_ids(run.document_ids, context)
@@ -90,6 +94,8 @@ class ContextBuilder:
         self,
         context: EnterpriseContext | None,
         execution_context: RunExecutionContext | None = None,
+        *,
+        portfolio_id: str | None = None,
     ) -> str:
         prompt = (
             "You are MY-DOGE Enterprise Research Copilot. Use tools for "
@@ -103,6 +109,12 @@ class ContextBuilder:
         if execution_context is not None and execution_context.workflow.template_id:
             template_label = execution_context.workflow.template_slug or execution_context.workflow.template_id
             prompt += f" Workflow template: {template_label}."
+        if portfolio_id:
+            prompt += (
+                f" Authorized run portfolio_id: {portfolio_id}. "
+                "Use this exact portfolio_id when portfolio tools are needed; "
+                "do not invent or default portfolio ids."
+            )
         if context is not None:
             prompt += (
                 f" Data classification: {context.data_classification}. "

@@ -99,3 +99,24 @@ def test_context_builder_uses_run_execution_context_template_prompt():
     messages = ContextBuilder().build(run, [], execution_context=execution_context)
 
     assert "Workflow template: earnings-review." in messages[0].content
+
+
+def test_context_builder_omits_portfolio_marker_without_explicit_portfolio():
+    run = AgentRun.create(workflow="investment_research", question="review")
+
+    messages = ContextBuilder().build(run, [])
+
+    assert "Authorized run portfolio_id:" not in messages[0].content
+
+
+def test_context_builder_includes_explicit_portfolio_marker():
+    run = AgentRun.create(
+        workflow="investment_research",
+        question="review",
+        portfolio_id="portfolio-explicit.v1",
+    )
+
+    messages = ContextBuilder().build(run, [])
+
+    assert "Authorized run portfolio_id: portfolio-explicit.v1." in messages[0].content
+    assert "do not invent or default portfolio ids" in messages[0].content

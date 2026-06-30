@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import re
 from typing import Any, AsyncIterator
 
 from doge.core.ports.agent_model import AgentMessage, AgentResponse, IAgentModel
@@ -28,9 +30,9 @@ class ScriptedAgentModel(IAgentModel):
         request_metadata: dict[str, Any] | None = None,
         extra_body: dict[str, Any] | None = None,
     ) -> AsyncIterator[AgentResponse]:
-        tool_results = [message for message in messages if message.role == "tool"]
-        turn = len(tool_results)
-        if turn == 0:
+        tool_result_names = {message.name for message in messages if message.role == "tool"}
+        portfolio_id = _authorized_portfolio_id(messages)
+        if "stock_overview" not in tool_result_names:
             yield AgentResponse(message=AgentMessage(
                 role="assistant",
                 content="",
@@ -41,18 +43,21 @@ class ScriptedAgentModel(IAgentModel):
                     "function": {"name": "stock_overview", "arguments": "{\"ticker\":\"AAPL\",\"market\":\"us\"}"},
                 }],
             ))
-        elif turn == 1:
+        elif portfolio_id and "get_portfolio_exposure" not in tool_result_names:
             yield AgentResponse(message=AgentMessage(
                 role="assistant",
                 content="",
-                reasoning_content="Need portfolio concentration and exposure.",
+                reasoning_content="Need explicitly attached portfolio concentration and exposure.",
                 tool_calls=[{
                     "id": "call-portfolio",
                     "type": "function",
-                    "function": {"name": "get_portfolio_exposure", "arguments": "{\"portfolio_id\":\"portfolio-demo\"}"},
+                    "function": {
+                        "name": "get_portfolio_exposure",
+                        "arguments": json.dumps({"portfolio_id": portfolio_id}, separators=(",", ":")),
+                    },
                 }],
             ))
-        elif turn == 2:
+        elif "request_approval" not in tool_result_names:
             yield AgentResponse(message=AgentMessage(
                 role="assistant",
                 content="",
@@ -79,6 +84,17 @@ class ScriptedAgentModel(IAgentModel):
                     "cost_usd": 0.0,
                 },
             )
+
+
+def _authorized_portfolio_id(messages: list[AgentMessage]) -> str | None:
+    pattern = re.compile(r"Authorized run portfolio_id: (.*?)\. Use this exact portfolio_id")
+    for message in messages:
+        if message.role != "system" or not isinstance(message.content, str):
+            continue
+        match = pattern.search(message.content)
+        if match:
+            return match.group(1)
+    return None
 
 
 def _default_memo() -> str:

@@ -46,9 +46,9 @@ def _schema(name: str):
 def _registry() -> ToolRegistry:
     registry = ToolRegistry()
     registry.register(_schema("stock_overview"), lambda **_: ToolResult("stock_overview", {"ticker": "AAPL"}))
-    registry.register(_schema("get_portfolio_exposure"), lambda **_: ToolResult(
+    registry.register(_schema("get_portfolio_exposure"), lambda **kwargs: ToolResult(
         "get_portfolio_exposure",
-        {"portfolio_id": "portfolio-demo", "holdings": []},
+        {"portfolio_id": kwargs.get("portfolio_id"), "holdings": []},
     ))
     registry.register(_schema("request_approval"), lambda **kwargs: ToolResult(
         "request_approval",
@@ -196,7 +196,7 @@ async def test_kernel_create_run_records_template_metadata_in_created_event(tmp_
 
 
 @pytest.mark.asyncio
-async def test_kernel_step_rebuilds_messages_from_events(tmp_path):
+async def test_kernel_step_rebuilds_messages_without_implicit_portfolio(tmp_path):
     kernel = _kernel(tmp_path)
     run = await kernel.create_run({"question": "Analyze AAPL"})
 
@@ -206,7 +206,26 @@ async def test_kernel_step_rebuilds_messages_from_events(tmp_path):
     loaded = kernel.get_run(run.run_id)
     assert loaded is not None
     assert [event.sequence for event in loaded.events] == sorted(event.sequence for event in loaded.events)
-    assert any(event.payload.get("name") == "get_portfolio_exposure" for event in loaded.events)
+    assert not any(event.payload.get("name") == "get_portfolio_exposure" for event in loaded.events)
+    assert any(event.payload.get("name") == "request_approval" for event in loaded.events)
+
+
+@pytest.mark.asyncio
+async def test_kernel_uses_explicit_portfolio_id_for_scripted_portfolio_tool(tmp_path):
+    kernel = _kernel(tmp_path)
+    run = await kernel.create_run({"question": "Analyze AAPL", "portfolio_id": "portfolio-explicit.v1"})
+
+    await kernel.step(TenantScope.local(), run.run_id)
+    await kernel.step(TenantScope.local(), run.run_id)
+
+    loaded = kernel.get_run(run.run_id)
+    assert loaded is not None
+    portfolio_events = [
+        event for event in loaded.events
+        if event.payload.get("name") == "get_portfolio_exposure"
+    ]
+    assert portfolio_events
+    assert portfolio_events[0].payload["result"]["data"]["portfolio_id"] == "portfolio-explicit.v1"
 
 
 @pytest.mark.asyncio
