@@ -62,6 +62,11 @@ Latest local verification in this audit thread:
 - `.\.venv\Scripts\python.exe -m pytest tests\unit\capabilities tests\unit\agent\test_tool_service.py tests\unit\agent\test_tool_service_facade.py tests\unit\agent\test_tool_registry.py tests\unit\use_cases\test_capability_registry.py -q`
 - `.\.venv\Scripts\python.exe -m pytest tests\unit\qa\test_prepare_plan_closure_handoff.py tests\unit\qa\test_validate_plan_closure_handoff.py -q` -> `21 passed`
 - `.\.venv\Scripts\python.exe -m pytest tests\unit\governance\test_s017_planning_docs.py tests\unit\qa\test_validate_kimi_plan_completion_audit.py tests\unit\qa\test_validate_glowing_weaving_kettle_completion_audit.py tests\unit\qa\test_validate_plan_closure_gate.py tests\unit\qa\test_validate_plan_closure_manifest.py tests\unit\qa\test_validate_plan_closure_handoff.py tests\unit\qa\test_prepare_plan_closure_handoff.py tests\unit\qa\test_validate_plan_closure_runbook.py -q` -> `78 passed`
+- `py -m pytest tests\unit\agent\test_model_response_assembler.py tests\eval\test_multi_turn_citation_context.py -q` -> `2 passed`
+- `py -m pytest tests\cli\test_cli_session.py -q` -> `15 passed`
+- `py -m pytest tests\contract\test_python_sdk.py -q` -> `23 passed`
+- `py -m pytest tests\integration\test_cli_gateway_approval_smoke.py -q` -> `1 passed`
+- `cd packages\doge-sdk-typescript && npm test` -> `16 passed`
 - `git diff --check`
 
 The strict external-input preflight is expected to fail until operator inputs

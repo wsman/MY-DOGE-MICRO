@@ -26,7 +26,7 @@ current_pushed_head_local_evidence:
     - "External/operator gates remain open and are not closed by this remote CI result."
 
 maturity_labels:
-  level_1_embedded_cli_session: preview
+  level_1_embedded_cli_session: alpha
   level_2_daemon_gateway: alpha
   level_3_sdk_platform: experimental
   production_ready: false
@@ -113,6 +113,30 @@ local_structure_convergence_2026_06_30:
   posture:
     production_ready: false
     stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+
+alpha_local_closure_2026_06_30:
+  status: local_alpha_level_1_hardened_external_gates_open
+  scope:
+    - "Level 1 CLI session advanced from preview to alpha based on deterministic multi-turn and approval-resume evidence."
+    - "Gateway-mode CLI approval now continues through SDK/v1 follow streams after approval or denial."
+    - "Python and TypeScript SDK contracts cover approval followed by post-approval stream events."
+    - "ModelResponseAssembler has explicit streamed delta aggregation regression coverage."
+  focused_tests:
+    - "py -m pytest tests\\unit\\agent\\test_model_response_assembler.py tests\\eval\\test_multi_turn_citation_context.py -q => 2 passed"
+    - "py -m pytest tests\\cli\\test_cli_session.py -q => 15 passed"
+    - "py -m pytest tests\\contract\\test_python_sdk.py -q => 23 passed"
+    - "py -m pytest tests\\integration\\test_cli_gateway_approval_smoke.py -q => 1 passed"
+    - "cd packages\\doge-sdk-typescript && npm test => 16 passed"
+  still_open:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_2_daemon_gateway: alpha
     level_3_sdk_platform: experimental
 
 sprint_008_runtime_gates:
@@ -670,23 +694,31 @@ level_1:
     blocked_by: []
   multi_turn:
     requirement: required
-    status: partial
+    status: passed
     evidence:
       - tests/cli/test_cli_session.py
       - src/doge/interfaces/cli/commands/session.py
       - src/doge/application/agent/context_builder.py
       - tests/unit/agent/test_context_builder.py
-    blocked_by:
-      - session history cross-run context is implemented locally but not yet benchmarked for citation quality impact
+      - tests/eval/test_multi_turn_citation_context.py
+    notes:
+      - "2026-06-30 deterministic benchmark proves two embedded session turns persist in one AgentSession and the second turn receives the prior user turn, prior artifact, and prior [^evd-*] citation context."
+    blocked_by: []
   approval_resume:
     requirement: required
-    status: partial
+    status: passed
     evidence:
       - tests/unit/agent/test_inmemory_runtime.py
       - tests/integration/test_daemon_worker.py
       - tests/cli/test_cli_session.py
-    blocked_by:
-      - embedded CLI approval continuation is implemented; gateway mode still needs real daemon manual pass evidence
+      - tests/integration/test_cli_gateway_approval_smoke.py
+      - tests/contract/test_python_sdk.py
+      - packages/doge-sdk-typescript/src/__tests__/client.spec.ts
+      - src/doge/interfaces/cli/commands/session_gateway.py
+      - src/doge/interfaces/cli/commands/session_interactive.py
+    notes:
+      - "Embedded CLI approval uses ResolveRunUseCase -> resolve_approval_and_resume; gateway CLI approval now supports --follow/--jsonl after SDK approve, and a loopback uvicorn smoke verifies submit, approval wait, approve follow, events/artifacts query, and deny follow without bypassing v1."
+    blocked_by: []
   offline_scripted_model:
     requirement: required
     status: passed
@@ -744,6 +776,19 @@ level_2:
     status: passed
     evidence:
       - tests/integration/test_daemon_worker.py
+      - tests/integration/test_worker_restart_recovery.py
+      - tests/integration/test_citation_assembly.py::test_citation_assembly_rehydrates_tool_results_after_fresh_kernel
+    notes:
+      - "Queued-run recovery is covered by daemon worker integration tests; persisted TOOL_RESULT rehydration for citation/artifact assembly is covered by the fresh-kernel restart tests added on 2026-06-30."
+    blocked_by: []
+  model_stream_assembler:
+    requirement: required
+    status: passed
+    evidence:
+      - src/doge/application/agent/model_response_assembler.py
+      - tests/unit/agent/test_model_response_assembler.py
+    notes:
+      - "Assembler regression covers streamed content, reasoning_content, tool-call argument deltas, finish_reason, usage, and raw provider metadata instead of consuming only the first chunk."
     blocked_by: []
 
 level_3:
@@ -1112,7 +1157,7 @@ local_verification:
       fastapi_route_governance_sync: "docs/API.md, design/cdd/fastapi-service.md, docs/registry/architecture.yaml, docs/registry/entities.yaml, docs/architecture/tr-registry.yaml, docs/architecture/architecture-traceability.md, docs/architecture/adr-0007-api-surface-and-cors.md, and docs/imports/my-doge-micro/current-state-2026-06-21.md now agree on 88 product routes; tests/contract/test_api_doc_route_coverage.py proves docs/API.md matches the live FastAPI app, and tests/unit/governance/test_s017_planning_docs.py proves docs/registry/entities.yaml has the same (method, path) route set"
       external_evidence_validator_suite: "focused plan-closure repair set: 57 passed in 9.14s"
       targeted_cross_wave_regression: "full python regression continuation check: 1297 passed, 9 skipped, 11 warnings in 107.94s; eval smoke: 7 passed in 0.82s; contract/integration: 115 passed, 1 skipped in 32.70s"
-      prepared_external_handoff_workspace: "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22; validation passed; includes operator-checklist.md; task-scoped S017-006 preflight with --require-external-inputs is ready using the filled screen-reader observations draft, while the remaining external-gate drafts still require real operator input before their builders can close gates"
+      prepared_external_handoff_workspace: "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30; validation passed; includes operator-checklist.md and operator-commands.ps1; it stages operator inputs only, does not create completed evidence, and does not close gates; S017-003, W3-live, AUTH-prod, and S017-007 still require real operator input before their builders can close gates"
       enterprise_auth_implementation_plan: "docs/progress/enterprise-auth-implementation-plan.md"
       financial_provider_approval_packet: "docs/progress/financial-provider-approval-packet.md"
       kimi_plan_completion_audit: "docs/progress/kimi-plan-completion-audit.md; four remaining open external gates plus completed S017-002 and S017-006 gates are machine-checked by scripts/validate_kimi_plan_completion_audit.py"

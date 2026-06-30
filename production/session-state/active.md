@@ -5,7 +5,7 @@
 
 ## Current Task
 
-MY-DOGE-MICRO Sprint G architecture consolidation — **LOCAL IMPLEMENTATION COMPLETE / REMOTE CI PASSED / EXTERNAL GATES OPEN**. Legacy API and gateway router implementations are physically split behind compatibility shims, doctor commands are implemented for `doge` and `doged`, legacy documents registration now uses persisted document services, implicit user-facing `portfolio-demo` defaults were removed, and the agent tool registry was split into `doge.application.tools`. Sprint G adds shim/boundary guards, direct RuntimeKernel lifecycle integration, configurable scripted scenarios, eval/batch cleanup, worker metrics, streaming document upload, and refreshed boundary docs. Sprint G closure SHA `ee4c3283bb69ae21671ffd2d9fef908e4819ce16` has exact-SHA GitHub Actions CI run `28448012096` with result `success`; latest remotely verified SHA now points to that SHA with evidence at `production/qa/evidence/ci/remote-ci-ee4c328.json`. W3-live, S017-003, AUTH-prod, and S017-007 remain external/operator gated.
+MY-DOGE-MICRO Alpha local closure hardening — **LEVEL 1 CLI ALPHA HARDENED / LEVEL 2 ALPHA / LEVEL 3 EXPERIMENTAL / EXTERNAL GATES OPEN**. Level 1 CLI session evidence now covers deterministic two-turn session context with prior artifact citation retention, embedded approval continuation through `resolve_approval_and_resume`, gateway-mode approval follow via SDK/v1, and a real loopback daemon smoke for submit -> approval -> approve/deny -> stream/events/artifact verification. `ModelResponseAssembler` has explicit streamed-delta aggregation coverage. Sprint G remote CI evidence remains the latest pushed baseline at SHA `ee4c3283bb69ae21671ffd2d9fef908e4819ce16`; this Alpha hardening batch is locally committed but not remotely verified yet. W3-live, S017-003, AUTH-prod, and S017-007 remain external/operator gated.
 
 ## Phase Status
 
@@ -109,6 +109,11 @@ MY-DOGE-MICRO Sprint G architecture consolidation — **LOCAL IMPLEMENTATION COM
 
 ## Latest Verification
 
+- Alpha local Level 1 hardening (2026-06-30): **2 passed** (`tests\unit\agent\test_model_response_assembler.py`, `tests\eval\test_multi_turn_citation_context.py`)
+- CLI session focused suite: **15 passed**
+- Python SDK contract suite: **23 passed**
+- Real loopback gateway approval smoke: **1 passed**, with uvicorn/TestClient-style local daemon startup warnings only
+- TypeScript SDK suite: **16 passed**
 - Runtime consolidation CLI suite: **23 passed, 2 warnings**
 - Sprint G closure exact-SHA CI: **passed**, GitHub Actions run `28448012096` for `ee4c3283bb69ae21671ffd2d9fef908e4819ce16`; latest remotely verified SHA now records `ee4c328`
 - Sprint G final local verification: architecture guard suite **109 passed, 2 warnings**; eval suite **13 passed, 2 warnings**; CLI/worker/upload suite **34 passed, 2 warnings**

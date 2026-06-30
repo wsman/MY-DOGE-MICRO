@@ -11,7 +11,7 @@ promoting the product to stable or production-ready status.
 | Area | Status | Evidence | Remaining Gate |
 | --- | --- | --- | --- |
 | Demo skeleton | Local complete | Persisted runtime, `/v1` API, CLI session, SDK, Web Research Agent, deterministic eval | External evidence gates remain open |
-| Level 1 CLI session | Preview | `doge session`, `doge run`, persisted local runtime paths | UX hardening and stable declaration gate |
+| Level 1 CLI session | Alpha | `doge session`, `doge run`, persisted local runtime paths, deterministic multi-turn citation context, approval resume smoke | External evidence gates and stable declaration gate |
 | Level 2 daemon gateway | Alpha | `doged`, `/v1/*`, SSE, durable repositories, worker queue | Production auth/ops gates |
 | Level 3 SDK platform | Experimental | Python/TypeScript SDK local contracts and package smoke | Registry release approval |
 | Document/evidence plane | Local alpha | Document repository, metadata, parser status, evidence chunks, citation assembly | Live Vision/File Q&A and W3-live evidence |
