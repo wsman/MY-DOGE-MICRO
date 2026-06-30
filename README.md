@@ -88,7 +88,7 @@ Runtime maturity is intentionally conservative and governed by
 
 | Signal | Current value |
 |--------|---------------|
-| Level 1 embedded CLI/session | Preview |
+| Level 1 embedded CLI/session | Alpha |
 | Level 2 daemon gateway | Alpha |
 | Level 3 SDK/platform | Experimental |
 | Production ready | `false` |
@@ -177,6 +177,19 @@ ports. See [module-map.md](docs/reference/module-map.md).
 - Add document/evidence/claim/citation behavior under `doge.platform.evidence`.
 - Add auth, tenant, entitlement, audit, secrets, approval, and maturity work
   under `doge.platform.governance`.
+
+## Path Classification
+
+| Class | Description | Examples |
+|-------|-------------|----------|
+| **Canonical** | Preferred new platform paths. All new features belong here. | `src/doge/`, `doge.bootstrap.*`, `doge.interfaces.gateway.routers`, `doge.application.tools`, `doge.platform.*`, `doge.products.*` |
+| **Compatibility** | Re-export/delegate shims preserving brownfield imports. No new behavior. | `doge.application.composition`, `doge.application.agent.tools`, `doge.interfaces.api.routers`, `doge.interfaces.api.routers.v1` |
+| **Legacy** | Active legacy implementations being deprecated. No new platform-only features. | `src/macro/`, `src/micro/`, `src/interface/`, `doge.interfaces.api_legacy.routers`, legacy `/api/*` routes |
+| **Demo/Test** | Demo and test-only paths. Must not become production defaults. | `doge.infrastructure.agent.inmemory_runtime`, `doge.infrastructure.agent.scripted_model`, fixture portfolios, `portfolio-demo` seed data |
+
+See [compatibility-surfaces.md](docs/architecture/compatibility-surfaces.md)
+and [ADR-0027](docs/architecture/adr-0027-shim-sunset-policy.md) for the
+compatibility-surface registry and sunset rules.
 
 Use [module-boundaries.md](docs/architecture/module-boundaries.md) and
 [file-structure-policy.md](docs/architecture/file-structure-policy.md) before

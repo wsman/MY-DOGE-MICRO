@@ -1,13 +1,26 @@
 # Active Session State
 
 > Living checkpoint. Gitignored. Read this first after any compaction/crash.
-> Branch: `main` · Date: 2026-06-30
+> Branch: `main` · Date: 2026-07-01
 
 ## Current Task
 
-MY-DOGE-MICRO Alpha local closure hardening — **LEVEL 1 CLI ALPHA HARDENED / LEVEL 2 ALPHA / LEVEL 3 EXPERIMENTAL / EXTERNAL GATES OPEN**. Level 1 CLI session evidence now covers deterministic two-turn session context with prior artifact citation retention, embedded approval continuation through `resolve_approval_and_resume`, gateway-mode approval follow via SDK/v1, and a real loopback daemon smoke for submit -> approval -> approve/deny -> stream/events/artifact verification. `ModelResponseAssembler` has explicit streamed-delta aggregation coverage. Sprint G remote CI evidence remains the latest pushed baseline at SHA `ee4c3283bb69ae21671ffd2d9fef908e4819ce16`; this Alpha hardening batch is locally committed but not remotely verified yet. W3-live, S017-003, AUTH-prod, and S017-007 remain external/operator gated.
+MY-DOGE-MICRO Sprint H compatibility-surface governance — **LOCAL IMPLEMENTATION COMPLETE / LEVEL 1 CLI ALPHA / LEVEL 2 ALPHA / LEVEL 3 EXPERIMENTAL / EXTERNAL GATES UNCHANGED**. Sprint H records the compatibility, legacy, and demo/test surface registry; adds AST shim behavior guards; freezes the current `doge.application.composition` public callable surface; aligns README Level 1 maturity to Alpha; and adds Sprint H QA/evidence records. Sprint G remote CI evidence remains the latest remotely verified SHA at `ee4c3283bb69ae21671ffd2d9fef908e4819ce16`; Sprint H is local evidence only and is not remotely verified. W3-live, S017-003, AUTH-prod, and S017-007 remain external/operator gated.
 
 ## Phase Status
+
+- **Sprint H (Compatibility Surface 减法)**: **LOCAL IMPLEMENTATION COMPLETE / EXTERNAL GATES UNCHANGED**
+  - Plan: `C:\Users\WSMAN\.claude\plans\bubbly-inventing-llama.md`
+  - QA plan: `production/qa/qa-plan-sprint-h.md`
+  - Evidence: `production/qa/evidence/sprint-h-compatibility-surface-governance.md`
+  - Created `docs/architecture/compatibility-surfaces.md` with registry entries for compatibility, legacy, and demo/test surfaces.
+  - Added `tests/unit/architecture/test_shim_behavior_guards.py` with AST-based checks enforcing ADR-0027 rules across shim files.
+  - Added `tests/unit/architecture/test_composition_allowlist.py` freezing the current public callable surface in `doge.application.composition`, including `refresh_views`.
+  - Updated `README.md` with Canonical/Compatibility/Legacy/Demo-Test path classification table; aligned Level 1 maturity from Preview to Alpha.
+  - Maturity posture: `production_ready: false`, `stable_declaration: forbidden`, Level 3 `experimental` — unchanged.
+  - External gates: S017-003, W3-live, AUTH-prod, S017-007 remain open.
+  - Sprint H validators: docs links validated 64 markdown files; alpha maturity honesty passed; governance YAML shape passed; plan closure gate `--allow-open` acceptable with 4 open / 2 passed; strict closure gate failed as expected; `git diff --check` passed.
+  - Architecture test suite: 122 passed, 2 warnings.
 
 - **Runtime Consolidation Local Remediation (2026-06-30)**: **LOCAL CODE COMPLETE / EXTERNAL GATES OPEN**
   - Interface split: legacy router implementations live under `doge.interfaces.api_legacy.routers`; `/v1` gateway router implementations live under `doge.interfaces.gateway.routers`; old `doge.interfaces.api.routers` paths remain re-export shims.
@@ -109,6 +122,10 @@ MY-DOGE-MICRO Alpha local closure hardening — **LEVEL 1 CLI ALPHA HARDENED / L
 
 ## Latest Verification
 
+- Sprint H shim behavior guards: **9 passed** (`tests\unit\architecture\test_shim_behavior_guards.py`)
+- Sprint H composition allowlist: **4 passed** (`tests\unit\architecture\test_composition_allowlist.py`)
+- Sprint H architecture suite: **122 passed, 2 warnings** (`tests\unit\architecture`)
+- Sprint H docs/governance validators: docs links **64 markdown files validated**; alpha maturity honesty **passed**; governance YAML shape **passed**, 5 files checked / 0 findings; plan closure gate **acceptable open**, 4 open / 2 passed; strict plan closure gate **failed as expected** while external gates remain open; `git diff --check` **passed**
 - Alpha local Level 1 hardening (2026-06-30): **2 passed** (`tests\unit\agent\test_model_response_assembler.py`, `tests\eval\test_multi_turn_citation_context.py`)
 - CLI session focused suite: **15 passed**
 - Python SDK contract suite: **23 passed**
@@ -173,7 +190,7 @@ MY-DOGE-MICRO Alpha local closure hardening — **LEVEL 1 CLI ALPHA HARDENED / L
 
 ## Commits this session
 
-No commit was requested for the current Runtime Consolidation remediation. Current changes remain in the working tree.
+Sprint H compatibility-surface governance was locally committed as a baseline and is not remotely verified yet.
 
 ## Do Not Forget
 
@@ -184,30 +201,12 @@ No commit was requested for the current Runtime Consolidation remediation. Curre
 
 ## Files Modified (git working tree)
 
-- Runtime consolidation current themes:
-  - `src/doge/interfaces/api_legacy/routers/*`, `src/doge/interfaces/gateway/routers/*`, and compatibility shims under `src/doge/interfaces/api/routers/*`
-  - `src/doge/interfaces/cli/commands/doctor.py`, `src/doge/interfaces/cli/main.py`, and `src/doge/interfaces/daemon/main.py`
-  - `src/doge/application/tools/*` and `src/doge/application/agent/tools.py` shim
-  - portfolio default cleanup across run/turn/use-case/unit-of-work/API/CLI paths
-  - persisted legacy document route wiring
-  - focused tests and governance docs for the local structure convergence
-
-- `tests/eval/gold_set_seed.py` (new)
-- `tests/eval/gold_set_runner.py` (new)
-- `tests/eval/test_gold_set_runtime.py` (new)
-- `scripts/run_citation_quality_benchmark.py` (new)
-- `scripts/analyst_trend_history.py` (local baseline append/validate CLI)
-- `src/doge/platform/runtime/services.py` (explicit evidence ID preservation and empty-result fallback guard)
-- `src/doge/application/agent/artifact_citation_assembler.py` (non-duplicating citation marker format)
-- `production/qa/evidence/eval/citation-quality-baseline-2026-06-29.json` (generated)
-- `production/qa/evidence/eval/citation-quality-baseline-2026-06-29.md` (generated)
-- `production/qa/evidence/eval/citation-quality-trend-history-2026-06-29.jsonl` (generated)
-- `design/cdd/sprint-f-evaluation-quality-closure.md` (new)
-- `production/sprints/sprint-f-evaluation-quality-closure.md` (new)
-- `production/qa/qa-plan-sprint-f.md` (new)
-- `production/sprint-status.yaml` (Sprint F + S017-002 reconciliation)
-- `docs/progress/runtime-maturity.yaml` (Sprint F local benchmark gate)
-- `production/session-state/active.md` (updated)
-- `scripts/validate_plan_closure_gate.py` (Coding v1 S017-002 gate alignment)
-- `docs/progress/9b77f9c-external-closure-runbook.md` and completion audits (4 open / 2 passed gate posture)
-- `tests/unit/agent/test_tool_execution_service.py`, `tests/unit/agent/test_artifact_citation_assembler.py`, and `tests/unit/qa/test_analyst_trend_history.py` (SF-007/SF-008 regression coverage)
+- Sprint H current themes:
+  - `docs/architecture/compatibility-surfaces.md`
+  - `tests/unit/architecture/test_shim_behavior_guards.py`
+  - `tests/unit/architecture/test_composition_allowlist.py`
+  - `production/qa/qa-plan-sprint-h.md`
+  - `production/qa/evidence/sprint-h-compatibility-surface-governance.md`
+  - `README.md`
+  - `docs/progress/runtime-maturity.yaml`
+  - `production/session-state/active.md`

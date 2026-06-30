@@ -139,6 +139,40 @@ alpha_local_closure_2026_06_30:
     level_2_daemon_gateway: alpha
     level_3_sdk_platform: experimental
 
+sprint_h_compatibility_surface_governance:
+  status: local_complete_external_gates_unchanged
+  scope:
+    - "Created docs/architecture/compatibility-surfaces.md with a structured registry of compatibility, legacy, and demo-test surfaces."
+    - "Added AST-based shim behavior guards enforcing ADR-0027: no infrastructure adapter imports, no SQL/DB connections, no APIRouter behavior, no RuntimeKernel instantiation, no tool registration, no approval/worker/model-routing behavior in shim files."
+    - "Added composition allowlist freeze for the current public callable surface of doge.application.composition."
+    - "Updated README.md with Canonical/Compatibility/Legacy/Demo-Test path classification and aligned Level 1 maturity to Alpha."
+    - "Added Sprint H QA plan and local evidence record."
+  evidence:
+    - production/qa/qa-plan-sprint-h.md
+    - production/qa/evidence/sprint-h-compatibility-surface-governance.md
+    - docs/architecture/compatibility-surfaces.md
+    - tests/unit/architecture/test_shim_behavior_guards.py
+    - tests/unit/architecture/test_composition_allowlist.py
+  focused_tests:
+    - "py -3 -m pytest tests\\unit\\architecture\\test_shim_behavior_guards.py -q => 9 passed"
+    - "py -3 -m pytest tests\\unit\\architecture\\test_composition_allowlist.py -q => 4 passed"
+    - "py -3 -m pytest tests\\unit\\architecture -q => 122 passed, 2 warnings"
+  validators:
+    - "py -3 scripts\\validate_docs_links.py => validated 64 markdown files"
+    - "py -3 scripts\\validate_alpha_maturity_honesty.py => passed"
+    - "py -3 scripts\\validate_governance_yaml_shape.py => passed; 5 files checked, 0 findings"
+    - "py -3 scripts\\validate_plan_closure_gate.py --allow-open => acceptable open, 4 open / 2 passed"
+    - "py -3 scripts\\validate_plan_closure_gate.py => acceptable=false, exit code 1 as expected while external gates remain open"
+    - "git diff --check => passed"
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+  notes:
+    - "Sprint H does NOT change production_ready, stable_declaration, or Level 3 status."
+    - "External gates S017-003, W3-live, AUTH-prod, and S017-007 remain open."
+    - "Sprint H does not update latest_remotely_verified_sha; it is local evidence only until a later exact-SHA remote CI pass is recorded."
+
 sprint_008_runtime_gates:
   queued_status_and_event:
     status: passed
