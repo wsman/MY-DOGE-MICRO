@@ -1,4 +1,4 @@
-generated_at: "2026-06-30"
+generated_at: "2026-07-01"
 stable_declaration: forbidden
 non_runtime_followup_plan: docs/progress/runtime-stability-followup-plan.md
 
@@ -106,6 +106,61 @@ local_structure_convergence_2026_06_30:
       - "py -3 scripts\\validate_plan_closure_gate.py => acceptable=false, exit code 1 as expected while external gates remain open"
       - "git diff --check => passed"
   still_open:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+
+local_quality_gate_closure_2026_07_01:
+  status: local_quality_gates_hardened_external_gates_open
+  scope:
+    - "Runtime contracts frozen for AgentSession, AgentTurn, AgentRun, AgentEvent, AgentArtifact, and AgentApproval."
+    - "Tool capability metadata is locked through ToolDescriptor-backed schemas and capability records."
+    - "Deterministic local RAG retrieval benchmark covers tests/eval/gold_cases.json with recall, precision, citation linkage, and numerical consistency metrics."
+    - "Parser maturity is split between local text/image/parser-error lifecycle and external PDF/OCR/Kimi Files/Vision validation."
+    - "README and API docs compress the recommended path to doge session, doged serve, and SDK/v1 without changing wire contracts."
+  evidence:
+    - docs/architecture/runtime-contracts.md
+    - tests/fixtures/runtime_contracts/agent_runtime_contract_v1.json
+    - tests/contract/test_golden_runtime_contract.py
+    - tests/contract/test_tool_registry.py
+    - tests/eval/rag_retrieval_benchmark.py
+    - tests/eval/test_rag_retrieval_benchmark.py
+    - scripts/run_rag_quality_benchmark.py
+    - production/qa/evidence/eval/rag-retrieval-quality-baseline-2026-07-01.json
+    - production/qa/evidence/eval/rag-retrieval-quality-baseline-2026-07-01.md
+    - README.md
+    - docs/API.md
+  local_verification:
+    - "py -3 -m pytest tests\\contract\\test_golden_runtime_contract.py tests\\contract\\test_tool_registry.py -q"
+    - "py -3 -m pytest tests\\eval\\test_rag_retrieval_benchmark.py tests\\integration\\test_rag_retrieval.py -q"
+    - "py -3 scripts\\run_rag_quality_benchmark.py --date 2026-07-01"
+  blocked_external_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+
+external_gate_preflight_2026_07_01:
+  status: blocked_waiting_for_operator_inputs
+  handoff_workspace: production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30
+  evidence:
+    - production/qa/evidence/plan-closure/external-preflight-blocked-2026-07-01.md
+    - scripts/preflight_plan_closure_external.py
+  commands:
+    - "py -3 scripts\\preflight_plan_closure_external.py --task-id S017-003 --require-external-inputs --handoff-workspace production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-30 => failed as expected; infrastructure ready; provider decisions not approved"
+    - "py -3 scripts\\preflight_plan_closure_external.py --task-id W3-live --require-external-inputs --handoff-workspace production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-30 => failed as expected; infrastructure ready; analyst/live inputs incomplete"
+    - "py -3 scripts\\preflight_plan_closure_external.py --task-id AUTH-prod --require-external-inputs --handoff-workspace production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-30 => failed as expected; infrastructure ready; production evidence refs missing"
+    - "py -3 scripts\\preflight_plan_closure_external.py --task-id S017-007 --require-external-inputs --handoff-workspace production\\qa\\evidence\\plan-closure\\handoffs\\9b77f9c-2026-06-30 => failed as expected; infrastructure ready; release decision not approved"
+  open_gates:
     - S017-003
     - W3-live
     - AUTH-prod
@@ -291,6 +346,7 @@ sprint_010_evidence_foundation_gates:
     blocked_by: []
   parser_lifecycle:
     status: partial
+    local_lifecycle_status: passed
     evidence:
       - src/doge/application/services/page_extraction_service.py
       - src/doge/application/services/file_upload_service.py
@@ -300,6 +356,9 @@ sprint_010_evidence_foundation_gates:
     blocked_by:
       - native local PDF page parsing is not a required dependency yet
       - OCR depends on Kimi Files/Vision live configuration
+    notes:
+      - "Local text, image metadata, and parser-error lifecycle are covered by tests/unit/test_page_extraction.py."
+      - "PDF-native extraction, OCR, and Kimi Files/Vision remain external/live validation paths and are not marked complete."
 
 sprint_011_streaming_gates:
   web_research_agent_uses_v1_sse:
@@ -355,15 +414,23 @@ sprint_012_rag_foundation_gates:
     blocked_by: []
   rag_service_and_lookup_evidence:
     status: partial
+    local_quality_status: passed
     evidence:
       - src/doge/application/services/rag_service.py
       - src/doge/application/agent/tool_service.py
       - tests/integration/test_rag_retrieval.py
+      - tests/eval/rag_retrieval_benchmark.py
+      - tests/eval/test_rag_retrieval_benchmark.py
+      - scripts/run_rag_quality_benchmark.py
+      - production/qa/evidence/eval/rag-retrieval-quality-baseline-2026-07-01.json
+      - production/qa/evidence/eval/rag-retrieval-quality-baseline-2026-07-01.md
       - tests/unit/agent/test_tool_service.py
       - tests/unit/agent/test_tool_registry.py
     blocked_by:
-      - retrieval quality is not benchmarked
       - production embedding/vector backend is deferred
+    notes:
+      - "2026-07-01 deterministic RAG benchmark over tests/eval/gold_cases.json records local retrieval recall@k, chunk precision, citation linkage, and numerical consistency."
+      - "Vision/OCR numerical labels are excluded from local numerical consistency scoring and remain covered by external Kimi Files/Vision gates."
   visibility_metadata:
     status: partial
     evidence:

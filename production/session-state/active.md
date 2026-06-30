@@ -5,7 +5,7 @@
 
 ## Current Task
 
-MY-DOGE-MICRO Sprint H compatibility-surface governance — **LOCAL IMPLEMENTATION COMPLETE / LEVEL 1 CLI ALPHA / LEVEL 2 ALPHA / LEVEL 3 EXPERIMENTAL / EXTERNAL GATES UNCHANGED**. Sprint H records the compatibility, legacy, and demo/test surface registry; adds AST shim behavior guards; freezes the current `doge.application.composition` public callable surface; aligns README Level 1 maturity to Alpha; and adds Sprint H QA/evidence records. Sprint G remote CI evidence remains the latest remotely verified SHA at `ee4c3283bb69ae21671ffd2d9fef908e4819ce16`; Sprint H is local evidence only and is not remotely verified. W3-live, S017-003, AUTH-prod, and S017-007 remain external/operator gated.
+MY-DOGE-MICRO remaining local quality-gate remediation — **LOCAL IMPLEMENTATION COMPLETE / LEVEL 1 CLI ALPHA / LEVEL 2 ALPHA / LEVEL 3 EXPERIMENTAL / EXTERNAL GATES BLOCKED ON OPERATOR INPUT**. Sprint H compatibility-surface governance is locally committed as `a8c832f` and is not remotely verified. The local quality-gate remediation baseline freezes runtime contracts, locks ToolDescriptor-backed metadata, adds a deterministic RAG retrieval benchmark/evidence, compresses README/API primary path guidance, and records external-gate preflight blockers without closing any external gate. Sprint G remote CI evidence remains the latest remotely verified SHA at `ee4c3283bb69ae21671ffd2d9fef908e4819ce16`. W3-live, S017-003, AUTH-prod, and S017-007 remain external/operator gated.
 
 ## Phase Status
 
@@ -122,6 +122,18 @@ MY-DOGE-MICRO Sprint H compatibility-surface governance — **LOCAL IMPLEMENTATI
 
 ## Latest Verification
 
+- Runtime/tool contract focused suite: **7 passed, 2 warnings** (`tests\contract\test_golden_runtime_contract.py`, `tests\contract\test_tool_registry.py`)
+- RAG retrieval focused suite: **2 passed** (`tests\eval\test_rag_retrieval_benchmark.py`, `tests\integration\test_rag_retrieval.py`)
+- Architecture guard suite: **122 passed, 2 warnings** (`tests\unit\architecture`)
+- Eval/RAG suite: **24 passed, 2 warnings** (`tests\integration\test_rag_retrieval.py`, `tests\eval`)
+- Docs links: **65 markdown files validated**
+- Alpha maturity honesty: **passed**
+- Governance YAML shape: **passed**, 5 files checked / 0 findings
+- Plan closure gate `--allow-open`: **acceptable open**, 4 open / 2 passed
+- Strict plan closure gate: **failed as expected**, 4 open / 2 passed while external gates remain open
+- `git diff --check`: **passed**
+- RAG retrieval baseline CLI: **passed**, generated `production\qa\evidence\eval\rag-retrieval-quality-baseline-2026-07-01.json` and `.md` with retrieval recall@k 1.0, chunk precision 1.0, citation linkage 1.0, numerical consistency 1.0, and `external_gate_closure_allowed=false`
+- External closure preflight for `S017-003`, `W3-live`, `AUTH-prod`, and `S017-007`: **failed as expected with infrastructure ready and external inputs blocked**; evidence note at `production/qa/evidence/plan-closure/external-preflight-blocked-2026-07-01.md`
 - Sprint H shim behavior guards: **9 passed** (`tests\unit\architecture\test_shim_behavior_guards.py`)
 - Sprint H composition allowlist: **4 passed** (`tests\unit\architecture\test_composition_allowlist.py`)
 - Sprint H architecture suite: **122 passed, 2 warnings** (`tests\unit\architecture`)
@@ -190,7 +202,7 @@ MY-DOGE-MICRO Sprint H compatibility-surface governance — **LOCAL IMPLEMENTATI
 
 ## Commits this session
 
-Sprint H compatibility-surface governance was locally committed as a baseline and is not remotely verified yet.
+Sprint H compatibility-surface governance was locally committed as `a8c832f` (`docs(architecture): govern compatibility surfaces`) and is not remotely verified yet. The local quality-gate remediation baseline is included in the latest local commit and is not remotely verified.
 
 ## Do Not Forget
 
@@ -199,14 +211,21 @@ Sprint H compatibility-surface governance was locally committed as a baseline an
 - ADR-0015 remains Proposed until all live evidence lands.
 - Next recommended work: operator-owned W3-live/S017-003/AUTH-prod/S017-007 external gates, when real credentials, approvals, and analyst evidence are available.
 
-## Files Modified (git working tree)
+## Latest Local Commit Scope
 
-- Sprint H current themes:
-  - `docs/architecture/compatibility-surfaces.md`
-  - `tests/unit/architecture/test_shim_behavior_guards.py`
-  - `tests/unit/architecture/test_composition_allowlist.py`
-  - `production/qa/qa-plan-sprint-h.md`
-  - `production/qa/evidence/sprint-h-compatibility-surface-governance.md`
+- Local quality-gate remediation:
+  - `docs/architecture/runtime-contracts.md`
+  - `tests/fixtures/runtime_contracts/agent_runtime_contract_v1.json`
+  - `tests/contract/test_golden_runtime_contract.py`
+  - `tests/contract/test_tool_registry.py`
+  - `src/doge/application/tools/registry.py`
+  - `tests/eval/rag_retrieval_benchmark.py`
+  - `tests/eval/test_rag_retrieval_benchmark.py`
+  - `scripts/run_rag_quality_benchmark.py`
+  - `production/qa/evidence/eval/rag-retrieval-quality-baseline-2026-07-01.json`
+  - `production/qa/evidence/eval/rag-retrieval-quality-baseline-2026-07-01.md`
+  - `production/qa/evidence/plan-closure/external-preflight-blocked-2026-07-01.md`
   - `README.md`
   - `docs/progress/runtime-maturity.yaml`
   - `production/session-state/active.md`
+  - `docs/API.md`

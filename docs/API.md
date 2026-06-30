@@ -1,12 +1,16 @@
 # HTTP API Reference (FastAPI)
 
 The local-first HTTP backend of MY-DOGE-MICRO. A single FastAPI application
-(`doge.interfaces.api.main`) binds to `127.0.0.1:8901` and exposes **88 product routes**:
-34 legacy `/api/*` compatibility routes plus 54 daemon/v1 routes (`sessions`,
-`runs`, `documents`, `tools`, `health`, case workflow, portfolio import, audit,
-and enterprise ACL). Per ADR-0024, new platform work should target `/v1/*` and
-SDK clients. Legacy `/api/*` remains for local compatibility and emits
-deprecation metadata headers.
+(`doge.interfaces.api.main`) binds to `127.0.0.1:8901` and exposes **88 product
+routes**: 34 legacy `/api/*` compatibility routes plus 54 daemon/v1 routes.
+Per ADR-0024, new platform work should target `/v1/*` through SDK clients.
+Legacy `/api/*` remains for local compatibility and emits deprecation metadata
+headers.
+
+The recommended Platform Alpha path only needs five `/v1` families:
+`sessions`, `runs`, `documents`, `tools`, and `platform`. `audit`,
+`enterprise`, `health`, and `portfolios` are operator/reference APIs and are
+not part of the main user workflow.
 
 > **Stack**: FastAPI 0.123.8, Uvicorn 0.38.0, Pydantic 2.12.4, sse-starlette
 > 3.0.3, httpx 0.28.1 (TestClient) — pinned in `pyproject.toml:11-25`. Reverse-documented
@@ -16,6 +20,7 @@ deprecation metadata headers.
 ## Table of Contents
 
 - [Overview](#overview)
+- [Recommended v1 Workflow](#recommended-v1-workflow)
 - [Base URL & Transports](#base-url--transports)
 - [Authentication](#authentication)
 - [Route Table](#route-table)
@@ -55,6 +60,21 @@ python -m uvicorn doge.interfaces.api.main:app --host 127.0.0.1 --port 8901
 
 `src/api` remains only as a deprecated compatibility redirect shim. New
 integrations should import or launch `doge.interfaces.api`.
+
+## Recommended v1 Workflow
+
+Primary user and SDK flows should stay on this sequence:
+
+1. `POST /v1/sessions`
+2. `POST /v1/documents` when a run needs document evidence
+3. `POST /v1/sessions/{session_id}/turns`
+4. `GET /v1/runs/{run_id}/stream` or `GET /v1/runs/{run_id}/events`
+5. `POST /v1/runs/{run_id}/approvals/{approval_id}` or `/resume` when needed
+6. `GET /v1/runs/{run_id}/artifacts` and optional summary/citation/eval reads
+
+`GET /v1/tools` and `GET /v1/capabilities` support capability discovery. Audit,
+enterprise ACL, health/readiness, and portfolio import endpoints remain
+documented below as operator/reference APIs, not the default product path.
 
 Legacy `/api/*` responses include:
 

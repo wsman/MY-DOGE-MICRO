@@ -86,6 +86,7 @@ class ToolRegistry:
             category = self._categories.get(name, ToolCategory.READ_ONLY)
             descriptor = self._descriptors.get(name)
             records.append({
+                "name": name,
                 "tool_name": name,
                 "description": (
                     descriptor.description if descriptor is not None

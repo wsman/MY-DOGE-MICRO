@@ -2,16 +2,38 @@
 
 from __future__ import annotations
 
+from dataclasses import fields
 import json
+from pathlib import Path
+import sqlite3
 import time
 
 import httpx
 from fastapi.testclient import TestClient
 
 from doge.config import reset_settings
+from doge.core.domain.agent_models import (
+    AgentApproval,
+    AgentArtifact,
+    AgentEvent,
+    AgentRun,
+    AgentSession,
+    AgentTurn,
+    EventType,
+)
+from doge.infrastructure.database.agent_repositories import bootstrap_agent_schema
 from doge.interfaces.api import deps
 from doge.interfaces.api.main import app
 from doge_sdk import DogeClient
+from doge_sdk.run import RunsResource
+from doge_sdk.session import Session as PythonSession
+from doge_sdk.session import SessionsResource
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+RUNTIME_CONTRACT_FIXTURE = (
+    REPO_ROOT / "tests" / "fixtures" / "runtime_contracts" / "agent_runtime_contract_v1.json"
+)
 
 
 def test_golden_runtime_contract_matches_v1_and_python_sdk(tmp_path, monkeypatch):
@@ -79,6 +101,53 @@ def test_golden_runtime_contract_matches_v1_and_python_sdk(tmp_path, monkeypatch
     )
 
     assert sdk_contract == api_contract
+
+
+def test_golden_runtime_contract_fixture_matches_domain_persistence_and_sdk(tmp_path):
+    contract = json.loads(RUNTIME_CONTRACT_FIXTURE.read_text(encoding="utf-8"))
+
+    assert contract["schema_version"] == "doge.runtime_contract.v1"
+    domain_models = {
+        "AgentSession": AgentSession,
+        "AgentTurn": AgentTurn,
+        "AgentRun": AgentRun,
+        "AgentEvent": AgentEvent,
+        "AgentArtifact": AgentArtifact,
+        "AgentApproval": AgentApproval,
+    }
+    for name, model in domain_models.items():
+        assert [field.name for field in fields(model)] == contract["domain_models"][name]
+
+    run = AgentRun.create(workflow="contract", question="shape")
+    event = AgentEvent(event_id="evt-contract", run_id=run.run_id, event_type=EventType.RUN_CREATED)
+
+    assert run.schema_version == contract["domain_schema_versions"]["AgentRun"]
+    assert event.schema_version == contract["domain_schema_versions"]["AgentEvent"]
+
+    db_path = tmp_path / "agent_state.db"
+    bootstrap_agent_schema(db_path)
+    with sqlite3.connect(db_path) as conn:
+        for table, expected_columns in contract["sqlite_tables"].items():
+            columns = [row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()]
+            assert columns == expected_columns
+
+    sdk_shapes = contract["sdk_shapes"]
+    assert set(sdk_shapes["python_session_methods"]) <= _public_method_names(PythonSession)
+    assert set(sdk_shapes["python_sessions_resource_methods"]) <= _public_method_names(SessionsResource)
+    assert set(sdk_shapes["python_runs_resource_methods"]) <= _public_method_names(RunsResource)
+
+    typescript_session = (REPO_ROOT / "packages" / "doge-sdk-typescript" / "src" / "session.ts").read_text(
+        encoding="utf-8"
+    )
+    typescript_run = (REPO_ROOT / "packages" / "doge-sdk-typescript" / "src" / "run.ts").read_text(
+        encoding="utf-8"
+    )
+    for field_name in sdk_shapes["typescript_session_fields"]:
+        assert f"{field_name}:" in typescript_session
+    for method_name in sdk_shapes["typescript_session_methods"]:
+        assert f"{method_name}(" in typescript_session
+    for method_name in sdk_shapes["typescript_runs_resource_methods"]:
+        assert f"{method_name}(" in typescript_run
 
 
 def test_golden_runtime_contract_explicit_resume_path(tmp_path, monkeypatch):
@@ -198,3 +267,11 @@ def _parse_sse(body: str) -> list[dict]:
         if record:
             events.append(record)
     return events
+
+
+def _public_method_names(cls: type) -> set[str]:
+    return {
+        name
+        for name, value in vars(cls).items()
+        if callable(value) and not name.startswith("_")
+    }

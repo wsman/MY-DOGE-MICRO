@@ -37,6 +37,20 @@ Run the zero-key local demo:
 doge demo
 ```
 
+Recommended Platform Alpha paths:
+
+```bash
+doge session --interactive          # Level 1 embedded CLI session
+doged serve --port 8901             # Level 2 loopback daemon gateway
+```
+
+SDK and Web clients should use the daemon `/v1` contract. The primary workflow
+is: create a session, upload/select documents, submit a turn, stream a run,
+resolve approval when required, and read artifacts/citations. The main `/v1`
+families for that path are `sessions`, `runs`, `documents`, `tools`, and
+`platform`; `audit`, `enterprise`, `health`, and `portfolios` remain
+operator/reference surfaces.
+
 Start the FastAPI backend:
 
 ```bash

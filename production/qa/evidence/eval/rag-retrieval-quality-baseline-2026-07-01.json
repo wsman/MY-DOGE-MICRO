@@ -1,0 +1,773 @@
+{
+  "schema_version": "doge.rag_retrieval_benchmark.v1",
+  "created_at": "2026-06-30T17:52:08.119423+00:00",
+  "source": "local_deterministic_rag_gold_set",
+  "gold_set": {
+    "case_count": 35,
+    "categories": [
+      "annual_report",
+      "chart_image",
+      "multi_turn",
+      "portfolio_csv",
+      "presentation",
+      "relation_support",
+      "unsupported_claim"
+    ],
+    "profiles": [
+      "financial_research",
+      "vision_analysis"
+    ],
+    "required_categories_present": [
+      "annual_report",
+      "chart_image",
+      "multi_turn",
+      "portfolio_csv",
+      "presentation",
+      "relation_support",
+      "unsupported_claim"
+    ],
+    "required_categories_missing": [],
+    "citation_label_count": 30,
+    "numerical_label_count": 29,
+    "unsupported_claim_label_count": 6,
+    "human_label_complete": true
+  },
+  "top_k": 5,
+  "metrics": {
+    "retrieval_recall_at_k": 1.0,
+    "retrieval_precision_at_expected": 1.0,
+    "citation_linkage": 1.0,
+    "numerical_consistency": 1.0
+  },
+  "observed_case_count": 35,
+  "observations": [
+    {
+      "case_id": "ar_nvda_revenue_growth",
+      "question": "Extract revenue growth and cite the annual report page.",
+      "expected_evidence_ids": [
+        "evd-ar-nvda-p42-revenue"
+      ],
+      "expected_chunk_ids": [
+        "chk-3e9fae95d3fb7df0"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-ar-nvda-p42-revenue"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-3e9fae95d3fb7df0"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": 1.0,
+      "result_count": 5
+    },
+    {
+      "case_id": "ar_nvda_gross_margin",
+      "question": "Report gross margin and cite the source.",
+      "expected_evidence_ids": [
+        "evd-ar-nvda-p45-margin"
+      ],
+      "expected_chunk_ids": [
+        "chk-40ddf1ea099ea42f"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-ar-nvda-p45-margin",
+        "evd-ar-nvda-p42-revenue"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-40ddf1ea099ea42f"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": 1.0,
+      "result_count": 5
+    },
+    {
+      "case_id": "ar_msft_cloud_revenue",
+      "question": "Identify cloud revenue and cite the annual report page.",
+      "expected_evidence_ids": [
+        "evd-ar-msft-p36-cloud"
+      ],
+      "expected_chunk_ids": [
+        "chk-389355bf184a1b4b"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-ar-msft-p36-cloud"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-389355bf184a1b4b"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": 1.0,
+      "result_count": 5
+    },
+    {
+      "case_id": "ar_aapl_services_margin",
+      "question": "Extract services gross margin and cite the source.",
+      "expected_evidence_ids": [
+        "evd-ar-aapl-p31-services-margin"
+      ],
+      "expected_chunk_ids": [
+        "chk-fc9e6808340902be"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-ar-aapl-p31-services-margin"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-fc9e6808340902be"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": 1.0,
+      "result_count": 5
+    },
+    {
+      "case_id": "ar_tsla_capex",
+      "question": "Summarize capex and cite the filing page.",
+      "expected_evidence_ids": [
+        "evd-ar-tsla-p68-capex"
+      ],
+      "expected_chunk_ids": [
+        "chk-8925989dd7257de3"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-ar-tsla-p68-capex"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-8925989dd7257de3"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": 1.0,
+      "result_count": 5
+    },
+    {
+      "case_id": "ppt_semis_tam",
+      "question": "Extract the AI accelerator TAM from the presentation.",
+      "expected_evidence_ids": [
+        "evd-ppt-semis-s12-tam"
+      ],
+      "expected_chunk_ids": [
+        "chk-ca5b72cf8f818d36"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-ppt-semis-s12-tam"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-ca5b72cf8f818d36"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": 1.0,
+      "result_count": 3
+    },
+    {
+      "case_id": "ppt_bank_nim",
+      "question": "What NIM guidance is shown in the investor deck?",
+      "expected_evidence_ids": [
+        "evd-ppt-bank-s08-nim"
+      ],
+      "expected_chunk_ids": [
+        "chk-cbab5423a2a51485"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-ppt-bank-s08-nim"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-cbab5423a2a51485"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": 1.0,
+      "result_count": 5
+    },
+    {
+      "case_id": "ppt_retail_same_store_sales",
+      "question": "Extract same-store sales guidance.",
+      "expected_evidence_ids": [
+        "evd-ppt-retail-s15-sss"
+      ],
+      "expected_chunk_ids": [
+        "chk-a9a9566841f05c7f"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-ppt-retail-s15-sss"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-a9a9566841f05c7f"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": 1.0,
+      "result_count": 5
+    },
+    {
+      "case_id": "ppt_energy_capacity",
+      "question": "What added capacity is claimed in the deck?",
+      "expected_evidence_ids": [
+        "evd-ppt-energy-s09-capacity"
+      ],
+      "expected_chunk_ids": [
+        "chk-fd885cee38583fc2"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-ppt-energy-s09-capacity"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-fd885cee38583fc2"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": 1.0,
+      "result_count": 3
+    },
+    {
+      "case_id": "ppt_healthcare_margin",
+      "question": "What operating margin target is shown?",
+      "expected_evidence_ids": [
+        "evd-ppt-health-s18-margin"
+      ],
+      "expected_chunk_ids": [
+        "chk-7706dace3ed26ccb"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-ppt-health-s18-margin"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-7706dace3ed26ccb"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": 1.0,
+      "result_count": 5
+    },
+    {
+      "case_id": "chart_rsrs_breakout",
+      "question": "Read the RSRS chart and identify the breakout score.",
+      "expected_evidence_ids": [
+        "evd-chart-rsrs-annotation"
+      ],
+      "expected_chunk_ids": [
+        "chk-45f18402753680bf"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-chart-rsrs-annotation"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-45f18402753680bf"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": null,
+      "result_count": 1
+    },
+    {
+      "case_id": "chart_revenue_bar",
+      "question": "Read the revenue bar chart value for FY2025.",
+      "expected_evidence_ids": [
+        "evd-chart-revenue-fy2025"
+      ],
+      "expected_chunk_ids": [
+        "chk-fdfcb195509e09d0"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-chart-revenue-fy2025"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-fdfcb195509e09d0"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": null,
+      "result_count": 1
+    },
+    {
+      "case_id": "chart_margin_line",
+      "question": "Extract the latest margin from the line chart.",
+      "expected_evidence_ids": [
+        "evd-chart-margin-latest"
+      ],
+      "expected_chunk_ids": [
+        "chk-878c2e6313505879"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-chart-margin-latest"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-878c2e6313505879"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": null,
+      "result_count": 1
+    },
+    {
+      "case_id": "chart_inventory_days",
+      "question": "Read inventory days from the chart.",
+      "expected_evidence_ids": [
+        "evd-chart-inventory-days"
+      ],
+      "expected_chunk_ids": [
+        "chk-c7237862797df03a"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-chart-inventory-days"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-c7237862797df03a"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": null,
+      "result_count": 1
+    },
+    {
+      "case_id": "chart_drawdown",
+      "question": "Read the maximum drawdown annotation.",
+      "expected_evidence_ids": [
+        "evd-chart-drawdown-max"
+      ],
+      "expected_chunk_ids": [
+        "chk-d73b12f2a22b082c"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-chart-drawdown-max"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-d73b12f2a22b082c"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": null,
+      "result_count": 1
+    },
+    {
+      "case_id": "portfolio_sector_exposure",
+      "question": "Calculate technology sector exposure from the portfolio CSV.",
+      "expected_evidence_ids": [
+        "evd-portfolio-core-tech"
+      ],
+      "expected_chunk_ids": [
+        "chk-0e2514d8123eea8e"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-portfolio-core-tech",
+        "evd-portfolio-core-bond",
+        "evd-portfolio-core-cash"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-0e2514d8123eea8e"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": 1.0,
+      "result_count": 1
+    },
+    {
+      "case_id": "portfolio_bond_exposure",
+      "question": "Calculate bond exposure from the portfolio CSV.",
+      "expected_evidence_ids": [
+        "evd-portfolio-core-bond"
+      ],
+      "expected_chunk_ids": [
+        "chk-0e2514d8123eea8e"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-portfolio-core-tech",
+        "evd-portfolio-core-bond",
+        "evd-portfolio-core-cash"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-0e2514d8123eea8e"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": 1.0,
+      "result_count": 1
+    },
+    {
+      "case_id": "portfolio_var",
+      "question": "Estimate one-day 95% VaR from the portfolio CSV.",
+      "expected_evidence_ids": [
+        "evd-portfolio-risk-var"
+      ],
+      "expected_chunk_ids": [
+        "chk-f6f4e18aaef88718"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-portfolio-risk-var"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-f6f4e18aaef88718"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": 1.0,
+      "result_count": 1
+    },
+    {
+      "case_id": "portfolio_rate_shock",
+      "question": "Estimate the impact of a 100 bp rate shock.",
+      "expected_evidence_ids": [
+        "evd-portfolio-rates-shock"
+      ],
+      "expected_chunk_ids": [
+        "chk-30c36da2855e1ff5"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-portfolio-rates-shock"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-30c36da2855e1ff5"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": 1.0,
+      "result_count": 1
+    },
+    {
+      "case_id": "portfolio_cash_weight",
+      "question": "Calculate cash weight from the portfolio CSV.",
+      "expected_evidence_ids": [
+        "evd-portfolio-core-cash"
+      ],
+      "expected_chunk_ids": [
+        "chk-0e2514d8123eea8e"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-portfolio-core-tech",
+        "evd-portfolio-core-bond",
+        "evd-portfolio-core-cash"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-0e2514d8123eea8e"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": 1.0,
+      "result_count": 1
+    },
+    {
+      "case_id": "unsupported_no_source_dividend",
+      "question": "Confirm that the company guaranteed a 20% dividend increase.",
+      "expected_evidence_ids": [],
+      "expected_chunk_ids": [],
+      "retrieved_evidence_ids_at_k": [],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-b92435bf5a271f38"
+      ],
+      "retrieval_recall_at_k": null,
+      "retrieval_precision_at_expected": null,
+      "citation_linkage": null,
+      "numerical_consistency": null,
+      "result_count": 5
+    },
+    {
+      "case_id": "unsupported_no_source_buyback",
+      "question": "Verify a claim that management approved a 500 billion buyback.",
+      "expected_evidence_ids": [],
+      "expected_chunk_ids": [],
+      "retrieved_evidence_ids_at_k": [
+        "evd-ppt-bank-s08-nim"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-cbab5423a2a51485"
+      ],
+      "retrieval_recall_at_k": null,
+      "retrieval_precision_at_expected": null,
+      "citation_linkage": null,
+      "numerical_consistency": null,
+      "result_count": 1
+    },
+    {
+      "case_id": "unsupported_no_source_guidance",
+      "question": "Check whether guidance guarantees 40% EPS growth.",
+      "expected_evidence_ids": [],
+      "expected_chunk_ids": [],
+      "retrieved_evidence_ids_at_k": [
+        "evd-ppt-retail-s15-sss"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-a9a9566841f05c7f"
+      ],
+      "retrieval_recall_at_k": null,
+      "retrieval_precision_at_expected": null,
+      "citation_linkage": null,
+      "numerical_consistency": null,
+      "result_count": 3
+    },
+    {
+      "case_id": "unsupported_chart_claim",
+      "question": "Does the chart prove that revenue doubled every quarter?",
+      "expected_evidence_ids": [],
+      "expected_chunk_ids": [],
+      "retrieved_evidence_ids_at_k": [
+        "evd-chart-revenue-fy2025"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-fdfcb195509e09d0"
+      ],
+      "retrieval_recall_at_k": null,
+      "retrieval_precision_at_expected": null,
+      "citation_linkage": null,
+      "numerical_consistency": null,
+      "result_count": 1
+    },
+    {
+      "case_id": "unsupported_portfolio_claim",
+      "question": "Verify that the portfolio has no equity exposure.",
+      "expected_evidence_ids": [
+        "evd-portfolio-core-tech"
+      ],
+      "expected_chunk_ids": [
+        "chk-0e2514d8123eea8e"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-portfolio-core-tech",
+        "evd-portfolio-core-bond",
+        "evd-portfolio-core-cash"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-0e2514d8123eea8e"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": 1.0,
+      "result_count": 1
+    },
+    {
+      "case_id": "multi_turn_followup_margin",
+      "question": "First summarize revenue, then answer a follow-up about margin.",
+      "expected_evidence_ids": [
+        "evd-ar-nvda-p45-margin"
+      ],
+      "expected_chunk_ids": [
+        "chk-40ddf1ea099ea42f"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-ar-nvda-p45-margin",
+        "evd-ar-nvda-p42-revenue"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-40ddf1ea099ea42f"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": 1.0,
+      "result_count": 5
+    },
+    {
+      "case_id": "multi_turn_followup_portfolio",
+      "question": "After explaining portfolio exposure, answer whether rates risk matters.",
+      "expected_evidence_ids": [
+        "evd-portfolio-rates-shock"
+      ],
+      "expected_chunk_ids": [
+        "chk-30c36da2855e1ff5"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-portfolio-rates-shock"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-30c36da2855e1ff5"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": 1.0,
+      "result_count": 1
+    },
+    {
+      "case_id": "multi_turn_followup_chart",
+      "question": "Read the chart, then answer a follow-up about the latest point.",
+      "expected_evidence_ids": [
+        "evd-chart-margin-latest"
+      ],
+      "expected_chunk_ids": [
+        "chk-878c2e6313505879"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-chart-margin-latest"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-878c2e6313505879"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": null,
+      "result_count": 1
+    },
+    {
+      "case_id": "multi_turn_followup_unsupported",
+      "question": "After a sourced answer, ask whether an unsourced guarantee is true.",
+      "expected_evidence_ids": [],
+      "expected_chunk_ids": [],
+      "retrieved_evidence_ids_at_k": [
+        "evd-ppt-health-s18-margin"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-7706dace3ed26ccb"
+      ],
+      "retrieval_recall_at_k": null,
+      "retrieval_precision_at_expected": null,
+      "citation_linkage": null,
+      "numerical_consistency": null,
+      "result_count": 5
+    },
+    {
+      "case_id": "multi_turn_followup_cross_doc",
+      "question": "Combine annual report revenue and portfolio exposure in a follow-up.",
+      "expected_evidence_ids": [
+        "evd-ar-msft-p36-cloud",
+        "evd-portfolio-core-tech"
+      ],
+      "expected_chunk_ids": [
+        "chk-389355bf184a1b4b",
+        "chk-0e2514d8123eea8e"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-ar-msft-p36-cloud",
+        "evd-portfolio-core-tech",
+        "evd-portfolio-core-bond",
+        "evd-portfolio-core-cash"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-389355bf184a1b4b",
+        "chk-0e2514d8123eea8e"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": 1.0,
+      "result_count": 5
+    },
+    {
+      "case_id": "relation_support_revenue_exact",
+      "question": "Classify whether the evidence supports the revenue growth claim.",
+      "expected_evidence_ids": [
+        "evd-rel-revenue-growth"
+      ],
+      "expected_chunk_ids": [
+        "chk-dc5008c6ea891937"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-rel-revenue-growth"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-dc5008c6ea891937"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": 1.0,
+      "result_count": 5
+    },
+    {
+      "case_id": "relation_support_margin_partial",
+      "question": "Classify partial support for a margin expansion claim.",
+      "expected_evidence_ids": [
+        "evd-rel-margin-cost"
+      ],
+      "expected_chunk_ids": [
+        "chk-cee061318ed04726"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-rel-margin-cost"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-cee061318ed04726"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": null,
+      "result_count": 4
+    },
+    {
+      "case_id": "relation_support_contradicted_cash",
+      "question": "Classify contradiction for a cash balance claim.",
+      "expected_evidence_ids": [
+        "evd-rel-cash-decrease"
+      ],
+      "expected_chunk_ids": [
+        "chk-d2ce971a87e248c3"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-rel-cash-decrease"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-d2ce971a87e248c3"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": 1.0,
+      "result_count": 5
+    },
+    {
+      "case_id": "relation_support_unrelated_risk",
+      "question": "Reject unrelated evidence for a risk claim.",
+      "expected_evidence_ids": [],
+      "expected_chunk_ids": [],
+      "retrieved_evidence_ids_at_k": [],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-255799da46f68aa6"
+      ],
+      "retrieval_recall_at_k": null,
+      "retrieval_precision_at_expected": null,
+      "citation_linkage": null,
+      "numerical_consistency": null,
+      "result_count": 1
+    },
+    {
+      "case_id": "relation_support_portfolio_number",
+      "question": "Classify support for a portfolio exposure number.",
+      "expected_evidence_ids": [
+        "evd-rel-portfolio-tech"
+      ],
+      "expected_chunk_ids": [
+        "chk-030e7ce40cfd744f"
+      ],
+      "retrieved_evidence_ids_at_k": [
+        "evd-rel-portfolio-tech"
+      ],
+      "retrieved_chunk_ids_at_expected": [
+        "chk-030e7ce40cfd744f"
+      ],
+      "retrieval_recall_at_k": 1.0,
+      "retrieval_precision_at_expected": 1.0,
+      "citation_linkage": 1.0,
+      "numerical_consistency": 1.0,
+      "result_count": 1
+    }
+  ],
+  "external_gate_closure_allowed": false,
+  "notes": [
+    "This benchmark validates local deterministic RAG retrieval only.",
+    "It does not close W3-live or production vector backend gates."
+  ]
+}

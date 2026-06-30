@@ -1,0 +1,181 @@
+{
+  "schema_version": "doge.runtime_contract.v1",
+  "domain_models": {
+    "AgentSession": [
+      "session_id",
+      "title",
+      "tenant_id",
+      "created_at",
+      "updated_at",
+      "turns"
+    ],
+    "AgentTurn": [
+      "turn_id",
+      "session_id",
+      "user_message",
+      "run_id",
+      "tenant_id",
+      "created_at"
+    ],
+    "AgentRun": [
+      "run_id",
+      "workflow",
+      "question",
+      "session_id",
+      "market",
+      "language",
+      "document_ids",
+      "portfolio_id",
+      "model_policy",
+      "workflow_context",
+      "identity_snapshot",
+      "status",
+      "events",
+      "artifacts",
+      "approvals",
+      "cancel_requested_at",
+      "schema_version",
+      "created_at",
+      "updated_at"
+    ],
+    "AgentEvent": [
+      "event_id",
+      "run_id",
+      "event_type",
+      "payload",
+      "sequence",
+      "schema_version",
+      "created_at"
+    ],
+    "AgentArtifact": [
+      "artifact_id",
+      "kind",
+      "title",
+      "content",
+      "run_id",
+      "data",
+      "created_at"
+    ],
+    "AgentApproval": [
+      "approval_id",
+      "action",
+      "risk_level",
+      "run_id",
+      "status",
+      "created_at",
+      "resolved_at"
+    ]
+  },
+  "domain_schema_versions": {
+    "AgentRun": "1.0",
+    "AgentEvent": "1.0"
+  },
+  "sqlite_tables": {
+    "sessions": [
+      "session_id",
+      "tenant_id",
+      "title",
+      "created_at",
+      "updated_at"
+    ],
+    "turns": [
+      "turn_id",
+      "session_id",
+      "tenant_id",
+      "user_message",
+      "run_id",
+      "created_at"
+    ],
+    "runs": [
+      "run_id",
+      "tenant_id",
+      "session_id",
+      "workflow",
+      "question",
+      "market",
+      "language",
+      "document_ids",
+      "portfolio_id",
+      "model_policy",
+      "workflow_context",
+      "identity_snapshot",
+      "status",
+      "cancel_requested_at",
+      "created_at",
+      "updated_at",
+      "schema_version"
+    ],
+    "events": [
+      "event_id",
+      "tenant_id",
+      "run_id",
+      "event_type",
+      "payload",
+      "sequence",
+      "schema_version",
+      "created_at"
+    ],
+    "artifacts": [
+      "artifact_id",
+      "tenant_id",
+      "run_id",
+      "kind",
+      "title",
+      "content",
+      "data",
+      "created_at"
+    ],
+    "approvals": [
+      "approval_id",
+      "tenant_id",
+      "run_id",
+      "action",
+      "risk_level",
+      "status",
+      "created_at",
+      "resolved_at"
+    ]
+  },
+  "sdk_shapes": {
+    "python_session_methods": [
+      "create_turn",
+      "run"
+    ],
+    "python_sessions_resource_methods": [
+      "create",
+      "list",
+      "get",
+      "create_turn"
+    ],
+    "python_runs_resource_methods": [
+      "get",
+      "events",
+      "stream",
+      "approve",
+      "resume",
+      "cancel"
+    ],
+    "typescript_session_fields": [
+      "session_id",
+      "title",
+      "turns"
+    ],
+    "typescript_session_methods": [
+      "createTurn",
+      "run"
+    ],
+    "typescript_runs_resource_methods": [
+      "get",
+      "stream",
+      "approve",
+      "resume",
+      "cancel"
+    ]
+  },
+  "change_policy": [
+    "Bump domain schema_version for persisted field shape changes.",
+    "Add a repository migration before changing SQLite table shape.",
+    "Update Python and TypeScript SDK types for API shape changes.",
+    "Update this golden fixture and runtime maturity evidence in the same change."
+  ]
+}
