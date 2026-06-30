@@ -16,7 +16,7 @@
       "total": 6
     }
   },
-  "generated_at": "2026-06-30T05:33:00.337020+00:00",
+  "generated_at": "2026-06-30T15:11:15.811635+00:00",
   "operator_rule": "Complete each task to its required_results, run its validator_command without allow-template/allow-blocked flags, then run scripts/validate_plan_closure_gate.py without --allow-open.",
   "schema": "doge.plan_closure_execution_manifest.v1",
   "source_plan": "C:\\Users\\Aby\\.claude\\plans\\9b77f9c-kimi-twinkly-map.md",

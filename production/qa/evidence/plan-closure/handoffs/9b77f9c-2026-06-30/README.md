@@ -1,6 +1,6 @@
 # 9b77f9c External Closure Handoff Workspace
 
-Prepared: 2026-06-30T05:33:12.598619+00:00
+Prepared: 2026-06-30T15:11:37.640195+00:00
 Date token: 2026-06-30
 Source manifest: `production/qa/evidence/plan-closure/9b77f9c-external-closure-manifest.json`
 Source plan SHA-256: `unavailable`
@@ -49,7 +49,7 @@ Next action: S017-002 is closed for the Kimi Coding v1 gate by 2026-06-29 eviden
 - Builder/runner: `.\.venv\Scripts\python.exe scripts\build_financial_provider_approval_evidence.py --decisions production/qa/evidence/provider/provider-decisions-YYYY-MM-DD.json --output production/qa/evidence/provider/financial-provider-approval-YYYY-MM-DD.json --created-at "YYYY-MM-DDTHH:MM:SSZ"`
 - Operator input guide: `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/s017-003/operator-input-guide.md`
 - Prepared draft inputs:
-  - `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/s017-003/provider-decisions-draft-2026-06-30.json` from `production/qa/evidence/provider/provider-decisions-template-2026-06-22.json` (action: `copied_template_for_operator_edit`, differs_from_source_template: `False`)
+  - `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/s017-003/provider-decisions-draft-2026-06-30.json` from `production/qa/evidence/provider/provider-decisions-template-2026-06-22.json` (action: `preserved_existing_operator_draft`, differs_from_source_template: `True`)
 - Input refs:
   - `production/qa/evidence/provider/provider-decisions-YYYY-MM-DD.json`
 - Draft input bindings:
@@ -71,11 +71,11 @@ Next action: Complete the provider approval template with product/operator decis
 - Builder/runner: `.\.venv\Scripts\python.exe scripts\build_analyst_benchmark_evidence.py --observations production/qa/evidence/eval/live-kimi-observations-redacted.json --thresholds production/qa/evidence/eval/approved-thresholds.json --output production/qa/evidence/eval/analyst-benchmark-YYYY-MM-DD.json --material-manifest-ref production/qa/evidence/eval/material-manifest-approved.json --label-manifest-ref production/qa/evidence/eval/label-manifest-approved.json --label-policy-ref docs/progress/financial-eval-gold-set.md --live-observation-ref production/qa/evidence/eval/live-kimi-observations-redacted.json --trend-history-ref production/qa/evidence/eval/trend-history.jsonl --analyst-role research-qa-analyst --analyst-initials "<initials>" --reviewed-at "YYYY-MM-DDTHH:MM:SSZ"`
 - Operator input guide: `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/operator-input-guide.md`
 - Prepared draft inputs:
-  - `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/live-kimi-observations-draft-2026-06-30.json` from `production/qa/evidence/eval/live-kimi-observations-template-2026-06-22.json` (action: `copied_template_for_operator_edit`, differs_from_source_template: `False`)
-  - `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/approved-thresholds-draft-2026-06-30.json` from `production/qa/evidence/eval/approved-thresholds-template-2026-06-22.json` (action: `copied_template_for_operator_edit`, differs_from_source_template: `False`)
-  - `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/material-manifest-draft-2026-06-30.json` from `production/qa/evidence/eval/material-manifest-template-2026-06-22.json` (action: `copied_template_for_operator_edit`, differs_from_source_template: `False`)
-  - `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/label-manifest-draft-2026-06-30.json` from `production/qa/evidence/eval/label-manifest-template-2026-06-22.json` (action: `copied_template_for_operator_edit`, differs_from_source_template: `False`)
-  - `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/trend-history-draft-2026-06-30.jsonl` from `production/qa/evidence/eval/trend-history-template-2026-06-22.jsonl` (action: `copied_template_for_operator_edit`, differs_from_source_template: `False`)
+  - `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/live-kimi-observations-draft-2026-06-30.json` from `production/qa/evidence/eval/live-kimi-observations-template-2026-06-22.json` (action: `preserved_existing_operator_draft`, differs_from_source_template: `True`)
+  - `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/approved-thresholds-draft-2026-06-30.json` from `production/qa/evidence/eval/approved-thresholds-template-2026-06-22.json` (action: `preserved_existing_operator_draft`, differs_from_source_template: `True`)
+  - `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/material-manifest-draft-2026-06-30.json` from `production/qa/evidence/eval/material-manifest-template-2026-06-22.json` (action: `preserved_existing_operator_draft`, differs_from_source_template: `True`)
+  - `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/label-manifest-draft-2026-06-30.json` from `production/qa/evidence/eval/label-manifest-template-2026-06-22.json` (action: `preserved_existing_operator_draft`, differs_from_source_template: `True`)
+  - `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/trend-history-draft-2026-06-30.jsonl` from `production/qa/evidence/eval/trend-history-template-2026-06-22.jsonl` (action: `preserved_existing_operator_draft`, differs_from_source_template: `True`)
 - Input refs:
   - `production/qa/evidence/eval/live-kimi-observations-redacted.json`
   - `production/qa/evidence/eval/approved-thresholds.json`
@@ -105,7 +105,7 @@ Next action: Fill the analyst benchmark evidence with real materials, human cita
 - Builder/runner: `.\.venv\Scripts\python.exe scripts\build_enterprise_production_validation_evidence.py --observations production/qa/evidence/enterprise/enterprise-production-observations-YYYY-MM-DD.json --output production/qa/evidence/enterprise/enterprise-production-validation-YYYY-MM-DD.json --created-at "YYYY-MM-DDTHH:MM:SSZ"`
 - Operator input guide: `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/auth-prod/operator-input-guide.md`
 - Prepared draft inputs:
-  - `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/auth-prod/enterprise-production-observations-draft-2026-06-30.json` from `production/qa/evidence/enterprise/enterprise-production-observations-template-2026-06-22.json` (action: `copied_template_for_operator_edit`, differs_from_source_template: `False`)
+  - `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/auth-prod/enterprise-production-observations-draft-2026-06-30.json` from `production/qa/evidence/enterprise/enterprise-production-observations-template-2026-06-22.json` (action: `preserved_existing_operator_draft`, differs_from_source_template: `True`)
 - Input refs:
   - `production/qa/evidence/enterprise/enterprise-production-observations-YYYY-MM-DD.json`
 - Draft input bindings:
@@ -127,7 +127,7 @@ Next action: Execute enterprise production validation against operator-approved 
 - Builder/runner: `.\.venv\Scripts\python.exe scripts\build_screen_reader_evidence.py --observations production/qa/evidence/manual/screen-reader-observations-YYYY-MM-DD.json --output production/qa/evidence/manual/research-agent-screen-reader-manual-YYYY-MM-DD.json --created-at "YYYY-MM-DDTHH:MM:SSZ"`
 - Operator input guide: `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/s017-006/operator-input-guide.md`
 - Prepared draft inputs:
-  - `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/s017-006/screen-reader-observations-draft-2026-06-30.json` from `production/qa/evidence/manual/screen-reader-observations-template-2026-06-22.json` (action: `copied_template_for_operator_edit`, differs_from_source_template: `False`)
+  - `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/s017-006/screen-reader-observations-draft-2026-06-30.json` from `production/qa/evidence/manual/screen-reader-observations-template-2026-06-22.json` (action: `preserved_existing_operator_draft`, differs_from_source_template: `True`)
 - Input refs:
   - `production/qa/evidence/manual/screen-reader-observations-YYYY-MM-DD.json`
 - Draft input bindings:
@@ -149,7 +149,7 @@ Next action: Run the S017 screen-reader manual protocol with an approved screen 
 - Builder/runner: `.\.venv\Scripts\python.exe scripts\build_sdk_release_approval_evidence.py --decisions production/qa/evidence/sdk/sdk-release-decisions-approved.json --output production/qa/evidence/sdk/sdk-release-approval-YYYY-MM-DD.json --created-at "YYYY-MM-DDTHH:MM:SSZ"`
 - Operator input guide: `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/s017-007/operator-input-guide.md`
 - Prepared draft inputs:
-  - `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/s017-007/sdk-release-decisions-draft-2026-06-30.json` from `production/qa/evidence/sdk/sdk-release-decisions-template-2026-06-22.json` (action: `copied_template_for_operator_edit`, differs_from_source_template: `False`)
+  - `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/s017-007/sdk-release-decisions-draft-2026-06-30.json` from `production/qa/evidence/sdk/sdk-release-decisions-template-2026-06-22.json` (action: `preserved_existing_operator_draft`, differs_from_source_template: `True`)
 - Input refs:
   - `production/qa/evidence/sdk/sdk-release-decisions-approved.json`
 - Draft input bindings:

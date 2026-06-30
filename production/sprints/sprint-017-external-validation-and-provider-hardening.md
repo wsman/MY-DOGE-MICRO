@@ -260,11 +260,10 @@ level_3_sdk_platform: experimental
   handoff workspace does not close gates or generate completed evidence; it only stages external
   decisions/observations for the listed builder or live runner commands.
 - Current prepared workspace:
-  `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-22`.
-  `scripts/validate_plan_closure_handoff.py` passes for this workspace, and
-  `scripts/preflight_plan_closure_external.py --handoff-workspace ... --task-id
-  S017-006 --require-external-inputs` reports `ready` for the filled
-  screen-reader observations draft. The remaining external-gate drafts still
+  `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30`.
+  `scripts/validate_plan_closure_handoff.py` passes for this workspace. The
+  workspace stages operator inputs only; it does not create completed evidence
+  or close gates. `S017-003`, `W3-live`, `AUTH-prod`, and `S017-007` still
   require real operator input before their builders can close gates.
 - `scripts/validate_plan_closure_handoff.py` validates a prepared handoff
   workspace against the current manifest and rejects stale source-plan

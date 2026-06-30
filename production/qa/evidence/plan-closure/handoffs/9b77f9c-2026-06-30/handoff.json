@@ -21,7 +21,7 @@
   "handoff_json": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/handoff.json",
   "operator_checklist": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/operator-checklist.md",
   "operator_commands": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/operator-commands.ps1",
-  "prepared_at": "2026-06-30T05:33:12.598619+00:00",
+  "prepared_at": "2026-06-30T15:11:37.640195+00:00",
   "readme": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/README.md",
   "schema": "doge.plan_closure_handoff_workspace.v1",
   "source_manifest": "production/qa/evidence/plan-closure/9b77f9c-external-closure-manifest.json",
@@ -93,10 +93,10 @@
       "output_ref": "production/qa/evidence/provider/financial-provider-approval-YYYY-MM-DD.json",
       "prepared_inputs": [
         {
-          "action": "copied_template_for_operator_edit",
-          "differs_from_source_template": false,
+          "action": "preserved_existing_operator_draft",
+          "differs_from_source_template": true,
           "prepared_input": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/s017-003/provider-decisions-draft-2026-06-30.json",
-          "prepared_input_sha256": "0877bd007ecc65af67c0e559dd62e0c7ecbab89f9c3de845acdb8f8a1404f02a",
+          "prepared_input_sha256": "90dc24bc2f54722ffea9638e4c4f7f0541502764f27ee1938b99c1859c710e99",
           "source_template": "production/qa/evidence/provider/provider-decisions-template-2026-06-22.json",
           "source_template_sha256": "0877bd007ecc65af67c0e559dd62e0c7ecbab89f9c3de845acdb8f8a1404f02a"
         }
@@ -154,42 +154,42 @@
       "output_ref": "production/qa/evidence/eval/analyst-benchmark-YYYY-MM-DD.json",
       "prepared_inputs": [
         {
-          "action": "copied_template_for_operator_edit",
-          "differs_from_source_template": false,
+          "action": "preserved_existing_operator_draft",
+          "differs_from_source_template": true,
           "prepared_input": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/live-kimi-observations-draft-2026-06-30.json",
-          "prepared_input_sha256": "6eae095e8f78dc278c37b2d2b989b67172526bb0850d56f6b3ab16c5c4a67dc2",
+          "prepared_input_sha256": "786844e3c63032eda97718785117ca64a56a2df8161abb772f003c582c882066",
           "source_template": "production/qa/evidence/eval/live-kimi-observations-template-2026-06-22.json",
           "source_template_sha256": "6eae095e8f78dc278c37b2d2b989b67172526bb0850d56f6b3ab16c5c4a67dc2"
         },
         {
-          "action": "copied_template_for_operator_edit",
-          "differs_from_source_template": false,
+          "action": "preserved_existing_operator_draft",
+          "differs_from_source_template": true,
           "prepared_input": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/approved-thresholds-draft-2026-06-30.json",
-          "prepared_input_sha256": "971c442cb946566445f20fc688e5994bd98cfd622271fbd445167d0867d6f33d",
+          "prepared_input_sha256": "02c80148023346049bea628a26abc49af8f3747f5d1ae308520ec5a030119969",
           "source_template": "production/qa/evidence/eval/approved-thresholds-template-2026-06-22.json",
           "source_template_sha256": "971c442cb946566445f20fc688e5994bd98cfd622271fbd445167d0867d6f33d"
         },
         {
-          "action": "copied_template_for_operator_edit",
-          "differs_from_source_template": false,
+          "action": "preserved_existing_operator_draft",
+          "differs_from_source_template": true,
           "prepared_input": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/material-manifest-draft-2026-06-30.json",
-          "prepared_input_sha256": "ea5ce8e6b7cb48d87b38128cbaed917c6d9e0c9d2b40c1277cbd28186cf807b0",
+          "prepared_input_sha256": "af3fea3d107852fa81237b3c6701f81deb9dab220e9c904ba6205fc148c5b12f",
           "source_template": "production/qa/evidence/eval/material-manifest-template-2026-06-22.json",
           "source_template_sha256": "ea5ce8e6b7cb48d87b38128cbaed917c6d9e0c9d2b40c1277cbd28186cf807b0"
         },
         {
-          "action": "copied_template_for_operator_edit",
-          "differs_from_source_template": false,
+          "action": "preserved_existing_operator_draft",
+          "differs_from_source_template": true,
           "prepared_input": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/label-manifest-draft-2026-06-30.json",
-          "prepared_input_sha256": "a1be0f205766bf6400b20a772e1b38a15ac63fb7fcf517155734a00822a31bbf",
+          "prepared_input_sha256": "4ff26c6b88771da5f8b0ad968ba57f291d9257dd3f93b46da3fe4ade6aa6b5be",
           "source_template": "production/qa/evidence/eval/label-manifest-template-2026-06-22.json",
           "source_template_sha256": "a1be0f205766bf6400b20a772e1b38a15ac63fb7fcf517155734a00822a31bbf"
         },
         {
-          "action": "copied_template_for_operator_edit",
-          "differs_from_source_template": false,
+          "action": "preserved_existing_operator_draft",
+          "differs_from_source_template": true,
           "prepared_input": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/trend-history-draft-2026-06-30.jsonl",
-          "prepared_input_sha256": "6cf375667a29b73d4aa6c00516307cf0caae38a7aff1f710c3cdf86906a790fc",
+          "prepared_input_sha256": "bb4a12b2e2d8304ac9ce13fc7aec65dd3f513748577bffc5cf7feb4a7fa209f0",
           "source_template": "production/qa/evidence/eval/trend-history-template-2026-06-22.jsonl",
           "source_template_sha256": "6cf375667a29b73d4aa6c00516307cf0caae38a7aff1f710c3cdf86906a790fc"
         }
@@ -260,10 +260,10 @@
       "output_ref": "production/qa/evidence/enterprise/enterprise-production-validation-YYYY-MM-DD.json",
       "prepared_inputs": [
         {
-          "action": "copied_template_for_operator_edit",
-          "differs_from_source_template": false,
+          "action": "preserved_existing_operator_draft",
+          "differs_from_source_template": true,
           "prepared_input": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/auth-prod/enterprise-production-observations-draft-2026-06-30.json",
-          "prepared_input_sha256": "36fc17ffdcb47c912cb3bb151e28cb570ae487feccdbb283585e142fe4df2100",
+          "prepared_input_sha256": "57704b1403a1cf01ffd6ad3b5b2efda7d0cbee6a10f57199d1f0997e25e2f420",
           "source_template": "production/qa/evidence/enterprise/enterprise-production-observations-template-2026-06-22.json",
           "source_template_sha256": "36fc17ffdcb47c912cb3bb151e28cb570ae487feccdbb283585e142fe4df2100"
         }
@@ -311,10 +311,10 @@
       "output_ref": "production/qa/evidence/manual/research-agent-screen-reader-manual-YYYY-MM-DD.json",
       "prepared_inputs": [
         {
-          "action": "copied_template_for_operator_edit",
-          "differs_from_source_template": false,
+          "action": "preserved_existing_operator_draft",
+          "differs_from_source_template": true,
           "prepared_input": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/s017-006/screen-reader-observations-draft-2026-06-30.json",
-          "prepared_input_sha256": "f64e1d8bf150f2a88c04187b0f6079ee8f8fc73baf46c0567ae323efff2fab9d",
+          "prepared_input_sha256": "6617c5f6f56a6781f00439daecf705786ee3ee442bb006dfcf438e3e114ef2f9",
           "source_template": "production/qa/evidence/manual/screen-reader-observations-template-2026-06-22.json",
           "source_template_sha256": "f64e1d8bf150f2a88c04187b0f6079ee8f8fc73baf46c0567ae323efff2fab9d"
         }
@@ -364,10 +364,10 @@
       "output_ref": "production/qa/evidence/sdk/sdk-release-approval-YYYY-MM-DD.json",
       "prepared_inputs": [
         {
-          "action": "copied_template_for_operator_edit",
-          "differs_from_source_template": false,
+          "action": "preserved_existing_operator_draft",
+          "differs_from_source_template": true,
           "prepared_input": "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/s017-007/sdk-release-decisions-draft-2026-06-30.json",
-          "prepared_input_sha256": "7f1396a1a550d66312c68268556188d52848dc0ad72d1808b1077395cd3d0dab",
+          "prepared_input_sha256": "ee9eab15ce7350961b210867f8e8aaac614ffdaf874bcf8aab92b450c0be9d5f",
           "source_template": "production/qa/evidence/sdk/sdk-release-decisions-template-2026-06-22.json",
           "source_template_sha256": "7f1396a1a550d66312c68268556188d52848dc0ad72d1808b1077395cd3d0dab"
         }

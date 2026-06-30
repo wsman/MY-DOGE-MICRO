@@ -17,11 +17,11 @@ evidence outputs in this handoff workspace.
 
 ## Fill Before Running
 
-- Edit `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/live-kimi-observations-draft-2026-06-30.json` prepared from `production/qa/evidence/eval/live-kimi-observations-template-2026-06-22.json` (action: `copied_template_for_operator_edit`, differs_from_source_template: `False`).
-- Edit `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/approved-thresholds-draft-2026-06-30.json` prepared from `production/qa/evidence/eval/approved-thresholds-template-2026-06-22.json` (action: `copied_template_for_operator_edit`, differs_from_source_template: `False`).
-- Edit `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/material-manifest-draft-2026-06-30.json` prepared from `production/qa/evidence/eval/material-manifest-template-2026-06-22.json` (action: `copied_template_for_operator_edit`, differs_from_source_template: `False`).
-- Edit `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/label-manifest-draft-2026-06-30.json` prepared from `production/qa/evidence/eval/label-manifest-template-2026-06-22.json` (action: `copied_template_for_operator_edit`, differs_from_source_template: `False`).
-- Edit `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/trend-history-draft-2026-06-30.jsonl` prepared from `production/qa/evidence/eval/trend-history-template-2026-06-22.jsonl` (action: `copied_template_for_operator_edit`, differs_from_source_template: `False`).
+- Edit `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/live-kimi-observations-draft-2026-06-30.json` prepared from `production/qa/evidence/eval/live-kimi-observations-template-2026-06-22.json` (action: `preserved_existing_operator_draft`, differs_from_source_template: `True`).
+- Edit `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/approved-thresholds-draft-2026-06-30.json` prepared from `production/qa/evidence/eval/approved-thresholds-template-2026-06-22.json` (action: `preserved_existing_operator_draft`, differs_from_source_template: `True`).
+- Edit `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/material-manifest-draft-2026-06-30.json` prepared from `production/qa/evidence/eval/material-manifest-template-2026-06-22.json` (action: `preserved_existing_operator_draft`, differs_from_source_template: `True`).
+- Edit `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/label-manifest-draft-2026-06-30.json` prepared from `production/qa/evidence/eval/label-manifest-template-2026-06-22.json` (action: `preserved_existing_operator_draft`, differs_from_source_template: `True`).
+- Edit `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/inputs/w3-live/trend-history-draft-2026-06-30.jsonl` prepared from `production/qa/evidence/eval/trend-history-template-2026-06-22.jsonl` (action: `preserved_existing_operator_draft`, differs_from_source_template: `True`).
 - Required input ref: `production/qa/evidence/eval/live-kimi-observations-redacted.json`
 - Required input ref: `production/qa/evidence/eval/approved-thresholds.json`
 - Required input ref: `production/qa/evidence/eval/material-manifest-approved.json`
