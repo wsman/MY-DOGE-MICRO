@@ -328,6 +328,38 @@ def test_python_sdk_approve_returns_accepted_queued_run():
     assert run["status"] == "queued"
 
 
+def test_python_sdk_approval_resume_stream_contract():
+    seen_paths = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_paths.append((request.method, request.url.path))
+        if request.url.path == "/v1/runs/run-test/approvals/appr-1":
+            return httpx.Response(202, json={"run_id": "run-test", "status": "queued"})
+        if request.url.path == "/v1/runs/run-test/stream":
+            return httpx.Response(
+                200,
+                content=(
+                    'id: 7\nevent: approval_resolved\n'
+                    'data: {"event_type": "approval_resolved"}\n\n'
+                    'id: 8\nevent: artifact_created\n'
+                    'data: {"event_type": "artifact_created"}\n\n'
+                ),
+            )
+        return httpx.Response(404, json={"error": {"message": "not found"}})
+
+    client = DogeClient(base_url="http://testserver", transport=httpx.MockTransport(handler))
+
+    run = client.runs.approve("run-test", "appr-1")
+    events = list(client.runs.stream("run-test"))
+
+    assert run["status"] == "queued"
+    assert [event.type for event in events] == ["approval_resolved", "artifact_created"]
+    assert seen_paths == [
+        ("POST", "/v1/runs/run-test/approvals/appr-1"),
+        ("GET", "/v1/runs/run-test/stream"),
+    ]
+
+
 def test_python_sdk_resume_posts_explicit_resume_command():
     seen = {}
 

@@ -341,6 +341,134 @@ def test_cli_gateway_session_message_jsonl_streams_sdk_events(monkeypatch, capsy
     assert ("stream", "run-gateway") in calls
 
 
+def test_cli_gateway_approval_jsonl_follow_streams_sdk_events(monkeypatch, capsys):
+    calls = []
+
+    class FakeSession:
+        data = {"session_id": "ses-gateway", "title": "SDK Gateway", "turns": []}
+
+    class FakeSessions:
+        def get(self, session_id):
+            calls.append(("get_session", session_id))
+            return FakeSession()
+
+    class FakeRuns:
+        def approve(self, run_id, approval_id, approved):
+            calls.append(("approve", run_id, approval_id, approved))
+            return {"run_id": run_id, "status": "queued"}
+
+        def stream(self, run_id):
+            calls.append(("stream", run_id))
+            return [
+                {"event_type": "approval_resolved", "payload": {"approval_id": "appr-1"}},
+                {"event_type": "artifact_created", "payload": {"api_key": "sk-gateway-secret"}},
+            ]
+
+    class FakeGatewayClient:
+        def __init__(self):
+            self.sessions = FakeSessions()
+            self.runs = FakeRuns()
+
+        def close(self):
+            calls.append(("closed",))
+
+    monkeypatch.setattr(session_command, "_gateway_client", lambda args: FakeGatewayClient())
+
+    args = SimpleNamespace(
+        list=False,
+        resume="ses-gateway",
+        message=None,
+        market="us",
+        approve="run-gateway:appr-1",
+        deny=None,
+        cancel=None,
+        follow=True,
+        jsonl=True,
+        interactive=False,
+        daemon_url="http://127.0.0.1:8901",
+        api_token="test-token",
+    )
+
+    session_command._cmd_gateway_session(args)
+
+    lines = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    assert lines[0] == {
+        "approval_id": "appr-1",
+        "approved": True,
+        "run_id": "run-gateway",
+        "status": "queued",
+        "type": "approval_resolved",
+    }
+    assert lines[1]["event"]["event_type"] == "approval_resolved"
+    assert lines[2]["event"]["event_type"] == "artifact_created"
+    assert lines[2]["event"]["payload"]["api_key"] == "<redacted>"
+    assert "sk-gateway-secret" not in json.dumps(lines, ensure_ascii=False)
+    assert ("get_session", "ses-gateway") in calls
+    assert ("approve", "run-gateway", "appr-1", True) in calls
+    assert ("stream", "run-gateway") in calls
+
+
+def test_cli_gateway_interactive_approval_follows_resume_stream(monkeypatch, capsys):
+    captured = []
+    stream_calls = 0
+
+    class FakeSessions:
+        def create_turn(self, session_id, message, **kwargs):
+            captured.append(("create_turn", session_id, message, kwargs))
+            return "run-gateway"
+
+    class FakeRuns:
+        def approve(self, run_id, approval_id, approved):
+            captured.append(("approve", run_id, approval_id, approved))
+            return {"run_id": run_id, "status": "queued"}
+
+        def stream(self, run_id):
+            nonlocal stream_calls
+            stream_calls += 1
+            captured.append(("stream", stream_calls, run_id))
+            if stream_calls == 1:
+                return [
+                    {
+                        "event_type": "approval_requested",
+                        "payload": {"approval_id": "appr-1"},
+                    }
+                ]
+            return [
+                {
+                    "event_type": "artifact_created",
+                    "payload": {"artifact_id": "art-1"},
+                }
+            ]
+
+    class FakeGatewayClient:
+        def __init__(self):
+            self.sessions = FakeSessions()
+            self.runs = FakeRuns()
+
+        def close(self):
+            captured.append(("closed",))
+
+    lines = iter(["Analyze AAPL", "/approve appr-1", "/exit"])
+    monkeypatch.setattr("builtins.input", lambda _prompt="": next(lines))
+    monkeypatch.setattr(session_command, "_gateway_client", lambda args: FakeGatewayClient())
+
+    class FailingRuntimeContainer:
+        def __getattr__(self, _name):
+            raise AssertionError("gateway approval must not use embedded runtime")
+
+    monkeypatch.setattr(session_command, "_runtime_container", lambda: FailingRuntimeContainer())
+
+    session_command._interactive_loop("ses-cli", "us", mode="gateway")
+
+    out = capsys.readouterr().out
+    assert "gateway_approval_resolved run_id=run-gateway approval_id=appr-1 approved=true" in out
+    assert '"event_type": "approval_requested"' in out
+    assert '"event_type": "artifact_created"' in out
+    assert ("approve", "run-gateway", "appr-1", True) in captured
+    assert ("stream", 1, "run-gateway") in captured
+    assert ("stream", 2, "run-gateway") in captured
+
+
 def test_cli_gateway_attach_uses_sdk_document_upload(tmp_path, monkeypatch, capsys):
     source = tmp_path / "report.txt"
     source.write_text("alpha beta", encoding="utf-8")

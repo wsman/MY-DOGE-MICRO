@@ -59,6 +59,48 @@ describe('DogeClient', () => {
     )
   })
 
+  it('streams post-approval resume events from v1 API', async () => {
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(
+          'id: 7\nevent: approval_resolved\ndata: {"event_type": "approval_resolved"}\n\n'
+          + 'id: 8\nevent: artifact_created\ndata: {"event_type": "artifact_created"}\n\n',
+        ))
+        controller.close()
+      },
+    })
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ run_id: 'run-test', status: 'queued' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        body: stream,
+      })
+    vi.stubGlobal('fetch', fetchMock)
+    const client = new DogeClient()
+
+    const run = await client.runs.approve('run-test', 'appr-1')
+    const events = []
+    for await (const event of client.runs.stream('run-test')) {
+      events.push(event.type)
+    }
+
+    expect(run.status).toBe('queued')
+    expect(events).toEqual(['approval_resolved', 'artifact_created'])
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      '/v1/runs/run-test/approvals/appr-1',
+      expect.objectContaining({ method: 'POST' }),
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/v1/runs/run-test/stream',
+      expect.objectContaining({ headers: {} }),
+    )
+  })
+
   it('resumes runs through explicit v1 resume API', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

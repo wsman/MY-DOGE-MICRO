@@ -57,6 +57,8 @@ class RunStreamHandler:
             if run and run.status in STREAM_CLOSE_STATUSES:
                 if terminal_at_start and event.sequence >= initial_max_sequence:
                     return
+                if run.status == RunStatus.FAILED:
+                    return
                 if not terminal_at_start and event.event_type.value in STREAM_CLOSE_EVENTS:
                     return
 

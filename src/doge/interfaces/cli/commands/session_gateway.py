@@ -115,12 +115,39 @@ def print_gateway_run_field(args, run_id: str | None, *, field: str) -> None:
         print(f"{field}_error={exc}", file=sys.stderr)
 
 
-def resolve_gateway_approval(args, run_id: str, approval_id: str, approved: bool) -> None:
+def resolve_gateway_approval(
+    args,
+    run_id: str,
+    approval_id: str,
+    approved: bool,
+    *,
+    follow: bool = False,
+    jsonl: bool = False,
+) -> dict[str, Any]:
     payload = gateway_resolve_approval(args, run_id, approval_id, approved)
     status = payload.get("status") or payload.get("run", {}).get("status") or payload.get("status_code")
-    print(f"gateway_approval_resolved run_id={run_id} approval_id={approval_id} approved={str(approved).lower()}")
-    if status:
-        print(f"status={status}")
+    if jsonl:
+        print(json.dumps(
+            redact_secrets({
+                "type": "approval_resolved",
+                "run_id": run_id,
+                "approval_id": approval_id,
+                "approved": approved,
+                "status": status,
+            }),
+            ensure_ascii=False,
+            sort_keys=True,
+        ))
+    else:
+        print(
+            f"gateway_approval_resolved run_id={run_id} "
+            f"approval_id={approval_id} approved={str(approved).lower()}"
+        )
+        if status:
+            print(f"status={status}")
+    if follow or jsonl:
+        print_gateway_stream(args, run_id, jsonl=jsonl)
+    return payload
 
 
 def cancel_gateway_run(args, run_id: str) -> None:
@@ -158,7 +185,14 @@ def cmd_gateway_session(args) -> None:
             if run_id is None:
                 print("gateway approval requires run_id:approval_id", file=sys.stderr)
                 sys.exit(1)
-            resolve_gateway_approval(args, run_id, approval_id, approved)
+            resolve_gateway_approval(
+                args,
+                run_id,
+                approval_id,
+                approved,
+                follow=getattr(args, "follow", False),
+                jsonl=getattr(args, "jsonl", False),
+            )
             return
         message = getattr(args, "message", None)
         if message:

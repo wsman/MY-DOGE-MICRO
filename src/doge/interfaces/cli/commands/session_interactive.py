@@ -128,6 +128,7 @@ def interactive_loop(
                     last_run_id,
                     approval_id,
                     approved,
+                    follow=True,
                 )
                 continue
             try:
