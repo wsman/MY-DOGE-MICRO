@@ -5,7 +5,7 @@
 
 ## Current Task
 
-MY-DOGE-MICRO Runtime Consolidation local remediation — **LOCAL CODE COMPLETE / EXTERNAL GATES OPEN**. Legacy API and gateway router implementations are physically split behind compatibility shims, doctor commands are implemented for `doge` and `doged`, legacy documents registration now uses persisted document services, implicit user-facing `portfolio-demo` defaults were removed, and the agent tool registry was split into `doge.application.tools`. W3-live, S017-003, AUTH-prod, and S017-007 remain external/operator gated. No commit was requested.
+MY-DOGE-MICRO Runtime Consolidation local remediation — **LOCAL CODE COMPLETE / EXTERNAL GATES OPEN**. Legacy API and gateway router implementations are physically split behind compatibility shims, doctor commands are implemented for `doge` and `doged`, legacy documents registration now uses persisted document services, implicit user-facing `portfolio-demo` defaults were removed, and the agent tool registry was split into `doge.application.tools`. Follow-up on 2026-06-30 removed the remaining scripted-model `portfolio-demo` tool call unless a run explicitly supplies `portfolio_id`. Current pushed HEAD `6fd598ac223c390d81ea121d550d52afd3b47c87` has exact-SHA CI evidence at `production/qa/evidence/ci/remote-ci-6fd598a.json`; local worktree changes after that SHA still need commit/CI if promoted. W3-live, S017-003, AUTH-prod, and S017-007 remain external/operator gated. No commit was requested.
 
 ## Phase Status
 
@@ -14,6 +14,7 @@ MY-DOGE-MICRO Runtime Consolidation local remediation — **LOCAL CODE COMPLETE 
   - Diagnostics: `doge doctor [--json]` checks local config, database paths, tracked views SQL, agent DB access, document storage writability, and model provider configuration; `doged doctor [--json] [--port]` reports `/health/ready` readiness checks.
   - Documents: legacy `POST /api/documents` now goes through `FileUploadService` and the persisted repository path instead of an in-memory `_DOCUMENTS` registry.
   - Portfolio defaults: run/turn/API/CLI/use-case defaults now mean no portfolio unless `portfolio_id` is explicitly supplied; `portfolio-demo` remains limited to seed/demo/test evidence.
+  - Scripted model default: offline `ScriptedAgentModel` now skips portfolio exposure unless the runtime context carries an explicit authorized portfolio id.
   - Tools: canonical tool-registry imports now come from `doge.application.tools`; `doge.application.agent.tools` remains a compatibility shim.
   - Governance: `docs/architecture/module-boundaries.md` and `docs/progress/runtime-maturity.yaml` record local structure convergence while preserving `production_ready: false`, `stable_declaration: forbidden`, and Level 3 experimental posture.
   - Closure gate posture: unchanged controlled-open posture with `S017-003`, `W3-live`, `AUTH-prod`, and `S017-007` still open.
@@ -100,6 +101,9 @@ MY-DOGE-MICRO Runtime Consolidation local remediation — **LOCAL CODE COMPLETE 
 ## Latest Verification
 
 - Runtime consolidation CLI suite: **23 passed, 2 warnings**
+- Current pushed HEAD exact-SHA CI: **passed**, GitHub Actions run `28420166050`, evidence `production/qa/evidence/ci/remote-ci-6fd598a.json`
+- Scripted portfolio default focused suite: **34 passed, 67 warnings** (`test_scripted_agent_model.py`, `test_context_builder.py`, `test_runtime_kernel.py`)
+- 2026-06-30 Gate Pack: **prepared/validated**, `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/`; external-input preflight remains pending as intended
 - Runtime consolidation contract/API suite: **24 passed, 2 warnings**
 - Layer/governance focused suite: **75 passed, 3 warnings**
 - Tool/portfolio focused suite: **38 passed**

@@ -1,0 +1,75 @@
+{
+  "result": "failed",
+  "executed_at": "2026-06-22T00:00:00Z",
+  "summary": "Template only. Replace with real screen-reader observations before building evidence.",
+  "operator": {
+    "role": "accessibility-specialist",
+    "initials": "QA"
+  },
+  "environment": {
+    "platform": "TEMPLATE_PLATFORM",
+    "browser": "TEMPLATE_BROWSER",
+    "browser_version": "TEMPLATE_BROWSER_VERSION",
+    "screen_reader": "TEMPLATE_SCREEN_READER",
+    "screen_reader_version": "TEMPLATE_SCREEN_READER_VERSION",
+    "web_url": "http://127.0.0.1:5173/research-agent",
+    "doged_base_url": "http://127.0.0.1:8901",
+    "live_kimi": false
+  },
+  "fixtures": {
+    "documents": [
+      "non-sensitive-fixture.md"
+    ],
+    "portfolio": "non-sensitive-portfolio.csv",
+    "execution_profile": "financial_research"
+  },
+  "checks": {
+    "sr_approval_context": {
+      "status": "blocked",
+      "severity": "major",
+      "issue_ref": "S017-006-TEMPLATE",
+      "notes": "Replace with manual observation."
+    },
+    "sr_keyboard_primary_controls": {
+      "status": "blocked",
+      "severity": "major",
+      "issue_ref": "S017-006-TEMPLATE",
+      "notes": "Replace with manual observation."
+    },
+    "sr_landmarks_sections": {
+      "status": "blocked",
+      "severity": "major",
+      "issue_ref": "S017-006-TEMPLATE",
+      "notes": "Replace with manual observation."
+    },
+    "sr_memo_evidence_quality_timeline": {
+      "status": "blocked",
+      "severity": "major",
+      "issue_ref": "S017-006-TEMPLATE",
+      "notes": "Replace with manual observation."
+    },
+    "sr_no_keyboard_trap": {
+      "status": "blocked",
+      "severity": "major",
+      "issue_ref": "S017-006-TEMPLATE",
+      "notes": "Replace with manual observation."
+    },
+    "sr_status_announcements": {
+      "status": "blocked",
+      "severity": "major",
+      "issue_ref": "S017-006-TEMPLATE",
+      "notes": "Replace with manual observation."
+    }
+  },
+  "issues": [
+    "S017-006-TEMPLATE"
+  ],
+  "attachments": [
+    "production/qa/evidence/manual/research-agent-ax-tree-2026-06-22.md"
+  ],
+  "redaction_review": {
+    "contains_secrets": false,
+    "contains_sensitive_documents": false,
+    "notes": "Use non-sensitive fixtures only."
+  }
+}
