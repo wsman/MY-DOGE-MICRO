@@ -3,30 +3,28 @@ stable_declaration: forbidden
 non_runtime_followup_plan: docs/progress/runtime-stability-followup-plan.md
 
 latest_remotely_verified_sha:
-  head_sha: "b5ab80bc802df36b58a1e56225a87b0f2473b29e"
-  evidence: production/qa/evidence/ci/remote-ci-b5ab80b.json
+  head_sha: "6fd598ac223c390d81ea121d550d52afd3b47c87"
+  evidence: production/qa/evidence/ci/remote-ci-6fd598a.json
   remote_ci_result: passed
-  remote_ci_run_id: 28113019001
-  local_remediation_status: latest_remotely_verified_not_current_head
+  remote_ci_run_id: 28420166050
+  local_remediation_status: current_pushed_head_remote_verified
   notes:
-    - "Exact-SHA remote CI for the latest remotely verified SHA b5ab80b passed: GitHub Actions run 28113019001 completed with conclusion=success on a push event for the CI workflow (verified via scripts/verify_remote_ci_evidence.py and stored at production/qa/evidence/ci/remote-ci-b5ab80b.json)."
-    - "Prior failed baseline 625285f067b21a4ee8aa36e83b4565a5fa57bac6 (run 28089385791) is retained as history; the remediation series through b5ab80b is now CI-verified."
-    - "Local remediation fixed the external-plan-path validator fallback, doged status port lookup, README provider drift, TenantScope runtime reads/mutations, SafeError event payloads, AST dependency gates, RuntimeContainer-owned runtime/session factories, WorkspaceContainer-owned repository/case/workflow wiring, GatewayContainer-owned read-side/product factories, migrated session/run/case/template/query CLI, scan API, MCP query/workspace tools, and /v1/tools entrypoints, lazy application package composition compatibility exports, the first behavior-owning workspace asset/decision services, first-class persisted AgentRun workflow_context, provider-owned tool descriptor aggregation, DOGE_PROCESS_ROLE api/worker/all split-role daemon readiness, SDK resource modules, Web package-based SDK imports, and TypeScript SDK/Web tests/build under a temporary Node v24.16.0/npm 11.13.0 toolchain."
-    - "Latest local verification after the gateway/MCP bootstrap migration: full Python regression 1477 passed, 9 skipped, 11 warnings; Gateway/API/CLI slice 107 passed, 1 skipped; MCP slice 92 passed, 1 skipped."
-    - "A future commit containing further platformization work (composition-root closure, interface splits, workspace bounded-context migration) will require its own exact-SHA GitHub Actions evidence before that newer HEAD is called remotely verified."
+    - "Exact-SHA remote CI for the latest remotely verified SHA 6fd598a passed: GitHub Actions run 28420166050 completed with conclusion=success on a push event for the CI workflow (verified via scripts/verify_remote_ci_evidence.py and stored at production/qa/evidence/ci/remote-ci-6fd598a.json)."
+    - "Prior verified pushed HEAD fd1768fa690a9a0c3a8d7905a7b72f0af54f6b04 (run 28326916286) is retained as Sprint B citation/evidence closure history."
+    - "This remote CI evidence covers committed HEAD 6fd598a only; any post-HEAD worktree changes require their own commit and exact-SHA CI before being called remotely verified."
 
 current_pushed_head_local_evidence:
-  head_sha: "fd1768fa690a9a0c3a8d7905a7b72f0af54f6b04"
-  evidence: production/qa/evidence/sprint-b-citation-evidence-acceptance-2026-06-28.md
-  remote_ci_evidence: production/qa/evidence/ci/remote-ci-fd1768f.json
+  head_sha: "6fd598ac223c390d81ea121d550d52afd3b47c87"
+  evidence: production/qa/evidence/ci/remote-ci-6fd598a.json
+  remote_ci_evidence: production/qa/evidence/ci/remote-ci-6fd598a.json
   local_architecture_status: passed
   remote_ci_result: passed
-  remote_ci_run_id: 28326916286
+  remote_ci_run_id: 28420166050
   notes:
-    - "Current pushed HEAD fd1768fa690a9a0c3a8d7905a7b72f0af54f6b04 has Sprint B citation/evidence closure evidence and is already on origin/main."
-    - "Exact-SHA remote CI for current pushed HEAD fd1768f passed: GitHub Actions run 28326916286 completed with conclusion=success on a push event for the CI workflow; evidence is stored at production/qa/evidence/ci/remote-ci-fd1768f.json."
-    - "Prior pushed HEAD 28f6a1a751f5fa79714728aece1f6465b2795b5a (run 28322343236) is retained as a verified intermediate step; Sprint B work landed in the subsequent commit fd1768f."
-    - "Sprint B local acceptance: 53 targeted tests passed, full regression 1777 passed with 3 pre-existing failures, ADR-0026 and Sprint B CDD accepted, runtime_document_context gate passed."
+    - "Current pushed HEAD 6fd598ac223c390d81ea121d550d52afd3b47c87 is already on origin/main and has exact-SHA CI evidence."
+    - "Exact-SHA remote CI for current pushed HEAD 6fd598a passed: GitHub Actions run 28420166050 completed with conclusion=success on a push event for the CI workflow; evidence is stored at production/qa/evidence/ci/remote-ci-6fd598a.json."
+    - "Prior pushed HEAD fd1768fa690a9a0c3a8d7905a7b72f0af54f6b04 (run 28326916286) is retained as Sprint B citation/evidence closure history."
+    - "Any local changes after 6fd598a remain local until committed and verified by their own exact-SHA CI run."
 
 maturity_labels:
   level_1_embedded_cli_session: preview

@@ -20,6 +20,15 @@ promoting the product to stable or production-ready status.
 | Production readiness | False | `runtime-maturity.yaml` | Strict external closure |
 | Stable declaration | Forbidden | `runtime-maturity.yaml` | Current exact-SHA CI plus all stability gates |
 
+## Current Head Evidence
+
+- Current pushed HEAD: `6fd598ac223c390d81ea121d550d52afd3b47c87`.
+- Exact-SHA CI evidence: `production/qa/evidence/ci/remote-ci-6fd598a.json`.
+- GitHub Actions CI run: `28420166050`, result `success`.
+- This proves the pushed HEAD only. Any local worktree changes after that SHA
+  require their own commit and exact-SHA CI before being called remotely
+  verified.
+
 ## Non-Production Posture
 
 The current posture remains:
