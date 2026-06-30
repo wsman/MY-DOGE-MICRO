@@ -24,7 +24,13 @@ not part of the main user workflow.
 - [Base URL & Transports](#base-url--transports)
 - [Authentication](#authentication)
 - [Route Table](#route-table)
-- [Per-Endpoint Reference](#per-endpoint-reference)
+- [Primary v1 API Reference](#primary-v1-api-reference)
+  - [sessions](#sessions)
+  - [runs](#runs)
+  - [documents](#documents)
+  - [tools](#tools)
+  - [platform](#platform)
+- [Legacy API Reference](#legacy-api-reference)
   - [scan router](#scan-router)
   - [data router](#data-router)
   - [notes router](#notes-router)
@@ -33,6 +39,11 @@ not part of the main user workflow.
   - [config router](#config-router)
   - [agent router](#agent-router)
   - [documents router](#documents-router)
+- [Operator/Reference API Appendix](#operatorreference-api-appendix)
+  - [health](#health)
+  - [portfolios](#portfolios)
+  - [audit](#audit)
+  - [enterprise](#enterprise)
 - [SSE Contract](#sse-contract)
 - [CORS](#cors)
 - [Error Contract](#error-contract)
@@ -308,7 +319,172 @@ case assets, and case decisions. `client.capabilities.get()/list()` exposes
 capability discovery. The TypeScript SDK mirrors the same surface in camelCase
 for platform helpers.
 
-## Per-Endpoint Reference
+## Primary v1 API Reference
+
+This is the recommended Platform Alpha API surface for new CLI, SDK, and Web
+work. It is intentionally smaller than the full mounted FastAPI app. Exhaustive
+schemas remain available through `GET /openapi.json`; this section documents
+the stable user-path contract and the feature flags that affect it.
+
+Every primary v1 endpoint accepts the optional `Authorization: Bearer
+<DOGE_API_TOKEN>` header when `DOGE_API_TOKEN` is configured, and optional
+`X-Request-ID` for traceability. Error responses use the standard envelope in
+[Error Contract](#error-contract), except FastAPI request-validation **422**
+responses which retain the framework `{"detail": [...]}` shape.
+
+### sessions
+
+Owns local multi-turn research context. SDK mapping: `client.sessions`.
+
+- `POST /v1/sessions`
+  - Body: `{"title": "Research session"}`; `title` is optional.
+  - Response **200**: serialized `AgentSession` including `session_id`,
+    `title`, timestamps, and turns.
+  - Common errors: **401** when `DOGE_API_TOKEN` is configured and the bearer
+    token is missing or invalid.
+- `GET /v1/sessions`
+  - Query: `limit: int = 20`.
+  - Response **200**: `{"sessions": [AgentSession, ...]}` ordered by recent
+    persisted sessions.
+- `GET /v1/sessions/{session_id}`
+  - Response **200**: one serialized session with turns.
+  - Common errors: **404** `"session not found"`.
+- `POST /v1/sessions/{session_id}/turns`
+  - Headers: optional `Idempotency-Key`.
+  - Body: `{"message": str, "market": "us", "language": "en",
+    "document_ids": [], "portfolio_id": null, "model_policy": {}}`.
+  - Response **202**: `{"status": "accepted", "run_id": "run-..."}`. The run
+    executes through the daemon worker and persisted runtime.
+  - Common errors: **404** `"session not found"`; **403** when enterprise
+    policy denies the turn.
+
+### runs
+
+Owns run status, trace/events, approval continuation, artifacts, and optional
+summary/citation/eval reads. SDK mapping: `client.runs`.
+
+- `GET /v1/runs/{run_id}`
+  - Response **200**: serialized `AgentRun` with status, session/document
+    context, events, approvals, and artifacts.
+  - Common errors: **404** `"run not found"`.
+- `POST /v1/runs/{run_id}/cancel`
+  - Body: none.
+  - Response **202**: serialized run/cancel result with status such as
+    `cancelling`, `cancelled`, or terminal status if already completed.
+- `GET /v1/runs/{run_id}/events`
+  - Query: `after_sequence: int = 0`.
+  - Response **200**: `{"events": [AgentEvent, ...]}` with monotonic per-run
+    `sequence`.
+- `GET /v1/runs/{run_id}/stream`
+  - Headers: optional `Last-Event-ID` for replay.
+  - Response **200**: `text/event-stream`; historical events are replayed,
+    then live events are forwarded while connected.
+- `GET /v1/runs/{run_id}/artifacts`
+  - Response **200**: `{"artifacts": [AgentArtifact, ...]}`.
+- `GET /v1/runs/{run_id}/approvals`
+  - Response **200**: `{"approvals": [AgentApproval, ...]}`.
+- `POST /v1/runs/{run_id}/approvals/{approval_id}`
+  - Body: `{"approved": true}`.
+  - Response **202**: serialized run after the approval is resolved and a
+    continuation is queued.
+  - Common errors: **403** for governance denial; **404** for unknown run or
+    approval.
+- `POST /v1/runs/{run_id}/resume`
+  - Body: `{"approval_id": "appr-...", "approved": true}` or `{}` for an
+    already resumable run.
+  - Response **202**: serialized run after explicit resume handling.
+  - Common errors: **409** when the run is awaiting approval but no approval
+    resolution was supplied, or when the run is terminal.
+- Feature-flagged run summary reads:
+  - `GET /v1/runs/{run_id}/summary`
+  - `GET /v1/runs/{run_id}/claims`
+  - `GET /v1/runs/{run_id}/citations`
+  - `GET /v1/runs/{run_id}/eval`
+  - Required flag: `DOGE_FEATURE_RUN_SUMMARY_API=1`; disabled endpoints return
+    **404**.
+
+### documents
+
+Owns local document registration/upload for runtime context. SDK mapping:
+`client.documents`.
+
+- `POST /v1/documents`
+  - Multipart body: field `file` for real uploads.
+  - JSON compatibility body: `{"filename": str, "content": str,
+    "document_id": "optional"}`.
+  - Response **200**: document metadata including `document_id`, filename,
+    hash, MIME type, storage path, parser status, optional `kimi_file_id`,
+    content, and timestamps.
+  - Common errors: **400** for unsupported/empty/malformed uploads; **413**
+    for oversized uploads.
+- `GET /v1/documents`
+  - Query: `limit: int = 100`.
+  - Response **200**: `{"documents": [document metadata, ...]}` filtered by
+    enterprise ACL when enterprise context is active.
+- `GET /v1/documents/{document_id}`
+  - Response **200**: one persisted document metadata record.
+  - Common errors: **404** `"document not found"`; **403** when enterprise ACL
+    denies access.
+
+### tools
+
+Owns API-level function-tool discovery. This is a primary `/v1` API family, but
+there is no first-class Python or TypeScript SDK `tools` resource in Sprint I;
+SDK clients should use capability discovery/docs for tool availability.
+
+- `GET /v1/tools`
+  - Response **200**: `{"tools": [schema, ...]}` where each schema is OpenAI
+    function-tool compatible:
+    - `type: "function"`
+    - `function.name`
+    - `function.description`
+    - `function.parameters`
+    - `x-doge-category`
+    - `x-doge-status`
+    - `x-doge-metadata.provider`
+    - `x-doge-metadata.method_name`
+  - Enterprise requests may receive a filtered list when tool entitlements or
+    ACLs deny specific categories.
+  - Common errors: **401** when local API token enforcement is enabled.
+
+### platform
+
+Owns workspace/project/case/template/capability helper flows for business
+platform integration. SDK mapping: `client.platform` and
+`client.capabilities`. The deep endpoint set is feature-flagged and remains
+Platform Alpha/Level 3 Experimental.
+
+- Workspace/project/case routes
+  - Paths: `GET/POST /v1/workspaces`, `GET /v1/workspaces/{workspace_id}`,
+    `GET/POST /v1/projects`, `GET /v1/projects/{project_id}`,
+    `GET/POST /v1/research-cases`, and
+    `GET /v1/research-cases/{case_id}`.
+  - Required flag: `DOGE_FEATURE_PLATFORM_OBJECTS=1`; disabled endpoints
+    return **404** `"platform objects API disabled"`.
+  - Responses: serialized workspace, project, or research-case records, or
+    collection envelopes such as `{"workspaces": [...]}`.
+- Case assets, decisions, executions, review, and home queue
+  - Paths: `/v1/home-queue`,
+    `/v1/research-cases/{case_id}/assets`,
+    `/v1/research-cases/{case_id}/decisions`,
+    `/v1/research-cases/{case_id}/executions/preflight`,
+    `/v1/research-cases/{case_id}/executions`, and
+    `/v1/research-cases/{case_id}/review`.
+  - Required flag: `DOGE_FEATURE_PLATFORM_OBJECTS=1`; execution helpers may
+    also depend on capability and run-summary flags for richer validation.
+- Workflow templates
+  - Paths: `GET/POST /v1/workflow-templates` and
+    `GET /v1/workflow-templates/{template_id}`.
+  - Required flag: `DOGE_FEATURE_WORKFLOW_TEMPLATES=1`; disabled endpoints
+    return **404** `"workflow templates API disabled"`.
+- Capabilities
+  - Path: `GET /v1/capabilities`.
+  - Required flag: `DOGE_FEATURE_CAPABILITY_REGISTRY=1`; disabled endpoint
+    returns **404** `"capability registry API disabled"`.
+  - Response **200**: redacted snapshot containing `snapshot_id`,
+    `redaction_version`, `generated_at`, and `capabilities`.
+
+## Legacy API Reference
 
 All request bodies are `application/json`. Path and query params are validated
 by FastAPI/Pydantic at the boundary. Every error response uses the stable
@@ -577,26 +753,48 @@ Registers a demo document payload without multipart requirements. Body:
 `{"filename": "annual-report.pdf", "content": "..."}`. Returns a deterministic
 document id and metadata.
 
-#### `POST /v1/documents` — `v1/documents.py`
-Preferred daemon document endpoint. Accepts either:
+## Operator/Reference API Appendix
 
-- `multipart/form-data` with field `file` for a real uploaded file.
-- Backward-compatible JSON `{"filename": "...", "content": "...", "document_id": "optional"}` for text registration.
+These routes remain mounted for local operations, diagnostics, governance
+inspection, and compatibility workflows. They are not the primary user path and
+are not promoted as SDK-first resources in Sprint I. See the route table above
+for the canonical method/path enumeration and `GET /openapi.json` for exhaustive
+schemas.
 
-Successful responses include `document_id`, `filename`, `original_filename`,
-`file_hash`, `mime_type`, `size_bytes`, `storage_path`, `kimi_file_id`,
-`parsing_status`, `parser_error`, `content`, `created_at`, and `updated_at`.
-Unsupported file types, empty files, and oversized uploads return **400** via
-the standard error envelope.
+### health
 
-When the default composition root is used, successful registration also triggers
-local page/chunk extraction for agent context. The public v1 API does not expose
-page/chunk/evidence read endpoints yet; those records are currently consumed by
-the runtime context builder.
+- `GET /health` reports daemon liveness.
+- `GET /health/ready` reports database, migration, queue, worker, outbox,
+  document storage, and model-provider readiness.
+- `GET /api/health` is a legacy liveness helper under the compatibility
+  `/api/*` surface.
+- Health routes are intended for local operator checks and daemon startup
+  verification, not for research workflow orchestration.
 
-#### `GET /v1/documents` / `GET /v1/documents/{document_id}` — `v1/documents.py`
-List recent persisted document metadata or retrieve one document. Unknown
-document id returns **404**.
+### portfolios
+
+- `POST /v1/portfolios/import` imports a UTF-8 CSV portfolio into local
+  persisted holdings.
+- This route is useful for operator seeding and local workflow setup. It is not
+  a primary SDK resource in Sprint I and does not imply portfolio management
+  platform maturity.
+
+### audit
+
+- `GET /v1/audit/events` lists tenant-scoped audit events.
+- `GET /v1/audit/events/export` exports redacted JSONL audit records.
+- `POST /v1/audit/events/retention` purges expired events by retention policy.
+- Audit routes are operator/reference APIs for governance evidence and local
+  inspection. They do not close production SIEM/WORM evidence gates.
+
+### enterprise
+
+- `GET /v1/enterprise/acl/grants` lists tenant ACL grants for enterprise admins.
+- `POST /v1/enterprise/acl/grants` creates a tenant ACL grant.
+- `DELETE /v1/enterprise/acl/grants` revokes a tenant ACL grant.
+- Enterprise ACL routes are alpha governance surfaces. They do not by
+  themselves prove production SSO, tenant isolation, or remote deployment
+  readiness.
 
 ## SSE Contract
 

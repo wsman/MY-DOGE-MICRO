@@ -5,9 +5,22 @@
 
 ## Current Task
 
-MY-DOGE-MICRO remaining local quality-gate remediation — **LOCAL IMPLEMENTATION COMPLETE / LEVEL 1 CLI ALPHA / LEVEL 2 ALPHA / LEVEL 3 EXPERIMENTAL / EXTERNAL GATES BLOCKED ON OPERATOR INPUT**. Sprint H compatibility-surface governance is locally committed as `a8c832f` and is not remotely verified. The local quality-gate remediation baseline freezes runtime contracts, locks ToolDescriptor-backed metadata, adds a deterministic RAG retrieval benchmark/evidence, compresses README/API primary path guidance, and records external-gate preflight blockers without closing any external gate. Sprint G remote CI evidence remains the latest remotely verified SHA at `ee4c3283bb69ae21671ffd2d9fef908e4819ce16`. W3-live, S017-003, AUTH-prod, and S017-007 remain external/operator gated.
+MY-DOGE-MICRO remaining local quality-gate remediation — **SPRINT I LOCAL IMPLEMENTATION COMPLETE / LEVEL 1 CLI ALPHA / LEVEL 2 ALPHA / LEVEL 3 EXPERIMENTAL / EXTERNAL GATES BLOCKED ON OPERATOR INPUT**. Sprint H compatibility-surface governance is locally committed as `a8c832f` and is not remotely verified. The local quality-gate remediation baseline freezes runtime contracts, locks ToolDescriptor-backed metadata, adds a deterministic RAG retrieval benchmark/evidence, compresses README/API primary path guidance, and records external-gate preflight blockers without closing any external gate. Sprint I adds API semantic compression, SDK README alignment, and focused full-app `/v1` smoke coverage without changing wire contracts or maturity posture. Sprint G remote CI evidence remains the latest remotely verified SHA at `ee4c3283bb69ae21671ffd2d9fef908e4819ce16`. W3-live, S017-003, AUTH-prod, and S017-007 remain external/operator gated.
 
 ## Phase Status
+
+- **Sprint I (API Semantic Compression)**: **LOCAL IMPLEMENTATION COMPLETE / EXTERNAL GATES UNCHANGED**
+  - Plan: `C:\Users\WSMAN\.claude\plans\bubbly-inventing-llama.md`
+  - QA plan: `production/qa/qa-plan-sprint-i.md`
+  - Evidence: `production/qa/evidence/sprint-i-api-doc-compression.md`
+  - `docs/API.md` now centers the main API narrative on five primary `/v1` families: `sessions`, `runs`, `documents`, `tools`, and `platform`.
+  - `health`, `portfolios`, `audit`, and `enterprise` are documented as operator/reference APIs, not primary user-path resources.
+  - Added Python and TypeScript SDK READMEs documenting current resources: `sessions`, `runs`, `documents`, `platform`, and `capabilities`.
+  - `/v1/tools` is documented and tested as API discovery; no first-class SDK `tools` resource was added.
+  - Added full-app contract smoke coverage for `/v1/tools`, `/v1/capabilities`, and platform feature-flag-disabled behavior.
+  - Maturity posture: `production_ready: false`, `stable_declaration: forbidden`, Level 1/2 Alpha, Level 3 `experimental` — unchanged.
+  - External gates: S017-003, W3-live, AUTH-prod, S017-007 remain open.
+  - Focused verification: v1/platform/API-doc route suite **38 passed, 2 warnings**; Python SDK suite **23 passed**; docs links **65 markdown files validated** after evidence/session-state updates; alpha maturity honesty **passed**; governance YAML shape **passed**, 5 files checked / 0 findings; plan closure gate **acceptable open**, 4 open / 2 passed; strict plan closure gate **failed as expected**; `git diff --check` **passed**.
 
 - **Sprint H (Compatibility Surface 减法)**: **LOCAL IMPLEMENTATION COMPLETE / EXTERNAL GATES UNCHANGED**
   - Plan: `C:\Users\WSMAN\.claude\plans\bubbly-inventing-llama.md`

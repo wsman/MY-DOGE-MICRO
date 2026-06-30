@@ -292,6 +292,55 @@ def test_v1_documents_keeps_json_registration_compatibility(tmp_path, monkeypatc
     assert fetched.json()["parsing_status"] == "parsed"
 
 
+def test_v1_tools_returns_schemas(tmp_path, monkeypatch):
+    _reset_agent_deps(monkeypatch, tmp_path)
+    with TestClient(app) as client:
+        response = client.get("/v1/tools")
+
+    assert response.status_code == 200
+    tools = response.json()["tools"]
+    assert tools
+    for schema in tools:
+        assert schema["type"] == "function"
+        function = schema["function"]
+        assert function["name"]
+        assert function["description"]
+        assert schema["x-doge-category"]
+        assert schema["x-doge-status"]
+        metadata = schema["x-doge-metadata"]
+        assert metadata["provider"]
+        assert metadata["method_name"]
+
+
+def test_v1_capabilities_full_app_smoke(tmp_path, monkeypatch):
+    _reset_agent_deps(monkeypatch, tmp_path)
+    monkeypatch.setenv("DOGE_FEATURE_CAPABILITY_REGISTRY", "1")
+    monkeypatch.setenv("MOONSHOT_API_KEY", "moonshot-secret")
+    reset_settings()
+
+    with TestClient(app) as client:
+        response = client.get("/v1/capabilities")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["snapshot_id"].startswith("cap-")
+    assert body["redaction_version"] == "doge.capability_redaction.v1"
+    assert "moonshot-secret" not in repr(body)
+    assert body["capabilities"]
+
+
+def test_v1_platform_full_app_feature_flag_smoke(tmp_path, monkeypatch):
+    _reset_agent_deps(monkeypatch, tmp_path)
+    monkeypatch.setenv("DOGE_FEATURE_PLATFORM_OBJECTS", "0")
+    reset_settings()
+
+    with TestClient(app) as client:
+        response = client.get("/v1/workspaces")
+
+    assert response.status_code == 404
+    assert response.json()["error"]["message"] == "platform objects API disabled"
+
+
 def test_legacy_documents_route_uses_persisted_repository(tmp_path, monkeypatch):
     _reset_agent_deps(monkeypatch, tmp_path)
     with TestClient(app) as client:

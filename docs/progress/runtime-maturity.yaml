@@ -170,6 +170,41 @@ external_gate_preflight_2026_07_01:
     stable_declaration: forbidden
     level_3_sdk_platform: experimental
 
+sprint_i_api_doc_compression:
+  status: local_complete_external_gates_unchanged
+  scope:
+    - "Compressed docs/API.md around the five primary /v1 API families: sessions, runs, documents, tools, and platform."
+    - "Moved health, portfolios, audit, and enterprise into an operator/reference appendix without changing wire contracts."
+    - "Added Python and TypeScript SDK READMEs documenting current resources, feature flags, error handling, maturity posture, and /v1/tools discovery semantics."
+    - "Added focused full-app contract smoke tests for /v1/tools, /v1/capabilities, and platform feature-flag behavior."
+  evidence:
+    - docs/API.md
+    - packages/doge-sdk-python/README.md
+    - packages/doge-sdk-typescript/README.md
+    - tests/contract/test_v1_api.py
+    - production/qa/qa-plan-sprint-i.md
+    - production/qa/evidence/sprint-i-api-doc-compression.md
+  focused_tests:
+    - "py -3 -m pytest tests\\contract\\test_v1_api.py tests\\contract\\test_platform_api.py tests\\contract\\test_api_doc_route_coverage.py -q"
+    - "py -3 -m pytest tests\\contract\\test_python_sdk.py -q"
+  validators:
+    - "py -3 scripts\\validate_docs_links.py"
+    - "py -3 scripts\\validate_alpha_maturity_honesty.py"
+    - "py -3 scripts\\validate_governance_yaml_shape.py"
+    - "py -3 scripts\\validate_plan_closure_gate.py --allow-open"
+    - "git diff --check"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_1_embedded_cli_session: alpha
+    level_2_daemon_gateway: alpha
+    level_3_sdk_platform: experimental
+
 alpha_local_closure_2026_06_30:
   status: local_alpha_level_1_hardened_external_gates_open
   scope:
