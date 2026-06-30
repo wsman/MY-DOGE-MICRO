@@ -54,6 +54,24 @@ async def test_inmemory_runtime_completes_full_approval_flow():
 
 
 @pytest.mark.asyncio
+async def test_inmemory_runtime_explicit_resume_from_approval():
+    runtime = InMemoryResearchAgentRuntime(model=ScriptedAgentModel(), tool_registry=_registry())
+    run = await runtime.create_run({"question": "Analyze AAPL", "model_policy": {"max_tool_rounds": 8}})
+    paused = await runtime.run_to_pause_or_completion(run.run_id)
+
+    completed = await runtime.resolve_approval_and_resume(
+        paused.run_id,
+        paused.approvals[0].approval_id,
+        True,
+    )
+
+    assert paused.status == RunStatus.AWAITING_APPROVAL
+    assert completed.status == RunStatus.COMPLETED
+    assert completed.artifacts
+    assert [event.sequence for event in completed.events] == list(range(1, len(completed.events) + 1))
+
+
+@pytest.mark.asyncio
 async def test_inmemory_repositories_match_sqlite_semantics(tmp_path):
     in_memory = InMemoryResearchAgentRuntime(model=ScriptedAgentModel(), tool_registry=_registry())
     persisted = build_persisted_research_agent_runtime(
@@ -75,6 +93,32 @@ async def test_inmemory_repositories_match_sqlite_semantics(tmp_path):
     assert [event.event_type for event in mem_run.events] == [event.event_type for event in sql_run.events]
     assert len(mem_run.artifacts) == len(sql_run.artifacts) == 1
     assert len(mem_run.approvals) == len(sql_run.approvals) == 1
+
+
+@pytest.mark.asyncio
+async def test_explicit_resume_matches_persisted_runtime_semantics(tmp_path):
+    in_memory = InMemoryResearchAgentRuntime(model=ScriptedAgentModel(), tool_registry=_registry())
+    persisted = build_persisted_research_agent_runtime(
+        model=ScriptedAgentModel(),
+        tool_registry=_registry(),
+        db_path=tmp_path / "agent_state.db",
+    )
+
+    async def run_flow(runtime):
+        run = await runtime.create_run({"question": "Analyze AAPL", "model_policy": {"max_tool_rounds": 8}})
+        paused = await runtime.run_to_pause_or_completion(run.run_id)
+        return await runtime.resolve_approval_and_resume(
+            paused.run_id,
+            paused.approvals[0].approval_id,
+            True,
+        )
+
+    mem_run = await run_flow(in_memory)
+    sql_run = await run_flow(persisted)
+
+    assert [event.event_type for event in mem_run.events] == [event.event_type for event in sql_run.events]
+    assert mem_run.status == sql_run.status == RunStatus.COMPLETED
+    assert len(mem_run.artifacts) == len(sql_run.artifacts) == 1
 
 
 @pytest.mark.asyncio

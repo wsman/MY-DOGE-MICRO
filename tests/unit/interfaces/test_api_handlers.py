@@ -21,6 +21,7 @@ from doge.interfaces.api.handlers import (
     ResearchCaseHandler,
     ResearchCaseRunHandler,
     RunAccessContext,
+    ResumeRunHandler,
     ResolveApprovalHandler,
     RunNotFound,
     RunStreamHandler,
@@ -177,6 +178,16 @@ class FakeRuntime:
     def list_runs(self, scope, session_id=None, limit=20):
         self.scopes.append(("list_runs", scope, session_id, limit))
         return [self.run][:limit]
+
+    async def resume_run(self, scope, run_id):
+        self.scopes.append(("resume_run", scope, run_id))
+        self.run.status = RunStatus.COMPLETED
+        return self.run
+
+    async def resolve_approval_and_resume(self, scope, run_id, approval_id, approved):
+        self.scopes.append(("resolve_approval_and_resume", scope, run_id, approval_id, approved))
+        self.run.status = RunStatus.COMPLETED if approved else RunStatus.FAILED
+        return self.run
 
 
 class FakeRunSummaryUseCase:
@@ -366,6 +377,45 @@ async def test_run_action_handlers_delegate_to_worker() -> None:
     assert cancelled["status"] == "cancelling"
     assert resolved["approved"] is True
     assert [call[0] for call in worker.calls] == ["cancel_run", "resolve_approval"]
+
+
+@pytest.mark.asyncio
+async def test_resume_run_handler_resumes_without_approval() -> None:
+    runtime = FakeRuntime()
+    scope = TenantScope.local()
+
+    result = await ResumeRunHandler(runtime=runtime).handle(run_id="run-1", scope=scope)
+
+    assert result.status == RunStatus.COMPLETED
+    assert runtime.scopes[-1] == ("resume_run", scope, "run-1")
+
+
+@pytest.mark.asyncio
+async def test_resume_run_handler_records_enterprise_approval_actor_without_fastapi() -> None:
+    runtime = FakeRuntime()
+    runtime.run.identity_snapshot = IdentitySnapshot(tenant_id="tenant-a", user_hash="user-a")
+    governance = FakeGovernance()
+    context = EnterpriseContext(
+        tenant_id="tenant-a",
+        user_hash="user-a",
+        approval_authority=frozenset({"appr-1"}),
+    )
+
+    result = await ResumeRunHandler(runtime=runtime, governance=governance).handle(
+        run_id="run-1",
+        approval_id="appr-1",
+        approved=True,
+        access=RunAccessContext(
+            scope=TenantScope.enterprise("tenant-a", "user-a"),
+            enterprise_context=context,
+            request_id="req-1",
+        ),
+    )
+
+    assert result.status == RunStatus.COMPLETED
+    assert runtime.scopes[-1][0] == "resolve_approval_and_resume"
+    assert governance.decisions[0].request_id == "req-1"
+    assert governance.audit_events[0].event_type == "approval_decision"
 
 
 @pytest.mark.asyncio

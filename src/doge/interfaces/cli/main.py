@@ -10,6 +10,7 @@ Usage:
     doge doctor [--json]
     doge session [--title "..."]
     doge run "question" [--session <session_id>] [--json] [--trace] [--follow] [--jsonl]
+    doge run --resume <run_id> [--approval <approval_id>] [--deny]
     doge template list|show|seed
     doge case list|show|preflight|execute|review|decision
 
@@ -115,7 +116,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     # run
     p_run = sub.add_parser("run", help="execute a persisted research-agent run")
-    p_run.add_argument("question", help="research question")
+    p_run.add_argument("question", nargs="?", help="research question")
+    p_run.add_argument("--resume", help="run id to resume")
+    p_run.add_argument("--approval", help="approval id to resolve before resuming")
+    p_run.add_argument("--deny", action="store_true", help="deny the approval instead of approving it")
     p_run.add_argument("--session", help="attach the run to an existing session")
     p_run.add_argument("--market", default="us", choices=["cn", "us"])
     p_run.add_argument("--language", default="en")

@@ -98,6 +98,20 @@ class RunLifecycleService:
         )
         return self._hydrate(scope, run)
 
+    async def resume_run(
+        self,
+        scope: TenantScope,
+        run_id: str,
+    ) -> AgentRun:
+        run = self._require_run(scope, run_id)
+        if run.status == RunStatus.RUNNING:
+            return self._hydrate(scope, run)
+        if run.status == RunStatus.AWAITING_APPROVAL:
+            raise ValueError("run is awaiting approval; pass approval_id to resume")
+        if run.status in {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED, RunStatus.CANCELLING}:
+            raise ValueError(f"run is not resumable from status: {run.status.value}")
+        return await self.run_to_pause_or_completion(scope, run_id)
+
     async def cancel_run(
         self,
         scope: TenantScope,

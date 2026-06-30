@@ -46,6 +46,16 @@ class PersistedResearchAgentRuntime(IResearchAgentRuntime):
         resolved_scope, resolved_run_id = _run_execution_args(scope, run_id, tenant_id=tenant_id)
         return await self._kernel.run_to_pause_or_completion(resolved_scope, resolved_run_id)
 
+    async def resume_run(
+        self,
+        scope: TenantScope | str | None,
+        run_id: str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun:
+        resolved_scope, resolved_run_id = _run_execution_args(scope, run_id, tenant_id=tenant_id)
+        return await self._kernel.resume_run(resolved_scope, resolved_run_id)
+
     async def queue_run(
         self,
         scope: TenantScope | str | None,
@@ -134,6 +144,29 @@ class PersistedResearchAgentRuntime(IResearchAgentRuntime):
             tenant_id=tenant_id,
         )
         return await self._kernel.resolve_approval(
+            resolved_scope,
+            resolved_run_id,
+            resolved_approval_id,
+            resolved_approved,
+        )
+
+    async def resolve_approval_and_resume(
+        self,
+        scope: TenantScope | str | None,
+        run_id: str | None = None,
+        approval_id: str | bool | None = None,
+        approved: bool = True,
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun:
+        resolved_scope, resolved_run_id, resolved_approval_id, resolved_approved = _approval_args(
+            scope,
+            run_id,
+            approval_id,
+            approved,
+            tenant_id=tenant_id,
+        )
+        return await self._kernel.resolve_approval_and_resume(
             resolved_scope,
             resolved_run_id,
             resolved_approval_id,

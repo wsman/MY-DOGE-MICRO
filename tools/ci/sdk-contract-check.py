@@ -72,6 +72,13 @@ CHECKS: tuple[SurfaceCheck, ...] = (
         ("approveAgentRun", "dogeClient.runs.approve"),
     ),
     SurfaceCheck(
+        "run resume",
+        "POST",
+        "/v1/runs/{run_id}/resume",
+        ("def resume(", 'f"/v1/runs/{run_id}/resume"'),
+        ("resume(runId: string", "`/v1/runs/${runId}/resume`"),
+    ),
+    SurfaceCheck(
         "document upload",
         "POST",
         "/v1/documents",

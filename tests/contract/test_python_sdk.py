@@ -328,6 +328,51 @@ def test_python_sdk_approve_returns_accepted_queued_run():
     assert run["status"] == "queued"
 
 
+def test_python_sdk_resume_posts_explicit_resume_command():
+    seen = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["method"] = request.method
+        seen["path"] = request.url.path
+        seen["body"] = json.loads(request.content.decode("utf-8"))
+        return httpx.Response(202, json={"run_id": "run-test", "status": "completed"})
+
+    client = DogeClient(base_url="http://testserver", transport=httpx.MockTransport(handler))
+
+    run = client.runs.resume("run-test", approval_id="appr-1")
+
+    assert run["status"] == "completed"
+    assert seen == {
+        "method": "POST",
+        "path": "/v1/runs/run-test/resume",
+        "body": {"approval_id": "appr-1", "approved": True},
+    }
+
+
+@pytest.mark.asyncio
+async def test_async_python_sdk_resume_posts_explicit_resume_command():
+    seen = {}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        seen["method"] = request.method
+        seen["path"] = request.url.path
+        seen["body"] = json.loads(request.content.decode("utf-8"))
+        return httpx.Response(202, json={"run_id": "run-test", "status": "completed"})
+
+    async with AsyncDogeClient(
+        base_url="http://testserver",
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        run = await client.runs.resume("run-test", approval_id="appr-1")
+
+    assert run["status"] == "completed"
+    assert seen == {
+        "method": "POST",
+        "path": "/v1/runs/run-test/resume",
+        "body": {"approval_id": "appr-1", "approved": True},
+    }
+
+
 def test_python_sdk_documents_get():
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.method == "GET"

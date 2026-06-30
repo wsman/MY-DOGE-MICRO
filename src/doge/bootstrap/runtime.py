@@ -54,6 +54,7 @@ class RuntimeContainer:
     def build_capability_registry_use_case(self): return use_cases.build_capability_registry_use_case(self.build_default_tool_registry)
     def build_execute_run_use_case(self, model: Any = None, tool_registry: Any = None): return use_cases.build_execute_run_use_case(self.db_path, self.gateway_container, self.build_default_tool_registry, model=model, tool_registry=tool_registry)
     def build_resume_run_use_case(self, model: Any = None, tool_registry: Any = None): return use_cases.build_resume_run_use_case(self.db_path, self.gateway_container, self.build_default_tool_registry, model=model, tool_registry=tool_registry)
+    def build_get_run_snapshot_use_case(self, model: Any = None, tool_registry: Any = None): return use_cases.build_get_run_snapshot_use_case(self.db_path, self.gateway_container, self.build_default_tool_registry, model=model, tool_registry=tool_registry)
 
     # -- Process graph collaborators --
     def gateway_container(self): return self._process_graph().gateway_container

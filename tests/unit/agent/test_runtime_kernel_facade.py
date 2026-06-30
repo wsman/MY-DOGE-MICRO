@@ -43,6 +43,15 @@ class FakeLifecycleService(IRunLifecycleService):
             run.status = RunStatus.QUEUED
         return run
 
+    async def resume_run(self, scope, run_id):
+        self.calls.append(("resume_run", scope, run_id))
+        run = self._runs.get(run_id)
+        if run and run.status == RunStatus.AWAITING_APPROVAL:
+            raise ValueError("run is awaiting approval; pass approval_id to resume")
+        if run:
+            run.status = RunStatus.COMPLETED
+        return run
+
     async def cancel_run(self, scope, run_id):
         self.calls.append(("cancel_run", scope, run_id))
         run = self._runs.get(run_id)
@@ -185,6 +194,57 @@ async def test_kernel_resolve_approval_delegates_to_approval_coordinator(kernel)
     assert kernel._approval.calls[0][2] == "run-1"
     assert kernel._approval.calls[0][3] == "appr-1"
     assert kernel._approval.calls[0][4] is True
+
+
+@pytest.mark.asyncio
+async def test_kernel_resume_run_delegates_to_lifecycle_service(kernel_with_run):
+    kernel, run = kernel_with_run
+
+    result = await kernel.resume_run(TenantScope.local(), run.run_id)
+
+    assert result.status == RunStatus.COMPLETED
+    assert kernel._lifecycle.calls[0] == ("resume_run", TenantScope.local(), run.run_id)
+
+
+@pytest.mark.asyncio
+async def test_kernel_resume_run_requires_approval_id_for_paused_run(kernel_with_run):
+    kernel, run = kernel_with_run
+    run.status = RunStatus.AWAITING_APPROVAL
+
+    with pytest.raises(ValueError, match="pass approval_id"):
+        await kernel.resume_run(TenantScope.local(), run.run_id)
+
+
+@pytest.mark.asyncio
+async def test_kernel_resolve_approval_and_resume_resolves_then_resumes(kernel_with_run):
+    kernel, run = kernel_with_run
+
+    result = await kernel.resolve_approval_and_resume(
+        TenantScope.local(),
+        run.run_id,
+        "appr-1",
+        True,
+    )
+
+    assert result.status == RunStatus.COMPLETED
+    assert kernel._approval.calls[0] == ("resolve", TenantScope.local(), run.run_id, "appr-1", True)
+    assert kernel._lifecycle.calls[0] == ("resume_run", TenantScope.local(), run.run_id)
+
+
+@pytest.mark.asyncio
+async def test_kernel_resolve_approval_and_resume_denial_does_not_resume(kernel_with_run):
+    kernel, run = kernel_with_run
+
+    result = await kernel.resolve_approval_and_resume(
+        TenantScope.local(),
+        run.run_id,
+        "appr-1",
+        False,
+    )
+
+    assert result is not None
+    assert kernel._approval.calls[0] == ("resolve", TenantScope.local(), run.run_id, "appr-1", False)
+    assert kernel._lifecycle.calls == []
 
 
 @pytest.mark.asyncio

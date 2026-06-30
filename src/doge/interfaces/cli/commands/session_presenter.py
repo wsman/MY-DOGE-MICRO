@@ -22,11 +22,11 @@ class RunClient(Protocol):
 
 
 class EmbeddedRunClient:
-    def __init__(self, resume_run_use_case: Any) -> None:
-        self._resume_run = resume_run_use_case
+    def __init__(self, get_run_use_case: Any) -> None:
+        self._get_run = get_run_use_case
 
     def get_run(self, run_id: str) -> Any | None:
-        return self._resume_run.execute(run_id)
+        return self._get_run.execute(run_id)
 
 
 class SdkRunClient:
@@ -55,7 +55,8 @@ def parse_approval_ref(value: str) -> tuple[str | None, str]:
 def build_embedded_run_client() -> EmbeddedRunClient:
     from doge.interfaces.cli.commands import session as _session
 
-    return EmbeddedRunClient(_session._runtime_container().build_resume_run_use_case())
+    container = _session._runtime_container()
+    return EmbeddedRunClient(container.build_get_run_snapshot_use_case())
 
 
 def _run_field(run: Any, field: str) -> Any:

@@ -427,6 +427,9 @@ doge run "Analyze earnings quality" --json
 doge run "Analyze earnings quality" --trace
 doge run "Analyze earnings quality" --follow
 doge run "Analyze earnings quality" --jsonl
+doge run --resume run-xxxx
+doge run --resume run-xxxx --approval appr-xxxx
+doge run --resume run-xxxx --approval appr-xxxx --deny
 ```
 
 `--json` 只输出序列化 `AgentRun`，适合脚本消费；`--trace` 在 human summary
@@ -434,7 +437,8 @@ doge run "Analyze earnings quality" --jsonl
 完成后回放已持久化事件，gateway `doge session --message` 通过 Python SDK 消费
 daemon SSE。`--jsonl` 输出稳定的 JSON Lines（`run_summary` / `run_accepted`
 和逐条 `event` 记录），适合管道、CI 或外部日志采集。需要高风险发布审批时，run
-会停在 `awaiting_approval`。
+会停在 `awaiting_approval`。`doge run --resume` 是显式继续执行命令；当 run
+停在审批点时必须同时传入 `--approval`，否则保持暂停并返回错误。
 
 交互式 `doge session --resume ses-xxxx --interactive` 支持真实文件附件：
 

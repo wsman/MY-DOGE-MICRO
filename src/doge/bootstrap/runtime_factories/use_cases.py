@@ -11,7 +11,7 @@ from doge.application.capabilities.registry import (
 )
 from doge.application.use_cases.capability_registry import BuildCapabilityRegistry
 from doge.application.use_cases.run_summary import BuildRunSummary
-from doge.application.use_cases.run_use_cases import ExecuteRun, ResumeRun
+from doge.application.use_cases.run_use_cases import ExecuteRun, GetRunSnapshot, ResumeRun
 from doge.application.use_cases.session_use_cases import AppendTurn, CreateSession, ListSessions, ResumeSession
 from doge.config import get_settings
 from doge.infrastructure.database.agent_repositories import SQLiteSessionRepository
@@ -77,3 +77,14 @@ def build_resume_run_use_case(db_path, gateway_container_fn, default_tool_regist
         tool_registry=tool_registry,
     )
     return ResumeRun(runtime)
+
+
+def build_get_run_snapshot_use_case(db_path, gateway_container_fn, default_tool_registry_fn, *, model=None, tool_registry=None) -> GetRunSnapshot:
+    runtime = runtime_kernel.build_persisted_research_agent_runtime(
+        db_path,
+        gateway_container_fn,
+        default_tool_registry_fn,
+        model=model,
+        tool_registry=tool_registry,
+    )
+    return GetRunSnapshot(runtime)

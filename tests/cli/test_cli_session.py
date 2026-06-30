@@ -74,14 +74,9 @@ def test_cli_embedded_approval_continues_run(monkeypatch, capsys):
                 ],
             )
 
-    class FakeRuntime:
-        async def resolve_approval(self, scope, run_id, approval_id, approved):
-            assert scope.tenant_id == "local"
+    class FakeResumeRun:
+        async def execute(self, run_id, *, approval_id=None, approved=True):
             assert (run_id, approval_id, approved) == ("run-cli", "appr-1", True)
-            return SimpleNamespace(run_id=run_id, status=SimpleNamespace(value="queued"), artifacts=[], approvals=[])
-
-        async def run_to_pause_or_completion(self, scope, run_id):
-            assert scope.tenant_id == "local"
             return SimpleNamespace(
                 run_id=run_id,
                 status=SimpleNamespace(value="completed"),
@@ -97,8 +92,8 @@ def test_cli_embedded_approval_continues_run(monkeypatch, capsys):
         def build_execute_run_use_case(self):
             return FakeExecuteRun()
 
-        def build_persisted_research_agent_runtime(self):
-            return FakeRuntime()
+        def build_resume_run_use_case(self):
+            return FakeResumeRun()
 
     monkeypatch.setattr(session_command, "_runtime_container", lambda: FakeRuntimeContainer())
 
@@ -455,14 +450,14 @@ def test_cli_trace_and_artifact_output_redacts_sensitive_payloads(monkeypatch, c
         ],
     )
 
-    class FakeResumeRun:
+    class FakeGetRunSnapshot:
         def execute(self, run_id):
             assert run_id == "run-cli"
             return run
 
     class FakeRuntimeContainer:
-        def build_resume_run_use_case(self):
-            return FakeResumeRun()
+        def build_get_run_snapshot_use_case(self):
+            return FakeGetRunSnapshot()
 
     monkeypatch.setattr(session_command, "_runtime_container", lambda: FakeRuntimeContainer())
 

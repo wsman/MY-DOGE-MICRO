@@ -16,14 +16,33 @@ from doge.core.security import redact_secrets
 def cmd_run(args) -> None:
     """Execute one persisted research-agent run."""
     try:
-        run = asyncio.run(_runtime_container().build_execute_run_use_case().execute(
-            args.question,
-            session_id=args.session,
-            market=args.market,
-            language=args.language,
-            portfolio_id=args.portfolio,
-            model_policy={"max_tool_rounds": args.max_tool_rounds},
-        ))
+        if getattr(args, "resume", None):
+            if getattr(args, "deny", False) and not getattr(args, "approval", None):
+                print("run failed: --deny requires --approval", file=sys.stderr)
+                sys.exit(2)
+                return
+            run = asyncio.run(_runtime_container().build_resume_run_use_case().execute(
+                args.resume,
+                approval_id=getattr(args, "approval", None),
+                approved=not getattr(args, "deny", False),
+            ))
+        else:
+            if getattr(args, "approval", None) or getattr(args, "deny", False):
+                print("run failed: --approval/--deny require --resume", file=sys.stderr)
+                sys.exit(2)
+                return
+            if not getattr(args, "question", None):
+                print("run failed: question is required unless --resume is provided", file=sys.stderr)
+                sys.exit(2)
+                return
+            run = asyncio.run(_runtime_container().build_execute_run_use_case().execute(
+                args.question,
+                session_id=args.session,
+                market=args.market,
+                language=args.language,
+                portfolio_id=args.portfolio,
+                model_policy={"max_tool_rounds": args.max_tool_rounds},
+            ))
     except Exception as exc:  # noqa: BLE001 - CLI emits concise operator message
         print(f"run failed: {exc}", file=sys.stderr)
         sys.exit(1)

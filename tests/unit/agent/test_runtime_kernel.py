@@ -225,6 +225,68 @@ async def test_kernel_resolve_approval_resumes_loop(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_kernel_resume_run_from_queued(tmp_path):
+    kernel = _kernel(tmp_path)
+    run = await kernel.create_run({"question": "Analyze AAPL"})
+    queued = await kernel.queue_run(run.run_id, reason="explicit_resume_test")
+
+    completed = await kernel.resume_run(queued.run_id)
+
+    assert queued.status == RunStatus.QUEUED
+    assert completed.status in {RunStatus.AWAITING_APPROVAL, RunStatus.COMPLETED}
+    assert any(event.event_type == EventType.RUN_QUEUED for event in completed.events)
+
+
+@pytest.mark.asyncio
+async def test_kernel_resume_run_requires_approval_for_paused_run(tmp_path):
+    kernel = _kernel(tmp_path)
+    run = await kernel.create_run({"question": "Analyze AAPL"})
+    paused = await kernel.run_to_pause_or_completion(run.run_id)
+
+    with pytest.raises(ValueError, match="awaiting approval"):
+        await kernel.resume_run(paused.run_id)
+
+
+@pytest.mark.asyncio
+async def test_kernel_resolve_approval_and_resume_completes(tmp_path):
+    kernel = _kernel(tmp_path)
+    run = await kernel.create_run({"question": "Analyze AAPL"})
+    paused = await kernel.run_to_pause_or_completion(run.run_id)
+
+    completed = await kernel.resolve_approval_and_resume(
+        paused.run_id,
+        paused.approvals[0].approval_id,
+        True,
+    )
+
+    assert completed.status == RunStatus.COMPLETED
+    assert completed.artifacts
+    assert any(event.event_type == EventType.APPROVAL_RESOLVED for event in completed.events)
+    assert any(event.event_type == EventType.RUN_QUEUED for event in completed.events)
+
+
+@pytest.mark.asyncio
+async def test_kernel_resolve_approval_and_resume_denial_fails(tmp_path):
+    kernel = _kernel(tmp_path)
+    run = await kernel.create_run({"question": "Analyze AAPL"})
+    paused = await kernel.run_to_pause_or_completion(run.run_id)
+
+    failed = await kernel.resolve_approval_and_resume(
+        paused.run_id,
+        paused.approvals[0].approval_id,
+        False,
+    )
+
+    assert failed.status == RunStatus.FAILED
+    assert failed.artifacts == []
+    assert any(
+        event.event_type == EventType.APPROVAL_RESOLVED
+        and event.payload.get("approved") is False
+        for event in failed.events
+    )
+
+
+@pytest.mark.asyncio
 async def test_kernel_cancel_run_transitions_state_machine(tmp_path):
     kernel = _kernel(tmp_path)
     run = await kernel.create_run({"question": "Analyze AAPL"})

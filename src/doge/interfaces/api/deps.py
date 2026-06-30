@@ -7,6 +7,7 @@ or any legacy connection helper directly; they request a port/use case via
 ``doge.bootstrap`` containers.
 """
 
+import logging
 import os
 
 from fastapi import Header, HTTPException, Request
@@ -31,6 +32,9 @@ _runtime_outbox_publisher = None
 _file_upload_service = None
 _enterprise_governance_repository = None
 _run_scope_resolver = None
+_research_agent_runtime_warning_emitted = False
+
+logger = logging.getLogger(__name__)
 
 
 def get_settings_dep() -> Settings:
@@ -103,8 +107,14 @@ def get_generate_industry_report_use_case():
 
 def get_research_agent_runtime():
     """Provide the process-local in-memory research agent runtime."""
-    global _research_agent_runtime
+    global _research_agent_runtime, _research_agent_runtime_warning_emitted
     if _research_agent_runtime is None:
+        if not _research_agent_runtime_warning_emitted:
+            logger.warning(
+                "creating legacy in-memory research agent runtime; "
+                "new daemon, SDK, and platform flows must use persisted runtime state"
+            )
+            _research_agent_runtime_warning_emitted = True
         _research_agent_runtime = _container.runtime.build_research_agent_runtime()
     return _research_agent_runtime
 

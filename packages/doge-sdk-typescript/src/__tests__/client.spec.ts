@@ -59,6 +59,24 @@ describe('DogeClient', () => {
     )
   })
 
+  it('resumes runs through explicit v1 resume API', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ run_id: 'run-test', status: 'completed' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const client = new DogeClient()
+    const run = await client.runs.resume('run-test', { approvalId: 'appr-1' })
+    expect(run.status).toBe('completed')
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/v1/runs/run-test/resume',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ approved: true, approval_id: 'appr-1' }),
+      }),
+    )
+  })
+
   it('reads run summary resources from v1 API', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({

@@ -12,9 +12,11 @@ KERNEL_PATH = PROJECT_ROOT / "src" / "doge" / "application" / "agent" / "runtime
 EXPECTED_PUBLIC_METHODS = {
     "create_run",
     "run_to_pause_or_completion",
+    "resume_run",
     "queue_run",
     "step",
     "resolve_approval",
+    "resolve_approval_and_resume",
     "cancel_run",
     "finalize_cancelled",
     "record_failure",

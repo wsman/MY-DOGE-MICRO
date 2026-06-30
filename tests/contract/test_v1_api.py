@@ -109,6 +109,56 @@ def test_v1_resolve_approval_returns_accepted(tmp_path, monkeypatch):
     assert response.json()["status"] in {"queued", "running", "completed"}
 
 
+def test_v1_explicit_resume_with_approval_returns_completed(tmp_path, monkeypatch):
+    _reset_agent_deps(monkeypatch, tmp_path)
+    with TestClient(app) as client:
+        run_id = _create_run(client)
+        run = _wait_for_run(client, run_id, {"awaiting_approval"})
+        approval_id = run["approvals"][0]["approval_id"]
+
+        response = client.post(
+            f"/v1/runs/{run_id}/resume",
+            json={"approval_id": approval_id, "approved": True},
+        )
+
+    assert response.status_code == 202
+    body = response.json()
+    assert body["run_id"] == run_id
+    assert body["status"] == "completed"
+    assert body["artifacts"]
+
+
+def test_v1_explicit_resume_requires_approval_for_paused_run(tmp_path, monkeypatch):
+    _reset_agent_deps(monkeypatch, tmp_path)
+    with TestClient(app) as client:
+        run_id = _create_run(client)
+        _wait_for_run(client, run_id, {"awaiting_approval"})
+
+        response = client.post(f"/v1/runs/{run_id}/resume", json={})
+
+    assert response.status_code == 409
+    assert "awaiting approval" in response.json()["error"]["message"]
+
+
+def test_v1_explicit_resume_rejects_terminal_run(tmp_path, monkeypatch):
+    _reset_agent_deps(monkeypatch, tmp_path)
+    with TestClient(app) as client:
+        run_id = _create_run(client)
+        run = _wait_for_run(client, run_id, {"awaiting_approval"})
+        approval_id = run["approvals"][0]["approval_id"]
+        completed = client.post(
+            f"/v1/runs/{run_id}/resume",
+            json={"approval_id": approval_id, "approved": True},
+        )
+        assert completed.status_code == 202
+        assert completed.json()["status"] == "completed"
+
+        response = client.post(f"/v1/runs/{run_id}/resume", json={})
+
+    assert response.status_code == 409
+    assert "not resumable" in response.json()["error"]["message"]
+
+
 def test_v1_stream_run_returns_sse_events(tmp_path, monkeypatch):
     _reset_agent_deps(monkeypatch, tmp_path)
     with TestClient(app) as client:

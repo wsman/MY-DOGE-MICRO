@@ -15,12 +15,8 @@ from doge.shared.scope import TenantScope
 def resolve_embedded_approval(run_id: str, approval_id: str, approved: bool):
     from doge.interfaces.cli.commands import session as _session
 
-    runtime = _session._runtime_container().build_persisted_research_agent_runtime()
-    scope = TenantScope.local()
-    run = asyncio.run(runtime.resolve_approval(scope, run_id, approval_id, approved))
-    if approved:
-        run = asyncio.run(runtime.run_to_pause_or_completion(scope, run_id))
-    return run
+    resume_run = _session._runtime_container().build_resume_run_use_case()
+    return asyncio.run(resume_run.execute(run_id, approval_id=approval_id, approved=approved))
 
 
 def cancel_embedded_run(run_id: str):
@@ -33,11 +29,11 @@ def cancel_embedded_run(run_id: str):
 def find_run_for_approval(session, approval_id: str) -> str | None:
     from doge.interfaces.cli.commands import session as _session
 
-    resume_run = _session._runtime_container().build_resume_run_use_case()
+    get_run = _session._runtime_container().build_get_run_snapshot_use_case()
     for turn in session.turns:
         if not turn.run_id:
             continue
-        run = resume_run.execute(turn.run_id)
+        run = get_run.execute(turn.run_id)
         if run is None:
             continue
         if any(approval.approval_id == approval_id for approval in run.approvals):

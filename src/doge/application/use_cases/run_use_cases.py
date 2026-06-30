@@ -51,5 +51,27 @@ class ResumeRun:
     def __init__(self, runtime: IResearchAgentRuntime) -> None:
         self._runtime = runtime
 
+    async def execute(
+        self,
+        run_id: str,
+        *,
+        approval_id: str | None = None,
+        approved: bool = True,
+    ) -> AgentRun:
+        scope = TenantScope.local()
+        if approval_id is not None:
+            return await self._runtime.resolve_approval_and_resume(
+                scope,
+                run_id,
+                approval_id,
+                approved,
+            )
+        return await self._runtime.resume_run(scope, run_id)
+
+
+class GetRunSnapshot:
+    def __init__(self, runtime: IResearchAgentRuntime) -> None:
+        self._runtime = runtime
+
     def execute(self, run_id: str) -> AgentRun | None:
         return self._runtime.get_run(TenantScope.local(), run_id)

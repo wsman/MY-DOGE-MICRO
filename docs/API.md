@@ -1,8 +1,8 @@
 # HTTP API Reference (FastAPI)
 
 The local-first HTTP backend of MY-DOGE-MICRO. A single FastAPI application
-(`doge.interfaces.api.main`) binds to `127.0.0.1:8901` and exposes **87 product routes**:
-34 legacy `/api/*` compatibility routes plus 53 daemon/v1 routes (`sessions`,
+(`doge.interfaces.api.main`) binds to `127.0.0.1:8901` and exposes **88 product routes**:
+34 legacy `/api/*` compatibility routes plus 54 daemon/v1 routes (`sessions`,
 `runs`, `documents`, `tools`, `health`, case workflow, portfolio import, audit,
 and enterprise ACL). Per ADR-0024, new platform work should target `/v1/*` and
 SDK clients. Legacy `/api/*` remains for local compatibility and emits
@@ -43,7 +43,7 @@ deprecation metadata headers.
 | Bind port | `8901` | `src/doge/interfaces/api/main.py` |
 | Auth | None (local-first) | see [Authentication](#authentication) |
 | Routers | legacy `/api/*` routers + v1 daemon routers | `src/doge/interfaces/api/main.py` |
-| Product routes | 76 (34 legacy routes + 42 v1/health routes) | `src/doge/interfaces/api/main.py` |
+| Product routes | 88 (34 legacy routes + 54 v1/health routes) | `src/doge/interfaces/api/main.py` |
 | Framework | FastAPI 0.123.8 + uvicorn 0.38.0 | `pyproject.toml:19-20` |
 | Streaming | sse-starlette 3.0.3 (`EventSourceResponse`) | `pyproject.toml:21` |
 
@@ -183,7 +183,7 @@ code cannot drift.
 | 30 | GET | `/api/agent/runs/{run_id}/stream` | Stream run events as SSE | `agent.py` |
 | 31 | GET | `/api/agent/runs/{run_id}/artifacts` | Read generated artifacts | `agent.py` |
 | 32 | GET | `/api/agent/runs/{run_id}/approvals` | Read pending/resolved approvals | `agent.py` |
-| 33 | POST | `/api/agent/runs/{run_id}/approvals/{approval_id}` | Approve or deny a high-risk action | `agent.py` |
+| 33 | POST | `/api/agent/runs/{run_id}/approvals/{approval_id}` | Legacy approval endpoint; returns 409 and points clients to `/v1` | `agent.py` |
 
 ### documents router — prefix `/api/documents` (`src/doge/interfaces/api_legacy/routers/documents.py`)
 
@@ -207,51 +207,52 @@ code cannot drift.
 | 44 | GET | `/v1/runs/{run_id}/stream` | SSE stream with `Last-Event-ID` replay | `v1/runs.py` |
 | 45 | GET | `/v1/runs/{run_id}/artifacts` | Read run artifacts | `v1/runs.py` |
 | 46 | GET | `/v1/runs/{run_id}/approvals` | Read run approvals | `v1/runs.py` |
-| 47 | POST | `/v1/runs/{run_id}/approvals/{approval_id}` | Resolve an approval and resume | `v1/runs.py` |
-| 48 | GET | `/v1/runs/{run_id}/summary` | Read API-backed run summary snapshot (feature-flagged) | `v1/runs.py` |
-| 49 | GET | `/v1/runs/{run_id}/claims` | Read run claims and support status (feature-flagged) | `v1/runs.py` |
-| 50 | GET | `/v1/runs/{run_id}/citations` | Read run citations with local provenance and ACL redaction (feature-flagged) | `v1/runs.py` |
-| 51 | GET | `/v1/runs/{run_id}/eval` | Read deterministic run eval metrics/checks (feature-flagged) | `v1/runs.py` |
-| 52 | POST | `/v1/documents` | Upload a real document file or register a compatible text payload | `v1/documents.py` |
-| 53 | GET | `/v1/documents` | List persisted documents | `v1/documents.py` |
-| 54 | GET | `/v1/documents/{document_id}` | Read a persisted document | `v1/documents.py` |
-| 55 | GET | `/v1/workspaces` | List platform workspaces (feature-flagged) | `v1/platform.py` |
-| 56 | POST | `/v1/workspaces` | Create a platform workspace (feature-flagged) | `v1/platform.py` |
-| 57 | GET | `/v1/workspaces/{workspace_id}` | Read a platform workspace (feature-flagged) | `v1/platform.py` |
-| 58 | GET | `/v1/projects` | List platform projects (feature-flagged) | `v1/platform.py` |
-| 59 | POST | `/v1/projects` | Create a platform project (feature-flagged) | `v1/platform.py` |
-| 60 | GET | `/v1/projects/{project_id}` | Read a platform project (feature-flagged) | `v1/platform.py` |
-| 61 | GET | `/v1/research-cases` | List research cases (feature-flagged) | `v1/platform.py` |
-| 62 | POST | `/v1/research-cases` | Create a research case (feature-flagged) | `v1/platform.py` |
-| 63 | GET | `/v1/research-cases/{case_id}` | Read a research case (feature-flagged) | `v1/platform.py` |
-| 64 | POST | `/v1/research-cases/{case_id}/runs` | Idempotently link a run to a research case (feature-flagged) | `v1/platform.py` |
-| 65 | GET | `/v1/home-queue` | Read actionable case/run/data work queue items (feature-flagged) | `v1/platform.py` |
-| 66 | GET | `/v1/research-cases/{case_id}/assets` | List assets attached to a research case (feature-flagged) | `v1/platform.py` |
-| 67 | POST | `/v1/research-cases/{case_id}/assets` | Attach a document, portfolio, or URL asset to a case (feature-flagged) | `v1/platform.py` |
-| 68 | DELETE | `/v1/research-cases/{case_id}/assets/{asset_link_id}` | Remove a case asset link (feature-flagged) | `v1/platform.py` |
-| 69 | GET | `/v1/research-cases/{case_id}/decisions` | List recorded case decisions (feature-flagged) | `v1/platform.py` |
-| 70 | POST | `/v1/research-cases/{case_id}/decisions` | Record an approve/reject/hold/escalate case decision (feature-flagged) | `v1/platform.py` |
-| 71 | POST | `/v1/research-cases/{case_id}/executions/preflight` | Validate template inputs, assets, and capabilities before execution (feature-flagged) | `v1/platform.py` |
-| 72 | POST | `/v1/research-cases/{case_id}/executions` | Create a workflow execution, run it, and link it to the case (feature-flagged) | `v1/platform.py` |
-| 73 | GET | `/v1/research-cases/{case_id}/executions` | List workflow executions for a case (feature-flagged) | `v1/platform.py` |
-| 74 | GET | `/v1/research-cases/{case_id}/executions/{execution_id}` | Read a workflow execution by ID (feature-flagged) | `v1/platform.py` |
-| 75 | GET | `/v1/research-cases/{case_id}/review` | Read case review state with latest run summary when enabled (feature-flagged) | `v1/platform.py` |
-| 76 | GET | `/v1/workflow-templates` | List workflow templates (feature-flagged) | `v1/platform.py` |
-| 77 | POST | `/v1/workflow-templates` | Create a workflow template definition (feature-flagged) | `v1/platform.py` |
-| 78 | GET | `/v1/workflow-templates/{template_id}` | Read a workflow template by ID or slug (feature-flagged) | `v1/platform.py` |
-| 79 | GET | `/v1/capabilities` | Read redacted provider, feature, maturity, and tool capability status (feature-flagged) | `v1/platform.py` |
-| 80 | GET | `/v1/tools` | List function-tool schemas | `v1/tools.py` |
-| 81 | POST | `/v1/portfolios/import` | Import a UTF-8 portfolio CSV and persist holdings | `v1/portfolios.py` |
-| 82 | GET | `/v1/audit/events` | List tenant-scoped audit events | `v1/audit.py` |
-| 83 | GET | `/v1/audit/events/export` | Export tenant audit events as redacted JSONL | `v1/audit.py` |
-| 84 | POST | `/v1/audit/events/retention` | Purge expired tenant audit events by retention policy | `v1/audit.py` |
-| 85 | GET | `/v1/enterprise/acl/grants` | List tenant ACL grants for enterprise admins | `v1/enterprise.py` |
-| 86 | POST | `/v1/enterprise/acl/grants` | Create a tenant ACL grant | `v1/enterprise.py` |
-| 87 | DELETE | `/v1/enterprise/acl/grants` | Revoke a tenant ACL grant | `v1/enterprise.py` |
+| 47 | POST | `/v1/runs/{run_id}/approvals/{approval_id}` | Resolve an approval through the queued continuation path | `v1/runs.py` |
+| 48 | POST | `/v1/runs/{run_id}/resume` | Explicitly resume a queued run, optionally resolving one approval first | `v1/runs.py` |
+| 49 | GET | `/v1/runs/{run_id}/summary` | Read API-backed run summary snapshot (feature-flagged) | `v1/runs.py` |
+| 50 | GET | `/v1/runs/{run_id}/claims` | Read run claims and support status (feature-flagged) | `v1/runs.py` |
+| 51 | GET | `/v1/runs/{run_id}/citations` | Read run citations with local provenance and ACL redaction (feature-flagged) | `v1/runs.py` |
+| 52 | GET | `/v1/runs/{run_id}/eval` | Read deterministic run eval metrics/checks (feature-flagged) | `v1/runs.py` |
+| 53 | POST | `/v1/documents` | Upload a real document file or register a compatible text payload | `v1/documents.py` |
+| 54 | GET | `/v1/documents` | List persisted documents | `v1/documents.py` |
+| 55 | GET | `/v1/documents/{document_id}` | Read a persisted document | `v1/documents.py` |
+| 56 | GET | `/v1/workspaces` | List platform workspaces (feature-flagged) | `v1/platform.py` |
+| 57 | POST | `/v1/workspaces` | Create a platform workspace (feature-flagged) | `v1/platform.py` |
+| 58 | GET | `/v1/workspaces/{workspace_id}` | Read a platform workspace (feature-flagged) | `v1/platform.py` |
+| 59 | GET | `/v1/projects` | List platform projects (feature-flagged) | `v1/platform.py` |
+| 60 | POST | `/v1/projects` | Create a platform project (feature-flagged) | `v1/platform.py` |
+| 61 | GET | `/v1/projects/{project_id}` | Read a platform project (feature-flagged) | `v1/platform.py` |
+| 62 | GET | `/v1/research-cases` | List research cases (feature-flagged) | `v1/platform.py` |
+| 63 | POST | `/v1/research-cases` | Create a research case (feature-flagged) | `v1/platform.py` |
+| 64 | GET | `/v1/research-cases/{case_id}` | Read a research case (feature-flagged) | `v1/platform.py` |
+| 65 | POST | `/v1/research-cases/{case_id}/runs` | Idempotently link a run to a research case (feature-flagged) | `v1/platform.py` |
+| 66 | GET | `/v1/home-queue` | Read actionable case/run/data work queue items (feature-flagged) | `v1/platform.py` |
+| 67 | GET | `/v1/research-cases/{case_id}/assets` | List assets attached to a research case (feature-flagged) | `v1/platform.py` |
+| 68 | POST | `/v1/research-cases/{case_id}/assets` | Attach a document, portfolio, or URL asset to a case (feature-flagged) | `v1/platform.py` |
+| 69 | DELETE | `/v1/research-cases/{case_id}/assets/{asset_link_id}` | Remove a case asset link (feature-flagged) | `v1/platform.py` |
+| 70 | GET | `/v1/research-cases/{case_id}/decisions` | List recorded case decisions (feature-flagged) | `v1/platform.py` |
+| 71 | POST | `/v1/research-cases/{case_id}/decisions` | Record an approve/reject/hold/escalate case decision (feature-flagged) | `v1/platform.py` |
+| 72 | POST | `/v1/research-cases/{case_id}/executions/preflight` | Validate template inputs, assets, and capabilities before execution (feature-flagged) | `v1/platform.py` |
+| 73 | POST | `/v1/research-cases/{case_id}/executions` | Create a workflow execution, run it, and link it to the case (feature-flagged) | `v1/platform.py` |
+| 74 | GET | `/v1/research-cases/{case_id}/executions` | List workflow executions for a case (feature-flagged) | `v1/platform.py` |
+| 75 | GET | `/v1/research-cases/{case_id}/executions/{execution_id}` | Read a workflow execution by ID (feature-flagged) | `v1/platform.py` |
+| 76 | GET | `/v1/research-cases/{case_id}/review` | Read case review state with latest run summary when enabled (feature-flagged) | `v1/platform.py` |
+| 77 | GET | `/v1/workflow-templates` | List workflow templates (feature-flagged) | `v1/platform.py` |
+| 78 | POST | `/v1/workflow-templates` | Create a workflow template definition (feature-flagged) | `v1/platform.py` |
+| 79 | GET | `/v1/workflow-templates/{template_id}` | Read a workflow template by ID or slug (feature-flagged) | `v1/platform.py` |
+| 80 | GET | `/v1/capabilities` | Read redacted provider, feature, maturity, and tool capability status (feature-flagged) | `v1/platform.py` |
+| 81 | GET | `/v1/tools` | List function-tool schemas | `v1/tools.py` |
+| 82 | POST | `/v1/portfolios/import` | Import a UTF-8 portfolio CSV and persist holdings | `v1/portfolios.py` |
+| 83 | GET | `/v1/audit/events` | List tenant-scoped audit events | `v1/audit.py` |
+| 84 | GET | `/v1/audit/events/export` | Export tenant audit events as redacted JSONL | `v1/audit.py` |
+| 85 | POST | `/v1/audit/events/retention` | Purge expired tenant audit events by retention policy | `v1/audit.py` |
+| 86 | GET | `/v1/enterprise/acl/grants` | List tenant ACL grants for enterprise admins | `v1/enterprise.py` |
+| 87 | POST | `/v1/enterprise/acl/grants` | Create a tenant ACL grant | `v1/enterprise.py` |
+| 88 | DELETE | `/v1/enterprise/acl/grants` | Revoke a tenant ACL grant | `v1/enterprise.py` |
 
 > The OpenAPI surface also exposes `/openapi.json`, `/docs`,
 > `/docs/oauth2-redirect`, `/redoc` (FastAPI defaults) — infrastructure, not
-> product endpoints, so not counted in the 87 product routes above.
+> product endpoints, so not counted in the 88 product routes above.
 
 ### Feature-Flagged Platform Surfaces
 
@@ -277,8 +278,8 @@ Feature flag lifecycle metadata and defaultization/removal gates are recorded in
 `docs/archive/audits/feature-flag-deprecation-plan-2026-06-23.md` and
 `docs/archive/audits/platform-shell-defaultization-2026-06-24.md`.
 
-Python SDK methods mirror these routes with `client.runs.summary()`,
-`client.runs.claims()`, `client.runs.citations()`,
+Python SDK methods mirror these routes with `client.runs.resume()`,
+`client.runs.summary()`, `client.runs.claims()`, `client.runs.citations()`,
 `client.runs.evaluation()`, `client.platform.*`, and
 `client.platform.create_research_case_run_from_template()`. Case-centered
 execution helpers include `home_queue()`, `preflight_case_execution()`,
@@ -545,8 +546,9 @@ Returns `{"artifacts": [...]}`.
 Returns `{"approvals": [...]}`.
 
 #### `POST /api/agent/runs/{run_id}/approvals/{approval_id}` — `agent.py`
-Body: `{"approved": true|false}`. Resolves an approval and returns the updated
-run. Unknown run or approval id → **404**.
+Body: `{"approved": true|false}`. This legacy endpoint does not continue the
+run; known runs return **409** with guidance to use the daemon `/v1` API. Unknown
+run id → **404**.
 
 ### documents router
 

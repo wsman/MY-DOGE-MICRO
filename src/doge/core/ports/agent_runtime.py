@@ -21,6 +21,10 @@ class IResearchAgentRuntime(ABC):
         ...
 
     @abstractmethod
+    async def resume_run(self, scope: TenantScope, run_id: str) -> AgentRun:
+        ...
+
+    @abstractmethod
     async def queue_run(self, scope: TenantScope, run_id: str, reason: str = "queued") -> AgentRun:
         ...
 
@@ -63,6 +67,16 @@ class IResearchAgentRuntime(ABC):
 
     @abstractmethod
     async def resolve_approval(
+        self,
+        scope: TenantScope,
+        run_id: str,
+        approval_id: str,
+        approved: bool,
+    ) -> AgentRun:
+        ...
+
+    @abstractmethod
+    async def resolve_approval_and_resume(
         self,
         scope: TenantScope,
         run_id: str,

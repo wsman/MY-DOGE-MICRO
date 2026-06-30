@@ -418,6 +418,10 @@ def build_resume_run_use_case(model=None, tool_registry=None, db_path=None):
     return _runtime_container(db_path).build_resume_run_use_case(model=model, tool_registry=tool_registry)
 
 
+def build_get_run_snapshot_use_case(model=None, tool_registry=None, db_path=None):
+    return _runtime_container(db_path).build_get_run_snapshot_use_case(model=model, tool_registry=tool_registry)
+
+
 def build_run_summary_use_case(runtime=None, evidence_repository=None, db_path=None):
     """Build the structured run summary/citation/eval use case."""
     return _runtime_container(db_path).build_run_summary_use_case(

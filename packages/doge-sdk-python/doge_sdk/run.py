@@ -90,6 +90,17 @@ class RunsResource:
             json={"approved": approved},
         )
 
+    def resume(
+        self,
+        run_id: str,
+        approval_id: str | None = None,
+        approved: bool = True,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {"approved": approved}
+        if approval_id is not None:
+            payload["approval_id"] = approval_id
+        return self._root._request("POST", f"/v1/runs/{run_id}/resume", json=payload)
+
     def cancel(self, run_id: str) -> dict[str, Any]:
         return self._root._request("POST", f"/v1/runs/{run_id}/cancel")
 
@@ -159,6 +170,17 @@ class AsyncRunsResource:
             f"/v1/runs/{run_id}/approvals/{approval_id}",
             json={"approved": approved},
         )
+
+    async def resume(
+        self,
+        run_id: str,
+        approval_id: str | None = None,
+        approved: bool = True,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {"approved": approved}
+        if approval_id is not None:
+            payload["approval_id"] = approval_id
+        return await self._root._request("POST", f"/v1/runs/{run_id}/resume", json=payload)
 
     async def cancel(self, run_id: str) -> dict[str, Any]:
         return await self._root._request("POST", f"/v1/runs/{run_id}/cancel")

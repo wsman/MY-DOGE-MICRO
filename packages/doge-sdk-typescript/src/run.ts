@@ -14,6 +14,11 @@ export interface RunStreamOptions {
   sleep?: (milliseconds: number) => Promise<void>
 }
 
+export interface RunResumeOptions {
+  approvalId?: string
+  approved?: boolean
+}
+
 export class DogeApiError extends Error {
   readonly statusCode: number
 
@@ -92,6 +97,12 @@ export class RunsResource {
 
   approve(runId: string, approvalId: string, approved = true): Promise<Record<string, unknown>> {
     return this.root.request('POST', `/v1/runs/${runId}/approvals/${approvalId}`, { approved })
+  }
+
+  resume(runId: string, options: RunResumeOptions = {}): Promise<Record<string, unknown>> {
+    const body: Record<string, unknown> = { approved: options.approved ?? true }
+    if (options.approvalId !== undefined) body.approval_id = options.approvalId
+    return this.root.request('POST', `/v1/runs/${runId}/resume`, body)
   }
 
   cancel(runId: string): Promise<Record<string, unknown>> {

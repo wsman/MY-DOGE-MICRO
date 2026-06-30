@@ -81,6 +81,38 @@ def test_golden_runtime_contract_matches_v1_and_python_sdk(tmp_path, monkeypatch
     assert sdk_contract == api_contract
 
 
+def test_golden_runtime_contract_explicit_resume_path(tmp_path, monkeypatch):
+    _reset_agent_deps(monkeypatch, tmp_path)
+    with TestClient(app) as client:
+        session = client.post("/v1/sessions", json={"title": "Golden Resume"}).json()
+        run_id = client.post(
+            f"/v1/sessions/{session['session_id']}/turns",
+            json={"message": "Analyze AAPL"},
+        ).json()["run_id"]
+        run = _wait_for_run(client, run_id, {"awaiting_approval"})
+        approval_id = run["approvals"][0]["approval_id"]
+
+        resumed = client.post(
+            f"/v1/runs/{run_id}/resume",
+            json={"approval_id": approval_id, "approved": True},
+        ).json()
+
+    assert resumed["status"] == "completed"
+    sdk = DogeClient(
+        base_url="http://testserver",
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(202, json=resumed)
+            if request.url.path == f"/v1/runs/{run_id}/resume"
+            else httpx.Response(404, json={"error": {"message": "not found"}})
+        ),
+    )
+
+    sdk_resumed = sdk.runs.resume(run_id, approval_id=approval_id)
+
+    assert sdk_resumed["run_id"] == run_id
+    assert sdk_resumed["status"] == "completed"
+
+
 def _reset_agent_deps(monkeypatch, tmp_path):
     monkeypatch.delenv("DOGE_PROCESS_ROLE", raising=False)
     monkeypatch.setenv("DOGE_AGENT_DB", str(tmp_path / "agent_state.db"))

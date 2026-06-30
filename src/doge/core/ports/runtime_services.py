@@ -170,6 +170,9 @@ class IRunLifecycleService(Protocol):
     ) -> AgentRun:
         ...
 
+    async def resume_run(self, scope: TenantScope, run_id: str) -> AgentRun:
+        ...
+
     async def cancel_run(
         self,
         scope: TenantScope,

@@ -18,7 +18,7 @@ from doge.interfaces.api.handlers.platform_objects import (
     WorkflowTemplateHandler,
     WorkspaceHandler,
 )
-from doge.interfaces.api.handlers.run_actions import CancelRunHandler, ResolveApprovalHandler
+from doge.interfaces.api.handlers.run_actions import CancelRunHandler, ResolveApprovalHandler, ResumeRunHandler
 from doge.interfaces.api.handlers.sessions import (
     CreateSessionHandler,
     GetSessionHandler,
@@ -45,6 +45,7 @@ __all__ = [
     "ResearchCaseHandler",
     "ResearchCaseRunHandler",
     "ResolveApprovalHandler",
+    "ResumeRunHandler",
     "RunAccessContext",
     "RunNotFound",
     "RunStreamHandler",

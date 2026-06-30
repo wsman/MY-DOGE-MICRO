@@ -4,7 +4,7 @@
 > **Slug**: `fastapi-service`
 > **Status**: In Review
 > **Last Verified**: 2026-06-22
-> **Notes**: Major release-follow-up update; canonical app, 87 product routes, Research Copilot compatibility routes, document routes, daemon `/v1/*` routes, platform object/template/capability routes, portfolio import, audit/enterprise governance routes, SSE behavior, and shipped error envelope are reflected here.
+> **Notes**: Major release-follow-up update; canonical app, 88 product routes, Research Copilot compatibility routes, document routes, daemon `/v1/*` routes, platform object/template/capability routes, portfolio import, audit/enterprise governance routes, SSE behavior, and shipped error envelope are reflected here.
 > **Depends on**: #1 `runtime-configuration`, #2 `market-data-storage`, #4 `macro-strategy-engine`, #5 `micro-momentum-scanner`, #13 `research-copilot-agent-runtime`, #14 `document-evidence-pipeline`
 > **Depended on by**: #11 `vue-web-console`, #10 `pyqt-desktop-dashboard`, #15 `sdk-daemon-client-interfaces`
 > **Source files reverse-documented**: `src/doge/interfaces/api/main.py`, `src/doge/interfaces/api/routers/{scan,data,notes,macro,analysis,config,agent,documents}.py`, `src/doge/interfaces/api/routers/v1/*.py`; `src/api/*` is compatibility shim history only.
@@ -16,12 +16,12 @@
 
 The FastAPI Service is the local-first HTTP interface layer of MY-DOGE-MICRO.
 The canonical application is `doge.interfaces.api.main:app`, launched on
-`127.0.0.1:8901`. It exposes **87 product routes**:
+`127.0.0.1:8901`. It exposes **88 product routes**:
 
 - 34 legacy `/api/*` product routes, including top-level helpers, market scan,
   data browsing, notes, macro reports, analysis reports, config, Research
   Copilot demo routes, and document registration.
-- 53 daemon/v1 routes for health/readiness, sessions, runs, run summaries,
+- 54 daemon/v1 routes for health/readiness, sessions, runs, explicit run resume, run summaries,
   documents, platform objects, workflow templates, capabilities, tool schemas,
   approvals, cancellation, artifacts, SSE replay, portfolio import, tenant
   audit, and enterprise ACL administration.
@@ -144,7 +144,7 @@ persisted event replay via `Last-Event-ID`.
 
 The route table is canonical in [docs/API.md](../../docs/API.md) and is guarded
 by `tests/contract/test_api_doc_route_coverage.py`. The current count is exactly
-**87 product routes**:
+**88 product routes**:
 
 | Range | Surface | Count |
 |---|---|---:|
@@ -152,16 +152,16 @@ by `tests/contract/test_api_doc_route_coverage.py`. The current count is exactly
 | 3-26 | legacy scan/data/notes/macro/analysis/config routers | 24 |
 | 27-33 | `/api/agent` compatibility routes | 7 |
 | 34 | `/api/documents` compatibility route | 1 |
-| 35-47 | health and core `/v1/*` daemon routes | 13 |
-| 48-51 | `/v1/runs/{run_id}` summary/claims/citations/eval routes | 4 |
-| 52-54 | `/v1/documents` document routes | 3 |
-| 55-75 | `/v1/workspaces`, `/v1/projects`, `/v1/research-cases`, home queue, case assets, workflow executions, decisions, review, and case-run link routes | 21 |
-| 76-78 | `/v1/workflow-templates` template routes | 3 |
-| 68 | `/v1/capabilities` capability registry route | 1 |
-| 69 | `/v1/tools` tool schema route | 1 |
-| 70 | `/v1/portfolios/import` portfolio import route | 1 |
-| 82-84 | `/v1/audit/*` audit list/export/retention routes | 3 |
-| 85-87 | `/v1/enterprise/acl/grants` ACL list/grant/revoke routes | 3 |
+| 35-48 | health and core `/v1/*` daemon routes | 14 |
+| 49-52 | `/v1/runs/{run_id}` summary/claims/citations/eval routes | 4 |
+| 53-55 | `/v1/documents` document routes | 3 |
+| 56-76 | `/v1/workspaces`, `/v1/projects`, `/v1/research-cases`, home queue, case assets, workflow executions, decisions, review, and case-run link routes | 21 |
+| 77-79 | `/v1/workflow-templates` template routes | 3 |
+| 80 | `/v1/capabilities` capability registry route | 1 |
+| 81 | `/v1/tools` tool schema route | 1 |
+| 82 | `/v1/portfolios/import` portfolio import route | 1 |
+| 83-85 | `/v1/audit/*` audit list/export/retention routes | 3 |
+| 86-88 | `/v1/enterprise/acl/grants` ACL list/grant/revoke routes | 3 |
 
 ### 4.2 Error Contract
 
@@ -240,7 +240,7 @@ The required production contract is:
 
 ## 8. Acceptance Criteria
 
-- [x] `docs/API.md` enumerates exactly 87 product routes.
+- [x] `docs/API.md` enumerates exactly 88 product routes.
 - [x] `tests/contract/test_api_doc_route_coverage.py` verifies docs-vs-live route
       coverage.
 - [x] HTTPException and unhandled exceptions use the shipped non-leaking error

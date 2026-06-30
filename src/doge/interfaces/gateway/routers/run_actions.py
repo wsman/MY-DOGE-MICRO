@@ -1,4 +1,4 @@
-"""v1 run action routes (cancel, resolve approval)."""
+"""v1 run action routes (cancel, resume, resolve approval)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from doge.core.ports.agent_runtime import IResearchAgentRuntime
 from doge.core.ports.enterprise_governance import IEnterpriseGovernanceRepository
 from doge.interfaces.api import deps
-from doge.interfaces.api.handlers import CancelRunHandler, ResolveApprovalHandler
+from doge.interfaces.api.handlers import CancelRunHandler, ResolveApprovalHandler, ResumeRunHandler
 from doge.interfaces.api.handlers.queries import RunNotFound
 from doge.interfaces.gateway.routers._common import serialize
 from doge.interfaces.gateway.routers._runs_common import request_run_access
@@ -17,6 +17,11 @@ router = APIRouter(dependencies=[Depends(deps.require_api_token)])
 
 
 class ApprovalRequest(BaseModel):
+    approved: bool = True
+
+
+class ResumeRequest(BaseModel):
+    approval_id: str | None = None
     approved: bool = True
 
 
@@ -35,6 +40,34 @@ async def cancel_run(
         return serialize(result)
     except (KeyError, RunNotFound):
         raise HTTPException(404, "run not found")
+
+
+@router.post("/runs/{run_id}/resume", status_code=202)
+async def resume_run(
+    request: Request,
+    run_id: str,
+    body: ResumeRequest | None = None,
+    runtime: IResearchAgentRuntime = Depends(deps.get_persisted_research_agent_runtime),
+    governance: IEnterpriseGovernanceRepository = Depends(deps.get_enterprise_governance_repository),
+):
+    body = body or ResumeRequest()
+    try:
+        run = await ResumeRunHandler(
+            runtime=runtime,
+            governance=governance,
+        ).handle(
+            run_id=run_id,
+            approval_id=body.approval_id,
+            approved=body.approved,
+            access=request_run_access(request),
+        )
+        return serialize(run)
+    except PermissionError as exc:
+        raise HTTPException(403, str(exc))
+    except ValueError as exc:
+        raise HTTPException(409, str(exc))
+    except (KeyError, RunNotFound) as exc:
+        raise HTTPException(404, str(exc))
 
 
 @router.post("/runs/{run_id}/approvals/{approval_id}", status_code=202)

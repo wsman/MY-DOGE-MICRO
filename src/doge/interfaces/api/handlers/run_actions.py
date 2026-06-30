@@ -94,3 +94,37 @@ class ResolveApprovalHandler:
                 metadata={"run_id": run_id, "approved": approved},
             )
         )
+
+
+class ResumeRunHandler:
+    def __init__(self, *, runtime, governance=None) -> None:
+        self._runtime = runtime
+        self._governance = governance
+
+    async def handle(
+        self,
+        *,
+        run_id: str,
+        approval_id: str | None = None,
+        approved: bool = True,
+        scope=None,
+        access: RunAccessContext | None = None,
+    ):
+        access = access or RunAccessContext(scope=scope)
+        GetRunHandler(runtime=self._runtime).handle(run_id=run_id, access=access)
+        if approval_id is not None:
+            approval_handler = ResolveApprovalHandler(
+                worker=None,
+                runtime=self._runtime,
+                governance=self._governance,
+            )
+            approval_handler._ensure_approval_authority(access, approval_id)
+            run = await self._runtime.resolve_approval_and_resume(
+                access.scope,
+                run_id,
+                approval_id,
+                approved,
+            )
+            approval_handler._record_approval_actor(access, approval_id, run_id, approved)
+            return run
+        return await self._runtime.resume_run(access.scope, run_id)

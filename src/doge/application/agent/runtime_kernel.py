@@ -36,9 +36,11 @@ class RuntimeKernel:
 
     - ``create_run`` -> ``AgentRun``
     - ``run_to_pause_or_completion`` -> ``AgentRun``
+    - ``resume_run`` -> ``AgentRun``
     - ``queue_run`` -> ``AgentRun``
     - ``step`` -> ``AgentRun``
     - ``resolve_approval`` -> ``AgentRun``
+    - ``resolve_approval_and_resume`` -> ``AgentRun``
     - ``cancel_run`` -> ``AgentRun``
     - ``finalize_cancelled`` -> ``AgentRun``
     - ``record_failure`` -> ``AgentRun``
@@ -94,6 +96,16 @@ class RuntimeKernel:
         resolved_scope, resolved_run_id = run_execution_args(scope, run_id, tenant_id=tenant_id)
         return await self._lifecycle.run_to_pause_or_completion(resolved_scope, resolved_run_id)
 
+    async def resume_run(
+        self,
+        scope: TenantScope | str | None,
+        run_id: str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun:
+        resolved_scope, resolved_run_id = run_execution_args(scope, run_id, tenant_id=tenant_id)
+        return await self._lifecycle.resume_run(resolved_scope, resolved_run_id)
+
     async def queue_run(
         self,
         scope: TenantScope | str | None,
@@ -137,6 +149,32 @@ class RuntimeKernel:
             resolved_approval_id,
             resolved_approved,
         )
+
+    async def resolve_approval_and_resume(
+        self,
+        scope: TenantScope | str | None,
+        run_id: str | None = None,
+        approval_id: str | bool | None = None,
+        approved: bool = True,
+        *,
+        tenant_id: str | None = None,
+    ) -> AgentRun:
+        resolved_scope, resolved_run_id, resolved_approval_id, resolved_approved = approval_args(
+            scope,
+            run_id,
+            approval_id,
+            approved,
+            tenant_id=tenant_id,
+        )
+        run = await self._approval.resolve(
+            resolved_scope,
+            resolved_run_id,
+            resolved_approval_id,
+            resolved_approved,
+        )
+        if not resolved_approved:
+            return run
+        return await self.resume_run(resolved_scope, resolved_run_id)
 
     async def cancel_run(
         self,
@@ -213,7 +251,6 @@ class RuntimeKernel:
     ) -> list[AgentArtifact]:
         resolved_scope, resolved_run_id = run_args(scope, run_id, tenant_id=tenant_id)
         return self._lifecycle.list_artifacts(resolved_scope, resolved_run_id)
-
 
 __all__ = [
     "RuntimeKernel",
