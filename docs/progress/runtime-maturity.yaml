@@ -7,24 +7,23 @@ latest_remotely_verified_sha:
   evidence: production/qa/evidence/ci/remote-ci-6fd598a.json
   remote_ci_result: passed
   remote_ci_run_id: 28420166050
-  local_remediation_status: current_pushed_head_remote_verified
+  local_remediation_status: latest_remote_verified_current_head_failed
   notes:
     - "Exact-SHA remote CI for the latest remotely verified SHA 6fd598a passed: GitHub Actions run 28420166050 completed with conclusion=success on a push event for the CI workflow (verified via scripts/verify_remote_ci_evidence.py and stored at production/qa/evidence/ci/remote-ci-6fd598a.json)."
     - "Prior verified pushed HEAD fd1768fa690a9a0c3a8d7905a7b72f0af54f6b04 (run 28326916286) is retained as Sprint B citation/evidence closure history."
-    - "This remote CI evidence covers committed HEAD 6fd598a only; any post-HEAD worktree changes require their own commit and exact-SHA CI before being called remotely verified."
+    - "This remote CI evidence covers committed HEAD 6fd598a only; current pushed HEAD 9f304a82ae603f0d15210d7cbfc4e502a61fea43 has exact-SHA CI run 28423757545 with conclusion=failure and is not remotely verified."
 
 current_pushed_head_local_evidence:
-  head_sha: "6fd598ac223c390d81ea121d550d52afd3b47c87"
-  evidence: production/qa/evidence/ci/remote-ci-6fd598a.json
-  remote_ci_evidence: production/qa/evidence/ci/remote-ci-6fd598a.json
-  local_architecture_status: passed
-  remote_ci_result: passed
-  remote_ci_run_id: 28420166050
+  head_sha: "9f304a82ae603f0d15210d7cbfc4e502a61fea43"
+  evidence: production/qa/evidence/sprint-g-architecture-consolidation.md
+  remote_ci_evidence: null
+  local_architecture_status: sprint_g_local_complete_external_gates_open
+  remote_ci_result: failed
+  remote_ci_run_id: 28423757545
   notes:
-    - "Current pushed HEAD 6fd598ac223c390d81ea121d550d52afd3b47c87 is already on origin/main and has exact-SHA CI evidence."
-    - "Exact-SHA remote CI for current pushed HEAD 6fd598a passed: GitHub Actions run 28420166050 completed with conclusion=success on a push event for the CI workflow; evidence is stored at production/qa/evidence/ci/remote-ci-6fd598a.json."
-    - "Prior pushed HEAD fd1768fa690a9a0c3a8d7905a7b72f0af54f6b04 (run 28326916286) is retained as Sprint B citation/evidence closure history."
-    - "Any local changes after 6fd598a remain local until committed and verified by their own exact-SHA CI run."
+    - "Current pushed HEAD 9f304a82ae603f0d15210d7cbfc4e502a61fea43 is on origin/main but exact-SHA GitHub Actions CI run 28423757545 completed with conclusion=failure."
+    - "Do not claim current pushed HEAD remote CI passed. Keep latest_remotely_verified_sha at 6fd598a until a later exact-SHA CI run passes."
+    - "Sprint G local architecture consolidation evidence is recorded in production/qa/evidence/sprint-g-architecture-consolidation.md."
 
 maturity_labels:
   level_1_embedded_cli_session: preview
@@ -33,7 +32,7 @@ maturity_labels:
   production_ready: false
 
 single_stack_direction:
-  status: in_progress
+  status: local_convergence_complete_external_gates_open
   authority: docs/architecture/adr-0024-single-stack-runtime-direction.md
   preferred_new_platform_path:
     composition: doge.bootstrap.processes
@@ -77,7 +76,7 @@ single_stack_direction:
       notes: "Optional GUI smoke remains valuable; PyQt does not imply production readiness."
 
 local_structure_convergence_2026_06_30:
-  status: local_complete_external_gates_open
+  status: sprint_g_local_complete_external_gates_open
   scope:
     - "Physical split of legacy API router implementations to doge.interfaces.api_legacy.routers."
     - "Physical split of daemon /v1 router implementations to doge.interfaces.gateway.routers."
@@ -85,6 +84,27 @@ local_structure_convergence_2026_06_30:
     - "doge doctor and doged doctor provide local and daemon diagnostics."
     - "Legacy POST /api/documents now uses persisted document upload/repository wiring."
     - "Implicit portfolio-demo run/turn defaults removed; no portfolio is the default unless explicitly supplied."
+    - "Sprint G adds API v1 shim guards, direct RuntimeKernel lifecycle integration tests, configurable scripted scenarios, eval/batch cleanup, worker metrics, streaming upload, and boundary docs."
+  sprint_g_evidence:
+    qa_plan: production/qa/qa-plan-sprint-g.md
+    evidence: production/qa/evidence/sprint-g-architecture-consolidation.md
+    api_v1_shim_notes: docs/progress/api-v1-shim-migration-notes.md
+    file_structure_policy: docs/architecture/file-structure-policy.md
+    focused_tests:
+      - "py -3 -m pytest tests\\unit\\architecture\\test_gateway_router_shim_parity.py tests\\unit\\architecture\\test_runtime_tool_boundary_guards.py tests\\unit\\agent\\test_scripted_agent_model.py tests\\unit\\infrastructure\\test_scripted_model.py tests\\eval\\test_run_eval.py tests\\eval\\test_run_eval_metrics.py tests\\cli\\test_cli_batch.py -q"
+      - "py -3 -m pytest tests\\unit\\agent\\test_worker.py tests\\unit\\agent\\test_worker_metrics.py tests\\contract\\test_v1_api.py::test_health_ready_reports_daemon_subsystems tests\\contract\\test_v1_api.py::test_api_process_role_lifespan_does_not_start_worker -q"
+      - "py -3 -m pytest tests\\unit\\test_file_upload_service.py tests\\unit\\test_file_upload_large.py tests\\contract\\test_document_store.py tests\\contract\\test_document_large_upload.py -q"
+      - "py -3 -m pytest tests\\integration\\test_runtime_kernel_lifecycle.py tests\\integration\\test_daemon_worker.py tests\\unit\\agent\\test_runtime_kernel.py tests\\unit\\agent\\test_scripted_agent_model.py -q"
+    final_verification:
+      - "py -3 -m pytest tests\\unit\\architecture -q => 109 passed, 2 warnings"
+      - "py -3 -m pytest tests\\eval\\test_run_eval.py tests\\eval\\test_gold_eval.py tests\\eval\\test_failure_injection.py tests\\eval\\test_run_eval_metrics.py -q => 13 passed, 2 warnings"
+      - "py -3 -m pytest tests\\cli\\test_cli_batch.py tests\\unit\\agent\\test_worker.py tests\\unit\\agent\\test_worker_metrics.py tests\\contract\\test_v1_api.py::test_health_ready_reports_daemon_subsystems tests\\unit\\test_file_upload_service.py tests\\unit\\test_file_upload_large.py tests\\contract\\test_document_store.py tests\\contract\\test_document_large_upload.py -q => 34 passed, 2 warnings"
+      - "py -3 -m doge.interfaces.cli.main batch --cases tests\\eval\\cases_expanded.json --output %TEMP%\\doge-batch-sprint-g-results.json => case_count=10, passed=10"
+      - "py -3 scripts\\validate_docs_links.py => validated 62 markdown files"
+      - "py -3 scripts\\validate_alpha_maturity_honesty.py => passed"
+      - "py -3 scripts\\validate_plan_closure_gate.py --allow-open => acceptable open, 4 open / 2 passed"
+      - "py -3 scripts\\validate_plan_closure_gate.py => acceptable=false, exit code 1 as expected while external gates remain open"
+      - "git diff --check => passed"
   still_open:
     - S017-003
     - W3-live

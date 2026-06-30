@@ -4,8 +4,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[3]
-LATEST_REMOTE_SHA = "b5ab80bc802df36b58a1e56225a87b0f2473b29e"
-CURRENT_HEAD_SHA = "fd1768fa690a9a0c3a8d7905a7b72f0af54f6b04"
+LATEST_REMOTE_SHA = "6fd598ac223c390d81ea121d550d52afd3b47c87"
+CURRENT_PUSHED_HEAD_SHA = "9f304a82ae603f0d15210d7cbfc4e502a61fea43"
+SPRINT_B_COMMITTED_SHA = "fd1768fa690a9a0c3a8d7905a7b72f0af54f6b04"
 
 
 def _read(path: str) -> str:
@@ -17,29 +18,30 @@ def test_runtime_maturity_separates_latest_remote_sha_from_current_head() -> Non
 
     assert "latest_remotely_verified_sha:" in maturity
     assert LATEST_REMOTE_SHA in maturity
-    assert "latest remotely verified SHA b5ab80b passed" in maturity
-    assert "current HEAD b5ab80b passed" not in maturity
+    assert "latest remotely verified SHA 6fd598a passed" in maturity
+    assert "current HEAD 6fd598a passed" not in maturity
 
     assert "current_pushed_head_local_evidence:" in maturity
-    assert CURRENT_HEAD_SHA in maturity
-    assert "remote_ci_result: passed" in maturity
-    assert "remote_ci_run_id: 28326916286" in maturity
-    assert "remote-ci-fd1768f.json" in maturity
+    assert CURRENT_PUSHED_HEAD_SHA in maturity
+    assert "remote_ci_result: failed" in maturity
+    assert "remote_ci_run_id: 28423757545" in maturity
+    assert "remote-ci-6fd598a.json" in maturity
 
 
 def test_readme_does_not_claim_current_head_is_remotely_verified() -> None:
     readme = _read("README.md")
 
-    assert f"promoted remote baseline remains\n`{LATEST_REMOTE_SHA}`" in readme
-    assert f"current pushed HEAD\n`{CURRENT_HEAD_SHA}`" in readme
-    assert "GitHub Actions run `28326916286`" in readme
-    assert "remote-ci-fd1768f.json" in readme
+    assert f"The latest remotely verified SHA remains\n`{LATEST_REMOTE_SHA}`" in readme
+    assert f"current pushed HEAD is\n`{CURRENT_PUSHED_HEAD_SHA}`" in readme
+    assert "GitHub Actions run\n`28420166050`" in readme
+    assert "run `28423757545` completed with result `failure`" in readme
+    assert "remote-ci-6fd598a.json" in readme
 
 
 def test_acceptance_report_targets_current_head_remote_ci_evidence() -> None:
     report = _read("production/qa/evidence/sprint-b-citation-evidence-acceptance-2026-06-28.md")
 
-    assert f"Committed SHA: `{CURRENT_HEAD_SHA}`" in report
+    assert f"Committed SHA: `{SPRINT_B_COMMITTED_SHA}`" in report
     assert "production/qa/evidence/ci/remote-ci-fd1768f.json" in report
     assert "GitHub Actions run `28326916286`" in report
     assert "Verdict: **GO**" in report

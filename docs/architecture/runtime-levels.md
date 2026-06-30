@@ -10,11 +10,17 @@
 runtime kernel. State is persisted to `data/agent_state.db`. This level has no
 HTTP dependency and supports scripted offline execution.
 
+Current label: Preview. This level is suitable for local deterministic
+operation, but it is not Stable.
+
 ## Level 2 — Daemon Gateway
 
 `doged serve` exposes loopback-only v1 routes. Session turns enqueue runs into
 an asyncio worker. Events are persisted and published to the in-process event
 bus for SSE clients with `Last-Event-ID` replay.
+
+Current label: Alpha. This level remains loopback/local-daemon oriented and is
+not an internet-facing production gateway.
 
 ## Level 3 — SDK & Platform
 
@@ -25,6 +31,10 @@ remain available for existing screens.
 Level 3 remains experimental. SDK/Web progress does not imply Stable or
 Production Ready until all required runtime, external, provider, packaging, and
 operator gates are closed.
+
+All three levels share the same runtime-kernel direction: embedded CLI,
+daemon gateway, and SDK/Web clients must converge on persisted run/session/event
+contracts rather than separate runtime implementations.
 
 ## Preferred Stack
 

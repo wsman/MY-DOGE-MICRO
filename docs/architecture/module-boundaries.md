@@ -22,12 +22,21 @@
 
 ## Scenario Map
 
+Sprint G reduces the public product language to four modules:
+
+| Product Module | Owns | Does Not Own |
+|----------------|------|--------------|
+| MY-DOGE Quant Core | Market data, quant views, scanner, notes, reports, MCP tool contracts. | Agent session orchestration, document parsing, SDK publishing, enterprise auth. |
+| MY-DOGE Research Agent | Session, run, document/evidence context, tool loop, approval, artifacts. | Market-data maintenance, Web UI state, concrete model SDKs, production auth. |
+| MY-DOGE Gateway | `/v1/*`, SSE, background worker, idempotency, SDK/Web/remote CLI contracts. | Quant algorithms, Web demo internals, PyQt, specific provider logic. |
+| MY-DOGE Eval | Gold set, replay, metrics, trace, deterministic reports. | Production request handling, document editing UI, live provider certification. |
+
 | Scenario | User Goal | Contexts Composed | Primary Entrypoints |
 |----------|-----------|-------------------|---------------------|
-| Market Scan | Inspect breadth, momentum, ticker, and anomaly signals. | Market Intelligence, Quant & Data Lab, Governance & Evaluation | Web Market, CLI, MCP, legacy scanner compatibility |
-| Research Memo | Produce or review evidence-backed market/company/industry research. | Research, Knowledge & Evidence, Agent Runtime, Workspace & Workflow, Governance & Evaluation | Web Research, `/v1` runs, SDK, CLI |
-| Portfolio Risk | Import holdings and review exposure, risk, scenarios, or rebalance proposals. | Portfolio & Risk, Market Intelligence, Governance & Evaluation | Web Portfolio, agent tools, `/v1` portfolio paths |
-| Governed Agent Workflow | Run, inspect, approve, audit, and preserve agent work. | Workspace & Workflow, Agent Runtime, Knowledge & Evidence, Governance & Evaluation | Web Workspace, `/v1` runs/cases/templates, SDK |
+| Local Quant Operator | Inspect breadth, momentum, ticker, anomaly, local DB, and macro-report signals. | Market Intelligence, Quant & Data Lab, Governance & Evaluation | CLI, MCP, Web Market, legacy scanner compatibility |
+| Researcher / Portfolio Manager | Produce or review evidence-backed market/company/industry research and approval-ready artifacts. | Research, Portfolio & Risk, Knowledge & Evidence, Agent Runtime, Workspace & Workflow, Governance & Evaluation | Web Research, `doge session`, `/v1` runs |
+| Enterprise Integrator | Embed runtime/gateway capabilities through API, SDK, MCP, and SSE contracts. | Agent Runtime, Workspace & Workflow, Knowledge & Evidence, Governance & Evaluation | `/v1`, SDKs, MCP, remote CLI |
+| Eval / Demo Owner | Reproduce cases, inspect traces, and measure deterministic task quality. | Governance & Evaluation, Agent Runtime, Knowledge & Evidence | `doge batch`, eval runner, trace/report artifacts |
 
 ## Context Contracts
 

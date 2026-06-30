@@ -101,13 +101,15 @@ production_ready: false
 stable_declaration: forbidden
 ```
 
-The promoted remote baseline remains
-`b5ab80bc802df36b58a1e56225a87b0f2473b29e`.
+The latest remotely verified SHA remains
+`6fd598ac223c390d81ea121d550d52afd3b47c87`, with GitHub Actions run
+`28420166050` recorded in
+`production/qa/evidence/ci/remote-ci-6fd598a.json`.
 
-The current pushed HEAD
-`fd1768fa690a9a0c3a8d7905a7b72f0af54f6b04`
-has local evidence and GitHub Actions run `28326916286` recorded in
-`production/qa/evidence/ci/remote-ci-fd1768f.json`.
+The current pushed HEAD is
+`9f304a82ae603f0d15210d7cbfc4e502a61fea43`. Its exact-SHA GitHub Actions CI
+run `28423757545` completed with result `failure`, so it is not promoted to the
+latest remotely verified SHA.
 
 No README, release note, or docs entry should claim Stable, GA, or Production
 Ready while those values remain unchanged. See
@@ -115,14 +117,23 @@ Ready while those values remain unchanged. See
 
 ## User Scenarios
 
-The product is organized around four primary scenarios:
+Sprint G treats four product modules as the public mental model:
+
+| Product module | What it owns |
+|----------------|--------------|
+| MY-DOGE Quant Core | Market data, quant views, scanner, notes, reports, and MCP tools. |
+| MY-DOGE Research Agent | Session, run, document evidence, tool loop, approval, and artifacts. |
+| MY-DOGE Gateway | `/v1/*`, SSE, worker-backed daemon execution, SDK/Web/remote CLI contracts. |
+| MY-DOGE Eval | Gold sets, replay, metrics, trace, and regression reports. |
+
+The product is organized around four primary user scenarios:
 
 | Scenario | What it covers |
 |----------|----------------|
-| Market Scan | Momentum, breadth, anomaly, ticker, and archive workflows. |
-| Research Memo | Evidence-backed market/company/industry research. |
-| Portfolio Risk | Holdings, exposure, scenarios, and governed rebalance proposals. |
-| Governed Agent Workflow | Workspaces, cases, runs, approvals, evidence, audit, and maturity. |
+| Local Quant Operator | Momentum, breadth, anomaly, ticker, archive, local DB, and macro-report workflows. |
+| Researcher / Portfolio Manager | Evidence-backed market/company/industry research with approval and artifacts. |
+| Enterprise Integrator | API, SDK, MCP, SSE, tenant/auth placeholders, and daemon integration contracts. |
+| Eval / Demo Owner | Reproducible cases, deterministic offline runs, metrics, and trace review. |
 
 See [user-scenarios.md](docs/product/user-scenarios.md) for the scenario
 contract.
@@ -148,6 +159,14 @@ ports. See [module-map.md](docs/reference/module-map.md).
 
 ## Where To Add New Code
 
+- New canonical code lives under `src/doge/`.
+- Gateway implementation lives under `src/doge/interfaces/gateway/`.
+- `/v1` compatibility shims live under `src/doge/interfaces/api/routers/v1/`
+  and must stay logic-free.
+- Legacy compatibility code lives under `src/macro`, `src/micro`,
+  `src/interface`, `doge.interfaces.api_legacy`, and old `/api/*` paths.
+- Demo/test-only paths, including in-memory runtime behavior and scripted
+  fixtures, must be labeled and must not become runtime defaults.
 - Add product-facing market work under `doge.products.market` or its legacy
   implementation path with a facade export.
 - Add research work under `doge.products.research`.
@@ -160,8 +179,8 @@ ports. See [module-map.md](docs/reference/module-map.md).
   under `doge.platform.governance`.
 
 Use [module-boundaries.md](docs/architecture/module-boundaries.md) and
-[module-ownership.yaml](docs/architecture/module-ownership.yaml) before adding
-new files.
+[file-structure-policy.md](docs/architecture/file-structure-policy.md) before
+adding new files.
 
 Useful local checks:
 

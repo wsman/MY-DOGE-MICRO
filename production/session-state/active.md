@@ -5,7 +5,7 @@
 
 ## Current Task
 
-MY-DOGE-MICRO Runtime Consolidation local remediation — **LOCAL CODE COMPLETE / EXTERNAL GATES OPEN**. Legacy API and gateway router implementations are physically split behind compatibility shims, doctor commands are implemented for `doge` and `doged`, legacy documents registration now uses persisted document services, implicit user-facing `portfolio-demo` defaults were removed, and the agent tool registry was split into `doge.application.tools`. Follow-up on 2026-06-30 removed the remaining scripted-model `portfolio-demo` tool call unless a run explicitly supplies `portfolio_id`. Current pushed HEAD `6fd598ac223c390d81ea121d550d52afd3b47c87` has exact-SHA CI evidence at `production/qa/evidence/ci/remote-ci-6fd598a.json`; local worktree changes after that SHA still need commit/CI if promoted. W3-live, S017-003, AUTH-prod, and S017-007 remain external/operator gated. No commit was requested.
+MY-DOGE-MICRO Sprint G architecture consolidation — **LOCAL IMPLEMENTATION COMPLETE / EXTERNAL GATES OPEN**. Legacy API and gateway router implementations are physically split behind compatibility shims, doctor commands are implemented for `doge` and `doged`, legacy documents registration now uses persisted document services, implicit user-facing `portfolio-demo` defaults were removed, and the agent tool registry was split into `doge.application.tools`. Sprint G adds shim/boundary guards, direct RuntimeKernel lifecycle integration, configurable scripted scenarios, eval/batch cleanup, worker metrics, streaming document upload, and refreshed boundary docs. Current pushed HEAD `9f304a82ae603f0d15210d7cbfc4e502a61fea43` has exact-SHA GitHub Actions CI run `28423757545` with result `failure`; latest remotely verified SHA remains `6fd598ac223c390d81ea121d550d52afd3b47c87` with evidence at `production/qa/evidence/ci/remote-ci-6fd598a.json`. W3-live, S017-003, AUTH-prod, and S017-007 remain external/operator gated. No commit was requested.
 
 ## Phase Status
 
@@ -18,6 +18,15 @@ MY-DOGE-MICRO Runtime Consolidation local remediation — **LOCAL CODE COMPLETE 
   - Tools: canonical tool-registry imports now come from `doge.application.tools`; `doge.application.agent.tools` remains a compatibility shim.
   - Governance: `docs/architecture/module-boundaries.md` and `docs/progress/runtime-maturity.yaml` record local structure convergence while preserving `production_ready: false`, `stable_declaration: forbidden`, and Level 3 experimental posture.
   - Closure gate posture: unchanged controlled-open posture with `S017-003`, `W3-live`, `AUTH-prod`, and `S017-007` still open.
+
+- **Sprint G (Architecture Consolidation)**: **LOCAL IMPLEMENTATION COMPLETE / EXTERNAL GATES OPEN**
+  - Plan: `C:\Users\WSMAN\.claude\plans\according-to-a-document-fluttering-raven.md`
+  - QA plan: `production/qa/qa-plan-sprint-g.md`
+  - Evidence: `production/qa/evidence/sprint-g-architecture-consolidation.md`
+  - Current pushed HEAD CI: `9f304a8` exact-SHA run `28423757545` completed with conclusion `failure`; do not claim remote CI success for current HEAD.
+  - Latest remotely verified SHA: `6fd598a` with CI run `28420166050`.
+  - Local additions: API v1 shim parity/boundary guards, direct runtime lifecycle integration tests, configurable scripted scenario fixtures, source eval runner, CLI batch command, worker metrics, streaming document upload, file structure policy, and Sprint G evidence.
+  - Maturity posture: `production_ready: false`, `stable_declaration: forbidden`, Level 3 `experimental`.
 
 - **Sprint F (Evaluation Quality Closure)**: **LOCAL ENGINEERING COMPLETE / EXTERNAL GATES OPEN**
   - Gate: deterministic local retrieval/citation baseline through persisted runtime
@@ -101,7 +110,11 @@ MY-DOGE-MICRO Runtime Consolidation local remediation — **LOCAL CODE COMPLETE 
 ## Latest Verification
 
 - Runtime consolidation CLI suite: **23 passed, 2 warnings**
-- Current pushed HEAD exact-SHA CI: **passed**, GitHub Actions run `28420166050`, evidence `production/qa/evidence/ci/remote-ci-6fd598a.json`
+- Current pushed HEAD exact-SHA CI: **failed**, GitHub Actions run `28423757545` for `9f304a82ae603f0d15210d7cbfc4e502a61fea43`; latest remotely verified SHA remains `6fd598a` with run `28420166050`
+- Sprint G final local verification: architecture guard suite **109 passed, 2 warnings**; eval suite **13 passed, 2 warnings**; CLI/worker/upload suite **34 passed, 2 warnings**
+- Sprint G CLI batch smoke: **10/10 cases passed** with `tests\eval\cases_expanded.json`
+- Sprint G focused suites: WP1/WP3/WP4/WP5 **21 passed**; WP6 **13 passed**; WP7 **20 passed**; WP2 **42 passed**
+- Sprint G validators: docs links **62 markdown files validated**; alpha maturity honesty **passed**; plan closure gate **acceptable open**, 4 open / 2 passed; strict plan closure gate **failed as expected** while external gates remain open; `git diff --check` **passed**
 - Scripted portfolio default focused suite: **34 passed, 67 warnings** (`test_scripted_agent_model.py`, `test_context_builder.py`, `test_runtime_kernel.py`)
 - 2026-06-30 Gate Pack: **prepared/validated**, `production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30/`; external-input preflight remains pending as intended
 - Runtime consolidation contract/API suite: **24 passed, 2 warnings**
