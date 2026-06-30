@@ -16,12 +16,27 @@
 
 - `/v1` compatibility shims live under `src/doge/interfaces/api/routers/v1/`.
   They must remain logic-free re-exports of `doge.interfaces.gateway.routers`.
+  The only named exception is `run_stream.py`, which may additionally re-export
+  `RunStreamHandler` for legacy/static checks; it must not implement stream
+  behavior.
 - Legacy local API compatibility lives under `doge.interfaces.api_legacy` and
   old `/api/*` paths.
 - `doge.application.agent.tools` is a compatibility shim for
   `doge.application.tools`.
 - `doge.application.composition` remains a compatibility composition facade;
   new process/root wiring belongs in `doge.bootstrap`.
+
+## Shim Sunset Rules
+
+ADR-0027 governs compatibility-surface sunset. Shim files may re-export,
+delegate, warn, and preserve documented compatibility symbols only. They may
+not add routing logic, persistence access, tool implementation, model routing,
+approval policy, worker behavior, or feature defaults.
+
+Removal of a shim requires parity tests, migration notes, and a rollback plan.
+Repository-wide grep counts are not valid acceptance criteria while public
+compatibility imports remain; import gates must distinguish production imports
+from intentional shim/parity tests.
 
 ## Legacy Local Surfaces
 

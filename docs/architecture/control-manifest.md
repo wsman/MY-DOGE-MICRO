@@ -1,6 +1,6 @@
 # Architecture Control Manifest
 
-> **Manifest Version**: 2026-06-29
+> **Manifest Version**: 2026-06-30
 > **Owner**: lead-programmer (architecture); enforced by `/architecture-review`, `/gate-check`, `/story-readiness`, `/story-done`, and CI.
 > **Scope**: MY-DOGE-MICRO — local-first quantitative investment decision-support platform. This manifest is the project's control-plane reference: the quality gates, the BLOCKING vs ADVISORY evidence rules, the ADR lifecycle, the registry-write policy, the forbidden patterns, and the exact verification commands.
 > **How to use**: stories embed this manifest version in their header (`Control Manifest: 2026-06-21`); `/story-done` checks for staleness against this file's header. When a rule changes, bump the version date and re-review open stories.
@@ -19,7 +19,7 @@ From ADR-0001 + `clean-architecture-migration.md §4.3`. This is the invariant e
 | `src/doge/infrastructure/*` | `core.ports` (to implement), `config`, drivers (`sqlite3`, `duckdb`, `opentdx`, `yfinance`, `openai`) | `core.services`, `interfaces` |
 | `src/doge/config/*` | stdlib only | any other layer |
 
-**Dependency direction**: interfaces → bootstrap/context public APIs → services → ports ← infrastructure. Never point inward. The four view-backed services depend on `IMarketViewRepository`; `src/doge/bootstrap/*` owns new wiring, while `doge.application.composition` is a compatibility shim for legacy imports (ADR-0010 / TR-041). New platform/runtime work must follow ADR-0024: process roots, persisted runtime state, `/v1` routes, and SDK clients.
+**Dependency direction**: interfaces → bootstrap/context public APIs → services → ports ← infrastructure. Never point inward. The four view-backed services depend on `IMarketViewRepository`; `src/doge/bootstrap/*` owns new wiring, while `doge.application.composition` is a compatibility shim for legacy imports (ADR-0010 / TR-041). New platform/runtime work must follow ADR-0024 and ADR-0027: process roots, persisted runtime state, `/v1` routes, SDK clients, and behavior-free compatibility shims.
 
 ### Required
 
@@ -62,6 +62,13 @@ From ADR-0021 + ADR-0022. These rules govern the transition from the old
 - Legacy `/api/*`, `doge.application.composition`, in-memory runtime, and PyQt
   are compatibility or demo surfaces under ADR-0024. Do not add a new platform
   capability only to those surfaces.
+- Compatibility shims are governed by ADR-0027. They may re-export, delegate,
+  warn, and preserve documented compatibility symbols only. They must not add
+  new routing logic, persistence access, tool implementations, model routing,
+  approval policy, worker behavior, or feature defaults.
+- `doge.interfaces.api.routers.v1.run_stream` is the only named v1 shim
+  exception; it may re-export `RunStreamHandler` for legacy/static checks but
+  must not implement stream behavior.
 - Legacy `/api/*` must emit deprecation metadata headers while it remains
   mounted.
 - TR identifiers remain flat and permanent. Never renumber TRs during bounded
@@ -192,6 +199,9 @@ Proposed  ──►  Accepted  ──►  Superseded
 | 0022 Directory Restructuring | **Accepted** | Facade-first target layout accepted by `docs/archive/audits/adr-0021-0022-review-2026-06-23.md`; broad physical moves remain story-gated. |
 | 0023 Kimi "For Coding" Endpoint Support | **Accepted** | Kimi Coding is the v1 chat-centered release baseline; Kimi `/files` remains unsupported on the coding endpoint and uses local parser/evidence fallback. |
 | 0024 Single-Stack Runtime Direction | **Accepted** | New platform work targets process roots, persisted runtime, `/v1`, and SDK clients; legacy `/api/*`, `doge.application.composition`, in-memory runtime, and PyQt are compatibility/demo surfaces. |
+| 0025 Runtime Streaming Semantics | **Accepted** | `list_events` is persisted replay, runtime `stream_events` is replay-only, and live SSE belongs to the v1 `RunStreamHandler` path. |
+| 0026 Artifact Citation Assembly | **Accepted** | Tool evidence flows into artifact citation assembly through `RunStepper`, `ArtifactCitationAssembler`, and structured claim/citation/relation data. |
+| 0027 Shim Sunset Policy | **Accepted** | Compatibility shims may re-export/delegate/warn only; removal requires parity tests, migration notes, and rollback planning. |
 
 ---
 
@@ -330,4 +340,4 @@ The migration is incremental (ADR-0001). Legacy entrypoints stay live until repl
 
 ---
 
-*Manifest Version 2026-06-29. Re-review and bump this date whenever a rule, gate, ADR status, or verification command changes.*
+*Manifest Version 2026-06-30. Re-review and bump this date whenever a rule, gate, ADR status, or verification command changes.*

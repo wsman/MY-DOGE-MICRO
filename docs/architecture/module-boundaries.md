@@ -19,6 +19,9 @@
   `doge.interfaces.api.routers.v1` is a compatibility shim only.
 - Tool registry implementations live under `doge.application.tools`;
   `doge.application.agent.tools` is a compatibility shim only.
+- ADR-0027 is the controlling sunset policy for compatibility shims. Shim files
+  may re-export, delegate, warn, and preserve documented compatibility symbols
+  only; they must not gain new behavior ownership.
 
 ## Scenario Map
 
@@ -152,3 +155,18 @@ Sprint G reduces the public product language to four modules:
 | `doge.application.composition` | Compatibility shim | New internal platform work should use process roots/bootstrap. | After import parity and migration notes. |
 | In-memory runtime | Demo/test only | Production-facing flows use persisted runtime. | After deterministic test alternatives exist. |
 | PyQt dashboard | Legacy local surface | Web/SDK/v1 are preferred platform UX paths. | Separate support/removal story. |
+
+### Known Boundary Tensions
+
+- `doge.interfaces.api.routers.v1.run_stream` intentionally re-exports
+  `RunStreamHandler` for legacy/static checks, but canonical live SSE behavior
+  remains in `doge.interfaces.gateway.routers.run_stream` plus the handler
+  layer. No stream behavior may be implemented in the shim.
+- `doge.application.composition` remains a public facade for brownfield callers.
+  New internal platform work should use `doge.bootstrap.runtime`,
+  `doge.bootstrap.gateway`, `doge.bootstrap.workspace`, or
+  `doge.bootstrap.processes`.
+- `doge.application.agent.tools` remains an import-compatibility surface while
+  the canonical registry lives in `doge.application.tools`.
+- In-memory runtime is demo/test-only. Production-facing runtime evidence must
+  use persisted repositories, durable queue, worker, and gateway paths.
