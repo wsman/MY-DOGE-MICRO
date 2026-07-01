@@ -52,8 +52,8 @@ single_stack_direction:
       status: canonical
       route_family: /v1/*
       canonical_module: doge.interfaces.gateway.routers
-      compatibility_shim: doge.interfaces.api.routers.v1
-      notes: "API URLs did not change; implementation files moved out of the legacy API package."
+      compatibility_shim: removed
+      notes: "API URLs did not change; the legacy doge.interfaces.api.routers.v1 shim package was removed in Sprint M after consumers migrated to gateway.routers."
     tool_registry:
       status: canonical
       canonical_module: doge.application.tools

@@ -15,7 +15,7 @@ from doge.infrastructure.database.enterprise_governance import SQLiteEnterpriseG
 from doge.infrastructure.database.portfolio_repository import SQLitePortfolioRepository
 from doge.interfaces.api import deps
 from doge.interfaces.api.middleware.tenant_context import TenantContextMiddleware
-from doge.interfaces.api.routers.v1 import audit, documents, enterprise, portfolios, runs, sessions, tools
+from doge.interfaces.gateway.routers import audit, documents, enterprise, portfolios, runs, sessions, tools
 
 
 class _Provider:

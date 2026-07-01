@@ -45,38 +45,10 @@ def _grep_needles(path: Path, needles) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
-# scan.py — interface-layer forbidden patterns (decision #1)
+# src/api/routers/scan.py was a redirect shim removed in Sprint M. The
+# interface-layer DB-symbol / _PROJECT_ROOT prohibition it enforced is now
+# covered by test_api_layer_gate over the canonical api_legacy/gateway routers.
 # ---------------------------------------------------------------------------
-SCAN_PY = _SRC / "api" / "routers" / "scan.py"
-
-
-class TestScanPyForbiddenPatterns:
-    def test_no_init_db_custom_in_scan_py(self):
-        # Arrange / Act
-        hits = _grep_needles(SCAN_PY, ["init_db_custom"])
-        # Assert
-        assert hits == [], f"init_db_custom leaked into scan.py: {hits}"
-
-    def test_no_sqlite3_import_or_connect_in_scan_py(self):
-        hits = _grep_needles(SCAN_PY, ["import sqlite3", "sqlite3.connect"])
-        assert hits == [], f"raw sqlite3 leaked into scan.py: {hits}"
-
-    def test_no_connect_duckdb_in_scan_py(self):
-        hits = _grep_needles(SCAN_PY, ["connect_duckdb"])
-        assert hits == [], f"connect_duckdb leaked into scan.py: {hits}"
-
-    def test_no_interface_layer_project_root_in_scan_py(self):
-        # The interface layer must not recompute _PROJECT_ROOT.
-        hits = _grep_needles(SCAN_PY, ["_PROJECT_ROOT"])
-        assert hits == [], f"_PROJECT_ROOT leaked into scan.py: {hits}"
-
-    def test_scan_py_grep_acceptance_gate_zero_hits(self):
-        """The exact acceptance grep from orchestrator decision #1."""
-        hits = _grep_needles(
-            SCAN_PY,
-            ["import sqlite3", "sqlite3.connect", "init_db_custom", "connect_duckdb"],
-        )
-        assert hits == [], f"scan.py acceptance gate FAILED: {hits}"
 
 
 # ---------------------------------------------------------------------------
@@ -176,22 +148,12 @@ class TestDogeSysPathGate:
 
 
 # ---------------------------------------------------------------------------
-# src/api/ routers + main.py — interface-layer forbidden patterns (S003-003)
+# src/api/ redirect shim was removed in Sprint M; only the canonical deps.py
+# sanctioned-infra-seam check remains below.
 # ---------------------------------------------------------------------------
-API_DIR = _SRC / "api"
 
 
 class TestApiRouterForbiddenPatterns:
-    """After S003-003 no src/api/ file imports sqlite3 or calls connect_duckdb."""
-
-    def test_no_sqlite3_or_connect_duckdb_in_api_layer(self):
-        """Broad §6 gate: src/api/**/*.py must be free of forbidden DB symbols."""
-        hits = _grep_dir(
-            [API_DIR],
-            ["import sqlite3", "sqlite3.connect", "connect_duckdb"],
-        )
-        assert hits == [], f"forbidden DB pattern in src/api: {hits}"
-
     def test_api_deps_py_is_sanctioned_infra_site(self):
         """deps.py is allowed to import infrastructure via bootstrap containers.
 
@@ -207,11 +169,6 @@ class TestApiRouterForbiddenPatterns:
 @pytest.mark.parametrize(
     "rel",
     [
-        "api/routers/scan.py",
-        "api/routers/data.py",
-        "api/routers/macro.py",
-        "api/routers/analysis.py",
-        "api/main.py",
         "doge/interfaces/api/deps.py",
         "micro/momentum_scanner.py",
         "micro/tdx_downloader.py",

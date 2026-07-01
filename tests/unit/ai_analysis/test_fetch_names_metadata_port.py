@@ -145,21 +145,6 @@ class TestPopulateStockNamesUseCase:
         assert resp.saved == 1
 
 
-class TestFetchNamesShimStillWorks:
-    """Backward-compat smoke for the ai_analysis.fetch_names shim."""
-
-    def test_shim_fetch_batch_yfinance_delegates(self, empty_name_repository, monkeypatch):
-        from ai_analysis import fetch_names
-
-        fake_source = FakeMetadataSource({"600000.SH": {"name": "China Test", "sector": "Financials"}})
-        monkeypatch.setattr(
-            fetch_names, "build_populate_stock_names_use_case",
-            lambda metadata_source=None: PopulateStockNamesUseCase(
-                FakeStockRepository(["600000.SH"]), empty_name_repository, fake_source
-            ),
-        )
-
-        fetch_names.fetch_batch_yfinance(["600000.SH"], market="cn")
-
-        assert fake_source.calls == [("600000.SH", "cn")]
-        assert _load_saved(empty_name_repository) == [("600000.SH", "China Test", "Financials")]
+# TestFetchNamesShimStillWorks retired in Sprint M: it smoked the ai_analysis.fetch_names
+# compat shim, which was removed with the src/ai_analysis/ root. PopulateStockNamesUseCase
+# is covered by its own canonical tests.

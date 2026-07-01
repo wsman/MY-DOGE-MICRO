@@ -130,7 +130,7 @@ class TestMarketScannerWithoutOpentdx:
 class TestScanRouterWithoutOpentdx:
     def test_router_imports_without_crashing(self, _no_opentdx):
         # Act
-        from api.routers import scan
+        from doge.interfaces.api.routers import scan
 
         # Assert
         assert hasattr(scan, "router")

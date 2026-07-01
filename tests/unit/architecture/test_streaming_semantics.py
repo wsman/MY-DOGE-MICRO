@@ -13,15 +13,14 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
-def test_v1_run_stream_uses_run_stream_handler() -> None:
+def test_run_stream_uses_run_stream_handler() -> None:
     source = (
         PROJECT_ROOT
         / "src"
         / "doge"
         / "interfaces"
-        / "api"
+        / "gateway"
         / "routers"
-        / "v1"
         / "run_stream.py"
     ).read_text(encoding="utf-8")
 
@@ -30,22 +29,21 @@ def test_v1_run_stream_uses_run_stream_handler() -> None:
     assert "RunStreamHandler(runtime=runtime, subscriber=subscriber)" in source
 
 
-def test_v1_run_stream_does_not_call_runtime_stream_events() -> None:
+def test_run_stream_does_not_call_runtime_stream_events() -> None:
     source = (
         PROJECT_ROOT
         / "src"
         / "doge"
         / "interfaces"
-        / "api"
+        / "gateway"
         / "routers"
-        / "v1"
         / "run_stream.py"
     ).read_text(encoding="utf-8")
 
     assert "runtime.stream_events" not in source
 
 
-def test_v1_run_stream_uses_list_events_for_replay() -> None:
+def test_run_stream_uses_list_events_for_replay() -> None:
     handler_source = (
         PROJECT_ROOT
         / "src"
@@ -105,16 +103,15 @@ def test_persisted_runtime_stream_events_is_replay_only() -> None:
     assert "poll" not in method_body
 
 
-def test_v1_run_stream_module_docstring_mentions_adr0025() -> None:
+def test_run_stream_module_docstring_mentions_adr0025() -> None:
     """The v1 run_stream module docstring should reference ADR-0025 semantics."""
     source = (
         PROJECT_ROOT
         / "src"
         / "doge"
         / "interfaces"
-        / "api"
+        / "gateway"
         / "routers"
-        / "v1"
         / "run_stream.py"
     ).read_text(encoding="utf-8")
 

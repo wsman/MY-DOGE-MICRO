@@ -101,11 +101,6 @@ _GATEWAY_FACTORIES = [
 ]
 
 _APPLICATION_COMPOSITION_IMPORT_ALLOWLIST = {
-    "src/ai_analysis/anomaly_detection.py",
-    "src/ai_analysis/catalog_generator.py",
-    "src/ai_analysis/fetch_names.py",
-    "src/ai_analysis/market_overview.py",
-    "src/ai_analysis/stock_notes.py",
     "src/doge/core/services/composition.py",
     "src/micro/market_scanner.py",
 }
@@ -219,7 +214,6 @@ def test_composition_leaf_factories_are_gateway_container_shims() -> None:
 
 def test_migrated_entrypoints_use_bootstrap_not_legacy_composition() -> None:
     paths = [
-        "src/doge/interfaces/api/routers/v1/tools.py",
         "src/doge/interfaces/api/routers/scan.py",
         "src/doge/interfaces/cli/commands/anomaly.py",
         "src/doge/interfaces/cli/commands/breadth.py",

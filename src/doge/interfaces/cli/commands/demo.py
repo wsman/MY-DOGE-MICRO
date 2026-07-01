@@ -53,11 +53,11 @@ def cmd_demo(args) -> None:
     if not has_any:
         print(
             "\nNo demo data found. Make sure the bundled data files exist; see "
-            "docs/GETTING_STARTED.md for data population instructions."
+            "docs/guides/getting-started.md for data population instructions."
         )
         sys.exit(EXIT_NO_DATA)
 
-    print("\nDemo complete. See docs/GETTING_STARTED.md for the full walkthrough.")
+    print("\nDemo complete. See docs/guides/getting-started.md for the full walkthrough.")
     print(DEMO_MACRO_HINT)
 
 

@@ -12,7 +12,7 @@ from doge.core.ports.enterprise_auth import AuthenticatedPrincipal
 from doge.infrastructure.database.enterprise_governance import SQLiteEnterpriseGovernanceRepository
 from doge.interfaces.api import deps
 from doge.interfaces.api.middleware.tenant_context import TenantContextMiddleware
-from doge.interfaces.api.routers.v1 import runs
+from doge.interfaces.gateway.routers import runs
 
 
 def test_run_summary_api_is_feature_flagged():

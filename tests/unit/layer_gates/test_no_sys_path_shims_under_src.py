@@ -95,20 +95,10 @@ class TestNoSysPathShimsUnderSrc:
         [
             "micro/market_scanner.py",
             "micro/industry_analyzer.py",
-            "ai_analysis/anomaly_detection.py",
-            "ai_analysis/catalog_generator.py",
-            "ai_analysis/fetch_names.py",
-            "ai_analysis/market_overview.py",
-            "ai_analysis/stock_notes.py",
             "macro/cli.py",
             "interface/analysis_gui.py",
             "interface/dashboard.py",
             "interface/scanner_gui.py",
-            "api/main.py",
-            "api/routers/data.py",
-            "api/routers/macro.py",
-            "api/routers/analysis.py",
-            "api/routers/config.py",
         ],
     )
     def test_remediated_module_still_exists(self, rel):

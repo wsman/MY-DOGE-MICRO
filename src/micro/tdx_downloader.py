@@ -569,10 +569,8 @@ def get_known_tickers_from_csv(market="cn"):
 
 def _refresh_views():
     try:
-        from src.ai_analysis import connect_duckdb, run_views_sql
-        con = connect_duckdb()
-        run_views_sql(con)
-        con.close()
+        from doge.infrastructure.database.duckdb import DuckDBConnection
+        DuckDBConnection().refresh_views()
         print("DuckDB views refreshed")
     except Exception:
         pass

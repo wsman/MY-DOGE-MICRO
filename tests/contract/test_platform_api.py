@@ -11,7 +11,7 @@ from doge.infrastructure.database.enterprise_governance import SQLiteEnterpriseG
 from doge.infrastructure.database.platform_repository import SQLitePlatformRepository
 from doge.interfaces.api import deps
 from doge.interfaces.api.middleware.tenant_context import TenantContextMiddleware
-from doge.interfaces.api.routers.v1 import platform
+from doge.interfaces.gateway.routers import platform
 
 
 def test_platform_objects_api_is_feature_flagged(tmp_path):

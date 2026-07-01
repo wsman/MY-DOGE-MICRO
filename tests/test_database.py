@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 import pytest
-from ai_analysis import normalize_ticker
+from doge.core.utils import normalize_ticker
 
 
 class TestNormalizeTicker:

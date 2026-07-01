@@ -11,7 +11,6 @@ SHIM_FILES = [
     PROJECT_ROOT / "src" / "doge" / "application" / "agent" / "tools.py",
     PROJECT_ROOT / "src" / "doge" / "interfaces" / "api" / "routers" / "__init__.py",
 ]
-V1_SHIM_ROOT = PROJECT_ROOT / "src" / "doge" / "interfaces" / "api" / "routers" / "v1"
 
 SQL_MARKERS = (
     "SELECT ",
@@ -131,7 +130,7 @@ def _shim_trees() -> list[tuple[Path, ast.Module]]:
 
 
 def _shim_files() -> list[Path]:
-    return [*SHIM_FILES, *sorted(V1_SHIM_ROOT.glob("*.py"))]
+    return list(SHIM_FILES)
 
 
 def _import_targets(tree: ast.AST) -> list[str]:
