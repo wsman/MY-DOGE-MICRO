@@ -1,4 +1,13 @@
-"""Compatibility allowlist for ``doge.application.composition``."""
+"""Compatibility allowlist for ``doge.application.composition``.
+
+Freezes the public callable surface of the composition compatibility facade.
+This is a **ratchet**: ``doge.application.composition`` is a legacy wiring shim
+(canonical wiring lives in ``doge.bootstrap``), so its public callable set must
+not grow without (a) extending ``_COMPOSITION_ALLOWLIST`` here and (b) updating
+the matching ``N public callables`` count in
+``docs/architecture/compatibility-surfaces.md``. Removals are always allowed;
+additions require an ADR or compatibility-surface registry update.
+"""
 
 from __future__ import annotations
 

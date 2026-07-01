@@ -19,9 +19,10 @@ docs.
 | Topic | Document |
 |---|---|
 | Product overview | [product/overview.md](product/overview.md) |
-| First run and local setup | [GETTING_STARTED.md](GETTING_STARTED.md) |
+| Product modules | [product/modules.md](product/modules.md) |
+| First run and local setup | [guides/getting-started.md](guides/getting-started.md) |
 | Local deployment notes | [operations/local-deployment.md](operations/local-deployment.md) |
-| Operations runbook | [operations-runbook.md](operations-runbook.md) |
+| Operations runbook | [operations/runbook.md](operations/runbook.md) |
 | Security and data boundaries | [security-and-data-boundaries.md](security-and-data-boundaries.md) |
 | Current human status | [progress/current-status.md](progress/current-status.md) |
 | Current generated status | [quality/status.md](quality/status.md) |
@@ -31,25 +32,29 @@ docs.
 
 | Topic | Canonical content home |
 |---|---|
-| HTTP API | [API.md](API.md) |
+| HTTP API quick guide | [API.md](API.md) |
+| HTTP API reference (route table) | [reference/http-api.md](reference/http-api.md) |
+| HTTP API contracts (SSE/CORS/error) | [reference/http-api-contracts.md](reference/http-api-contracts.md) |
 | CLI | [CLI.md](CLI.md) |
 | MCP server/tools | [MCP_SERVER.md](MCP_SERVER.md) |
 | Configuration | [reference/configuration.md](reference/configuration.md) |
 | Environment variables | [reference/env-vars.md](reference/env-vars.md) |
-| HTTP shortcut | [reference/http-api.md](reference/http-api.md) |
 | Tool shortcut | [reference/tools.md](reference/tools.md) |
 | Python SDK shortcut | [reference/sdk-python.md](reference/sdk-python.md) |
 | TypeScript SDK shortcut | [reference/sdk-typescript.md](reference/sdk-typescript.md) |
 | Module map | [reference/module-map.md](reference/module-map.md) |
 
-Lowercase reference entries under `docs/reference/` remain long-lived redirect
-paths for existing readers, but the uppercase files above are the content homes
-that tests and historical docs parse directly.
+The HTTP API quick guide ([API.md](API.md)) is the reader entry point; the full
+route table and per-route reference live in
+[reference/http-api.md](reference/http-api.md), and transport/SSE/CORS/error/
+concurrency/OpenAPI contracts live in
+[reference/http-api-contracts.md](reference/http-api-contracts.md). The
+remaining lowercase reference entries are redirect shortcuts.
 
 Reference shortcuts may explain where to go next, but they must not copy the
 HTTP route table, CLI command table, MCP tool catalog, SDK API surface, or
-environment-variable table. Put contract changes in the content home first,
-then update tests and shortcuts as pointers.
+environment-variable table. The HTTP route table lives in
+reference/http-api.md; put contract changes there first, then update tests.
 
 ## Architecture And Governance
 
@@ -102,6 +107,7 @@ changes `production_ready: false` and `stable_declaration: forbidden`.
 
 ## CDD Framework Docs
 
-`docs/QUICK-START.md`, `docs/START-HERE.md`, and `docs/USER-MANUAL.md`
-describe the CDD governance and agent workflow. Use them when operating the
-agent studio, not when starting the MY-DOGE-MICRO product.
+`docs/governance/cdd/QUICK-START.md`, `docs/governance/cdd/START-HERE.md`, and
+`docs/governance/cdd/USER-MANUAL.md` describe the CDD governance and agent
+workflow. Use them when operating the agent studio, not when starting the
+MY-DOGE-MICRO product.

@@ -46,3 +46,15 @@ testpaths = ["tests"]
 asyncio_mode = "strict"
 asyncio_default_fixture_loop_scope = "function"
 pythonpath = ["src", "packages/doge-sdk-python"]
+# Product-module markers (L-3). Tag tests with the product module they primarily
+# exercise so work can be selected/owned per module: `pytest -m module_market`.
+# Tagging is incremental — most tests are untagged today; expand per module.
+markers = [
+    "module_market: tests primarily exercising doge.products.market",
+    "module_portfolio: tests primarily exercising doge.products.portfolio",
+    "module_quant: tests primarily exercising doge.products.quant",
+    "module_research: tests primarily exercising doge.products.research",
+    "module_gateway: tests primarily exercising the /v1 daemon gateway (doge.interfaces.gateway)",
+    "module_eval: tests primarily exercising the quality subsystem (doge.eval)",
+    "module_platform: tests exercising cross-cutting platform/runtime/governance (doge.platform.*)",
+]

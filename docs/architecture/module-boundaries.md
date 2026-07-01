@@ -25,14 +25,26 @@
 
 ## Scenario Map
 
-Sprint G reduces the public product language to four modules:
+Sprint G reduces the public product language to the four `doge.products.*`
+packages. Gateway and Eval are **not** product modules — Gateway is the Level-2
+daemon runtime layer (`doge.interfaces.gateway`) and Eval is the quality
+subsystem (`doge.eval`); see [index.md](../index.md) ("delivery channels and
+adapters are not counted modules").
 
-| Product Module | Owns | Does Not Own |
-|----------------|------|--------------|
-| MY-DOGE Quant Core | Market data, quant views, scanner, notes, reports, MCP tool contracts. | Agent session orchestration, document parsing, SDK publishing, enterprise auth. |
-| MY-DOGE Research Agent | Session, run, document/evidence context, tool loop, approval, artifacts. | Market-data maintenance, Web UI state, concrete model SDKs, production auth. |
-| MY-DOGE Gateway | `/v1/*`, SSE, background worker, idempotency, SDK/Web/remote CLI contracts. | Quant algorithms, Web demo internals, PyQt, specific provider logic. |
-| MY-DOGE Eval | Gold set, replay, metrics, trace, deterministic reports. | Production request handling, document editing UI, live provider certification. |
+| Product Module | Package | Owns | Does Not Own |
+|----------------|---------|------|--------------|
+| Market | `doge.products.market` | Market data, scans, breadth, RSRS, anomalies, ticker metadata, market reports. | Research/portfolio/quant ownership, runtime orchestration, UI state. |
+| Portfolio | `doge.products.portfolio` | Holdings, portfolio import, exposure, concentration, risk, scenario analysis. | Market-data maintenance, research workflows, concrete model SDKs. |
+| Quant | `doge.products.quant` | Analytical views, read-only SQL execution, bounded Python analysis, factors/backtest/data-job extensions. | Product workflow orchestration, ungoverned code execution. |
+| Research | `doge.products.research` | Macro/company/industry/earnings research, memos, notes, research tool workflows. | Market-data maintenance, Web UI state, production auth. |
+
+The eight ADR-0021 bounded contexts (Market Intelligence, Research, Portfolio &
+Risk, Quant & Data Lab, Workspace & Workflow, Agent Runtime, Knowledge &
+Evidence, Governance & Evaluation) remain the internal architecture-governance
+vocabulary — see Context Contracts below. The four product modules above are
+the code-package / external-naming view; runtime, gateway, and eval concerns
+map to the Agent Runtime, Knowledge & Evidence, and Governance & Evaluation
+contexts.
 
 | Scenario | User Goal | Contexts Composed | Primary Entrypoints |
 |----------|-----------|-------------------|---------------------|

@@ -1,0 +1,37 @@
+name: Product Issue
+description: Report a bug, request a feature, or track work for a MY-DOGE-MICRO product module.
+labels: []
+body:
+  - type: dropdown
+    id: product_module
+    attributes:
+      label: Product module
+      description: |
+        Which product module does this issue primarily concern? The four
+        `doge.products.*` packages are the product modules; Gateway and Eval are
+        the Level-2 daemon runtime layer and the quality subsystem respectively
+        (not product modules); Platform/Governance is cross-cutting.
+      options:
+        - Market (doge.products.market)
+        - Portfolio (doge.products.portfolio)
+        - Quant (doge.products.quant)
+        - Research (doge.products.research)
+        - Gateway (doge.interfaces.gateway) — Level-2 daemon runtime layer
+        - Eval (doge.eval) — quality subsystem
+        - Platform/Governance (doge.platform.*) — cross-cutting
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What is the issue or requested work?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / context
+      description: Commands, inputs, or doc paths that expose the issue.
+    validations:
+      required: false
