@@ -21,6 +21,30 @@ MICRO_DIR = Path(__file__).resolve().parents[3] / "src"
 if str(MICRO_DIR) not in sys.path:
     sys.path.insert(0, str(MICRO_DIR))
 
+_MICRO_CHILDREN = (
+    "database",
+    "industry_analyzer",
+    "market_scanner",
+    "momentum_scanner",
+    "tdx_downloader",
+    "tdx_loader",
+)
+
+
+def _sync_micro_package_children() -> None:
+    """Keep ``micro.<child>`` attributes aligned with ``sys.modules``."""
+    micro_pkg = sys.modules.get("micro")
+    if micro_pkg is None:
+        return
+    for child in _MICRO_CHILDREN:
+        full_name = f"micro.{child}"
+        module = sys.modules.get(full_name)
+        if module is None:
+            if hasattr(micro_pkg, child):
+                delattr(micro_pkg, child)
+        else:
+            setattr(micro_pkg, child, module)
+
 
 @pytest.fixture
 def _no_opentdx(monkeypatch):
@@ -31,6 +55,7 @@ def _no_opentdx(monkeypatch):
         if m == "opentdx" or m.startswith("opentdx.") or m.startswith("micro.")
     ]
     saved = {m: sys.modules.pop(m) for m in to_remove}
+    _sync_micro_package_children()
 
     # Ensure any future import of opentdx fails deterministically.
     original_import = __builtins__["__import__"] if isinstance(__builtins__, dict) else __builtins__.__import__
@@ -51,6 +76,7 @@ def _no_opentdx(monkeypatch):
         if name == "opentdx" or name.startswith("opentdx.") or name.startswith("micro."):
             if name not in saved:
                 sys.modules.pop(name, None)
+    _sync_micro_package_children()
 
 
 class TestTdxDownloaderWithoutOpentdx:
