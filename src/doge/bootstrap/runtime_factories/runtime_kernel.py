@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from doge.application.agent.approval_coordinator import ApprovalCoordinator
@@ -20,15 +21,25 @@ from doge.application.services.claim_validation_service import ClaimValidationSe
 from doge.application.services.citation_service import CitationService
 from doge.config import get_settings
 from doge.infrastructure.agent.backends import KimiAgentSdkBackend
-from doge.infrastructure.agent.inmemory_runtime import InMemoryResearchAgentRuntime
 from doge.infrastructure.agent.persisted_runtime import PersistedResearchAgentRuntime
-from doge.infrastructure.agent.scripted_model import ScriptedAgentModel
 from doge.platform.runtime.services import (
     ArtifactEvaluationService,
     ModelExecutionService,
     ToolExecutionService,
 )
 from doge.bootstrap.runtime_factories import repositories
+
+
+def _demo_fallback_allowed() -> bool:
+    """Whether the demo/test scripted-model fallback may be used.
+
+    Allowed only in ``local_demo`` auth mode (the default loopback posture) or
+    when explicitly opted in via ``DOGE_ALLOW_DEMO_RUNTIME=1``. Enterprise/remote
+    production paths fail closed instead of silently using a scripted model.
+    """
+    if os.environ.get("DOGE_ALLOW_DEMO_RUNTIME", "").strip() == "1":
+        return True
+    return get_settings().auth.mode == "local_demo"
 
 
 def build_model_router(document_repository=None) -> ModelRouter:
@@ -60,11 +71,19 @@ def build_agent_runtime_kernel(
     gateway = gateway_container_fn()
     secret_provider = gateway.build_secret_provider()
     if model is None:
-        model = (
-            gateway.build_kimi_agent_model(secret_provider)
-            if secret_provider.get_secret("kimi.api_key")
-            else ScriptedAgentModel()
-        )
+        if secret_provider.get_secret("kimi.api_key"):
+            model = gateway.build_kimi_agent_model(secret_provider)
+        elif _demo_fallback_allowed():
+            from doge.infrastructure.agent.scripted_model import ScriptedAgentModel
+
+            model = ScriptedAgentModel()
+        else:
+            raise RuntimeError(
+                "no live model adapter configured and demo fallback is disabled "
+                "(auth.mode is not local_demo). For local demo/test set "
+                "DOGE_AUTH_MODE=local_demo or DOGE_ALLOW_DEMO_RUNTIME=1; otherwise "
+                "configure a live model adapter (kimi.api_key)."
+            )
     if tool_registry is None:
         tool_registry = default_tool_registry_fn()
     model_router = build_model_router(document_repository=repos["documents"])
@@ -130,6 +149,16 @@ def build_agent_runtime_kernel(
 
 
 def build_research_agent_runtime(gateway_container_fn, default_tool_registry_fn, *, model: Any = None, tool_registry: Any = None):
+    if not _demo_fallback_allowed():
+        raise RuntimeError(
+            "InMemoryResearchAgentRuntime is a demo/test-only runtime; the current "
+            "auth.mode is not local_demo. Use the persisted runtime with a live model "
+            "adapter for non-demo paths, or set DOGE_AUTH_MODE=local_demo / "
+            "DOGE_ALLOW_DEMO_RUNTIME=1 for local demo/test."
+        )
+    from doge.infrastructure.agent.inmemory_runtime import InMemoryResearchAgentRuntime
+    from doge.infrastructure.agent.scripted_model import ScriptedAgentModel
+
     gateway = gateway_container_fn()
     secret_provider = gateway.build_secret_provider()
     if model is None:

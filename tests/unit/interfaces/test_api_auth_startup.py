@@ -43,6 +43,46 @@ def test_api_auth_provider_uses_configured_secret_provider_factory():
     assert provider.authenticate_bearer("process-token").tenant_id == "tenant-secret"
 
 
+def test_resolve_bind_host_defaults_to_loopback(monkeypatch):
+    monkeypatch.delenv("DOGE_BIND_HOST", raising=False)
+    settings = Settings(api=APIConfig(bind_host="127.0.0.1"))
+
+    assert api_main._resolve_bind_host(settings=settings, auth_provider=None) == "127.0.0.1"
+
+
+@pytest.mark.parametrize("host", sorted(api_main._LOOPBACK_HOSTS))
+def test_resolve_bind_host_accepts_loopback_env_values(monkeypatch, host):
+    monkeypatch.setenv("DOGE_BIND_HOST", host)
+    settings = Settings(api=APIConfig(bind_host="127.0.0.1"))
+
+    assert api_main._resolve_bind_host(settings=settings, auth_provider=None) == host
+
+
+@pytest.mark.parametrize("host", ["0.0.0.0", "example.com"])
+def test_resolve_bind_host_rejects_non_loopback_without_promotion(monkeypatch, host):
+    monkeypatch.setenv("DOGE_BIND_HOST", host)
+    settings = Settings(auth=AuthConfig(mode="local_demo"), api=APIConfig(bind_host="127.0.0.1"))
+
+    with pytest.raises(AssertionError, match="ADR-0007 loopback guarantee"):
+        api_main._resolve_bind_host(settings=settings, auth_provider=None)
+
+
+def test_resolve_bind_host_allows_enterprise_promotion_gate(monkeypatch):
+    monkeypatch.setenv("DOGE_BIND_HOST", "0.0.0.0")
+    settings = Settings(
+        api=APIConfig(
+            bind_host="127.0.0.1",
+            allow_remote_bind=True,
+            cors_allow_origins=("https://research.example.internal",),
+            tls_termination_required=True,
+        ),
+        auth=AuthConfig(mode="enterprise", static_bearer_token="secret-token"),
+    )
+    provider = build_enterprise_auth_provider(settings.auth)
+
+    assert api_main._resolve_bind_host(settings=settings, auth_provider=provider) == "0.0.0.0"
+
+
 def test_remote_bind_rejects_local_demo_even_when_requested():
     settings = Settings(
         api=APIConfig(
