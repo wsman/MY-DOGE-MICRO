@@ -128,6 +128,13 @@ def test_docs_validation_scripts_pass():
     commands = [
         [sys.executable, "scripts/validate_no_stale_counts.py"],
         [sys.executable, "scripts/validate_docs_links.py"],
+        [sys.executable, "scripts/validate_docs_authority.py"],
+        [sys.executable, "scripts/validate_adr_index_completeness.py"],
+        [sys.executable, "scripts/validate_docs_guides_structure.py"],
+        [sys.executable, "scripts/validate_docs_length.py"],
+        [sys.executable, "scripts/validate_docs_maturity_claims.py"],
+        [sys.executable, "scripts/validate_compatibility_surface_sunset.py"],
+        [sys.executable, "scripts/validate_module_header.py"],
         [sys.executable, "scripts/generate_docs_status.py", "--check"],
     ]
     for command in commands:
