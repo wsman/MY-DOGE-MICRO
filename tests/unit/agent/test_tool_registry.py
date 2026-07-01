@@ -1,7 +1,7 @@
 from doge.application.agent.tool_service import ToolApplicationService
 from doge.application.agent.tools import ToolRegistry, ToolResult, build_default_tool_registry
 from doge.application.capabilities.compliance_provider import ComplianceToolProvider
-from doge.application.capabilities.executors import SubprocessCodeExecutor
+from doge.infrastructure.code_execution.python import SubprocessCodeExecutor
 from doge.application.capabilities.fundamental_provider import FundamentalToolProvider
 from doge.application.capabilities.market_provider import MarketToolProvider
 from doge.application.capabilities.portfolio_provider import PortfolioToolProvider

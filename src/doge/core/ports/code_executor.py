@@ -23,3 +23,14 @@ class ICodeExecutor(ABC):
     @abstractmethod
     def execute(self, code: str, timeout: float) -> ExecutionResult:
         """Execute code and return a bounded, non-throwing result."""
+
+
+class DisabledCodeExecutor(ICodeExecutor):
+    """Fail-closed executor used when Python analysis is not enabled."""
+
+    available = False
+    executor_name = "disabled"
+    disabled_reason = "Python analysis execution is disabled by configuration."
+
+    def execute(self, code: str, timeout: float) -> ExecutionResult:
+        return ExecutionResult(ok=False, error=self.disabled_reason)

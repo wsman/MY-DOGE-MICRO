@@ -4,11 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from doge.application.capabilities.executors import DisabledCodeExecutor
 from doge.application.capabilities.registry import ToolExecutionProviderRegistry
 from doge.application.capabilities.tool_utils import ServiceFactory
 from doge.core.domain.tool_descriptor import ToolDescriptor
-from doge.core.ports.code_executor import ICodeExecutor
+from doge.core.ports.code_executor import DisabledCodeExecutor, ICodeExecutor
 from doge.platform.governance.tools import ComplianceToolProvider, PublishingToolProvider
 from doge.products.market.tools import MarketToolProvider
 from doge.products.portfolio.tools import PortfolioToolProvider

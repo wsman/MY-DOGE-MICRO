@@ -34,7 +34,7 @@ from doge.core.ports.agent_runtime import IResearchAgentRuntime
 from doge.core.ports.cache import ITickerNameCache
 from doge.core.ports.capability_provider import ICapabilityProvider
 from doge.core.ports.claim_repository import IClaimRepository
-from doge.core.ports.code_executor import ExecutionResult, ICodeExecutor
+from doge.core.ports.code_executor import DisabledCodeExecutor, ExecutionResult, ICodeExecutor
 from doge.core.ports.data_source import IMarketDataSource
 from doge.core.ports.event_publisher import IEventPublisher
 from doge.core.ports.event_subscriber import IEventSubscriber
@@ -135,6 +135,7 @@ __all__ = [
     "IVectorStore",
     "VectorRecord",
     "VectorSearchResult",
+    "DisabledCodeExecutor",
     "ExecutionResult",
     "ModelExecutionResult",
     "RoutingDecision",

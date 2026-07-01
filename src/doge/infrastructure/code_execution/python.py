@@ -5,18 +5,7 @@ from __future__ import annotations
 import subprocess
 import sys
 
-from doge.core.ports.code_executor import ExecutionResult, ICodeExecutor
-
-
-class DisabledCodeExecutor(ICodeExecutor):
-    """Fail-closed executor used when Python analysis is not enabled."""
-
-    available = False
-    executor_name = "disabled"
-    disabled_reason = "Python analysis execution is disabled by configuration."
-
-    def execute(self, code: str, timeout: float) -> ExecutionResult:
-        return ExecutionResult(ok=False, error=self.disabled_reason)
+from doge.core.ports.code_executor import DisabledCodeExecutor, ExecutionResult, ICodeExecutor
 
 
 class SubprocessCodeExecutor(ICodeExecutor):

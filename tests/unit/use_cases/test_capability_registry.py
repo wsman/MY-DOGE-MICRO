@@ -8,7 +8,7 @@ from doge.application.capabilities.registry import (
 )
 from doge.application.agent.tools import build_default_tool_registry
 from doge.application.agent.tool_service import ToolApplicationService
-from doge.application.capabilities.executors import SubprocessCodeExecutor
+from doge.infrastructure.code_execution.python import SubprocessCodeExecutor
 from doge.config import Settings
 from doge.config.settings import FEATURE_LIFECYCLES, DeepSeekConfig, FeatureConfig, KimiConfig
 from doge.core.domain.tool_policy import ToolCategory

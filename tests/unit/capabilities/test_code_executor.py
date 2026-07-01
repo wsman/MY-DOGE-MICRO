@@ -1,5 +1,5 @@
 from doge.application.agent.tool_service import ToolApplicationService
-from doge.application.capabilities.executors import DisabledCodeExecutor, SubprocessCodeExecutor
+from doge.infrastructure.code_execution.python import DisabledCodeExecutor, SubprocessCodeExecutor
 from doge.application.capabilities.quant_provider import QuantToolProvider
 from doge.application.composition import build_python_analysis_executor
 from doge.config.settings import FeatureConfig, Settings
