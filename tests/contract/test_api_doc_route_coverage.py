@@ -46,7 +46,11 @@ sys.path[:] = [
 
 from doge.interfaces.api import main as api_main  # noqa: E402
 
-_DOC_PATH = _PROJECT_ROOT / "docs" / "API.md"
+# L-3 product-module marker: this gate covers the full /v1 daemon route surface.
+pytestmark = pytest.mark.module_gateway
+
+_ROUTE_TABLE_DOC = _PROJECT_ROOT / "docs" / "reference" / "http-api.md"
+_CONTRACTS_DOC = _PROJECT_ROOT / "docs" / "reference" / "http-api-contracts.md"
 
 
 # ---------------------------------------------------------------------------
@@ -63,8 +67,8 @@ _ROUTE_ROW_RE = re.compile(
 
 
 def _parse_doc_routes() -> set[tuple[str, str]]:
-    """Return the set of (METHOD, path) tuples enumerated in docs/API.md."""
-    text = _DOC_PATH.read_text(encoding="utf-8")
+    """Return the set of (METHOD, path) tuples enumerated in docs/reference/http-api.md."""
+    text = _ROUTE_TABLE_DOC.read_text(encoding="utf-8")
     found = set()
     for method, path in _ROUTE_ROW_RE.findall(text):
         found.add((method.upper(), path))
@@ -161,7 +165,7 @@ class TestApiDocErrorCodeTable:
         # Arrange — the doc MUST describe the shipped S002-009 envelope, not the
         # pre-S002-009 str(e) leak. (The recon outline flagged the old state;
         # this asserts the doc followed REALITY per the WAVE-2 task rules.)
-        text = _DOC_PATH.read_text(encoding="utf-8")
+        text = _CONTRACTS_DOC.read_text(encoding="utf-8")
         # Assert — the stable envelope shape is documented.
         assert '"error": {"code"' in text or '"error": {  "code"' in text, (
             "docs/API.md must document the shipped "

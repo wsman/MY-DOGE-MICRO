@@ -1,10 +1,13 @@
 # API Reference Entry
 
-The authoritative HTTP API contract remains [../API.md](../API.md).
+The authoritative HTTP API route table and per-route reference live in
+[http-api.md](http-api.md). The reader quick guide is [../API.md](../API.md);
+transport, SSE, CORS, error, concurrency, and OpenAPI contracts are in
+[http-api-contracts.md](http-api-contracts.md).
 
-This page exists to provide a stable lower-case reference path for the new
-documentation index while preserving the existing uppercase file that current
-tests, CDDs, and ADRs still read directly.
+This lower-case alias keeps the stable `docs/reference/api.md` path available
+for the documentation index and existing links. It must stay small and must not
+duplicate the route table.
 
 Current contract highlights:
 
@@ -14,5 +17,5 @@ Current contract highlights:
 - Contract test: `tests/contract/test_api_doc_route_coverage.py`
 - Error envelope: `{"error": {"code", "message"}}`
 
-Update [../API.md](../API.md) and the contract tests together whenever the live
-route set changes.
+Update [http-api.md](http-api.md) and the contract tests together whenever the
+live route set changes.
