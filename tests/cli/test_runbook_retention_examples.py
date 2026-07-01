@@ -29,7 +29,7 @@ from pathlib import Path
 import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-DOC = _REPO_ROOT / "docs" / "operations-runbook.md"
+DOC = _REPO_ROOT / "docs" / "operations" / "runbook.md"
 SETTINGS_PY = _REPO_ROOT / "src" / "doge" / "config" / "settings.py"
 
 # bash may be available as `bash` (Git Bash / WSL) on this Windows host. The

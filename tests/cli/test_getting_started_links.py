@@ -26,7 +26,7 @@ import pytest
 # we can import settings.py directly to read the live dataclass field names.
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 
-DOC = _REPO_ROOT / "docs" / "GETTING_STARTED.md"
+DOC = _REPO_ROOT / "docs" / "guides" / "getting-started.md"
 SETTINGS_PY = _REPO_ROOT / "src" / "doge" / "config" / "settings.py"
 
 

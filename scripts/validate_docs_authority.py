@@ -26,7 +26,7 @@ GENERATED_OR_DECISION_PATTERNS = (
 )
 
 BASELINE_ALLOWED_RESTATEMENTS = {
-    Path("docs/GETTING_STARTED.md"),
+    Path("docs/guides/getting-started.md"),
     Path("docs/architecture/architecture-traceability.md"),
     Path("docs/architecture/compatibility-surfaces.md"),
     Path("docs/architecture/control-manifest.md"),
@@ -50,7 +50,6 @@ BOUNDED_CONTEXT_NAMES = (
 
 REFERENCE_SHORTCUTS = {
     Path("docs/reference/api.md"): "http_api",
-    Path("docs/reference/http-api.md"): "http_api",
     Path("docs/reference/cli.md"): "cli",
     Path("docs/reference/mcp.md"): "mcp_tools",
     Path("docs/reference/tools.md"): "mcp_tools",

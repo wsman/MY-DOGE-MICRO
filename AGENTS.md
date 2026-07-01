@@ -50,7 +50,7 @@ Every task follows: **Question -> Options -> Decision -> Draft -> Approval**
 - Multi-file changes require explicit approval for the full changeset
 - No commits without user instruction
 
-See `docs/COLLABORATIVE-DESIGN-PRINCIPLE.md` for full protocol and examples.
+See `docs/governance/cdd/COLLABORATIVE-DESIGN-PRINCIPLE.md` for full protocol and examples.
 
 > **First session?** Run `/constitute` to establish governing principles.
 > It works for any general product project — just answer the

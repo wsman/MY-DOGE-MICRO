@@ -5,8 +5,8 @@ Development. It explains how to start a new game or product project, how to
 bring an existing project under CDD governance, how to move through phase gates,
 and where release evidence is recorded.
 
-For the shortest first-step decision table, start with `docs/START-HERE.md`.
-For the full phase-by-phase workflow, use `docs/WORKFLOW-GUIDE.md`.
+For the shortest first-step decision table, start with `docs/governance/cdd/START-HERE.md`.
+For the full phase-by-phase workflow, use `docs/governance/cdd/WORKFLOW-GUIDE.md`.
 
 ## What CDD Provides
 
@@ -269,7 +269,7 @@ git diff --check
 ```
 
 Customer acceptance expectations are documented in
-`docs/CUSTOMER-ACCEPTANCE.md`. Immutable release evidence should be recorded on
+`docs/governance/cdd/CUSTOMER-ACCEPTANCE.md`. Immutable release evidence should be recorded on
 the GitHub Release or annotated tag, including the release commit SHA, the
 `Template Consistency` run ID, and successful Ubuntu, macOS, and Windows jobs.
 

@@ -247,7 +247,7 @@ def test_glowing_weaving_kettle_audit_separates_local_completion_from_external_c
 
 
 def test_fastapi_route_count_governance_syncs_to_s017_surface():
-    api = _read("docs/API.md")
+    api = _read("docs/reference/http-api.md")
     cdd = _read("design/cdd/fastapi-service.md")
     architecture_registry = _read("docs/registry/architecture.yaml")
     entities_registry = _read("docs/registry/entities.yaml")

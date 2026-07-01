@@ -13,9 +13,9 @@ This template supports Constitution Driven Development workflows for:
 The supported workflow contract is defined by:
 
 - `README.md`
-- `docs/START-HERE.md`
-- `docs/QUICK-START.md`
-- `docs/WORKFLOW-GUIDE.md`
+- `docs/governance/cdd/START-HERE.md`
+- `docs/governance/cdd/QUICK-START.md`
+- `docs/governance/cdd/WORKFLOW-GUIDE.md`
 - `workflow/workflow-catalog.yaml`
 - `.claude/skills/gate-check/SKILL.md`
 

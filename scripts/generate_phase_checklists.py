@@ -10,7 +10,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CATALOG = REPO_ROOT / "workflow" / "workflow-catalog.yaml"
-OUTPUT = REPO_ROOT / "docs" / "PHASE-CHECKLISTS.md"
+OUTPUT = REPO_ROOT / "docs" / "archive" / "phase-checklists.md"
 MEMORY_BANK_OUTPUT = REPO_ROOT / "memory_bank" / "t2_execution" / "phase_checklists.md"
 
 
@@ -172,7 +172,7 @@ def main() -> int:
         if args.memory_bank:
             if MEMORY_BANK_OUTPUT.parent.exists():
                 MEMORY_BANK_OUTPUT.write_text(
-                    memory_bank_render(content, "docs/PHASE-CHECKLISTS.md"),
+                    memory_bank_render(content, "docs/archive/phase-checklists.md"),
                     encoding="utf-8",
                 )
             else:

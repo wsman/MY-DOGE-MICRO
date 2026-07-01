@@ -23,14 +23,22 @@ CANONICAL_LINK_TARGETS = (
     "../API.md",
     "../CLI.md",
     "../MCP_SERVER.md",
-    "../GETTING_STARTED.md",
-    "../operations-runbook.md",
+    "../guides/getting-started.md",
+    "../operations/runbook.md",
     "../architecture/",
     "../quality/status.md",
     "../progress/runtime-maturity.yaml",
     "../demo/",
     "../../packages/",
 )
+
+# Canonical long-form guides live under docs/guides/ but use a different
+# structure than the reader-path template (e.g. the contract-tested operator
+# guide). Exempt them from the required-section / canonical-link checks; their
+# length is governed by validate_docs_length.py CANONICAL_LONG_GUIDES.
+STRUCTURE_EXEMPT_GUIDES = {
+    "getting-started.md",
+}
 
 
 @dataclass(frozen=True)
@@ -83,7 +91,7 @@ def _collect_paths() -> list[Path]:
     for directory in DOC_DIRS:
         if directory.exists():
             paths.extend(sorted(directory.glob("*.md")))
-    return paths
+    return [p for p in paths if p.name not in STRUCTURE_EXEMPT_GUIDES]
 
 
 def _has_canonical_link(text: str) -> bool:

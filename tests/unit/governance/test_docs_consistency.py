@@ -29,7 +29,7 @@ def test_docs_index_points_to_current_product_docs():
     index = _read("docs/index.md")
     for target in [
         "product/overview.md",
-        "GETTING_STARTED.md",
+        "guides/getting-started.md",
         "API.md",
         "CLI.md",
         "MCP_SERVER.md",
@@ -54,7 +54,7 @@ def test_readme_is_current_product_entry_not_legacy_architecture():
     for required in [
         "docs/index.md",
         "docs/API.md",
-        "scripts\\mcp_stdio.bat",
+        "scripts/mcp_stdio.bat",
         "src/doge/interfaces/api/main.py",
         "src/interface/dashboard.py",
         "DEEPSEEK_API_KEY",
@@ -105,7 +105,7 @@ def test_runtime_maturity_non_production_posture_is_unchanged():
 def test_runtime_maturity_marks_inmemory_and_pyqt_as_non_production_surfaces():
     maturity = _read("docs/progress/runtime-maturity.yaml")
     readme = _read("README.md")
-    getting_started = _read("docs/GETTING_STARTED.md")
+    getting_started = _read("docs/guides/getting-started.md")
 
     for required in [
         "in_memory_runtime:",

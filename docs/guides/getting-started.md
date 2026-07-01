@@ -1,6 +1,6 @@
 # MY-DOGE-MICRO — Getting Started (Product Operator Guide)
 
-> **Not the doc you think this is?** `docs/QUICK-START.md` is the *CDD-framework*
+> **Not the doc you think this is?** `docs/governance/cdd/QUICK-START.md` is the *CDD-framework*
 > onboarding guide for the Claude Code agent studio (53 agents, skills,
 > governance). **This file** is the getting-started guide for the **MY-DOGE-MICRO
 > product** — the local-first quantitative investment decision-support platform.
@@ -385,7 +385,7 @@ not be established — check `DOGE_DB_DIR` and that the `*.db` files exist.
   schemas, the SSE contract, and the error-envelope codes).
 - **CLI command reference** — `docs/CLI.md` (Wave 2; the `doge` query CLI and
   the `macro.cli` macro CLI).
-- **Operations runbook** — `docs/operations-runbook.md` (Wave 2; key environment
+- **Operations runbook** — `docs/operations/runbook.md` (Wave 2; key environment
   verification, database backup, retention tuning, log inspection).
 - **MCP tool catalog** — `docs/MCP_SERVER.md` (the six read-only analytical
   tools and the DuckDB views behind them).

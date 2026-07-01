@@ -35,7 +35,7 @@ daemon contract. Full route details remain in [../API.md](../API.md).
 - API reference: [../API.md](../API.md)
 - Compatibility surfaces: [../architecture/compatibility-surfaces.md](../architecture/compatibility-surfaces.md)
 - File structure policy: [../architecture/file-structure-policy.md](../architecture/file-structure-policy.md)
-- Operations runbook: [../operations-runbook.md](../operations-runbook.md)
+- Operations runbook: [../operations/runbook.md](../operations/runbook.md)
 
 ## When To Leave This Page
 

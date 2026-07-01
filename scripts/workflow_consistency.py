@@ -37,18 +37,18 @@ CATALOG = WORKFLOW_DIR / "workflow-catalog.yaml"
 GATE_CHECK = REPO_ROOT / ".claude" / "skills" / "gate-check" / "SKILL.md"
 CODEX_GATE_CHECK = REPO_ROOT / ".agents" / "skills" / "gate-check" / "SKILL.md"
 FLOW_DIAGRAMS = REPO_ROOT / "docs" / "examples" / "skill-flow-diagrams.md"
-WORKFLOW_GUIDE = REPO_ROOT / "docs" / "WORKFLOW-GUIDE.md"
-QUICK_START = REPO_ROOT / "docs" / "QUICK-START.md"
+WORKFLOW_GUIDE = REPO_ROOT / "docs" / "governance" / "cdd" / "WORKFLOW-GUIDE.md"
+QUICK_START = REPO_ROOT / "docs" / "governance" / "cdd" / "QUICK-START.md"
 SKILLS_REFERENCE = REPO_ROOT / "docs" / "reference" / "skills-reference.md"
-PHASE_CHECKLISTS = REPO_ROOT / "docs" / "PHASE-CHECKLISTS.md"
+PHASE_CHECKLISTS = REPO_ROOT / "docs" / "archive" / "phase-checklists.md"
 GATE_REQUIRED_ARTIFACTS = WORKFLOW_DIR / "generated" / "gate-required-artifacts.md"
-CUSTOMER_ACCEPTANCE = REPO_ROOT / "docs" / "CUSTOMER-ACCEPTANCE.md"
-USER_MANUAL = REPO_ROOT / "docs" / "USER-MANUAL.md"
+CUSTOMER_ACCEPTANCE = REPO_ROOT / "docs" / "governance" / "cdd" / "CUSTOMER-ACCEPTANCE.md"
+USER_MANUAL = REPO_ROOT / "docs" / "governance" / "cdd" / "USER-MANUAL.md"
 PROJECT_ROADMAP_EXAMPLE = REPO_ROOT / "docs" / "examples" / "project-roadmap.example.md"
 GENERATE_PHASE_CHECKLISTS = REPO_ROOT / "scripts" / "generate_phase_checklists.py"
 GENERATE_GATE_REQUIRED = REPO_ROOT / "scripts" / "generate_gate_required_sections.py"
 DOC_COMMAND_FILES = [
-    REPO_ROOT / "docs" / "START-HERE.md",
+    REPO_ROOT / "docs" / "governance" / "cdd" / "START-HERE.md",
     QUICK_START,
     USER_MANUAL,
 ]
@@ -364,7 +364,7 @@ def check_example_phase_boundaries() -> list[Finding]:
 def check_accessibility_entry_paths() -> list[Finding]:
     findings: list[Finding] = []
     required_docs = [
-        REPO_ROOT / "docs" / "START-HERE.md",
+        REPO_ROOT / "docs" / "governance" / "cdd" / "START-HERE.md",
         QUICK_START,
         REPO_ROOT / ".claude" / "skills" / "constitute" / "SKILL.md",
     ]
@@ -406,16 +406,16 @@ def check_quick_start_complete_paths() -> list[Finding]:
     ]
 
     if "Start building" in text:
-        findings.append(Finding("ERROR", "docs/QUICK-START.md still stops a path at Start building"))
+        findings.append(Finding("ERROR", "docs/governance/cdd/QUICK-START.md still stops a path at Start building"))
 
     for label, start, end in path_blocks:
         block = block_between(text, start, end)
         if not block:
-            findings.append(Finding("ERROR", f"docs/QUICK-START.md missing {label} block"))
+            findings.append(Finding("ERROR", f"docs/governance/cdd/QUICK-START.md missing {label} block"))
             continue
         for command in required_commands:
             if command not in block:
-                findings.append(Finding("ERROR", f"docs/QUICK-START.md {label} omits {command}"))
+                findings.append(Finding("ERROR", f"docs/governance/cdd/QUICK-START.md {label} omits {command}"))
         gate_index = block.find("/gate-check technical-setup")
         ux_index = block.find("/ux-design")
         if gate_index == -1 or ux_index == -1:
@@ -424,7 +424,7 @@ def check_quick_start_complete_paths() -> list[Finding]:
             findings.append(
                 Finding(
                     "ERROR",
-                    f"docs/QUICK-START.md {label} starts UX before /gate-check technical-setup",
+                    f"docs/governance/cdd/QUICK-START.md {label} starts UX before /gate-check technical-setup",
                 )
             )
         release_positions = [block.find(command) for command in ["/release-checklist", "/launch-checklist", "/team-release"]]
@@ -432,7 +432,7 @@ def check_quick_start_complete_paths() -> list[Finding]:
             findings.append(
                 Finding(
                     "ERROR",
-                    f"docs/QUICK-START.md {label} must order Release as /release-checklist -> /launch-checklist -> /team-release",
+                    f"docs/governance/cdd/QUICK-START.md {label} must order Release as /release-checklist -> /launch-checklist -> /team-release",
                 )
             )
     return findings
@@ -483,9 +483,9 @@ def check_workflow_guide_phase_boundaries() -> list[Finding]:
     phase5 = block_between(text, "## Phase 5: Production", "## Phase 6:")
 
     if "/dev-story" in phase4:
-        findings.append(Finding("ERROR", "docs/WORKFLOW-GUIDE.md Phase 4 contains /dev-story; implementation belongs in Phase 5"))
+        findings.append(Finding("ERROR", "docs/governance/cdd/WORKFLOW-GUIDE.md Phase 4 contains /dev-story; implementation belongs in Phase 5"))
     if "/dev-story" not in phase5:
-        findings.append(Finding("ERROR", "docs/WORKFLOW-GUIDE.md Phase 5 must document /dev-story implementation"))
+        findings.append(Finding("ERROR", "docs/governance/cdd/WORKFLOW-GUIDE.md Phase 5 must document /dev-story implementation"))
     return findings
 
 
@@ -507,7 +507,7 @@ def check_validation_quantity_boundaries() -> list[Finding]:
             findings.append(
                 Finding(
                     "ERROR",
-                    "docs/WORKFLOW-GUIDE.md Phase 4 makes 3 sessions a Pre-Production gate condition",
+                    "docs/governance/cdd/WORKFLOW-GUIDE.md Phase 4 makes 3 sessions a Pre-Production gate condition",
                 )
             )
             break
@@ -516,7 +516,7 @@ def check_validation_quantity_boundaries() -> list[Finding]:
     if catalog_text.count("min_count: 3") < 2:
         findings.append(Finding("ERROR", "workflow-catalog.yaml must keep cumulative 3-session validation in Polish / Verification"))
     if not re.search(r"(?:3 sessions|3-session|Three sessions)", phase5_plus):
-        findings.append(Finding("ERROR", "docs/WORKFLOW-GUIDE.md must keep cumulative 3-session validation after Pre-Production"))
+        findings.append(Finding("ERROR", "docs/governance/cdd/WORKFLOW-GUIDE.md must keep cumulative 3-session validation after Pre-Production"))
 
     gate_required = GATE_REQUIRED_ARTIFACTS.read_text(encoding="utf-8", errors="replace") if GATE_REQUIRED_ARTIFACTS.exists() else ""
     if "production/qa/evidence/playtests/playtest*.md` (minimum 3)" not in gate_required:
@@ -644,7 +644,7 @@ def check_customer_delivery_contract() -> list[Finding]:
         findings.append(
             Finding(
                 "ERROR",
-                "docs/CUSTOMER-ACCEPTANCE.md must not hard-code a GitHub Actions run ID; select the run matching the release commit",
+                "docs/governance/cdd/CUSTOMER-ACCEPTANCE.md must not hard-code a GitHub Actions run ID; select the run matching the release commit",
             )
         )
     for snippet in [
@@ -666,7 +666,7 @@ def check_customer_delivery_contract() -> list[Finding]:
     guide_text = WORKFLOW_GUIDE.read_text(encoding="utf-8", errors="replace")
     phase5_gate = block_between(guide_text, "### Phase 5 Gate", "---")
     if re.search(r"\b3\s*(?:sessions|-session)|three sessions", phase5_gate, flags=re.IGNORECASE):
-        findings.append(Finding("ERROR", "docs/WORKFLOW-GUIDE.md Phase 5 gate must not require 3 validation sessions"))
+        findings.append(Finding("ERROR", "docs/governance/cdd/WORKFLOW-GUIDE.md Phase 5 gate must not require 3 validation sessions"))
 
     gate_text = GATE_CHECK.read_text(encoding="utf-8", errors="replace")
     gate_sections = [
@@ -724,7 +724,7 @@ def check_customer_acceptance_contract() -> list[Finding]:
         "ubuntu-latest",
         "macos-latest",
         "windows-latest",
-        "docs/USER-MANUAL.md",
+        "docs/governance/cdd/USER-MANUAL.md",
         "/cdd-status --dry-run",
         "design/ux/surface-profile.md",
         "docs/examples/project-roadmap.example.md",
@@ -743,8 +743,8 @@ def check_user_manual_contract() -> list[Finding]:
     manual_text = USER_MANUAL.read_text(encoding="utf-8", errors="replace")
     required_snippets = [
         "# User Manual",
-        "docs/START-HERE.md",
-        "docs/WORKFLOW-GUIDE.md",
+        "docs/governance/cdd/START-HERE.md",
+        "docs/governance/cdd/WORKFLOW-GUIDE.md",
         "53 specialized agents",
         "78 slash-command skills",
         "/constitute",
@@ -761,7 +761,7 @@ def check_user_manual_contract() -> list[Finding]:
         "/test-setup",
         "/gate-check technical-setup",
         "/release-checklist -> /launch-checklist -> /team-release",
-        "docs/CUSTOMER-ACCEPTANCE.md",
+        "docs/governance/cdd/CUSTOMER-ACCEPTANCE.md",
         "Template Consistency",
         "Ubuntu, macOS, and Windows",
     ]
@@ -770,14 +770,14 @@ def check_user_manual_contract() -> list[Finding]:
             findings.append(Finding("ERROR", f"{rel(USER_MANUAL)} omits user manual contract: {snippet}"))
 
     entry_docs = [
-        REPO_ROOT / "docs" / "START-HERE.md",
+        REPO_ROOT / "docs" / "governance" / "cdd" / "START-HERE.md",
         QUICK_START,
         WORKFLOW_GUIDE,
     ]
     for path in entry_docs:
         text = path.read_text(encoding="utf-8", errors="replace")
-        if "docs/USER-MANUAL.md" not in text:
-            findings.append(Finding("ERROR", f"{rel(path)} must reference docs/USER-MANUAL.md"))
+        if "docs/governance/cdd/USER-MANUAL.md" not in text:
+            findings.append(Finding("ERROR", f"{rel(path)} must reference docs/governance/cdd/USER-MANUAL.md"))
     return findings
 
 
@@ -809,7 +809,7 @@ def check_status_dashboard_contract() -> list[Finding]:
         findings.append(Finding("ERROR", f"missing project roadmap example: {rel(PROJECT_ROADMAP_EXAMPLE)}"))
 
     docs_to_check = [
-        REPO_ROOT / "docs" / "START-HERE.md",
+        REPO_ROOT / "docs" / "governance" / "cdd" / "START-HERE.md",
         CUSTOMER_ACCEPTANCE,
         USER_MANUAL,
         WORKFLOW_GUIDE,
@@ -820,7 +820,7 @@ def check_status_dashboard_contract() -> list[Finding]:
         text = path.read_text(encoding="utf-8", errors="replace")
         if "/cdd-status" not in text:
             findings.append(Finding("ERROR", f"{rel(path)} must mention /cdd-status"))
-    for path in [REPO_ROOT / "docs" / "START-HERE.md", CUSTOMER_ACCEPTANCE, QUICK_START, USER_MANUAL]:
+    for path in [REPO_ROOT / "docs" / "governance" / "cdd" / "START-HERE.md", CUSTOMER_ACCEPTANCE, QUICK_START, USER_MANUAL]:
         text = path.read_text(encoding="utf-8", errors="replace")
         if "docs/examples/project-roadmap.example.md" not in text:
             findings.append(Finding("ERROR", f"{rel(path)} must reference docs/examples/project-roadmap.example.md"))
@@ -1343,7 +1343,7 @@ def check_phase_checklist_contract() -> list[Finding]:
         findings.append(
             Finding(
                 "ERROR",
-                "docs/PHASE-CHECKLISTS.md is stale; run python scripts/generate_phase_checklists.py --write",
+                "docs/archive/phase-checklists.md is stale; run python scripts/generate_phase_checklists.py --write",
             )
         )
     return findings
@@ -1446,7 +1446,7 @@ def check_skill_count_contract() -> list[Finding]:
 
     stale_count_docs = [
         REPO_ROOT / "CHANGELOG.md",
-        REPO_ROOT / "docs" / "START-HERE.md",
+        REPO_ROOT / "docs" / "governance" / "cdd" / "START-HERE.md",
         QUICK_START,
         WORKFLOW_GUIDE,
         SKILLS_REFERENCE,

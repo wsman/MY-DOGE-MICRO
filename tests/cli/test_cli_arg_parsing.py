@@ -1,4 +1,4 @@
-"""CLI argparse + docs-consistency tests for ``src/cli.py`` (WAVE2-DOC-CLI).
+"""CLI argparse + docs-consistency tests for the canonical ``doge.interfaces.cli`` (WAVE2-DOC-CLI).
 
 Pins the contract documented in ``docs/CLI.md`` against the live argparse wiring
 in ``src/cli.py``. Two groups of assertions:
@@ -28,12 +28,6 @@ import sys
 from pathlib import Path
 
 import pytest
-
-# Test-shim exception (documented in test_settings.py): make src/ importable.
-# Mirrors the ``pythonpath=["src"]`` pytest config so this file also runs when
-# invoked directly.
-
-import cli as doge_cli  # noqa: E402  (after sys.path shim)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DOC_PATH = PROJECT_ROOT / "docs" / "CLI.md"
@@ -95,7 +89,7 @@ def test_subcommand_rejects_invalid_market_with_argparse_exit_2(argv):
 
 
 def test_anomaly_rejects_unknown_market_flag_with_exit_2():
-    # anomaly does NOT declare --market (src/cli.py:137-139); argparse rejects
+    # anomaly does NOT declare --market; argparse rejects
     # unrecognized args with exit 2.
     args, code = _parse_or_exit(["anomaly", "--market", "cn"])
     assert code == 2

@@ -40,7 +40,7 @@ details remain in [../API.md](../API.md).
 
 - API contract: [../API.md](../API.md)
 - CLI daemon commands: [../CLI.md](../CLI.md)
-- Operations runbook: [../operations-runbook.md](../operations-runbook.md)
+- Operations runbook: [../operations/runbook.md](../operations/runbook.md)
 - Runtime contracts: [../architecture/runtime-contracts.md](../architecture/runtime-contracts.md)
 
 ## When To Leave This Page

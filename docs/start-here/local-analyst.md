@@ -57,7 +57,7 @@ produce an artifact without first reading the full API or architecture docs.
 ## Key References
 
 - CLI reference: [../CLI.md](../CLI.md)
-- First-run setup: [../GETTING_STARTED.md](../GETTING_STARTED.md)
+- First-run setup: [../guides/getting-started.md](../guides/getting-started.md)
 - Runtime levels: [../architecture/runtime-levels.md](../architecture/runtime-levels.md)
 - Runtime contracts: [../architecture/runtime-contracts.md](../architecture/runtime-contracts.md)
 - Current maturity: [../progress/runtime-maturity.yaml](../progress/runtime-maturity.yaml)

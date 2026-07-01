@@ -15,4 +15,4 @@ This file indexes validation rules and evidence requirements without replacing
 |---------------|------------------|-------------|
 | Playtest or user validation | `production/qa/evidence/` | Polish / Verification |
 | Smoke evidence | `production/qa/evidence/` | Release readiness |
-| Customer acceptance | `docs/CUSTOMER-ACCEPTANCE.md` | Release |
+| Customer acceptance | `docs/governance/cdd/CUSTOMER-ACCEPTANCE.md` | Release |

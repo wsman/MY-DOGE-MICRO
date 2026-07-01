@@ -40,7 +40,7 @@ full command reference in [../CLI.md](../CLI.md).
 ## Related References
 
 - CLI contract: [../CLI.md](../CLI.md)
-- First-run setup: [../GETTING_STARTED.md](../GETTING_STARTED.md)
+- First-run setup: [getting-started.md](getting-started.md)
 - Runtime contracts: [../architecture/runtime-contracts.md](../architecture/runtime-contracts.md)
 - Maturity authority: [../progress/runtime-maturity.yaml](../progress/runtime-maturity.yaml)
 

@@ -55,7 +55,7 @@ the Alpha `/v1` contract to CLI, SDK, or Web clients.
 
 - API reference: [../API.md](../API.md)
 - CLI reference: [../CLI.md](../CLI.md)
-- Operations runbook: [../operations-runbook.md](../operations-runbook.md)
+- Operations runbook: [../operations/runbook.md](../operations/runbook.md)
 - Local deployment notes: [../operations/local-deployment.md](../operations/local-deployment.md)
 - Runtime contracts: [../architecture/runtime-contracts.md](../architecture/runtime-contracts.md)
 

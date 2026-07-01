@@ -93,10 +93,10 @@ Expected result:
 
 Review these customer-visible entry points:
 - `README.md`
-- `docs/START-HERE.md`
-- `docs/USER-MANUAL.md`
-- `docs/WORKFLOW-GUIDE.md`
-- `docs/QUICK-START.md`
+- `docs/governance/cdd/START-HERE.md`
+- `docs/governance/cdd/USER-MANUAL.md`
+- `docs/governance/cdd/WORKFLOW-GUIDE.md`
+- `docs/governance/cdd/QUICK-START.md`
 - `docs/reference/skills-reference.md`
 - `SUPPORT.md`
 - `RELEASE_NOTES.md`

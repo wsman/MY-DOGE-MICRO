@@ -367,7 +367,7 @@ doge macro --verbose
 | `DOGE_RESEARCH_DB` | `<dir>/research_insights.db` | 研究 SQLite | `settings.py:65` |
 | `DOGE_DUCKDB_PATH` | `<dir>/market.duckdb` | DuckDB 分析库（视图 attach 到此） | `settings.py:66` |
 
-> `DOGE_RETENTION_DAYS`（默认 `730`，`settings.py:112`）影响**写入**路径的保留期，不影响查询 CLI 的只读行为；详见 `docs/operations-runbook.md`。
+> `DOGE_RETENTION_DAYS`（默认 `730`，`settings.py:112`）影响**写入**路径的保留期，不影响查询 CLI 的只读行为；详见 `docs/operations/runbook.md`。
 
 完整环境变量总览另见 [docs/MCP_SERVER.md](MCP_SERVER.md) 的「配置」章节。
 
@@ -496,13 +496,13 @@ termination acknowledgement 和 `DOGE_ALLOW_REMOTE_BIND=1` 的 promotion gate。
 | `--port` | int | `8902` | SSE 监听端口 |
 | `--log-level` | `DEBUG`/`INFO`/`WARNING`/`ERROR` | `INFO` | 日志级别 |
 
-启动脚本与详细用法参见 [docs/GETTING_STARTED.md](GETTING_STARTED.md) 与 [docs/MCP_SERVER.md](MCP_SERVER.md) 的「部署模式」「命令行参数」章节。
+启动脚本与详细用法参见 [docs/guides/getting-started.md](guides/getting-started.md) 与 [docs/MCP_SERVER.md](MCP_SERVER.md) 的「部署模式」「命令行参数」章节。
 
 ---
 
 ## 相关文档
 
 - [docs/MCP_SERVER.md](MCP_SERVER.md) — MCP 工具（`query_stock` / `rsrs_ranking` / `market_breadth` / `volume_anomalies`）与服务启动
-- [docs/GETTING_STARTED.md](GETTING_STARTED.md) — 操作者快速上手（含 MCP / FastAPI / Web 启动）
+- [docs/guides/getting-started.md](guides/getting-started.md) — 操作者快速上手（含 MCP / FastAPI / Web 启动）
 - `docs/architecture/adr-0001-brownfield-clean-architecture.md` — `sys.path.insert` 禁止模式与清理迁移目标
 - `docs/architecture/adr-0005-llm-client-strategy.md` — DeepSeek 客户端与密钥处理策略

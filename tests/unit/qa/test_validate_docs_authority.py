@@ -80,7 +80,7 @@ def test_docs_authority_rejects_shim_rule_copy(tmp_path: Path):
 def test_docs_authority_rejects_http_route_table_in_reference_shortcut(tmp_path: Path):
     _write(tmp_path / "docs/API.md", "# API\n")
     _write(
-        tmp_path / "docs/reference/http-api.md",
+        tmp_path / "docs/reference/api.md",
         "\n".join(
             [
                 "# HTTP API",

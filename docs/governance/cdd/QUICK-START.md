@@ -445,8 +445,9 @@ templates/                         -- 80 document templates (canonical document 
 standards/                         -- Shared technical, coding, coordination, and context standards
 skill_testing/                     -- Cross-project skill/agent testing catalog, specs, rubric
 docs/
-  QUICK-START.md                   -- This file
-  USER-MANUAL.md                   -- Practical operating manual
+  governance/cdd/                  -- CDD framework governance docs (this file and siblings)
+    QUICK-START.md                 -- This file
+    USER-MANUAL.md                 -- Practical operating manual
   reference/                       -- Shared reference docs for agents, skills, hooks, rules
 .claude/
   settings.json                    -- Claude Code hooks and project settings
@@ -454,11 +455,11 @@ docs/
   skills/                          -- 78 slash command definitions (Claude adapter copy)
   hooks/                           -- 12 hook scripts wired by settings.json
   rules/                           -- 16 path-specific rule files
-  docs/quick-start.md              -- Claude adapter pointer to docs/QUICK-START.md
+  docs/quick-start.md              -- Claude adapter pointer to docs/governance/cdd/QUICK-START.md
 .agents/
   skills/                          -- Codex/agent adapter copy of slash commands
 ```
 
-For the full user manual, see `docs/USER-MANUAL.md`. For the generated artifact
-checklist by phase, see `docs/PHASE-CHECKLISTS.md`. For delivery validation, see
-`docs/CUSTOMER-ACCEPTANCE.md`.
+For the full user manual, see `docs/governance/cdd/USER-MANUAL.md`. For the generated artifact
+checklist by phase, see `docs/archive/phase-checklists.md`. For delivery validation, see
+`docs/governance/cdd/CUSTOMER-ACCEPTANCE.md`.

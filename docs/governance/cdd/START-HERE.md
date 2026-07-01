@@ -39,6 +39,6 @@ When `memory_bank/` exists, approved review, smoke/team QA, story closure,
 sprint/milestone, gate, validation, and release writes also update T3 audit
 indexes while original reports remain in their normal paths.
 
-For the full user manual, see `docs/USER-MANUAL.md`. For a generated phase
-artifact map, see `docs/PHASE-CHECKLISTS.md`. For customer delivery validation,
-see `docs/CUSTOMER-ACCEPTANCE.md`.
+For the full user manual, see `docs/governance/cdd/USER-MANUAL.md`. For a generated phase
+artifact map, see `docs/archive/phase-checklists.md`. For customer delivery validation,
+see `docs/governance/cdd/CUSTOMER-ACCEPTANCE.md`.

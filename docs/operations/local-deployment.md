@@ -1,7 +1,7 @@
 # Local Deployment
 
 MY-DOGE-MICRO is designed for local workstation operation. The canonical
-operator runbook remains [../operations-runbook.md](../operations-runbook.md);
+operator runbook remains [runbook.md](runbook.md);
 this page is the concise deployment entry.
 
 ## Default Surfaces
@@ -28,5 +28,5 @@ controlled validation paths, not production readiness proof.
 3. Export `DEEPSEEK_API_KEY` only when using LLM macro paths.
 4. Keep `MOONSHOT_API_KEY` optional unless running live Kimi validation.
 
-See [../GETTING_STARTED.md](../GETTING_STARTED.md) for the longer first-run
+See [../guides/getting-started.md](../guides/getting-started.md) for the longer first-run
 walkthrough.

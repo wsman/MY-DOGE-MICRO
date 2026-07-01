@@ -13,6 +13,11 @@ Game/Product parity contract.
 - Keep `workflow-catalog.yaml` as the required-step source of truth.
 - Keep story paths under `production/epics/[epic-slug]/story-NNN-[slug].md`.
 - Keep evidence under `production/qa/evidence/`.
+- Tag every new issue, story, or PR with the product module it concerns:
+  **Market, Portfolio, Quant, or Research** (the `doge.products.*` packages), or
+  mark it **Gateway** (Level-2 daemon runtime layer), **Eval** (quality
+  subsystem), or **Platform/Governance** (cross-cutting). See
+  `docs/architecture/module-boundaries.md`.
 
 ## Local Checks
 

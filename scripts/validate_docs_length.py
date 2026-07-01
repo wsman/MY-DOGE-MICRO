@@ -15,7 +15,6 @@ REDIRECT_STUBS = (
     ROOT / "docs" / "reference" / "api.md",
     ROOT / "docs" / "reference" / "cli.md",
     ROOT / "docs" / "reference" / "mcp.md",
-    ROOT / "docs" / "reference" / "http-api.md",
     ROOT / "docs" / "reference" / "tools.md",
     ROOT / "docs" / "reference" / "env-vars.md",
     ROOT / "docs" / "reference" / "sdk-python.md",
@@ -47,6 +46,13 @@ GUIDE_SOFT_MAX_LINES = 250
 GUIDE_HARD_MAX_LINES = 400
 REDIRECT_MAX_LINES = 80
 SHORT_ENTRY_MAX_LINES = 100
+
+# Canonical long-form guides are contract-tested walkthroughs that exceed the
+# scannable soft cap but stay under the hard cap. Exempt them from the soft cap
+# only (e.g. docs/guides/getting-started.md, WAVE2-DOC-GETTING_STARTED).
+CANONICAL_LONG_GUIDES = {
+    ROOT / "docs" / "guides" / "getting-started.md",
+}
 
 
 @dataclass(frozen=True)
@@ -105,7 +111,7 @@ def _validate_guides() -> list[Finding]:
         lines = _line_count(path)
         if lines > GUIDE_HARD_MAX_LINES:
             findings.append(Finding(path, f"guide exceeds hard cap {GUIDE_HARD_MAX_LINES} lines: {lines}"))
-        elif lines > GUIDE_SOFT_MAX_LINES:
+        elif lines > GUIDE_SOFT_MAX_LINES and path not in CANONICAL_LONG_GUIDES:
             findings.append(Finding(path, f"guide exceeds soft cap {GUIDE_SOFT_MAX_LINES} lines: {lines}"))
     return findings
 

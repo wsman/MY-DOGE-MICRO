@@ -60,6 +60,10 @@ documents:
       - requirements.txt
       - pyproject.toml
       - web/package.json
+      - docs/API.md
+      - docs/CLI.md
+      - docs/MCP_SERVER.md
+      - docs/reference/**/*.md
       - docs/reference/**/VERSION.md
 
   memory_bank/t1_axioms/system_patterns.md:
@@ -77,6 +81,7 @@ documents:
     owner: /constitute
     indexes:
       - design/cdd/product-concept.md
+      - docs/product/**/*.md
       - AGENTS.md
       - CLAUDE.md
       - production/session-state/active.md
@@ -86,10 +91,10 @@ documents:
     role: index
     owner: /architecture-review
     indexes:
-      - docs/architecture/adr-*.md
-      - docs/architecture/control-manifest.md
-      - docs/architecture/architecture-traceability.md
-      - docs/architecture/tr-registry.yaml
+      - docs/architecture/**/*.md
+      - docs/architecture/**/*.yaml
+      - docs/security-and-data-boundaries.md
+      - docs/registry/architecture.yaml
       - docs/progress/runtime-maturity.yaml
 
   memory_bank/t1_axioms/ux_accessibility_context.md:
@@ -109,6 +114,7 @@ documents:
       - tests/**
       - web/src/**/*.spec.ts
       - production/qa/**
+      - docs/quality/**/*.md
       - .github/workflows/ci.yml
 
   memory_bank/t1_axioms/knowledge_graph.md:
@@ -117,8 +123,8 @@ documents:
     owner: /constitute
     indexes:
       - design/cdd/*.md
-      - docs/architecture/*.md
-      - docs/progress/*.md
+      - docs/**/*.md            # comprehensive master index of all product docs
+      - docs/**/*.yaml
       - production/epics/**/*.md
 
   memory_bank/t1_axioms/module_support_map.yaml:
@@ -147,6 +153,11 @@ documents:
       - workflow/workflow-catalog.yaml
       - production/stage.txt
       - production/sprint-status.yaml
+    indexes:
+      - docs/governance/cdd/**/*.md   # CDD framework workflow governance
+      - docs/guides/**/*.md           # operational how-to guides
+      - docs/start-here/**/*.md       # reader-path entry docs
+      - docs/operations/**/*.md       # operations runbook + local deployment
 
   memory_bank/t2_execution/phase_checklists.md:
     tier: T2
@@ -176,6 +187,8 @@ documents:
     indexes:
       - production/qa/**
       - tests/**
+      - docs/demo/**/*.md            # demo scripts, storyboards, evidence
+      - docs/archive/**               # historical audits + superseded docs
 
   memory_bank/t3_archive/gate_runs/:
     tier: T3

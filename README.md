@@ -41,8 +41,8 @@ Backend source and command:
 python -m uvicorn doge.interfaces.api.main:app --host 127.0.0.1 --port 8901
 ```
 
-Vue console setup is covered in [GETTING_STARTED.md](docs/GETTING_STARTED.md).
-The MCP stdio helper remains `scripts\mcp_stdio.bat`.
+Vue console setup is covered in [guides/getting-started.md](docs/guides/getting-started.md).
+The MCP stdio helper remains `scripts/mcp_stdio.bat`.
 
 Optional PyQt desktop entrypoint:
 
@@ -58,11 +58,11 @@ path for new platform UX work.
 ## Recommended Docs
 
 - Reader paths: [docs/index.md](docs/index.md)
-- First local setup: [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)
+- First local setup: [docs/guides/getting-started.md](docs/guides/getting-started.md)
 - HTTP API details: [docs/API.md](docs/API.md)
 - CLI details: [docs/CLI.md](docs/CLI.md)
 - MCP details: [docs/MCP_SERVER.md](docs/MCP_SERVER.md)
-- Operations: [docs/operations-runbook.md](docs/operations-runbook.md)
+- Operations: [docs/operations/runbook.md](docs/operations/runbook.md)
 - Architecture review: [docs/architecture/index.md](docs/architecture/index.md)
 
 ## Runtime Levels

@@ -55,5 +55,5 @@ storage, local parsing, SQLite evidence records, and local RAG lookup.
 Committed config files must contain placeholders only. The string
 `REPLACE_WITH_DEEPSEEK_API_KEY` is intentional and must not be replaced in git.
 
-Detailed first-run guidance remains in [../GETTING_STARTED.md](../GETTING_STARTED.md).
-Operational handling remains in [../operations-runbook.md](../operations-runbook.md).
+Detailed first-run guidance remains in [../guides/getting-started.md](../guides/getting-started.md).
+Operational handling remains in [../operations/runbook.md](../operations/runbook.md).

@@ -37,6 +37,6 @@ for new game projects, new product projects, and existing project adoption.
 - Required workflow: `Template Consistency`.
 - Required release evidence: release commit SHA, GitHub Actions run ID, and PASS
   result for `ubuntu-latest`, `macos-latest`, and `windows-latest`.
-- Customer acceptance checklist: `docs/CUSTOMER-ACCEPTANCE.md`.
+- Customer acceptance checklist: `docs/governance/cdd/CUSTOMER-ACCEPTANCE.md`.
 - The earlier `v0.1.0-rc.1` prerelease remains available as the historical
   candidate evidence for this stable release line.

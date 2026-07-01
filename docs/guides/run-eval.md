@@ -35,7 +35,7 @@ It does not replace release or external-gate approval.
 
 - Current maturity: [../progress/runtime-maturity.yaml](../progress/runtime-maturity.yaml)
 - Quality status: [../quality/status.md](../quality/status.md)
-- Operations runbook: [../operations-runbook.md](../operations-runbook.md)
+- Operations runbook: [../operations/runbook.md](../operations/runbook.md)
 - CLI reference: [../CLI.md](../CLI.md)
 
 ## When To Leave This Page

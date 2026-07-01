@@ -13,8 +13,8 @@
 > and read by `/help`.
 >
 > For a saved project progress dashboard, run `/cdd-status`. For the practical
-> user manual, read `docs/USER-MANUAL.md`. For a generated artifact map by
-> phase, read `docs/PHASE-CHECKLISTS.md`.
+> user manual, read `docs/governance/cdd/USER-MANUAL.md`. For a generated artifact map by
+> phase, read `docs/archive/phase-checklists.md`.
 
 ---
 
@@ -1427,7 +1427,7 @@ Every agent interaction follows this pattern:
 5. You review and refine
 6. Agent asks "May I write this to [filepath]?" before writing
 
-See `docs/COLLABORATIVE-DESIGN-PRINCIPLE.md` for the full protocol with
+See `docs/governance/cdd/COLLABORATIVE-DESIGN-PRINCIPLE.md` for the full protocol with
 examples.
 
 ### The AskUserQuestion Tool
