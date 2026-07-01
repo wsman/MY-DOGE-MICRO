@@ -760,3 +760,27 @@ adr_index:
     path: docs/architecture/adr-0024-single-stack-runtime-direction.md
     governs: "new platform work through process roots, persisted runtime, /v1 routes, and SDK clients; legacy /api, application.composition, in-memory runtime, and PyQt as compatibility/demo surfaces"
     depends_on: [ADR-0001, ADR-0007, ADR-0011, ADR-0021, ADR-0022]
+
+  - id: ADR-0025
+    title: "Runtime Streaming Semantics"
+    status: Accepted
+    date: "2026-06-27"
+    path: docs/architecture/adr-0025-streaming-semantics.md
+    governs: "runtime list_events versus replay-only stream_events semantics; live /v1 SSE streaming through RunStreamHandler and IEventSubscriber"
+    depends_on: [ADR-0024]
+
+  - id: ADR-0026
+    title: "Artifact Citation Assembly"
+    status: Accepted
+    date: "2026-06-28"
+    path: docs/architecture/adr-0026-artifact-citation-assembly.md
+    governs: "artifact citation assembly, claim-evidence relation metadata, inline citation markers, and deterministic citation eval support"
+    depends_on: [ADR-0011, ADR-0014, ADR-0017, ADR-0025]
+
+  - id: ADR-0027
+    title: "Shim Sunset Policy"
+    status: Accepted
+    date: "2026-06-30"
+    path: docs/architecture/adr-0027-shim-sunset-policy.md
+    governs: "compatibility shim behavior, canonical replacement paths, parity gates, migration notes, and removal discipline"
+    depends_on: [ADR-0021, ADR-0022, ADR-0024]

@@ -60,3 +60,7 @@ contract tests.
 Runtime promotion remains blocked while
 [../progress/runtime-maturity.yaml](../progress/runtime-maturity.yaml) keeps
 `production_ready: false`.
+
+Canonical source: this file is the reader-facing prose authority for the eight
+bounded contexts; ADR-0021 remains the decision record and
+`docs/registry/architecture.yaml` remains the machine-readable registry.

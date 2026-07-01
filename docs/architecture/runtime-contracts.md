@@ -67,3 +67,8 @@ change:
 Compatibility shims must not define new runtime contract behavior. See
 [compatibility-surfaces.md](compatibility-surfaces.md) and
 [ADR-0027](adr-0027-shim-sunset-policy.md).
+
+Canonical source: this file is the reader-facing prose authority for the
+canonical runtime path; ADR-0024 remains the decision record and
+`docs/progress/runtime-maturity.yaml` remains the machine-readable maturity
+evidence.

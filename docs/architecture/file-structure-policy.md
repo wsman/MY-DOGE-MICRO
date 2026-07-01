@@ -61,3 +61,7 @@ from intentional shim/parity tests.
   - `production_ready: false`
   - `stable_declaration: forbidden`
   - `level_3_sdk_platform: experimental`
+
+Canonical source: this file is the reader-facing prose authority for shim
+behavior rules; ADR-0027 remains the decision record and
+`compatibility-surfaces.md` remains the detailed surface registry.
