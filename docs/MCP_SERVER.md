@@ -401,9 +401,9 @@ CREATE TABLE stock_prices (
 ### DeepSeek API Key
 
 The MCP server itself does not call the LLM, but the macro strategy engine
-(Module #4, `src/macro/strategist.py`) and the GUI (`src/interface/analysis_gui.py`)
-both read `DEEPSEEK_API_KEY` from the environment. As of S002-013 this is the
-PRIMARY key source; export it before launching any macro report run or the GUI:
+(Module #4, `src/macro/strategist.py`) reads `DEEPSEEK_API_KEY` from the
+environment. As of S002-013 this is the PRIMARY key source; export it before
+launching any macro report run:
 
 **Windows (cmd):**
 ```cmd

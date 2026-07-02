@@ -28,7 +28,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-gui = ["PyQt6"]
 tdx = ["opentdx"]
 cn = ["akshare"]
 

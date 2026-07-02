@@ -45,13 +45,8 @@ def _referenced_relative_paths(markdown: str) -> set[str]:
     It deliberately skips:
       - absolute URLs (http://127.0.0.1:…)
       - environment-variable names (``DEEPSEEK_API_KEY`` etc. — no slash, no .py)
-      - the machine-hardcoded ``E:\\LLMs\\...`` example (that is quoted inside
-        a python fenced block and is illustrative of the bug, not a doc target)
     """
     text = markdown
-    # Strip the illustrative Windows path so it is never mistaken for a doc
-    # target. It is the literal bug example, not a file the doc points at.
-    text = text.replace(r"E:\LLMs\miniconda3\Lib\site-packages\PyQt6\Qt6\bin", "")
 
     pattern = re.compile(
         r"(?:scripts/|scripts\\\\|docs/|src/|web/)"
@@ -113,7 +108,6 @@ class TestGettingStartedPathsResolve:
         required = {
             "src/doge/interfaces/api/main.py",
             "doge_mcp.py",
-            "src/interface/dashboard.py",
             "scripts/mcp_stdio.bat",
             "scripts/start_mcp_sse.sh",
         }

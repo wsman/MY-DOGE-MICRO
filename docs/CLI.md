@@ -61,7 +61,7 @@ pip install -e .            # 通过 pyproject.toml 安装（推荐）
 pip install -r requirements.txt
 ```
 
-`pyproject.toml` 已锁定核心依赖（`duckdb==1.4.4`、`tabulate==0.10.0`、`openai==1.62.0` 等，见 `pyproject.toml:10-26`）。可选 extras：`[gui]=PyQt6`、`[tdx]=opentdx`、`[cn]=akshare`（`pyproject.toml:28-31`）。
+`pyproject.toml` 已锁定核心依赖（`duckdb==1.4.4`、`tabulate==0.10.0`、`openai==1.62.0` 等，见 `pyproject.toml:10-26`）。可选 extras：`[tdx]=opentdx`、`[cn]=akshare`（`pyproject.toml:28-31`）；Sprint M 已移除旧 PyQt `gui` extra。
 
 ### 已注册 console script
 

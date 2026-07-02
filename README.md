@@ -10,8 +10,9 @@ architecture authorities are [overview.md](docs/architecture/overview.md),
 [runtime-contracts.md](docs/architecture/runtime-contracts.md), and
 [file-structure-policy.md](docs/architecture/file-structure-policy.md).
 
-Legacy `/api/*`, `doge.application.composition`, the in-memory agent runtime, and PyQt
-are compatibility or demo surfaces, not alternate platform stacks.
+Legacy `/api/*`, `doge.application.composition`, and the in-memory agent runtime
+are compatibility or demo surfaces, not alternate platform stacks. The retired
+PyQt desktop dashboard was removed in Sprint M.
 
 ## Quick Start
 
@@ -44,16 +45,8 @@ python -m uvicorn doge.interfaces.api.main:app --host 127.0.0.1 --port 8901
 Vue console setup is covered in [guides/getting-started.md](docs/guides/getting-started.md).
 The MCP stdio helper remains `scripts/mcp_stdio.bat`.
 
-Optional PyQt desktop entrypoint:
-
-```bash
-pip install -e ".[gui]"
-python src/interface/dashboard.py
-```
-
-The desktop dashboard is legacy-maintained for local use. Its bootstrap still
-defines a machine-specific `qt6_bin_path` / Qt6 DLL path, so use the Web/SDK/v1
-path for new platform UX work.
+The PyQt desktop dashboard (`src/interface/`) was removed in Sprint M; the
+Web/SDK/`/v1` path is the platform UX. The `gui` extra is no longer shipped.
 
 ## Recommended Docs
 

@@ -2,10 +2,10 @@
 
 This is a BLOCKING migration test for story WAVE2-DOC-README. It prevents the
 README's "快速开始" (quick-start) section from drifting away from real
-entrypoints: every script path and python entrypoint named in the three
-quick-entry surfaces (MCP / FastAPI+web / desktop) MUST resolve on disk.
+entrypoints: every script path and python entrypoint named in the active
+quick-entry surfaces (MCP / FastAPI+web) MUST resolve on disk.
 
-What this test guards (the three quick-entry surfaces in README.md):
+What this test guards (the active quick-entry surfaces in README.md):
 
   Surface A — MCP server:
       scripts/mcp_stdio.bat        (Windows stdio)
@@ -19,9 +19,6 @@ What this test guards (the three quick-entry surfaces in README.md):
                                   (FastAPI backend, binds 127.0.0.1:8901)
       web/package.json             (the npm project `cd web && npm run dev` runs)
 
-  Surface C — PyQt6 desktop dashboard:
-      src/interface/dashboard.py   (requires the [gui] extra)
-
   Plus the config-template reference:
       models_config.template.json  (ships the REPLACE_WITH_DEEPSEEK_API_KEY sentinel)
 
@@ -33,7 +30,6 @@ Regression anchor for S002-008/S002-013 shipped behavior:
   - README must NOT instruct operators to write a real API key into
     models_config.json (the section must mention DEEPSEEK_API_KEY env).
 """
-import sys
 from pathlib import Path
 
 import pytest
@@ -55,8 +51,6 @@ REQUIRED_QUICKSTART_PATHS = (
     # Surface B — FastAPI + web console
     "src/doge/interfaces/api/main.py",
     "web/package.json",
-    # Surface C — PyQt6 desktop dashboard
-    "src/interface/dashboard.py",
     # Config template referenced in the API-key setup step
     "models_config.template.json",
     # Centralized settings (single source of truth cited by the README)
@@ -81,23 +75,22 @@ def test_quickstart_referenced_path_exists_on_disk(rel_path: str) -> None:
     )
 
 
-def test_readme_quickstart_section_names_three_surfaces() -> None:
-    """The README quick-start must present all three runtime surfaces.
+def test_readme_quickstart_section_names_active_surfaces() -> None:
+    """The README quick-start must present the active runtime surfaces.
 
-    Guards against an accidental revert to the old single-surface
-    `python src/interface/dashboard.py` only instruction.
+    Guards against an accidental revert to the old single-surface desktop
+    instruction after the Sprint M PyQt removal.
     """
     readme = (_PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
     # Each surface's headline entrypoint must appear in the quick-start region.
     required_entrypoints = {
         "scripts/mcp_stdio.bat": "MCP stdio entrypoint",
         "src/doge/interfaces/api/main.py": "FastAPI backend entrypoint",
-        "src/interface/dashboard.py": "PyQt desktop entrypoint",
     }
     for entrypoint, label in required_entrypoints.items():
         assert entrypoint in readme, (
             f"README quick-start is missing the {label} ({entrypoint}); "
-            f"the 3-surface quick-entry must reference all three runtime surfaces."
+            f"the quick-entry must reference every active runtime surface."
         )
 
 
@@ -119,29 +112,10 @@ def test_readme_flags_deepseek_key_env_not_committed_key() -> None:
     )
 
 
-def test_readme_flags_pyqt_dll_bootstrap_portability_blocker() -> None:
-    """The desktop quick-entry must flag the machine-hardcoded Qt6 DLL path.
-
-    src/interface/dashboard.py:6 hardcodes a conda Qt6 bin path that breaks on
-    non-dev machines; the README must warn operators so they are not stuck.
-    """
+def test_readme_marks_pyqt_dashboard_as_removed() -> None:
+    """The README must not advertise the retired PyQt dashboard as runnable."""
     readme = (_PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
-    assert "qt6_bin_path" in readme or "DLL" in readme, (
-        "The PyQt desktop quick-entry must flag the machine-hardcoded Qt6 DLL "
-        "bootstrap portability blocker (src/interface/dashboard.py:6)."
-    )
-
-
-def test_dashboard_actually_has_hardcoded_dll_path() -> None:
-    """Regression anchor: dashboard.py still carries the hardcoded bootstrap.
-
-    If this hardcode is ever removed (clean-architecture migration), this test
-    fails and the README portability warning should be revisited in lockstep.
-    """
-    dashboard = (_PROJECT_ROOT / "src/interface/dashboard.py").read_text(
-        encoding="utf-8"
-    )
-    assert "qt6_bin_path" in dashboard, (
-        "dashboard.py no longer defines qt6_bin_path — if the hardcoded DLL "
-        "bootstrap was removed, revisit the README portability warning."
-    )
+    assert "PyQt desktop dashboard" in readme
+    assert "removed" in readme
+    assert "python src/interface/dashboard.py" not in readme
+    assert 'pip install -e ".[gui]"' not in readme

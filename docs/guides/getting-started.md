@@ -18,9 +18,8 @@ product still exposes local runtime surfaces, each bound to loopback by default:
 |---------|-------------|--------------|---------|
 | **FastAPI HTTP backend** | `src/doge/interfaces/api/main.py` | `127.0.0.1:8901` | Preferred `/v1` REST/SSE API plus legacy `/api` compatibility |
 | **MCP server** | `doge_mcp.py` | stdio, or `127.0.0.1:8902` (SSE) | Tool layer for Claude Code / MCP clients |
-| **PyQt desktop dashboard** | `src/interface/dashboard.py` | local GUI window | Legacy-maintained local dashboard |
 
-You do not need all three at once. The two most common setups are:
+You do not need both at once. The two most common setups are:
 
 - **MCP-only** (Claude Code integration) — start the stdio MCP server.
 - **Web console** — start the FastAPI backend and the Vite dev server.
@@ -33,11 +32,10 @@ You do not need all three at once. The two most common setups are:
 - A local Python environment (project venv recommended; the start scripts
   auto-detect `venv/Scripts/python.exe` on Windows or `venv/bin/python` on POSIX).
 - **Optional extras** (install only what you need):
-  - `[gui]` → `PyQt6` (desktop dashboard)
   - `[tdx]` → `opentdx` (TDX market-data downloader)
   - `[cn]` → `akshare` (A-share supplementary data)
 - A DeepSeek API key, **only** if you intend to run the LLM macro strategy
-  engine (Module #4) or the desktop dashboard's Analysis tab. See
+  engine (Module #4). See
   [Configure environment variables](#configure-environment-variables).
 
 ## Install
@@ -48,7 +46,6 @@ From the project root, choose one of the two equivalent install paths:
 
 ```bash
 pip install -e .            # core runtime
-pip install -e ".[gui]"     # + desktop dashboard (PyQt6)
 pip install -e ".[tdx,cn]"  # + TDX downloader + akshare
 ```
 
@@ -61,8 +58,8 @@ pip install -r requirements.txt
 `requirements.txt` pins the core stack (`duckdb==1.4.4`, `mcp==1.25.0`,
 `fastapi==0.123.8`, `uvicorn==0.38.0`, `sse-starlette==3.0.3`,
 `pydantic==2.12.4`, `openai==1.62.0`, `yfinance==0.2.66`, …). It does not
-declare optional extras — install PyQt6 / opentdx / akshare separately if you
-use the equivalent `requirements.txt` path and need those surfaces.
+declare optional extras — install opentdx / akshare separately if you use the
+equivalent `requirements.txt` path and need those surfaces.
 
 ## Configure environment variables
 
@@ -122,7 +119,7 @@ matching dataclass defaults are the source of truth:
 
 `DEEPSEEK_API_KEY` is the **PRIMARY** key source for the macro strategy engine
 (Module #4) and the desktop Analysis tab. Resolution order in
-`src/macro/config.py:163-200`:
+`doge.config.settings` (DeepSeek key resolution):
 
 1. `DEEPSEEK_API_KEY` env var — if set and non-empty, it wins.
 2. Otherwise, if `models_config.json` still carries the placeholder sentinel
@@ -302,29 +299,11 @@ The Vite dev server proxies `/api` → `http://localhost:8901`
 > checkout. To re-sync the vendored copy, follow
 > `web/src/vendor/pretext/README.md`.
 
-## Start the desktop dashboard
+## Desktop dashboard (removed in Sprint M)
 
-```bash
-pip install -e ".[gui]"     # installs PyQt6
-python src/interface/dashboard.py
-```
-
-The desktop dashboard is legacy-maintained for local use. New platform UX work
-should target the Web/SDK/v1 path unless a separate PyQt story is approved.
-
-> **Known portability blocker.** `src/interface/dashboard.py:6-15` contains a
-> **machine-hardcoded** Qt6 DLL bootstrap:
->
-> ```python
-> qt6_bin_path = r"E:\LLMs\miniconda3\Lib\site-packages\PyQt6\Qt6\bin"
-> ```
->
-> On any machine whose PyQt6 is not installed at that exact path, the dashboard
-> prints `⚠️ Qt6 DLL path not found: …` and may fail to load Qt libraries. To
-> run it elsewhere, either edit the path to your local PyQt6 `Qt6\bin` location
-> or remove the block if your environment resolves Qt DLLs via `PATH`
-> normally. This is tracked as a clean-architecture migration cleanup item, not
-> a configuration knob.
+The PyQt desktop dashboard (`src/interface/`) was removed in Sprint M. The
+`gui` extra is no longer shipped; use the Web/SDK/`/v1` path for platform UX
+work.
 
 ## First scan walkthrough
 
@@ -332,7 +311,7 @@ The fastest end-to-end path with **no LLM key required** (pure analytics):
 
 1. Ensure the SQLite databases exist under `data/` (or wherever `DOGE_DB_DIR`
    points). If they are missing, populate them via the TDX downloader
-   (`pip install -e ".[tdx]"` then `python src/micro/tdx_downloader.py`) or
+   (`pip install -e ".[tdx]"` then the TDX data source adapter (`doge.infrastructure.data_source.tdx`)) or
    `yfinance`.
 
    > **First-run yfinance rate-limiting.** Yahoo throttles unauthenticated

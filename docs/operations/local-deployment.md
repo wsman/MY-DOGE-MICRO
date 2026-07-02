@@ -12,7 +12,9 @@ this page is the concise deployment entry.
 | MCP stdio | `scripts\mcp_stdio.bat` or `./scripts/mcp_stdio.sh` | stdio |
 | MCP SSE | `scripts\start_mcp_sse.bat` or `./scripts/start_mcp_sse.sh` | `127.0.0.1:8902` |
 | Web | `cd web && npm run dev` | Vite dev server |
-| PyQt | `python src/interface/dashboard.py` | local desktop window |
+
+The legacy PyQt desktop dashboard was removed in Sprint M; use the Web,
+SDK, or `/v1` paths for platform UX workflows.
 
 ## Safety Boundary
 

@@ -56,10 +56,8 @@ def test_readme_is_current_product_entry_not_legacy_architecture():
         "docs/API.md",
         "scripts/mcp_stdio.bat",
         "src/doge/interfaces/api/main.py",
-        "src/interface/dashboard.py",
         "DEEPSEEK_API_KEY",
         "REPLACE_WITH_DEEPSEEK_API_KEY",
-        "qt6_bin_path",
         "production_ready: false",
         "stable_declaration: forbidden",
     ]:
@@ -102,7 +100,7 @@ def test_runtime_maturity_non_production_posture_is_unchanged():
     assert "stable_declaration: forbidden" in maturity
 
 
-def test_runtime_maturity_marks_inmemory_and_pyqt_as_non_production_surfaces():
+def test_runtime_maturity_marks_inmemory_as_non_production_and_pyqt_removed():
     maturity = _read("docs/progress/runtime-maturity.yaml")
     readme = _read("README.md")
     getting_started = _read("docs/guides/getting-started.md")
@@ -112,16 +110,17 @@ def test_runtime_maturity_marks_inmemory_and_pyqt_as_non_production_surfaces():
         "status: demo_test_only",
         "not the production-facing runtime path",
         "pyqt_desktop:",
-        "status: legacy_maintained_local_surface",
-        "PyQt does not imply production readiness",
+        "status: removed",
+        "legacy PyQt dashboard and gui extra were removed",
     ]:
         assert required in maturity
 
-    assert "the in-memory agent runtime, and PyQt" in readme
+    assert "the in-memory agent runtime" in readme
     assert "compatibility or demo surfaces" in readme
-    assert "desktop dashboard is legacy-maintained for local use" in getting_started
-    assert "New platform UX work" in getting_started
-    assert "Web/SDK/v1 path" in getting_started
+    assert "PyQt desktop dashboard" in readme
+    assert "removed in Sprint M" in readme
+    assert "gui` extra is no longer shipped" in getting_started
+    assert "Web/SDK/`/v1` path" in getting_started
 
 
 def test_docs_validation_scripts_pass():
