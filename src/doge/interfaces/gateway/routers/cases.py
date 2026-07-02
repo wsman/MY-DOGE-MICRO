@@ -10,6 +10,11 @@ from pydantic import BaseModel, Field
 from doge.interfaces.api import deps
 from doge.interfaces.api.handlers import ResearchCaseHandler
 from doge.interfaces.gateway.routers._common import serialize
+from doge.interfaces.gateway.routers._response_models import (
+    CaseDecisionListResponse,
+    ResearchCaseListResponse,
+    ResearchCaseResponse,
+)
 from doge.interfaces.gateway.routers._platform_common import (
     build_research_case_execution_service,
     build_research_case_service,
@@ -66,7 +71,11 @@ async def get_home_queue(
         raise_platform_error(exc)
 
 
-@router.get("/research-cases", dependencies=[Depends(require_platform_objects)])
+@router.get(
+    "/research-cases",
+    response_model=ResearchCaseListResponse,
+    dependencies=[Depends(require_platform_objects)],
+)
 async def list_research_cases(
     request: Request,
     project_id: str | None = None,
@@ -102,7 +111,11 @@ async def create_research_case(
         raise_platform_error(exc)
 
 
-@router.get("/research-cases/{case_id}", dependencies=[Depends(require_platform_objects)])
+@router.get(
+    "/research-cases/{case_id}",
+    response_model=ResearchCaseResponse,
+    dependencies=[Depends(require_platform_objects)],
+)
 async def get_research_case(
     request: Request,
     case_id: str,
@@ -177,7 +190,11 @@ async def remove_research_case_asset(
         raise_platform_error(exc)
 
 
-@router.get("/research-cases/{case_id}/decisions", dependencies=[Depends(require_platform_objects)])
+@router.get(
+    "/research-cases/{case_id}/decisions",
+    response_model=CaseDecisionListResponse,
+    dependencies=[Depends(require_platform_objects)],
+)
 async def list_research_case_decisions(
     request: Request,
     case_id: str,

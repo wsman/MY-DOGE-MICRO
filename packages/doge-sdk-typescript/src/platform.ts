@@ -1,4 +1,19 @@
 import type { DogeClient } from './client.js'
+import type {
+  Capability,
+  CapabilitySnapshot,
+  CaseAssetLink,
+  CaseDecision,
+  CaseRunLink,
+  CaseReview,
+  HomeQueue,
+  Project,
+  ResearchCase,
+  TemplatePreflightResult,
+  WorkflowExecution,
+  WorkflowTemplate,
+  Workspace,
+} from './platform-types.js'
 
 interface ListProjectsOptions {
   workspaceId?: string
@@ -59,24 +74,24 @@ export class PlatformResource {
     this.root = root
   }
 
-  async listWorkspaces(limit = 100): Promise<Record<string, unknown>[]> {
-    const payload = await this.root.request<{ workspaces: Record<string, unknown>[] }>(
+  async listWorkspaces(limit = 100): Promise<Workspace[]> {
+    const payload = await this.root.request<{ workspaces: Workspace[] }>(
       'GET',
       `/v1/workspaces?limit=${limit}`,
     )
     return payload.workspaces
   }
 
-  createWorkspace(name: string, description = ''): Promise<Record<string, unknown>> {
-    return this.root.request('POST', '/v1/workspaces', { name, description })
+  createWorkspace(name: string, description = ''): Promise<Workspace> {
+    return this.root.request<Workspace>('POST', '/v1/workspaces', { name, description })
   }
 
-  getWorkspace(workspaceId: string): Promise<Record<string, unknown>> {
-    return this.root.request('GET', `/v1/workspaces/${workspaceId}`)
+  getWorkspace(workspaceId: string): Promise<Workspace> {
+    return this.root.request<Workspace>('GET', `/v1/workspaces/${workspaceId}`)
   }
 
-  async listProjects(options: ListProjectsOptions = {}): Promise<Record<string, unknown>[]> {
-    const payload = await this.root.request<{ projects: Record<string, unknown>[] }>(
+  async listProjects(options: ListProjectsOptions = {}): Promise<Project[]> {
+    const payload = await this.root.request<{ projects: Project[] }>(
       'GET',
       queryPath('/v1/projects', { workspace_id: options.workspaceId, limit: options.limit ?? 100 }),
     )
@@ -87,8 +102,8 @@ export class PlatformResource {
     workspaceId: string,
     name: string,
     options: { description?: string, defaultMarket?: string } = {},
-  ): Promise<Record<string, unknown>> {
-    return this.root.request('POST', '/v1/projects', {
+  ): Promise<Project> {
+    return this.root.request<Project>('POST', '/v1/projects', {
       workspace_id: workspaceId,
       name,
       description: options.description ?? '',
@@ -96,32 +111,32 @@ export class PlatformResource {
     })
   }
 
-  getProject(projectId: string): Promise<Record<string, unknown>> {
-    return this.root.request('GET', `/v1/projects/${projectId}`)
+  getProject(projectId: string): Promise<Project> {
+    return this.root.request<Project>('GET', `/v1/projects/${projectId}`)
   }
 
-  async listResearchCases(options: ListResearchCasesOptions = {}): Promise<Record<string, unknown>[]> {
-    const payload = await this.root.request<{ research_cases: Record<string, unknown>[] }>(
+  async listResearchCases(options: ListResearchCasesOptions = {}): Promise<ResearchCase[]> {
+    const payload = await this.root.request<{ research_cases: ResearchCase[] }>(
       'GET',
       queryPath('/v1/research-cases', { project_id: options.projectId, limit: options.limit ?? 100 }),
     )
     return payload.research_cases
   }
 
-  createResearchCase(projectId: string, title: string, thesis = ''): Promise<Record<string, unknown>> {
-    return this.root.request('POST', '/v1/research-cases', { project_id: projectId, title, thesis })
+  createResearchCase(projectId: string, title: string, thesis = ''): Promise<ResearchCase> {
+    return this.root.request<ResearchCase>('POST', '/v1/research-cases', { project_id: projectId, title, thesis })
   }
 
-  getResearchCase(caseId: string): Promise<Record<string, unknown>> {
-    return this.root.request('GET', `/v1/research-cases/${caseId}`)
+  getResearchCase(caseId: string): Promise<ResearchCase> {
+    return this.root.request<ResearchCase>('GET', `/v1/research-cases/${caseId}`)
   }
 
-  homeQueue(limit = 20): Promise<Record<string, unknown>> {
-    return this.root.request('GET', `/v1/home-queue?limit=${limit}`)
+  homeQueue(limit = 20): Promise<HomeQueue> {
+    return this.root.request<HomeQueue>('GET', `/v1/home-queue?limit=${limit}`)
   }
 
-  linkResearchCaseRun(caseId: string, runId: string, linkType = 'primary'): Promise<Record<string, unknown>> {
-    return this.root.request('POST', `/v1/research-cases/${caseId}/runs`, {
+  linkResearchCaseRun(caseId: string, runId: string, linkType = 'primary'): Promise<CaseRunLink> {
+    return this.root.request<CaseRunLink>('POST', `/v1/research-cases/${caseId}/runs`, {
       run_id: runId,
       link_type: linkType,
     })
@@ -131,8 +146,8 @@ export class PlatformResource {
     caseId: string,
     templateId: string,
     options: CreateResearchCaseRunFromTemplateOptions = {},
-  ): Promise<Record<string, unknown>> {
-    return this.root.request('POST', `/v1/research-cases/${caseId}/runs`, {
+  ): Promise<CaseRunLink> {
+    return this.root.request<CaseRunLink>('POST', `/v1/research-cases/${caseId}/runs`, {
       template_id: templateId,
       question: options.question,
       model_policy: options.modelPolicy ?? {},
@@ -147,8 +162,8 @@ export class PlatformResource {
     })
   }
 
-  async listCaseAssets(caseId: string): Promise<Record<string, unknown>[]> {
-    const payload = await this.root.request<{ assets: Record<string, unknown>[] }>(
+  async listCaseAssets(caseId: string): Promise<CaseAssetLink[]> {
+    const payload = await this.root.request<{ assets: CaseAssetLink[] }>(
       'GET',
       `/v1/research-cases/${caseId}/assets`,
     )
@@ -165,8 +180,8 @@ export class PlatformResource {
       version?: string
       metadata?: Record<string, unknown>
     } = {},
-  ): Promise<Record<string, unknown>> {
-    return this.root.request('POST', `/v1/research-cases/${caseId}/assets`, {
+  ): Promise<CaseAssetLink> {
+    return this.root.request<CaseAssetLink>('POST', `/v1/research-cases/${caseId}/assets`, {
       asset_type: assetType,
       asset_id: assetId,
       asset_name: options.assetName ?? '',
@@ -176,8 +191,8 @@ export class PlatformResource {
     })
   }
 
-  async listCaseDecisions(caseId: string): Promise<Record<string, unknown>[]> {
-    const payload = await this.root.request<{ decisions: Record<string, unknown>[] }>(
+  async listCaseDecisions(caseId: string): Promise<CaseDecision[]> {
+    const payload = await this.root.request<{ decisions: CaseDecision[] }>(
       'GET',
       `/v1/research-cases/${caseId}/decisions`,
     )
@@ -192,8 +207,8 @@ export class PlatformResource {
       sourceRunIds?: string[]
       sourceExecutionIds?: string[]
     } = {},
-  ): Promise<Record<string, unknown>> {
-    return this.root.request('POST', `/v1/research-cases/${caseId}/decisions`, {
+  ): Promise<CaseDecision> {
+    return this.root.request<CaseDecision>('POST', `/v1/research-cases/${caseId}/decisions`, {
       decision_type: decisionType,
       rationale: options.rationale ?? '',
       source_run_ids: options.sourceRunIds ?? [],
@@ -205,8 +220,8 @@ export class PlatformResource {
     caseId: string,
     templateId: string,
     options: CaseExecutionOptions = {},
-  ): Promise<Record<string, unknown>> {
-    return this.root.request(
+  ): Promise<TemplatePreflightResult> {
+    return this.root.request<TemplatePreflightResult>(
       'POST',
       `/v1/research-cases/${caseId}/executions/preflight`,
       caseExecutionPayload(templateId, options),
@@ -217,28 +232,28 @@ export class PlatformResource {
     caseId: string,
     templateId: string,
     options: CaseExecutionOptions = {},
-  ): Promise<Record<string, unknown>> {
-    return this.root.request(
+  ): Promise<WorkflowExecution> {
+    return this.root.request<WorkflowExecution>(
       'POST',
       `/v1/research-cases/${caseId}/executions`,
       caseExecutionPayload(templateId, options),
     )
   }
 
-  async listCaseExecutions(caseId: string, limit = 100): Promise<Record<string, unknown>[]> {
-    const payload = await this.root.request<{ executions: Record<string, unknown>[] }>(
+  async listCaseExecutions(caseId: string, limit = 100): Promise<WorkflowExecution[]> {
+    const payload = await this.root.request<{ executions: WorkflowExecution[] }>(
       'GET',
       `/v1/research-cases/${caseId}/executions?limit=${limit}`,
     )
     return payload.executions
   }
 
-  getCaseReview(caseId: string): Promise<Record<string, unknown>> {
-    return this.root.request('GET', `/v1/research-cases/${caseId}/review`)
+  getCaseReview(caseId: string): Promise<CaseReview> {
+    return this.root.request<CaseReview>('GET', `/v1/research-cases/${caseId}/review`)
   }
 
-  async listWorkflowTemplates(limit = 100): Promise<Record<string, unknown>[]> {
-    const payload = await this.root.request<{ workflow_templates: Record<string, unknown>[] }>(
+  async listWorkflowTemplates(limit = 100): Promise<WorkflowTemplate[]> {
+    const payload = await this.root.request<{ workflow_templates: WorkflowTemplate[] }>(
       'GET',
       `/v1/workflow-templates?limit=${limit}`,
     )
@@ -249,8 +264,8 @@ export class PlatformResource {
     slug: string,
     name: string,
     options: CreateWorkflowTemplateOptions = {},
-  ): Promise<Record<string, unknown>> {
-    return this.root.request('POST', '/v1/workflow-templates', {
+  ): Promise<WorkflowTemplate> {
+    return this.root.request<WorkflowTemplate>('POST', '/v1/workflow-templates', {
       slug,
       name,
       description: options.description ?? '',
@@ -268,8 +283,8 @@ export class PlatformResource {
     })
   }
 
-  getWorkflowTemplate(templateId: string): Promise<Record<string, unknown>> {
-    return this.root.request('GET', `/v1/workflow-templates/${templateId}`)
+  getWorkflowTemplate(templateId: string): Promise<WorkflowTemplate> {
+    return this.root.request<WorkflowTemplate>('GET', `/v1/workflow-templates/${templateId}`)
   }
 }
 
@@ -280,12 +295,12 @@ export class CapabilitiesResource {
     this.root = root
   }
 
-  get(): Promise<Record<string, unknown>> {
-    return this.root.request('GET', '/v1/capabilities')
+  get(): Promise<CapabilitySnapshot> {
+    return this.root.request<CapabilitySnapshot>('GET', '/v1/capabilities')
   }
 
-  async list(): Promise<Record<string, unknown>[]> {
-    const payload = await this.root.request<{ capabilities: Record<string, unknown>[] }>('GET', '/v1/capabilities')
+  async list(): Promise<Capability[]> {
+    const payload = await this.root.request<{ capabilities: Capability[] }>('GET', '/v1/capabilities')
     return payload.capabilities
   }
 }

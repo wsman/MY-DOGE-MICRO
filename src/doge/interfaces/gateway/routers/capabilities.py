@@ -13,12 +13,17 @@ from doge.interfaces.api.enterprise_access import (
     is_enterprise_request,
 )
 from doge.interfaces.gateway.routers._common import serialize
+from doge.interfaces.gateway.routers._response_models import CapabilitySnapshotResponse
 from doge.interfaces.gateway.routers._platform_common import require_capability_registry
 
 router = APIRouter(dependencies=[Depends(deps.require_api_token)])
 
 
-@router.get("/capabilities", dependencies=[Depends(require_capability_registry)])
+@router.get(
+    "/capabilities",
+    response_model=CapabilitySnapshotResponse,
+    dependencies=[Depends(require_capability_registry)],
+)
 async def get_capabilities(
     request: Request,
     use_case: BuildCapabilityRegistry = Depends(deps.get_capability_registry_use_case),

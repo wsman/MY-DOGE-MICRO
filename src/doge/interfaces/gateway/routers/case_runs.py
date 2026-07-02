@@ -12,6 +12,10 @@ from doge.core.ports.enterprise_governance import IEnterpriseGovernanceRepositor
 from doge.interfaces.api import deps
 from doge.interfaces.api.handlers import ExecuteWorkflowHandler, ResearchCaseRunHandler
 from doge.interfaces.gateway.routers._common import serialize
+from doge.interfaces.gateway.routers._response_models import (
+    WorkflowExecutionListResponse,
+    WorkflowExecutionResponse,
+)
 from doge.interfaces.gateway.routers._platform_common import (
     build_research_case_execution_service,
     build_research_case_service,
@@ -115,7 +119,11 @@ async def execute_research_case_template(
         raise_platform_error(exc)
 
 
-@router.get("/research-cases/{case_id}/executions", dependencies=[Depends(require_platform_objects)])
+@router.get(
+    "/research-cases/{case_id}/executions",
+    response_model=WorkflowExecutionListResponse,
+    dependencies=[Depends(require_platform_objects)],
+)
 async def list_research_case_executions(
     request: Request,
     case_id: str,
@@ -135,6 +143,7 @@ async def list_research_case_executions(
 
 @router.get(
     "/research-cases/{case_id}/executions/{execution_id}",
+    response_model=WorkflowExecutionResponse,
     dependencies=[Depends(require_platform_objects)],
 )
 async def get_research_case_execution(

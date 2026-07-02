@@ -300,10 +300,10 @@ def test_fastapi_route_count_governance_syncs_to_s017_surface():
         adr_0007,
         imported_state,
     ]:
-        assert "88 product routes" in text
-        assert "51 product routes" not in text
-    assert "88 canonical product routes" in entities_registry
-    assert "51 canonical product routes" not in entities_registry
+        assert "88 HTTP routes" in text
+        assert "51 HTTP routes" not in text
+    assert "88 canonical HTTP routes" in entities_registry
+    assert "51 canonical HTTP routes" not in entities_registry
 
 
 def test_platformization_adr_disposition_review_keeps_proposed_alpha_boundary():

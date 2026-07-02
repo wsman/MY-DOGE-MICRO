@@ -8,6 +8,10 @@ from pydantic import BaseModel, Field
 from doge.interfaces.api import deps
 from doge.interfaces.api.handlers import ProjectHandler
 from doge.interfaces.gateway.routers._common import serialize
+from doge.interfaces.gateway.routers._response_models import (
+    ProjectListResponse,
+    ProjectResponse,
+)
 from doge.interfaces.gateway.routers._platform_common import (
     build_project_service,
     platform_context,
@@ -26,7 +30,11 @@ class ProjectCreate(BaseModel):
     default_market: str | None = None
 
 
-@router.get("/projects", dependencies=[Depends(require_platform_objects)])
+@router.get(
+    "/projects",
+    response_model=ProjectListResponse,
+    dependencies=[Depends(require_platform_objects)],
+)
 async def list_projects(
     request: Request,
     workspace_id: str | None = None,
@@ -63,7 +71,11 @@ async def create_project(
         raise_platform_error(exc)
 
 
-@router.get("/projects/{project_id}", dependencies=[Depends(require_platform_objects)])
+@router.get(
+    "/projects/{project_id}",
+    response_model=ProjectResponse,
+    dependencies=[Depends(require_platform_objects)],
+)
 async def get_project(
     request: Request,
     project_id: str,

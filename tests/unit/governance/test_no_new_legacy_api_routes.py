@@ -60,9 +60,9 @@ def test_no_new_legacy_api_function_routes() -> None:
     for relative, prefix in _LEGACY_ROUTER_PREFIXES.items():
         routes.update(_decorated_routes(ROOT / relative, prefix))
 
-    main = (ROOT / "src/doge/interfaces/api/main.py").read_text(encoding="utf-8")
-    assert '@app.get("/api/health")' in main
-    assert 'target_app.add_api_route("/api/stats", stats, methods=["GET"])' in main
+    routes_source = (ROOT / "src/doge/interfaces/api/routes.py").read_text(encoding="utf-8")
+    assert 'app.add_api_route("/api/health", health, methods=["GET"])' in routes_source
+    assert 'target_app.add_api_route("/api/stats", stats, methods=["GET"])' in routes_source
     routes.add("GET /api/health")
     routes.add("GET /api/stats")
 

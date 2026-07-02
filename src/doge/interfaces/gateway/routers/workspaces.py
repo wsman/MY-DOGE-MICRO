@@ -8,6 +8,10 @@ from pydantic import BaseModel, Field
 from doge.interfaces.api import deps
 from doge.interfaces.api.handlers import WorkspaceHandler
 from doge.interfaces.gateway.routers._common import serialize
+from doge.interfaces.gateway.routers._response_models import (
+    WorkspaceListResponse,
+    WorkspaceResponse,
+)
 from doge.interfaces.gateway.routers._platform_common import (
     build_workspace_service,
     platform_context,
@@ -24,7 +28,11 @@ class WorkspaceCreate(BaseModel):
     description: str = ""
 
 
-@router.get("/workspaces", dependencies=[Depends(require_platform_objects)])
+@router.get(
+    "/workspaces",
+    response_model=WorkspaceListResponse,
+    dependencies=[Depends(require_platform_objects)],
+)
 async def list_workspaces(
     request: Request,
     limit: int = 100,
@@ -54,7 +62,11 @@ async def create_workspace(
         raise_platform_error(exc)
 
 
-@router.get("/workspaces/{workspace_id}", dependencies=[Depends(require_platform_objects)])
+@router.get(
+    "/workspaces/{workspace_id}",
+    response_model=WorkspaceResponse,
+    dependencies=[Depends(require_platform_objects)],
+)
 async def get_workspace(
     request: Request,
     workspace_id: str,

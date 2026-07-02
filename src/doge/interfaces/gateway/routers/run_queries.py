@@ -16,6 +16,12 @@ from doge.interfaces.api.handlers import (
     RunNotFound,
 )
 from doge.interfaces.gateway.routers._common import serialize
+from doge.interfaces.gateway.routers._response_models import (
+    RunCitationsEnvelopeResponse,
+    RunClaimsEnvelopeResponse,
+    RunEvalEnvelopeResponse,
+    RunSummaryEnvelopeResponse,
+)
 from doge.interfaces.gateway.routers._runs_common import (
     request_run_access,
     require_run_summary_api,
@@ -71,7 +77,11 @@ async def get_artifacts(
     return {"artifacts": serialize(artifacts)}
 
 
-@router.get("/runs/{run_id}/summary", dependencies=[Depends(require_run_summary_api)])
+@router.get(
+    "/runs/{run_id}/summary",
+    response_model=RunSummaryEnvelopeResponse,
+    dependencies=[Depends(require_run_summary_api)],
+)
 async def get_run_summary(
     request: Request,
     run_id: str,
@@ -92,7 +102,11 @@ async def get_run_summary(
     return {"summary": serialize(result["summary"]), "relations": serialize(result["relations"])}
 
 
-@router.get("/runs/{run_id}/claims", dependencies=[Depends(require_run_summary_api)])
+@router.get(
+    "/runs/{run_id}/claims",
+    response_model=RunClaimsEnvelopeResponse,
+    dependencies=[Depends(require_run_summary_api)],
+)
 async def get_run_claims(
     request: Request,
     run_id: str,
@@ -116,7 +130,11 @@ async def get_run_claims(
     }
 
 
-@router.get("/runs/{run_id}/citations", dependencies=[Depends(require_run_summary_api)])
+@router.get(
+    "/runs/{run_id}/citations",
+    response_model=RunCitationsEnvelopeResponse,
+    dependencies=[Depends(require_run_summary_api)],
+)
 async def get_run_citations(
     request: Request,
     run_id: str,
@@ -140,7 +158,11 @@ async def get_run_citations(
     }
 
 
-@router.get("/runs/{run_id}/eval", dependencies=[Depends(require_run_summary_api)])
+@router.get(
+    "/runs/{run_id}/eval",
+    response_model=RunEvalEnvelopeResponse,
+    dependencies=[Depends(require_run_summary_api)],
+)
 async def get_run_eval(
     request: Request,
     run_id: str,

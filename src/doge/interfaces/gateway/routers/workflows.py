@@ -10,6 +10,10 @@ from pydantic import BaseModel, Field
 from doge.interfaces.api import deps
 from doge.interfaces.api.handlers import WorkflowTemplateHandler
 from doge.interfaces.gateway.routers._common import serialize
+from doge.interfaces.gateway.routers._response_models import (
+    WorkflowTemplateListResponse,
+    WorkflowTemplateResponse,
+)
 from doge.interfaces.gateway.routers._platform_common import (
     build_workflow_service,
     platform_context,
@@ -38,7 +42,11 @@ class WorkflowTemplateCreate(BaseModel):
     ui_schema: dict[str, Any] | None = None
 
 
-@router.get("/workflow-templates", dependencies=[Depends(require_workflow_templates)])
+@router.get(
+    "/workflow-templates",
+    response_model=WorkflowTemplateListResponse,
+    dependencies=[Depends(require_workflow_templates)],
+)
 async def list_workflow_templates(
     request: Request,
     limit: int = 100,
@@ -83,7 +91,11 @@ async def create_workflow_template(
         raise_platform_error(exc)
 
 
-@router.get("/workflow-templates/{template_id}", dependencies=[Depends(require_workflow_templates)])
+@router.get(
+    "/workflow-templates/{template_id}",
+    response_model=WorkflowTemplateResponse,
+    dependencies=[Depends(require_workflow_templates)],
+)
 async def get_workflow_template(
     request: Request,
     template_id: str,

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -129,6 +130,71 @@ CHECKS: tuple[SurfaceCheck, ...] = (
 )
 
 
+# OpenAPI response schema name -> TypeScript interface name (platform entity parity).
+# Each schema is produced by a response_model declared in
+# src/doge/interfaces/gateway/routers/_response_models.py; the TS interface lives in
+# packages/doge-sdk-typescript/src/platform-types.ts. OpenAPI and TS properties must
+# stay aligned so neither side silently drops or invents a wire field.
+ENTITY_PARITY: tuple[tuple[str, str], ...] = (
+    ("WorkspaceResponse", "Workspace"),
+    ("ProjectResponse", "Project"),
+    ("ResearchCaseResponse", "ResearchCase"),
+    ("WorkflowTemplateResponse", "WorkflowTemplate"),
+    ("WorkflowExecutionResponse", "WorkflowExecution"),
+    ("CaseDecisionResponse", "CaseDecision"),
+    ("CapabilityResponse", "Capability"),
+    ("CapabilitySnapshotResponse", "CapabilitySnapshot"),
+    ("RunSummaryResponse", "RunSummary"),
+    ("RunClaimResponse", "RunClaim"),
+    ("RunCitationResponse", "RunCitation"),
+    ("RunEvalResponse", "RunEval"),
+)
+
+ENTITY_PARITY_ALLOWED_TS_EXTRA: dict[str, frozenset[str]] = {
+    # Workflow execution responses can carry runtime-only convenience fields from
+    # execution flows while the persisted execution entity schema remains stable.
+    "WorkflowExecution": frozenset({"run_status", "links"}),
+}
+
+
+def _ts_interface_fields(typescript_surface: str, name: str) -> set[str] | None:
+    """Return field names declared in ``export interface <name> { ... }``."""
+    match = re.search(
+        r"export interface " + re.escape(name) + r"\s*\{(?P<body>.*?)\n\}",
+        typescript_surface,
+        re.DOTALL,
+    )
+    if not match:
+        return None
+    return set(re.findall(r"^\s*(\w+)\??\s*:", match.group("body"), re.MULTILINE))
+
+
+def _entity_parity_errors(openapi: dict, typescript_surface: str) -> list[str]:
+    """Fail when OpenAPI and TypeScript entity fields drift."""
+    schemas = openapi.get("components", {}).get("schemas", {})
+    errors: list[str] = []
+    for openapi_name, ts_name in ENTITY_PARITY:
+        schema = schemas.get(openapi_name)
+        if schema is None:
+            errors.append(f"entity parity: OpenAPI missing schema {openapi_name}")
+            continue
+        openapi_props = set((schema.get("properties") or {}).keys())
+        ts_fields = _ts_interface_fields(typescript_surface, ts_name)
+        if ts_fields is None:
+            errors.append(f"entity parity: TS missing interface {ts_name}")
+            continue
+        for prop in sorted(openapi_props - ts_fields):
+            errors.append(
+                f"entity parity: {ts_name} missing property '{prop}' (OpenAPI {openapi_name})"
+            )
+        allowed_extra = ENTITY_PARITY_ALLOWED_TS_EXTRA.get(ts_name, frozenset())
+        for prop in sorted(ts_fields - openapi_props - allowed_extra):
+            errors.append(
+                f"entity parity: {ts_name} has property '{prop}' not present in OpenAPI {openapi_name}"
+            )
+    return errors
+
+
 def main() -> int:
     errors = validate()
     if errors:
@@ -136,7 +202,7 @@ def main() -> int:
             print(f"ERROR: {error}", file=sys.stderr)
         print(f"sdk-contract-check failed with {len(errors)} error(s)", file=sys.stderr)
         return 1
-    print(f"sdk-contract-check passed ({len(CHECKS)} surfaces)")
+    print(f"sdk-contract-check passed ({len(CHECKS)} surfaces, {len(ENTITY_PARITY)} entity parity checks)")
     return 0
 
 
@@ -158,6 +224,7 @@ def validate() -> list[str]:
         ROOT / "packages" / "doge-sdk-typescript" / "src" / "run.ts",
         ROOT / "packages" / "doge-sdk-typescript" / "src" / "document.ts",
         ROOT / "packages" / "doge-sdk-typescript" / "src" / "platform.ts",
+        ROOT / "packages" / "doge-sdk-typescript" / "src" / "platform-types.ts",
     )
     web_surface = _read_all(
         ROOT / "web" / "src" / "api" / "agent.ts",
@@ -174,6 +241,7 @@ def validate() -> list[str]:
         errors.extend(_missing_tokens(check.label, "Python SDK", check.python_tokens, python_surface))
         errors.extend(_missing_tokens(check.label, "TypeScript SDK", check.typescript_tokens, typescript_surface))
         errors.extend(_missing_tokens(check.label, "Web client", check.web_tokens, web_surface))
+    errors.extend(_entity_parity_errors(openapi, typescript_surface))
     return errors
 
 
