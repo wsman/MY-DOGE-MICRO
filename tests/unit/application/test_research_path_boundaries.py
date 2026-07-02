@@ -1,7 +1,11 @@
 from pathlib import Path
 
+import pytest
+
 from doge.application.use_cases import generate_industry_report, generate_macro_report
 from doge.application.use_cases import industry_analyzer, macro_strategist
+
+pytestmark = pytest.mark.module_research
 
 
 def test_research_use_cases_declare_compatibility_vs_runtime_paths():

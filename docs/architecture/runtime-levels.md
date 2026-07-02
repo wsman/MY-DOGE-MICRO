@@ -10,7 +10,7 @@
 runtime kernel. State is persisted to `data/agent_state.db`. This level has no
 HTTP dependency and supports scripted offline execution.
 
-Current label: Preview. This level is suitable for local deterministic
+Current label: Alpha. This level is suitable for local deterministic
 operation, but it is not Stable.
 
 ## Level 2 — Daemon Gateway

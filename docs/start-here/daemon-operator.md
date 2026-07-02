@@ -8,10 +8,13 @@ the Alpha `/v1` contract to CLI, SDK, or Web clients.
 1. Start the daemon on loopback.
 
    ```bash
-   doged serve --host 127.0.0.1 --port 8901
+   doged serve --port 8901
    ```
 
-   The full daemon CLI contract stays in [../CLI.md](../CLI.md).
+   `doged` binds to loopback by default. Remote bind is controlled by the
+   enterprise auth and remote-bind environment gates documented in
+   [../API.md](../API.md), not by a `--host` CLI flag. The full daemon CLI
+   contract stays in [../CLI.md](../CLI.md).
 
 2. Check readiness and route family.
 

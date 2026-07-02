@@ -5,6 +5,8 @@ from doge.application.use_cases.macro_strategist import MacroStrategistAgentUseC
 from doge.application.use_cases.run_use_cases import ExecuteRun
 from doge.core.domain.agent_models import AgentRun, RunStatus
 
+pytestmark = pytest.mark.module_research
+
 
 class FakeRuntime:
     def __init__(self):

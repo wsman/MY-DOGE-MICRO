@@ -1,4 +1,8 @@
+import pytest
+
 from doge.products.market.tools import MarketToolProvider
+
+pytestmark = pytest.mark.module_market
 
 
 class StockService:

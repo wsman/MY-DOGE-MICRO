@@ -1,4 +1,5 @@
 from doge.application.agent.tool_service import ToolApplicationService
+import pytest
 from doge.infrastructure.code_execution.python import DisabledCodeExecutor, SubprocessCodeExecutor
 from doge.products.quant.tools import QuantToolProvider
 from doge.bootstrap.gateway import GatewayContainer
@@ -11,6 +12,8 @@ from doge.infrastructure.code_execution import (
 from doge.infrastructure.code_execution import (
     SubprocessCodeExecutor as InfrastructureSubprocessCodeExecutor,
 )
+
+pytestmark = pytest.mark.module_quant
 
 
 def test_disabled_code_executor_is_default_off_boundary():

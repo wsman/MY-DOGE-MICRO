@@ -1,4 +1,8 @@
+import pytest
+
 from doge.products.research.tools import FundamentalToolProvider
+
+pytestmark = pytest.mark.module_research
 
 
 class Statements:

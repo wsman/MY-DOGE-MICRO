@@ -17,6 +17,8 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 
+pytestmark = pytest.mark.module_market
+
 from doge.application.use_cases.generate_market_overview import GenerateMarketOverviewUseCase
 from doge.application.use_cases.generate_anomaly_report import GenerateAnomalyReportUseCase
 from doge.application.use_cases.generate_catalog import GenerateCatalogUseCase

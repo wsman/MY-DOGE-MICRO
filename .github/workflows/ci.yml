@@ -40,6 +40,123 @@ jobs:
       - name: Run research eval smoke
         run: python -m pytest tests/eval -q
 
+  ci-market:
+    name: ci-market
+    runs-on: ubuntu-latest
+    env:
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e .
+      - run: python -m pytest -m module_market tests/unit/capabilities/test_market_provider.py tests/test_market_reporting.py -q
+
+  ci-research:
+    name: ci-research
+    runs-on: ubuntu-latest
+    env:
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e .
+      - run: python -m pytest -m module_research tests/unit/capabilities/test_research_provider.py tests/unit/capabilities/test_fundamental_provider.py tests/unit/application/test_research_path_boundaries.py tests/unit/application/test_runtime_backed_research_use_cases.py -q
+
+  ci-portfolio:
+    name: ci-portfolio
+    runs-on: ubuntu-latest
+    env:
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e .
+      - run: python -m pytest -m module_portfolio tests/unit/capabilities/test_portfolio_provider.py tests/unit/test_portfolio_service.py -q
+
+  ci-quant:
+    name: ci-quant
+    runs-on: ubuntu-latest
+    env:
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e .
+      - run: python -m pytest -m module_quant tests/unit/capabilities/test_code_executor.py -q
+
+  ci-runtime-gateway:
+    name: ci-runtime-gateway
+    runs-on: ubuntu-latest
+    env:
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e .
+      - run: python -m pytest tests/unit/layer_gates tests/unit/governance tests/unit/gateway tests/contract/test_api_doc_route_coverage.py -q
+
+  ci-sdk:
+    name: ci-sdk
+    runs-on: ubuntu-latest
+    env:
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: python -m pip install -e .
+      - run: python tools/ci/sdk-contract-check.py
+      - run: python -m pytest tests/unit/ci tests/contract/test_python_sdk.py -q
+      - run: npm ci
+        working-directory: web
+      - run: npm test
+        working-directory: packages/doge-sdk-typescript
+      - run: npm run build
+        working-directory: packages/doge-sdk-typescript
+
+  ci-eval:
+    name: ci-eval
+    runs-on: ubuntu-latest
+    env:
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e .
+      - run: python -m pytest tests/eval -q
+
   frontend:
     name: TypeScript checks
     runs-on: ubuntu-latest

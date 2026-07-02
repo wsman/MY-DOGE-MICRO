@@ -6,6 +6,8 @@ from doge.core.domain.portfolio_models import Portfolio, PortfolioHolding
 from doge.infrastructure.database.portfolio_repository import SQLitePortfolioRepository, demo_portfolio
 from doge.shared.scope import TenantScope
 
+pytestmark = pytest.mark.module_portfolio
+
 
 class AggressiveRiskFactors:
     def asset_volatility(self, asset_class):

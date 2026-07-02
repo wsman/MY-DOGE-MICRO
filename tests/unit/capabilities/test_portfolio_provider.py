@@ -1,4 +1,8 @@
+import pytest
+
 from doge.products.portfolio.tools import PortfolioToolProvider
+
+pytestmark = pytest.mark.module_portfolio
 
 
 class PortfolioService:

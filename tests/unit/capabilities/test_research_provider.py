@@ -1,5 +1,9 @@
+import pytest
+
 from doge.products.research.tools import ResearchToolProvider
 from doge.core.domain.enterprise_context import EnterpriseContext
+
+pytestmark = pytest.mark.module_research
 
 
 class StockService:
