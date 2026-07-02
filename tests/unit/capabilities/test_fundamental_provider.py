@@ -1,4 +1,4 @@
-from doge.application.capabilities.fundamental_provider import FundamentalToolProvider
+from doge.products.research.tools import FundamentalToolProvider
 
 
 class Statements:

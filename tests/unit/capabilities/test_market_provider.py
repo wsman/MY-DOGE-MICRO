@@ -1,4 +1,4 @@
-from doge.application.capabilities.market_provider import MarketToolProvider
+from doge.products.market.tools import MarketToolProvider
 
 
 class StockService:

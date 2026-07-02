@@ -1,13 +1,13 @@
 from doge.application.agent.tool_service import ToolApplicationService
-from doge.application.agent.tools import ToolRegistry, ToolResult, build_default_tool_registry
-from doge.application.capabilities.compliance_provider import ComplianceToolProvider
+from doge.application.tools import ToolRegistry, ToolResult, build_default_tool_registry
+from doge.platform.governance.tools import ComplianceToolProvider
 from doge.infrastructure.code_execution.python import SubprocessCodeExecutor
-from doge.application.capabilities.fundamental_provider import FundamentalToolProvider
-from doge.application.capabilities.market_provider import MarketToolProvider
-from doge.application.capabilities.portfolio_provider import PortfolioToolProvider
-from doge.application.capabilities.publishing_provider import PublishingToolProvider
-from doge.application.capabilities.quant_provider import QuantToolProvider
-from doge.application.capabilities.research_provider import ResearchToolProvider
+from doge.products.research.tools import FundamentalToolProvider
+from doge.products.market.tools import MarketToolProvider
+from doge.products.portfolio.tools import PortfolioToolProvider
+from doge.platform.governance.tools import PublishingToolProvider
+from doge.products.quant.tools import QuantToolProvider
+from doge.products.research.tools import ResearchToolProvider
 from doge.core.domain.enterprise_context import EnterpriseContext
 from doge.core.domain.tool_descriptor import ToolDescriptor
 from doge.core.domain.tool_policy import ToolCategory

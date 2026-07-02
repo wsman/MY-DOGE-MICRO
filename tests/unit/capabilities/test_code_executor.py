@@ -1,7 +1,8 @@
 from doge.application.agent.tool_service import ToolApplicationService
 from doge.infrastructure.code_execution.python import DisabledCodeExecutor, SubprocessCodeExecutor
-from doge.application.capabilities.quant_provider import QuantToolProvider
-from doge.application.composition import build_python_analysis_executor
+from doge.products.quant.tools import QuantToolProvider
+from doge.bootstrap.gateway import GatewayContainer
+def build_python_analysis_executor(*a, **kw): return GatewayContainer().build_python_analysis_executor(*a, **kw)
 from doge.config.settings import FeatureConfig, Settings
 from doge.core.ports.code_executor import ICodeExecutor
 from doge.infrastructure.code_execution import (

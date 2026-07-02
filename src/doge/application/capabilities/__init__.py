@@ -1,12 +1,12 @@
-"""Capability discovery providers."""
+"""Capability discovery registry.
 
-from doge.application.capabilities.compliance_provider import ComplianceToolProvider
-from doge.application.capabilities.fundamental_provider import FundamentalToolProvider
-from doge.application.capabilities.market_provider import MarketToolProvider
-from doge.application.capabilities.portfolio_provider import PortfolioToolProvider
-from doge.application.capabilities.publishing_provider import PublishingToolProvider
-from doge.application.capabilities.quant_provider import QuantToolProvider
-from doge.application.capabilities.registry import (
+Tool-execution providers now live in their canonical owners
+(``doge.products.*.tools``, ``doge.platform.governance.tools``). This package
+retains only the capability registry; the provider re-exports were removed in
+Sprint M once no package-level consumers remained.
+"""
+
+from doge.application.capabilities.registry import (  # noqa: F401
     ApiCapabilityProvider,
     FeatureCapabilityProvider,
     MaturityCapabilityProvider,
@@ -14,20 +14,12 @@ from doge.application.capabilities.registry import (
     ToolExecutionProviderRegistry,
     ToolRegistryCapabilityProvider,
 )
-from doge.application.capabilities.research_provider import ResearchToolProvider
 
 __all__ = [
     "ApiCapabilityProvider",
-    "ComplianceToolProvider",
     "FeatureCapabilityProvider",
-    "FundamentalToolProvider",
-    "MarketToolProvider",
     "MaturityCapabilityProvider",
     "ModelProviderCapabilityProvider",
-    "PortfolioToolProvider",
-    "PublishingToolProvider",
-    "QuantToolProvider",
-    "ResearchToolProvider",
     "ToolExecutionProviderRegistry",
     "ToolRegistryCapabilityProvider",
 ]

@@ -1,4 +1,4 @@
-from doge.application.capabilities.portfolio_provider import PortfolioToolProvider
+from doge.products.portfolio.tools import PortfolioToolProvider
 
 
 class PortfolioService:

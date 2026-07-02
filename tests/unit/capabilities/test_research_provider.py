@@ -1,4 +1,4 @@
-from doge.application.capabilities.research_provider import ResearchToolProvider
+from doge.products.research.tools import ResearchToolProvider
 from doge.core.domain.enterprise_context import EnterpriseContext
 
 
