@@ -55,25 +55,25 @@ function isActiveNav(path: string): boolean {
   const current = route.path
   if (path === '/home') return current === '/' || current === '/home'
   if (path === '/research') {
+    // Research is the platform container for the governed agent workflow:
+    // workspaces, projects, cases, templates, and runs all live under it.
     return [
       '/research',
       '/research-agent',
       '/insights',
-    ].some(prefix => current === prefix || current.startsWith(`${prefix}/`))
-  }
-  if (path === '/market') {
-    return ['/market', '/scanner', '/cn-archive', '/us-archive', '/ticker', '/quant', '/analysis'].includes(current)
-  }
-  if (path === '/portfolio') return current === '/portfolio'
-  if (path === '/workspaces') {
-    return [
       '/workspaces',
       '/projects',
       '/cases',
       '/templates',
       '/runs',
-      '/admin',
     ].some(prefix => current === prefix || current.startsWith(`${prefix}/`))
+  }
+  if (path === '/market') {
+    return ['/market', '/scanner', '/cn-archive', '/us-archive', '/ticker'].includes(current)
+  }
+  if (path === '/portfolio') return current === '/portfolio'
+  if (path === '/quant') {
+    return ['/quant', '/analysis'].includes(current)
   }
   return current === path
 }

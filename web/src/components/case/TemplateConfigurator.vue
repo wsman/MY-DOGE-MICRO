@@ -35,7 +35,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { NAlert, NButton, NInput, NSelect } from 'naive-ui'
-import type { WorkflowTemplate } from '../../types/platform'
+import type { WorkflowTemplate } from 'doge-sdk'
 
 const props = defineProps<{ templates: WorkflowTemplate[] }>()
 const emit = defineEmits<{

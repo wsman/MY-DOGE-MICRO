@@ -28,56 +28,54 @@ import type {
   WorkflowExecution,
   WorkflowTemplate,
   Workspace,
-} from '../types/platform'
+} from 'doge-sdk'
 
 export async function fetchCapabilities(): Promise<CapabilitySnapshot> {
-  return await dogeClient.capabilities.get() as unknown as CapabilitySnapshot
+  return await dogeClient.capabilities.get()
 }
 
 export async function fetchHomeQueue(limit = 20): Promise<HomeQueue> {
-  return await dogeClient.request('GET', `/v1/home-queue?limit=${limit}`) as unknown as HomeQueue
+  return await dogeClient.request<HomeQueue>('GET', `/v1/home-queue?limit=${limit}`)
 }
 
 export async function listWorkspaces(limit = 100): Promise<Workspace[]> {
-  return await dogeClient.platform.listWorkspaces(limit) as unknown as Workspace[]
+  return await dogeClient.platform.listWorkspaces(limit)
 }
 
 export async function createWorkspace(payload: CreateWorkspacePayload): Promise<Workspace> {
   return await dogeClient.platform.createWorkspace(
     payload.name,
     payload.description ?? '',
-  ) as unknown as Workspace
+  )
 }
 
 export async function getWorkspace(workspaceId: string): Promise<Workspace> {
-  return await dogeClient.platform.getWorkspace(workspaceId) as unknown as Workspace
+  return await dogeClient.platform.getWorkspace(workspaceId)
 }
 
 export async function listProjects(options: ListProjectsOptions = {}): Promise<Project[]> {
-  const items = await dogeClient.platform.listProjects({
+  return await dogeClient.platform.listProjects({
     workspaceId: options.workspace_id,
     limit: options.limit,
   })
-  return items as unknown as Project[]
 }
 
 export async function createProject(payload: CreateProjectPayload): Promise<Project> {
   return await dogeClient.platform.createProject(payload.workspace_id, payload.name, {
     description: payload.description ?? '',
     defaultMarket: payload.default_market ?? undefined,
-  }) as unknown as Project
+  })
 }
 
 export async function getProject(projectId: string): Promise<Project> {
-  return await dogeClient.platform.getProject(projectId) as unknown as Project
+  return await dogeClient.platform.getProject(projectId)
 }
 
 export async function listResearchCases(options: ListResearchCasesOptions = {}): Promise<ResearchCase[]> {
-  const items = await dogeClient.platform.listResearchCases({
+  return await dogeClient.platform.listResearchCases({
     projectId: options.project_id,
     limit: options.limit,
   })
-  return items as unknown as ResearchCase[]
 }
 
 export async function createResearchCase(payload: CreateResearchCasePayload): Promise<ResearchCase> {
@@ -85,11 +83,11 @@ export async function createResearchCase(payload: CreateResearchCasePayload): Pr
     payload.project_id,
     payload.title,
     payload.thesis ?? '',
-  ) as unknown as ResearchCase
+  )
 }
 
 export async function getResearchCase(caseId: string): Promise<ResearchCase> {
-  return await dogeClient.platform.getResearchCase(caseId) as unknown as ResearchCase
+  return await dogeClient.platform.getResearchCase(caseId)
 }
 
 export async function listCaseAssets(caseId: string): Promise<CaseAssetLink[]> {
@@ -101,11 +99,11 @@ export async function listCaseAssets(caseId: string): Promise<CaseAssetLink[]> {
 }
 
 export async function addCaseAsset(caseId: string, payload: AddCaseAssetPayload): Promise<CaseAssetLink> {
-  return await dogeClient.request(
+  return await dogeClient.request<CaseAssetLink>(
     'POST',
     `/v1/research-cases/${caseId}/assets`,
     payload,
-  ) as unknown as CaseAssetLink
+  )
 }
 
 export async function listCaseDecisions(caseId: string): Promise<CaseDecision[]> {
@@ -120,33 +118,33 @@ export async function recordCaseDecision(
   caseId: string,
   payload: RecordCaseDecisionPayload,
 ): Promise<CaseDecision> {
-  return await dogeClient.request(
+  return await dogeClient.request<CaseDecision>(
     'POST',
     `/v1/research-cases/${caseId}/decisions`,
     payload,
-  ) as unknown as CaseDecision
+  )
 }
 
 export async function preflightCaseExecution(
   caseId: string,
   payload: CaseExecutionPayload,
 ): Promise<TemplatePreflightResult> {
-  return await dogeClient.request(
+  return await dogeClient.request<TemplatePreflightResult>(
     'POST',
     `/v1/research-cases/${caseId}/executions/preflight`,
     payload,
-  ) as unknown as TemplatePreflightResult
+  )
 }
 
 export async function executeCaseTemplate(
   caseId: string,
   payload: CaseExecutionPayload,
 ): Promise<WorkflowExecution> {
-  return await dogeClient.request(
+  return await dogeClient.request<WorkflowExecution>(
     'POST',
     `/v1/research-cases/${caseId}/executions`,
     payload,
-  ) as unknown as WorkflowExecution
+  )
 }
 
 export async function listCaseExecutions(caseId: string): Promise<WorkflowExecution[]> {
@@ -158,7 +156,7 @@ export async function listCaseExecutions(caseId: string): Promise<WorkflowExecut
 }
 
 export async function getCaseReview(caseId: string): Promise<CaseReview> {
-  return await dogeClient.request('GET', `/v1/research-cases/${caseId}/review`) as unknown as CaseReview
+  return await dogeClient.request<CaseReview>('GET', `/v1/research-cases/${caseId}/review`)
 }
 
 export async function linkResearchCaseRun(
@@ -169,7 +167,7 @@ export async function linkResearchCaseRun(
     caseId,
     payload.run_id,
     payload.link_type ?? 'primary',
-  ) as unknown as CaseRunLink
+  )
 }
 
 export async function createResearchCaseRunFromTemplate(
@@ -187,15 +185,15 @@ export async function createResearchCaseRunFromTemplate(
     documentIds: payload.document_ids ?? [],
     portfolioId: payload.portfolio_id ?? undefined,
     linkType: payload.link_type ?? 'primary',
-  }) as unknown as CaseRunLink
+  })
 }
 
 export async function listWorkflowTemplates(limit = 100): Promise<WorkflowTemplate[]> {
-  return await dogeClient.platform.listWorkflowTemplates(limit) as unknown as WorkflowTemplate[]
+  return await dogeClient.platform.listWorkflowTemplates(limit)
 }
 
 export async function createWorkflowTemplate(payload: CreateWorkflowTemplatePayload): Promise<WorkflowTemplate> {
-  return await dogeClient.request('POST', '/v1/workflow-templates', {
+  return await dogeClient.request<WorkflowTemplate>('POST', '/v1/workflow-templates', {
     slug: payload.slug,
     name: payload.name,
     description: payload.description ?? '',
@@ -210,11 +208,11 @@ export async function createWorkflowTemplate(payload: CreateWorkflowTemplatePayl
     eval_policy: payload.eval_policy ?? undefined,
     approval_policy: payload.approval_policy ?? undefined,
     ui_schema: payload.ui_schema ?? undefined,
-  }) as unknown as WorkflowTemplate
+  })
 }
 
 export async function getWorkflowTemplate(templateId: string): Promise<WorkflowTemplate> {
-  return await dogeClient.platform.getWorkflowTemplate(templateId) as unknown as WorkflowTemplate
+  return await dogeClient.platform.getWorkflowTemplate(templateId)
 }
 
 export async function fetchRunSummary(runId: string): Promise<RunSummary> {

@@ -24,7 +24,7 @@ export const PRIMARY_SCENARIO_NAV_ITEMS: PrimaryScenarioNavItem[] = [
   { label: 'Market', path: '/market' },
   { label: 'Research', path: '/research' },
   { label: 'Portfolio', path: '/portfolio' },
-  { label: 'Workspace', path: '/workspaces' },
+  { label: 'Quant', path: '/quant' },
 ]
 
 export const VIEW_REGISTRY: Record<ViewId, ViewRegistryEntry> = {

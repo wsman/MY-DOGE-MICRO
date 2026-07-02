@@ -19,7 +19,7 @@
 
 <script setup lang="ts">
 import { NButton, NSpace, NTag } from 'naive-ui'
-import type { WorkflowExecution } from '../../types/platform'
+import type { WorkflowExecution } from 'doge-sdk'
 
 defineProps<{ executions: WorkflowExecution[] }>()
 defineEmits<{ 'open-run': [runId: string] }>()

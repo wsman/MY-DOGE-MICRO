@@ -91,7 +91,7 @@ import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { NAlert, NButton, NSpace } from 'naive-ui'
 import { usePlatformStore } from '../stores/platform'
-import type { JsonObject, ResearchCase, WorkflowExecution } from '../types/platform'
+import type { JsonObject, ResearchCase, WorkflowExecution } from 'doge-sdk'
 
 const router = useRouter()
 const store = usePlatformStore()

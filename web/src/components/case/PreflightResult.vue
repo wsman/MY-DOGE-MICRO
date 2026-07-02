@@ -26,7 +26,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { NTag } from 'naive-ui'
-import type { TemplatePreflightResult } from '../../types/platform'
+import type { TemplatePreflightResult } from 'doge-sdk'
 
 const props = defineProps<{ result?: TemplatePreflightResult | null }>()
 

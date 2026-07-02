@@ -88,7 +88,7 @@ import ExecutionMonitor from '../components/case/ExecutionMonitor.vue'
 import PreflightResult from '../components/case/PreflightResult.vue'
 import TemplateConfigurator from '../components/case/TemplateConfigurator.vue'
 import { usePlatformStore } from '../stores/platform'
-import type { AddCaseAssetPayload, CaseExecutionPayload, RecordCaseDecisionPayload } from '../types/platform'
+import type { AddCaseAssetPayload, CaseExecutionPayload, RecordCaseDecisionPayload } from 'doge-sdk'
 
 const route = useRoute()
 const router = useRouter()

@@ -52,7 +52,7 @@ import type {
   WorkflowExecution,
   WorkflowTemplate,
   Workspace,
-} from '../types/platform'
+} from 'doge-sdk'
 import { toFetchError, type FetchError } from '../utils/fetchError'
 
 export const usePlatformStore = defineStore('platform', () => {

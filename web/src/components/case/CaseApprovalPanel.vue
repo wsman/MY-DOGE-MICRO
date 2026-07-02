@@ -32,7 +32,7 @@
 
 <script setup lang="ts">
 import { NButton, NTag } from 'naive-ui'
-import type { JsonObject } from '../../types/platform'
+import type { JsonObject } from 'doge-sdk'
 
 defineProps<{ approvals: JsonObject[] }>()
 defineEmits<{

@@ -46,7 +46,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { NButton, NInput, NSelect, NTag } from 'naive-ui'
-import type { CaseAssetLink } from '../../types/platform'
+import type { CaseAssetLink } from 'doge-sdk'
 
 defineProps<{ assets: CaseAssetLink[] }>()
 const emit = defineEmits<{

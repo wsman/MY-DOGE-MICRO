@@ -75,7 +75,7 @@ describe('product navigation routes', () => {
       { label: 'Market', path: '/market' },
       { label: 'Research', path: '/research' },
       { label: 'Portfolio', path: '/portfolio' },
-      { label: 'Workspace', path: '/workspaces' },
+      { label: 'Quant', path: '/quant' },
     ])
   })
 })

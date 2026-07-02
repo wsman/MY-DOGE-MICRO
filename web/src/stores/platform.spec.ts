@@ -170,7 +170,13 @@ describe('platform store', () => {
         supported_claim_count: 1,
         citation_count: 1,
         accessible_citation_count: 1,
+        claim_evidence_relation_count: 1,
+        supported_relation_count: 1,
+        partial_relation_count: 0,
+        unrelated_relation_count: 0,
+        classification_confidence_avg: 1,
         failed_checks: [],
+        numeric_validation: {},
         metrics: {},
       },
     })

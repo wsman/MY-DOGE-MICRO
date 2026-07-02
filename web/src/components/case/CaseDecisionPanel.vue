@@ -35,7 +35,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { NButton, NInput, NSelect } from 'naive-ui'
-import type { CaseDecision } from '../../types/platform'
+import type { CaseDecision } from 'doge-sdk'
 
 defineProps<{ decisions: CaseDecision[] }>()
 const emit = defineEmits<{
