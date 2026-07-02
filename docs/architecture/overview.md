@@ -21,15 +21,15 @@ roots, persisted runtime state, `/v1` routes, and SDK clients.
 
 ## Not Counted As Product Modules
 
-Delivery channels are access surfaces: FastAPI, Web, CLI, daemon, SDK, MCP,
-and PyQt. Adapters are concrete implementations behind ports: SQLite, DuckDB,
+Delivery channels are access surfaces: FastAPI, Web, CLI, daemon, SDK, and MCP.
+Adapters are concrete implementations behind ports: SQLite, DuckDB,
 TDX, yfinance, akshare, model providers, vector stores, eventing, secrets, and
 persistence drivers.
 
-Legacy `/api/*`, `doge.application.composition`, the in-memory agent runtime,
-and the PyQt desktop dashboard are compatibility or demo surfaces. They remain
-testable while present, but they are not alternate destinations for new
-platform features.
+Legacy `/api/*` and the in-memory agent runtime are compatibility or demo
+surfaces. The former PyQt desktop dashboard, `doge.application.composition`,
+and `doge.application.agent.tools` were removed in Sprint M; none of these are
+alternate destinations for new platform features.
 
 ## Current Target Layout
 

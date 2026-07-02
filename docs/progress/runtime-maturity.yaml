@@ -57,30 +57,30 @@ single_stack_direction:
     tool_registry:
       status: canonical
       canonical_module: doge.application.tools
-      compatibility_shim: doge.application.agent.tools
-      notes: "Runtime factory uses doge.application.tools.factory; old import path re-exports during migration."
+      compatibility_shim: removed
+      notes: "Runtime factory uses doge.application.tools.factory; doge.application.agent.tools was removed in Sprint M after consumers migrated."
     application_composition:
-      status: compatibility_shim
-      module: doge.application.composition
+      status: removed
+      retired_module: doge.application.composition
       replacement: doge.bootstrap.processes
-      notes: "Legacy/brownfield factories remain available while internal callers migrate to process roots."
+      notes: "The compatibility facade was removed in Sprint M after internal callers migrated to bootstrap containers."
     in_memory_runtime:
       status: demo_test_only
       module: doge.infrastructure.agent.inmemory_runtime
       replacement: persisted runtime repositories and durable queue
       notes: "Useful for zero-key demo and deterministic tests; not the production-facing runtime path."
     pyqt_desktop:
-      status: legacy_maintained_local_surface
-      entrypoint: src/interface/dashboard.py
-      blocker: "Qt DLL bootstrap still contains a machine-specific qt6_bin_path."
-      notes: "Optional GUI smoke remains valuable; PyQt does not imply production readiness."
+      status: removed
+      removed_in: "Sprint M M6(interface)"
+      replacement: Web, SDK, and /v1 paths
+      notes: "The legacy PyQt dashboard and gui extra were removed without changing production readiness."
 
 local_structure_convergence_2026_06_30:
   status: sprint_g_local_complete_external_gates_open
   scope:
     - "Physical split of legacy API router implementations to doge.interfaces.api_legacy.routers."
     - "Physical split of daemon /v1 router implementations to doge.interfaces.gateway.routers."
-    - "doge.application.tools is the canonical tool registry package; doge.application.agent.tools remains a shim."
+    - "doge.application.tools is the canonical tool registry package; doge.application.agent.tools was later removed in Sprint M."
     - "doge doctor and doged doctor provide local and daemon diagnostics."
     - "Legacy POST /api/documents now uses persisted document upload/repository wiring."
     - "Implicit portfolio-demo run/turn defaults removed; no portfolio is the default unless explicitly supplied."
@@ -234,7 +234,7 @@ sprint_h_compatibility_surface_governance:
   scope:
     - "Created docs/architecture/compatibility-surfaces.md with a structured registry of compatibility, legacy, and demo-test surfaces."
     - "Added AST-based shim behavior guards enforcing ADR-0027: no infrastructure adapter imports, no SQL/DB connections, no APIRouter behavior, no RuntimeKernel instantiation, no tool registration, no approval/worker/model-routing behavior in shim files."
-    - "Added composition allowlist freeze for the current public callable surface of doge.application.composition."
+    - "Added composition allowlist freeze for the historical public callable surface of doge.application.composition, later removed in Sprint M."
     - "Updated README.md with Canonical/Compatibility/Legacy/Demo-Test path classification and aligned Level 1 maturity to Alpha."
     - "Added Sprint H QA plan and local evidence record."
   evidence:

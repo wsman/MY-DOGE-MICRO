@@ -21,10 +21,10 @@
   behavior.
 - Legacy local API compatibility lives under `doge.interfaces.api_legacy` and
   old `/api/*` paths.
-- `doge.application.agent.tools` is a compatibility shim for
+- `doge.application.agent.tools` was removed in Sprint M; use
   `doge.application.tools`.
-- `doge.application.composition` remains a compatibility composition facade;
-  new process/root wiring belongs in `doge.bootstrap`.
+- `doge.application.composition` was removed in Sprint M; process/root wiring
+  belongs in `doge.bootstrap`.
 
 ## Shim Sunset Rules
 
@@ -40,10 +40,10 @@ from intentional shim/parity tests.
 
 ## Legacy Local Surfaces
 
-- `src/macro`, `src/micro`, and `src/interface` are legacy-maintained local
-  surfaces.
+- `src/macro` and `src/micro` are legacy-maintained local surfaces.
 - New runtime, gateway, and eval work must not import those modules directly.
-- PyQt remains a local legacy surface and is not the preferred platform UX path.
+- The former PyQt dashboard under `src/interface` was removed in Sprint M; Web,
+  SDK, and `/v1` are the platform UX paths.
 
 ## Demo And Test Paths
 

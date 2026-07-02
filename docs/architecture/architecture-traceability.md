@@ -57,8 +57,9 @@ promotion gates are not fully closed.
   `python src/cli.py ...` remains a compatibility shim.
 - **Single-stack direction**: ADR-0024 says new platform work goes through
   process roots, persisted runtime state, `/v1` routes, and SDK clients.
-  Legacy `/api/*`, `doge.application.composition`, in-memory runtime, and
-  PyQt are compatibility/demo surfaces.
+  Legacy `/api/*` and in-memory runtime are compatibility/demo surfaces; the
+  former PyQt dashboard, `doge.application.composition`, and
+  `doge.application.agent.tools` were removed in Sprint M.
 - **Runtime maturity**: `docs/progress/runtime-maturity.yaml` remains the
   authority for runtime labels and keeps production readiness blocked.
 - **Progress archive**: dated 2026-06-23 audit snapshots live under
@@ -73,7 +74,7 @@ promotion gates are not fully closed.
 |---------|--------|------------|
 | Runtime maturity promotion | Blocked while `production_ready: false` | `docs/progress/runtime-maturity.yaml`, TR-054 |
 | Live Kimi closure | Text and Vision evidence are partial; Files and Agent SDK live evidence still block full S017-002 closure | ADR-0023 / S017-002 |
-| Legacy compatibility removal | `/api/*`, `doge.application.composition`, in-memory runtime, and PyQt require staged removal/support stories | ADR-0024 |
+| Legacy compatibility removal | `/api/*` and in-memory runtime still require staged removal/support stories; PyQt, `doge.application.composition`, and `doge.application.agent.tools` were removed in Sprint M | ADR-0024 |
 | Financial provider approval | External dependency | Portfolio & Risk / Governance & Evaluation |
 | Enterprise production validation | External dependency | Governance & Evaluation |
 | SDK registry publication | External dependency | SDK/daemon delivery surface |

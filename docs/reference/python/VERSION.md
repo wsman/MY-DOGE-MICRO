@@ -40,7 +40,6 @@
 
 | Package | Version / Constraint | Role |
 |---------|----------------------|------|
-| PyQt6 | optional / unpinned | Desktop UI |
 | pytest | `9.0.1` | Python tests |
 | pytest-asyncio | `1.3.0` | Async tests |
 | Vue | `3.5.32` | Web UI |
@@ -49,6 +48,6 @@
 
 ## Verification Notes
 
-- Treat unpinned dependencies (`opentdx`, `akshare`, `PyQt6`) as upgrade-risk items until pinned.
+- Treat unpinned dependencies (`opentdx`, `akshare`) as upgrade-risk items until pinned.
 - ADRs should cite this file when making decisions that depend on imported stack versions.
 - If the source repository changes `pyproject.toml`, `requirements.txt`, or `web/package.json`, refresh this file before architecture review.

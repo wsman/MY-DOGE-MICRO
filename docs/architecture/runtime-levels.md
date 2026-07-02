@@ -44,14 +44,18 @@ ADR-0024 defines the preferred new platform path:
 process roots -> persisted runtime -> /v1/* routes -> SDK/Web/CLI clients
 ```
 
-Compatibility surfaces remain available while migration evidence is gathered:
+Compatibility/demo surfaces remain available only where the registry still
+lists them:
 
 | Surface | Status |
 |---------|--------|
 | Legacy `/api/*` | Compatibility with deprecation headers. |
-| `doge.application.composition` | Compatibility shim for old imports. |
 | In-memory runtime | Demo/test only. |
-| PyQt dashboard | Legacy-maintained local surface. |
+| Scripted model | Demo/test only. |
+
+The former PyQt dashboard, `doge.application.composition`, and
+`doge.application.agent.tools` were removed in Sprint M; this did not promote
+any runtime level.
 
 Sprint E adds bounded-context ownership and scenario navigation gates, but does
 not promote any runtime level.

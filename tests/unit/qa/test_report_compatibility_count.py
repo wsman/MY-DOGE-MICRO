@@ -12,7 +12,7 @@ def test_parses_all_registry_rows_without_failures():
         "every registry surface must have a current_count starting with an "
         "integer: " + ", ".join(f.surface for f in failures)
     )
-    assert len(counts) >= 8  # floor; count drops as Sprint M retires legacy surfaces (v1, src/api, src/cli.py removed)
+    assert len(counts) >= 3  # floor; Sprint M retired most surfaces (composition, agent.tools, v1, micro/macro/interface)
 
 
 def test_report_never_sums_across_heterogeneous_units():

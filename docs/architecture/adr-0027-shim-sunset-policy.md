@@ -21,11 +21,11 @@ Codex implementation agent; project owner approval via
 
 Compatibility shims remain part of the MY-DOGE-MICRO brownfield migration, but
 they are not second implementation homes. This ADR defines the sunset policy for
-legacy `/api/*`, `doge.interfaces.api.routers.v1`,
-`doge.application.agent.tools`, `doge.application.composition`, and the
-demo/test-only in-memory runtime. New behavior belongs in canonical gateway,
-tool, bootstrap, and persisted-runtime paths. Shim files may re-export,
-delegate, warn, and preserve compatibility contracts only.
+legacy `/api/*`, API router shims, and demo/test-only runtime/model adapters.
+Sprint M removed the completed `doge.interfaces.api.routers.v1`,
+`doge.application.agent.tools`, and `doge.application.composition` shims. New
+behavior belongs in canonical gateway, tool, bootstrap, and persisted-runtime
+paths.
 
 ## Technology Compatibility
 
@@ -34,7 +34,7 @@ delegate, warn, and preserve compatibility contracts only.
 | **Stack** | Python >=3.10, FastAPI 0.123.8, SQLite local persistence, Python/TypeScript SDK clients |
 | **Domain** | Runtime, API, compatibility migration |
 | **Knowledge Risk** | LOW; the decision records local source-layout and migration policy |
-| **References Consulted** | `docs/reference/python/VERSION.md`, ADR-0021, ADR-0022, ADR-0024, ADR-0025, ADR-0026, `docs/progress/runtime-maturity.yaml`, `docs/architecture/file-structure-policy.md`, `docs/architecture/module-boundaries.md`, `src/doge/interfaces/api/routers/v1/`, `src/doge/interfaces/gateway/routers/`, `src/doge/application/composition.py`, `src/doge/application/agent/tools.py`, `src/doge/application/tools/` |
+| **References Consulted** | `docs/reference/python/VERSION.md`, ADR-0021, ADR-0022, ADR-0024, ADR-0025, ADR-0026, `docs/progress/runtime-maturity.yaml`, `docs/architecture/file-structure-policy.md`, `docs/architecture/module-boundaries.md`, `src/doge/interfaces/gateway/routers/`, `src/doge/application/tools/` |
 | **Post-Cutoff APIs Used** | None |
 | **Verification Required** | Architecture shim parity tests, import-gate tests, docs validators, maturity honesty validator |
 
@@ -53,23 +53,20 @@ delegate, warn, and preserve compatibility contracts only.
 
 Sprint G moved the preferred platform path to process roots, persisted runtime,
 gateway `/v1` routers, SDK clients, and the canonical tool registry. Several
-legacy or compatibility import paths still exist so old callers, demos, and
-tests keep working. Without an explicit sunset policy, those compatibility
-paths can silently regain behavior and become parallel stacks again.
+legacy or compatibility import paths still existed so old callers, demos, and
+tests kept working. Sprint M removed the paths that completed migration. Without
+an explicit sunset policy, remaining compatibility paths can silently regain
+behavior and become parallel stacks again.
 
 ### Current State
 
 - `/v1` implementation modules live under `doge.interfaces.gateway.routers`.
-- `doge.interfaces.api.routers.v1` mirrors the gateway router file set and
-  re-exports gateway modules for compatibility.
-- `run_stream.py` in the v1 shim package also re-exports `RunStreamHandler` for
-  historical static checks; the canonical implementation still lives in the
-  gateway route plus handler layer.
 - `doge.application.tools` is the canonical tool registry package.
-- `doge.application.agent.tools` remains a compatibility import path.
-- `doge.application.composition` delegates to bootstrap containers.
+- `doge.application.agent.tools` was removed in Sprint M.
+- `doge.application.composition` was removed in Sprint M.
 - `InMemoryResearchAgentRuntime` remains useful for demos and tests, but the
   persisted runtime is the preferred platform path.
+- `doge.infrastructure.agent.scripted_model` remains demo/test-only.
 - Legacy `/api/*` remains local loopback compatibility and must not receive new
   platform-only features.
 
@@ -113,18 +110,14 @@ or feature defaults.
 |---------|----------------|-----------------------|-----------------------|------------------|
 | Legacy `/api/*` | Loopback compatibility route family | `/v1/*`, SDKs, and gateway routers | Deprecation headers remain green; route parity and migration notes exist; downstream callers migrate; rollback story approved | Not before 2026-09-30 |
 | `doge.interfaces.api.routers` | Legacy local API compatibility package | `doge.interfaces.api_legacy.routers` for legacy local routes and `doge.interfaces.gateway.routers` for gateway routes | All internal and third-party imports migrate; route contract tests prove parity | After import and route migration |
-| `doge.interfaces.api.routers.v1` | `/v1` compatibility shim package | `doge.interfaces.gateway.routers` | `test_gateway_router_shim_parity.py` proves no behavior logic; SDK/Web/tests no longer import the old path; `run_stream.py` exception retired or documented | After gateway import migration |
-| `doge.application.agent.tools` | Tool registry compatibility shim | `doge.application.tools` | Runtime factories, MCP, tests, and docs use canonical path or named compatibility tests; tool registry parity tests pass | After import parity evidence |
-| `doge.application.composition` | Bootstrap compatibility facade | `doge.bootstrap.runtime`, `doge.bootstrap.gateway`, `doge.bootstrap.workspace`, `doge.bootstrap.processes` | Non-allowlisted production imports are gone; tests using it are shim/parity tests only; migration notes name replacements | After process-root migration |
 | In-memory runtime | Demo/test-only runtime adapter | Persisted runtime repositories, durable queue, and gateway worker | Deterministic tests have non-in-memory alternatives or explicitly name demo mode; no platform path depends on in-memory state | Separate removal/support story |
+| Scripted model | Demo/test-only model adapter | Live model adapters such as `KimiAgentModel` | Production defaults do not depend on scripted scenarios; tests and demos name scripted mode explicitly | Separate removal/support story |
 
-### 3. Named Exception: v1 `run_stream.py`
+### 3. Retired v1 `run_stream.py` Exception
 
-`src/doge/interfaces/api/routers/v1/run_stream.py` may re-export
-`RunStreamHandler` from `doge.interfaces.api.handlers` while legacy static tests
-depend on that symbol. It may not implement stream behavior. The canonical live
-SSE behavior remains `doge.interfaces.gateway.routers.run_stream` plus
-`RunStreamHandler`.
+The former `src/doge/interfaces/api/routers/v1/run_stream.py` exception was
+retired in Sprint M. The canonical live SSE behavior remains
+`doge.interfaces.gateway.routers.run_stream` plus `RunStreamHandler`.
 
 ### 4. Import Gate Policy
 
@@ -132,8 +125,8 @@ Import checks must distinguish normal production code from intentional
 compatibility tests. A repository-wide grep count of zero is not a valid
 acceptance criterion while shims remain public. Instead:
 
-- production code under `src/doge` must have no non-allowlisted imports of
-  `doge.application.composition`;
+- production code under `src/doge` must have no imports of retired paths such as
+  `doge.application.composition` or `doge.application.agent.tools`;
 - tests that import old paths must be named as shim parity, legacy public
   contract, or migration guard coverage;
 - compatibility allowlists must fail when a listed legacy user disappears but
@@ -234,13 +227,9 @@ def build_research_agent_runtime(...):
 
 ## Migration Plan
 
-1. Keep `doge.interfaces.api.routers.v1` as re-export shims and document the
-   `run_stream.py` exception.
-2. Keep `doge.application.composition` as a bootstrap delegate while normal
-   callers migrate to process roots.
-3. Keep `doge.application.agent.tools` as a re-export shim while callers migrate
-   to `doge.application.tools`.
-4. Preserve legacy `/api/*` deprecation metadata and route tests until the
+1. Retired in Sprint M: `doge.interfaces.api.routers.v1`,
+   `doge.application.composition`, and `doge.application.agent.tools`.
+2. Preserve legacy `/api/*` deprecation metadata and route tests until the
    documented sunset window and migration stories close.
 5. Track in-memory runtime as demo/test-only until deterministic tests no longer
    need it or a separate support story keeps it intentionally.

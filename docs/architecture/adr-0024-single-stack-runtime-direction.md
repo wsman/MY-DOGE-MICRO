@@ -15,12 +15,12 @@ Codex implementation agent; project owner approval via
 
 ## Summary
 
-MY-DOGE-MICRO will stop treating the legacy local product API, the old
-application composition module, the in-memory agent demo, and the PyQt desktop
-dashboard as parallel platform stacks. New platform work must use the persisted
-runtime, process roots, `/v1` HTTP routes, and SDK clients. Legacy surfaces stay
-available only as compatibility or demo entrypoints until their documented
-removal gates close.
+MY-DOGE-MICRO will stop treating the legacy local product API, old application
+composition module, in-memory agent demo, and PyQt desktop dashboard as parallel
+platform stacks. New platform work must use the persisted runtime, process
+roots, `/v1` HTTP routes, and SDK clients. Sprint M removed the old composition,
+agent-tools, PyQt, micro/macro, and provider shim paths that had completed their
+migration gates.
 
 This decision does not promote the product maturity posture. Runtime maturity
 remains:
@@ -33,10 +33,10 @@ remains:
 
 | Field | Value |
 |-------|-------|
-| **Stack** | Python >=3.10, FastAPI, SQLite, CLI/SDK clients, optional PyQt6 |
+| **Stack** | Python >=3.10, FastAPI, SQLite, CLI/SDK clients |
 | **Domain** | Runtime, API, CLI, compatibility migration |
 | **Knowledge Risk** | LOW; this records local architecture direction and deprecation rules |
-| **References Consulted** | ADR-0001, ADR-0007, ADR-0011, ADR-0021, ADR-0022, `docs/progress/runtime-maturity.yaml`, `src/doge/bootstrap/processes.py`, `src/doge/interfaces/api/main.py`, `src/doge/application/composition.py`, `src/doge/infrastructure/agent/inmemory_runtime.py`, `src/interface/dashboard.py` |
+| **References Consulted** | ADR-0001, ADR-0007, ADR-0011, ADR-0021, ADR-0022, `docs/progress/runtime-maturity.yaml`, `src/doge/bootstrap/processes.py`, `src/doge/interfaces/api/main.py`, `src/doge/infrastructure/agent/inmemory_runtime.py` |
 | **Post-Cutoff APIs Used** | None |
 | **Verification Required** | Compatibility tests, docs validators, route/deprecation header tests |
 
@@ -47,7 +47,7 @@ remains:
 | **Depends On** | ADR-0001, ADR-0007, ADR-0011, ADR-0021, ADR-0022 |
 | **Enables** | Gate 7 single-stack closure, legacy API removal planning, process-root migration |
 | **Blocks** | New platform features under legacy `/api/*`, new internal imports of `doge.application.composition`, production-facing in-memory runtime use |
-| **Ordering Note** | Compatibility surfaces remain until replacement parity and removal gates are proven. |
+| **Ordering Note** | Compatibility surfaces remain only until replacement parity and removal gates are proven. Sprint M closed the composition, agent-tools, PyQt, micro/macro, and provider-shim gates. |
 
 ## Context
 
@@ -55,11 +55,11 @@ The project has accumulated several valid but overlapping execution paths:
 
 - Legacy local product routes under `/api/*`.
 - Preferred daemon/platform routes under `/v1/*`.
-- Historical composition factories under `doge.application.composition`.
 - Process roots under `doge.bootstrap.processes`.
 - In-memory Research Copilot runtime for demo and tests.
 - Persisted runtime repositories and daemon worker for local Alpha operation.
-- PyQt desktop dashboard as a local GUI surface.
+- Retired Sprint M paths including `doge.application.composition`,
+  `doge.application.agent.tools`, and the PyQt desktop dashboard.
 
 Keeping these paths semantically equal would recreate a dual architecture. It
 would also make future SDK, tenant, persistence, and API contract work harder
@@ -95,19 +95,17 @@ Rules:
   operator migration notes, compatibility tests, and a follow-up removal story
   are approved.
 
-### 3. `doge.application.composition`
+### 3. Retired `doge.application.composition`
 
-`doge.application.composition` remains a compatibility shim for old import
-paths and brownfield use-case factories. Internal runtime/platform wiring
-should migrate to process roots and bounded-context containers.
+`doge.application.composition` was removed in Sprint M after internal
+runtime/platform wiring migrated to process roots and bounded-context
+containers.
 
 Rules:
 
 - New internal code should import process roots from `doge.bootstrap.processes`.
-- Compatibility imports may remain where tests or old entrypoints prove they
-  are intentionally supported.
-- The shim can be removed only after replacement imports, compatibility tests,
-  and user migration notes exist.
+- The retired import path must not be restored as a compatibility facade.
+- Bootstrap containers own concrete composition and wiring.
 
 ### 4. In-Memory Runtime
 
@@ -186,13 +184,11 @@ Rules:
 1. Add runtime deprecation headers to `/api/*` responses.
 2. Update API, CLI, getting-started, runtime maturity, registry, and traceability
    docs to mark the preferred stack.
-3. Keep compatibility tests for `/api/*`, deprecated entrypoints, and PyQt
-   smoke while those surfaces remain.
-4. Migrate remaining internal callers away from `doge.application.composition`
-   in small stories.
+3. Keep compatibility tests for `/api/*` while that surface remains.
+4. Keep retired import-path tests for Sprint M deleted surfaces where useful.
 5. Replace production-facing in-memory runtime paths with persisted runtime
    paths; retain in-memory only for demo/tests.
-6. Before removing any compatibility surface, create a removal story that names
+6. Before removing any remaining compatibility surface, create a removal story that names
    replacement commands, migration notes, route/import parity evidence, and
    rollback plan.
 

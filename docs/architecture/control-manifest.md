@@ -19,7 +19,7 @@ From ADR-0001 + `clean-architecture-migration.md §4.3`. This is the invariant e
 | `src/doge/infrastructure/*` | `core.ports` (to implement), `config`, drivers (`sqlite3`, `duckdb`, `opentdx`, `yfinance`, `openai`) | `core.services`, `interfaces` |
 | `src/doge/config/*` | stdlib only | any other layer |
 
-**Dependency direction**: interfaces → bootstrap/context public APIs → services → ports ← infrastructure. Never point inward. The four view-backed services depend on `IMarketViewRepository`; `src/doge/bootstrap/*` owns new wiring, while `doge.application.composition` is a compatibility shim for legacy imports (ADR-0010 / TR-041). New platform/runtime work must follow ADR-0024 and ADR-0027: process roots, persisted runtime state, `/v1` routes, SDK clients, and behavior-free compatibility shims.
+**Dependency direction**: interfaces → bootstrap/context public APIs → services → ports ← infrastructure. Never point inward. The four view-backed services depend on `IMarketViewRepository`; `src/doge/bootstrap/*` owns wiring after the Sprint M removal of `doge.application.composition`. New platform/runtime work must follow ADR-0024 and ADR-0027: process roots, persisted runtime state, `/v1` routes, SDK clients, and behavior-free compatibility shims.
 
 ### Required
 
@@ -59,9 +59,10 @@ From ADR-0021 + ADR-0022. These rules govern the transition from the old
   flags must carry lifecycle metadata with env var, current default, target
   default-on phase, target removal phase, regression commands, and rollback
   criterion.
-- Legacy `/api/*`, `doge.application.composition`, in-memory runtime, and PyQt
-  are compatibility or demo surfaces under ADR-0024. Do not add a new platform
-  capability only to those surfaces.
+- Legacy `/api/*` and in-memory runtime are compatibility or demo surfaces under
+  ADR-0024. The former PyQt dashboard, `doge.application.composition`, and
+  `doge.application.agent.tools` were removed in Sprint M. Do not add a new
+  platform capability only to legacy/demo surfaces.
 - Compatibility shims are governed by ADR-0027. They may re-export, delegate,
   warn, and preserve documented compatibility symbols only. They must not add
   new routing logic, persistence access, tool implementations, model routing,
@@ -116,7 +117,7 @@ From ADR-0001 + `clean-architecture-migration.md §4.4` + `standards/technical-p
 | cross-layer imports that bypass ports/services | — | everywhere (ADR-0001) |
 | network-dependent tests without isolation/fixtures | — | `tests/**` |
 
-**Legacy tolerance**: legacy modules under `src/micro`, `src/macro`, `src/ai_analysis`, and `src/interface` may still contain documented brownfield offenders (`src/api` was migrated to clean-tree patterns — §6 grep gate green since Sprint 004). Root `mcp_server.py` has been retired and `doge_mcp.py` is not a compatibility shim. Legacy offenders receive **no new** architectural coupling, and each retired offender is struck through in the CDD's offender list.
+**Legacy tolerance**: legacy modules under `src/micro`, `src/macro`, and `src/ai_analysis` may still contain documented brownfield offenders (`src/api` was migrated to clean-tree patterns — §6 grep gate green since Sprint 004; `src/interface` was removed in Sprint M). Root `mcp_server.py` has been retired and `doge_mcp.py` is not a compatibility shim. Legacy offenders receive **no new** architectural coupling, and each retired offender is struck through in the CDD's offender list.
 
 ---
 
@@ -198,7 +199,7 @@ Proposed  ──►  Accepted  ──►  Superseded
 | 0021 Bounded Context Consolidation | **Accepted** | Eight-context consolidation accepted by `docs/archive/audits/adr-0021-0022-review-2026-06-23.md`; external gates still block maturity promotion. |
 | 0022 Directory Restructuring | **Accepted** | Facade-first target layout accepted by `docs/archive/audits/adr-0021-0022-review-2026-06-23.md`; broad physical moves remain story-gated. |
 | 0023 Kimi "For Coding" Endpoint Support | **Accepted** | Kimi Coding is the v1 chat-centered release baseline; Kimi `/files` remains unsupported on the coding endpoint and uses local parser/evidence fallback. |
-| 0024 Single-Stack Runtime Direction | **Accepted** | New platform work targets process roots, persisted runtime, `/v1`, and SDK clients; legacy `/api/*`, `doge.application.composition`, in-memory runtime, and PyQt are compatibility/demo surfaces. |
+| 0024 Single-Stack Runtime Direction | **Accepted** | New platform work targets process roots, persisted runtime, `/v1`, and SDK clients; legacy `/api/*` and in-memory runtime are compatibility/demo surfaces. The former PyQt dashboard, `doge.application.composition`, and `doge.application.agent.tools` were removed in Sprint M. |
 | 0025 Runtime Streaming Semantics | **Accepted** | `list_events` is persisted replay, runtime `stream_events` is replay-only, and live SSE belongs to the v1 `RunStreamHandler` path. |
 | 0026 Artifact Citation Assembly | **Accepted** | Tool evidence flows into artifact citation assembly through `RunStepper`, `ArtifactCitationAssembler`, and structured claim/citation/relation data. |
 | 0027 Shim Sunset Policy | **Accepted** | Compatibility shims may re-export/delegate/warn only; removal requires parity tests, migration notes, and rollback planning. |

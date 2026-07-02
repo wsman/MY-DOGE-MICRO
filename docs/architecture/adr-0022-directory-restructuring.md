@@ -99,16 +99,16 @@ src/doge/
 +-- bootstrap/
 ```
 
-The migration starts with shallow facade packages and compatibility exports.
-For example, a future `doge.platform.runtime` package may re-export an existing
-runtime type while the old import remains available:
+The migration started with shallow facade packages and compatibility exports.
+The example below records the original pattern; Sprint M later removed this
+specific agent tools shim after consumers moved to the canonical registry path:
 
 ```python
-# old path remains valid during the compatibility window
+# old path was valid only during its compatibility window
 from doge.application.agent.tools import ToolRegistry
 
-# new path becomes the preferred import once the facade exists
-from doge.platform.runtime import ToolRegistry
+# canonical path after Sprint M
+from doge.application.tools import ToolRegistry
 ```
 
 Physical movement of implementation files is deferred until:

@@ -11,14 +11,15 @@
   not open persistence adapters directly.
 - Adapters implement ports and do not own business decisions.
 - Bootstrap and compatibility composition roots own concrete wiring.
-- Legacy `/api/*`, `doge.application.composition`, in-memory runtime, and PyQt
-  are compatibility/demo surfaces under ADR-0024.
+- Legacy `/api/*` and in-memory runtime are compatibility/demo surfaces under
+  ADR-0024. The former PyQt dashboard, `doge.application.composition`, and
+  `doge.application.agent.tools` were removed in Sprint M.
 - Legacy router implementations live under `doge.interfaces.api_legacy.routers`;
   `doge.interfaces.api.routers` is a compatibility shim only.
 - Daemon `/v1/*` router implementations live under `doge.interfaces.gateway.routers`;
   `doge.interfaces.api.routers.v1` is a compatibility shim only.
-- Tool registry implementations live under `doge.application.tools`;
-  `doge.application.agent.tools` is a compatibility shim only.
+- Tool registry implementations live under `doge.application.tools`; the former
+  `doge.application.agent.tools` shim was removed in Sprint M.
 - ADR-0027 is the controlling sunset policy for compatibility shims. Shim files
   may re-export, delegate, warn, and preserve documented compatibility symbols
   only; they must not gain new behavior ownership.
@@ -162,11 +163,8 @@ contexts.
 |---------|--------|------|------------------|
 | Legacy `/api/*` | Compatibility | No new platform feature only under `/api/*`; deprecation headers required. | Not before 2026-09-30 and route parity evidence. |
 | `doge.interfaces.api.routers` | Compatibility shim | New legacy-local router work uses `doge.interfaces.api_legacy.routers`; new gateway work uses `doge.interfaces.gateway.routers`. | After all internal and third-party imports migrate. |
-| `doge.interfaces.api.routers.v1` | Compatibility shim | New `/v1` implementation work uses `doge.interfaces.gateway.routers`. | After API clients and tests no longer import the old v1 module path. |
-| `doge.application.agent.tools` | Compatibility shim | New tool registry work uses `doge.application.tools`. | After runtime and test import parity evidence. |
-| `doge.application.composition` | Compatibility shim | New internal platform work should use process roots/bootstrap. | After import parity and migration notes. |
 | In-memory runtime | Demo/test only | Production-facing flows use persisted runtime. | After deterministic test alternatives exist. |
-| PyQt dashboard | Legacy local surface | Web/SDK/v1 are preferred platform UX paths. | Separate support/removal story. |
+| Scripted model | Demo/test only | Production-facing flows use live model adapters. | Separate support/removal story. |
 
 ### Known Boundary Tensions
 
@@ -174,11 +172,7 @@ contexts.
   `RunStreamHandler` for legacy/static checks, but canonical live SSE behavior
   remains in `doge.interfaces.gateway.routers.run_stream` plus the handler
   layer. No stream behavior may be implemented in the shim.
-- `doge.application.composition` remains a public facade for brownfield callers.
-  New internal platform work should use `doge.bootstrap.runtime`,
-  `doge.bootstrap.gateway`, `doge.bootstrap.workspace`, or
-  `doge.bootstrap.processes`.
-- `doge.application.agent.tools` remains an import-compatibility surface while
-  the canonical registry lives in `doge.application.tools`.
+- `doge.application.composition` and `doge.application.agent.tools` were removed
+  in Sprint M; bootstrap containers and `doge.application.tools` are canonical.
 - In-memory runtime is demo/test-only. Production-facing runtime evidence must
   use persisted repositories, durable queue, worker, and gateway paths.

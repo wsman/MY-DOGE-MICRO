@@ -61,8 +61,8 @@ memo that separates supported claims from gaps.
   portfolio ID is supplied.
 - Document context is selected by document IDs and parser/evidence state is
   visible in trace or API results.
-- Tool calls are registered through `doge.application.tools`; legacy
-  `doge.application.agent.tools` remains a compatibility shim.
+- Tool calls are registered through `doge.application.tools`; the former
+  `doge.application.agent.tools` shim was removed in Sprint M.
 - Approval resolution does not synthesize completion directly; it queues or
   resumes the runtime loop.
 - `/v1` remains the canonical API surface; `/api` remains compatibility only.

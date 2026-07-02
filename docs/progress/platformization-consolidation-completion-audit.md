@@ -318,21 +318,22 @@ Implemented locally:
   text no longer enters persisted runtime events.
 - `tests/unit/architecture/test_context_dependency_graph.py` adds an AST-level
   dependency gate for platform-runtime/product/entrypoint import boundaries.
-- `RuntimeContainer` now owns runtime persistence leaf factories; the matching
-  `doge.application.composition` functions remain compatibility shims.
+- `RuntimeContainer` now owns runtime persistence leaf factories; the former
+  `doge.application.composition` compatibility functions were removed in
+  Sprint M after consumers migrated to bootstrap containers.
 - `RuntimeContainer` now also owns session use-case factories, and the
   migrated `session`/`run` CLI runtime paths plus `/v1/tools` registry lookup use
   bootstrap containers instead of direct legacy composition imports.
 - `doge.application.__init__` now lazily resolves compatibility factory
   re-exports so application submodule imports no longer eagerly import the
-  legacy mega composition root.
+  legacy mega composition root, which Sprint M later removed.
 - `WorkspaceContainer` now owns portfolio/platform/governance repository
   wiring and case/workflow service wiring; `case` and `template` CLI commands
   use that workspace container.
 - `GatewayContainer` now owns read-side service/repository wiring, secret
   providers, macro/industry compatibility report wiring, scan/file-upload
-  factories, local RAG, and claim repositories; matching legacy composition
-  functions delegate to the gateway container.
+  factories, local RAG, and claim repositories; the former legacy composition
+  functions were removed in Sprint M after callers migrated.
 - Stock/RSRS/breadth/anomaly/macro/demo CLI commands, scan API helpers, and MCP
   query/workspace tools now use bootstrap containers rather than direct legacy
   composition imports.

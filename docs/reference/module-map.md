@@ -4,7 +4,7 @@ This map shows where new code should enter the ADR-0021/ADR-0022 layout.
 
 ```text
 Entrypoints
-  API / Web / CLI / SDK / MCP / PyQt
+  API / Web / CLI / SDK / MCP
     |
     v
 Bootstrap and application services
@@ -51,7 +51,8 @@ Shared
   a context-local module.
 - New provider-backed tools should be discoverable from the owning context's
   `tools.py` module.
-- Existing legacy imports may remain for compatibility, but new internal code
-  should not depend on `doge.application.composition`.
+- Existing compatibility imports may remain only for registered surfaces;
+  retired Sprint M paths such as `doge.application.composition` must not be
+  used by internal code.
 - Direct `/api/*` usage in Web code requires an ADR-0024 compatibility
   exception until `/v1` parity exists.
