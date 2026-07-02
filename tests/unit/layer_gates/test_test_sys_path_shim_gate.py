@@ -27,21 +27,6 @@ _ALLOWED_SHIMS: dict[str, str] = {
         "Bootstrap exception: this file polices all other shims and must be "
         "runnable as a script before the editable install is guaranteed."
     ),
-    "test_pyqt_smoke.py": (
-        "src/interface/ is a flat directory with no __init__.py; PyQt modules "
-        "do sibling imports that require the src/interface/ path on sys.path."
-    ),
-    "unit/storage/test_save_stock_data_custom_storage_write_error.py": (
-        "Bare sibling imports from src/micro/ (e.g. 'import database') require "
-        "src/micro/ on sys.path until rewritten to use importlib."
-    ),
-    "unit/storage/test_market_scanner_write_tolerance.py": (
-        "Same bare sibling import pattern from src/micro/."
-    ),
-    "unit/micro/test_scanner_opentdx_optional.py": (
-        "Manipulates sys.modules to simulate a clean process and imports "
-        "micro/api as top-level packages; the shim keeps this deterministic."
-    ),
 }
 
 

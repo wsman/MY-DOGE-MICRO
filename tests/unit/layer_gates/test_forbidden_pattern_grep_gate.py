@@ -52,71 +52,9 @@ def _grep_needles(path: Path, needles) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
-# momentum_scanner.py — get_connection sqlite3.connect gate (decision #2)
+# src/micro/ (momentum_scanner.py + tdx_downloader.py) was removed in Sprint M.
+# The forbidden-pattern gates that policed those files are retired.
 # ---------------------------------------------------------------------------
-MOMENTUM_PY = _SRC / "micro" / "momentum_scanner.py"
-
-
-class TestMomentumScannerGetConnectionGate:
-    def test_no_raw_sqlite3_connect_in_momentum_scanner(self):
-        """The file contains NO literal ``sqlite3.connect`` token anywhere.
-
-        get_connection now routes through SQLiteConnection (clean adapter).
-        """
-        hits = _grep_needles(MOMENTUM_PY, ["sqlite3.connect"])
-        assert hits == [], f"sqlite3.connect leaked into momentum_scanner.py: {hits}"
-
-    def test_no_top_level_sqlite3_import_in_momentum_scanner(self):
-        """No ``import sqlite3`` at module top (the adapter owns the import)."""
-        hits = _grep_needles(MOMENTUM_PY, ["import sqlite3"])
-        assert hits == [], f"import sqlite3 leaked into momentum_scanner.py: {hits}"
-
-    def test_no_module_global_data_dir_recalculation_in_momentum_scanner(self):
-        """The module-global ``current_dir``/``project_root``/``data_dir``
-        _PROJECT_ROOT-style recalculation is gone (paths come from settings)."""
-        # The legacy offending lines were:
-        #   current_dir = os.path.dirname(os.path.abspath(__file__))
-        #   project_root = os.path.dirname(os.path.dirname(current_dir))
-        #   data_dir = os.path.join(project_root, 'data')
-        hits = _grep_needles(
-            MOMENTUM_PY,
-            ["data_dir = os.path.join(project_root"],
-        )
-        assert hits == [], f"module-global data_dir recalc leaked: {hits}"
-
-    def test_no_sys_path_manipulation_in_momentum_scanner(self):
-        hits = _grep_needles(MOMENTUM_PY, ["sys.path.insert", "sys.path.append"])
-        assert hits == [], f"sys.path manipulation leaked: {hits}"
-
-
-# ---------------------------------------------------------------------------
-# tdx_downloader.py — sys.path.insert / sibling-import gate (decision #3)
-# ---------------------------------------------------------------------------
-TDX_DOWNLOADER_PY = _SRC / "micro" / "tdx_downloader.py"
-
-
-class TestTdxDownloaderSysPathGate:
-    def test_no_sys_path_insert_in_tdx_downloader(self):
-        hits = _grep_needles(TDX_DOWNLOADER_PY, ["sys.path.insert"])
-        assert hits == [], f"sys.path.insert leaked into tdx_downloader.py: {hits}"
-
-    def test_no_sys_path_append_in_tdx_downloader(self):
-        hits = _grep_needles(TDX_DOWNLOADER_PY, ["sys.path.append"])
-        assert hits == [], f"sys.path.append leaked into tdx_downloader.py: {hits}"
-
-    def test_no_bare_sibling_database_import_in_tdx_downloader(self):
-        """The shim-dependent ``from database import ...`` is now
-        ``from micro.database import ...``."""
-        hits = _grep_needles(TDX_DOWNLOADER_PY, ["from database import"])
-        assert hits == [], f"bare 'from database import' leaked: {hits}"
-
-    def test_no_bare_sibling_tdx_loader_import_in_tdx_downloader(self):
-        hits = _grep_needles(TDX_DOWNLOADER_PY, ["from tdx_loader import"])
-        assert hits == [], f"bare 'from tdx_loader import' leaked: {hits}"
-
-    def test_no_project_root_recalc_in_tdx_downloader(self):
-        hits = _grep_needles(TDX_DOWNLOADER_PY, ["_PROJECT_ROOT"])
-        assert hits == [], f"_PROJECT_ROOT leaked into tdx_downloader.py: {hits}"
 
 
 # ---------------------------------------------------------------------------
@@ -170,8 +108,7 @@ class TestApiRouterForbiddenPatterns:
     "rel",
     [
         "doge/interfaces/api/deps.py",
-        "micro/momentum_scanner.py",
-        "micro/tdx_downloader.py",
+        "doge/interfaces/api/deps.py",
     ],
 )
 def test_remediated_file_exists(rel):

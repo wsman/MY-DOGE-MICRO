@@ -93,12 +93,8 @@ class TestNoSysPathShimsUnderSrc:
     @pytest.mark.parametrize(
         "rel",
         [
-            "micro/market_scanner.py",
-            "micro/industry_analyzer.py",
-            "macro/cli.py",
-            "interface/analysis_gui.py",
-            "interface/dashboard.py",
-            "interface/scanner_gui.py",
+            # All remediated legacy files (micro/macro/ai_analysis/api/interface)
+            # were removed in Sprint M; this list is intentionally empty.
         ],
     )
     def test_remediated_module_still_exists(self, rel):

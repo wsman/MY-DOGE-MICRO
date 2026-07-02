@@ -89,12 +89,22 @@ class SQLiteStorageRepository(IStockRepository):
             )
         # Lazy import: micro is a package under src/ (pythonpath=['src'] /
         # editable install). Avoids a module-load circular import.
-        from micro.database import init_db_custom
+        import os
+        import sqlite3
 
+        os.makedirs(os.path.dirname(str(db_path)), exist_ok=True)
         try:
-            init_db_custom(str(db_path))
-        except StorageWriteError:
-            raise
+            conn = sqlite3.connect(str(db_path))
+            try:
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS stock_prices ("
+                    "ticker TEXT, date TEXT, open REAL, high REAL, "
+                    "low REAL, close REAL, volume INTEGER, amount REAL, "
+                    "PRIMARY KEY (ticker, date))"
+                )
+                conn.commit()
+            finally:
+                conn.close()
         except Exception as exc:
             logger.error(
                 "ensure_schema failed market=%s db=%s: %s",
@@ -132,17 +142,37 @@ class SQLiteStorageRepository(IStockRepository):
             )
 
         rows_before = self._count_rows(db_path, frame)
-        # Legacy writer, imported as a proper package (``micro`` is a package
-        # under ``src/``). Imported lazily so this module is import-safe even
-        # before the legacy path is initialized, and to avoid a circular import
-        # at module load time.
-        from micro.database import save_stock_data_custom
+        import os
+        import sqlite3
+        from datetime import datetime, timedelta
+
+        retention_days = get_settings().market.retention_days
+        cutoff = (datetime.now() - timedelta(days=retention_days)).strftime("%Y-%m-%d")
+        ticker = frame["ticker"].iloc[0] if not frame.empty else "UNKNOWN"
+        os.makedirs(os.path.dirname(str(db_path)), exist_ok=True)
 
         try:
-            save_stock_data_custom(frame, str(db_path))
-        except StorageWriteError:
-            # Already typed by the legacy function (S002-006); propagate as-is.
-            raise
+            conn = sqlite3.connect(str(db_path))
+            try:
+                cur = conn.cursor()
+                cur.execute(
+                    "SELECT MAX(date) FROM stock_prices WHERE ticker = ?", (ticker,)
+                )
+                max_existing = cur.fetchone()[0]
+                if max_existing:
+                    new_data = frame[frame["date"] > max_existing]
+                    if new_data.empty:
+                        return 0
+                    new_data.to_sql("stock_prices", conn, if_exists="append", index=False)
+                else:
+                    frame.to_sql("stock_prices", conn, if_exists="append", index=False)
+                conn.execute(
+                    "DELETE FROM stock_prices WHERE ticker = ? AND date < ?",
+                    (ticker, cutoff),
+                )
+                conn.commit()
+            finally:
+                conn.close()
         except Exception as exc:
             logger.error(
                 "save_prices failed market=%s db=%s: %s",

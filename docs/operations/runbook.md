@@ -17,7 +17,7 @@ This is a **local-first, single-operator** system:
   `busy_timeout` (`design/cdd/market-data-storage.md` §9.3). See
   [Concurrency & single-writer contract](#concurrency--single-writer-contract).
 - **Secrets live in the environment, not in the repo.** `DEEPSEEK_API_KEY` is
-  read from the process environment (S002-013, `src/macro/config.py:185-200`).
+  read from the process environment (S002-013, `doge.config.settings` (S002-013)).
   `models_config.json` ships only a placeholder sentinel.
 
 ## Table of contents
@@ -64,8 +64,8 @@ via `DOGE_DB_DIR`, `DBConfig.dir`, `src/doge/config/settings.py:55`). Back up
 | Research insights DB | `research_insights.db` (`DBConfig.research_db`) | Notes / insights / knowledge graph (`design/cdd/research-insight-knowledge-base.md`) |
 | DuckDB analytical DB | `market.duckdb` (`DBConfig.duckdb`) | Attached analytical views (regenerable from the SQLite DBs + `views.sql`) |
 | DuckDB view definitions | `views.sql` (`DBConfig.views_sql`) | The view SQL itself (tracked in git, but include in cold backup for completeness) |
-| Macro strategy reports | `macro_report/` (repo-relative) | LLM-generated macro reports, `src/macro/strategist.py:132-136` |
-| Micro momentum reports | `micro_report/` (repo-relative) | `Top200_Momentum_{CN,US}_*.csv` outputs, `src/micro/momentum_scanner.py:350-371` |
+| Macro strategy reports | `macro_report/` (repo-relative) | LLM-generated macro reports, the canonical macro report use case |
+| Micro momentum reports | `micro_report/` (repo-relative) | `Top200_Momentum_{CN,US}_*.csv` outputs, the canonical RSRS ranking service |
 | AI-analysis reports | `ai_report/` (`Settings.report_dir`, `settings.py:148-149`) | `market_overview_*.md`, `anomaly_detection_*.md` |
 | Operator settings | `user_settings.json` (repo root) | Per-operator UI/runtime settings |
 | Model profiles | `models_config.json` (repo root) | DeepSeek/LM Studio profile wiring (contains only the placeholder — no real key to back up) |
@@ -142,12 +142,12 @@ convenience only.
   `vw_market_breadth_cn` at `INTERVAL 730 DAYS` (`data/views.sql:33`). A
   `DOGE_RETENTION_DAYS` below 730 silently truncates breadth scans because
   the destructive `DELETE` runs before the view is queried. The guard
-  `tests/migration/test_retention_view_window_safety.py` asserts
+  `the retention-view-window safety guard (retired Sprint M)` asserts
   `max(INTERVAL N DAYS) <= retention_days` (`design/cdd/market-data-storage.md`
   §8, AC).
 - **Destructive.** Each write computes `cutoff = now - retention_days` and runs
   `DELETE FROM stock_prices WHERE ticker = ? AND date < ?` per ticker
-  (`src/micro/database.py:166,187-188`). There is no undo.
+  (`the canonical market-data stack`). There is no undo.
 
 ```bash
 # Inspect the effective value (after any env override):
@@ -158,7 +158,7 @@ DOGE_RETENTION_DAYS=730   # default; set higher to keep more history
 
 Raising `DOGE_RETENTION_DAYS` does **not** backfill history. The TDX ingest
 path is capped at `TDXReader.MAX_DAYS = 120` bars per fetch
-(`src/micro/tdx_loader.py:64`, `trim_to_recent` at `:135-137`). Increasing
+(`the canonical market-data stack`, `trim_to_recent` at `:135-137`). Increasing
 retention to 730 therefore yields only ~120 days immediately; the remaining
 history accumulates **gradually** over subsequent daily scans (one new bar
 per ticker per scan). This is documented as a high-risk inconsistency in
@@ -191,7 +191,7 @@ ls -lh data/market_data_cn.db
 
 ### Shipped behavior (S002-013)
 
-`DEEPSEEK_API_KEY` is the **PRIMARY** key source (`src/macro/config.py:185-187`):
+`DEEPSEEK_API_KEY` is the **PRIMARY** key source (`the canonical research stack`):
 
 ```python
 env_api_key = os.environ.get("DEEPSEEK_API_KEY")
@@ -204,7 +204,7 @@ sentinel in every profile's `api_key` field (`models_config.json:7,13`). The
 sentinel **must not** reach `OpenAI(...)`: if the env var is unset and the
 on-disk value is the placeholder, `None`, or empty, `MacroConfig` raises a
 typed `RuntimeError` with an actionable remediation message
-(`src/macro/config.py:183,193-200`) instead of the legacy print-and-continue.
+(`the canonical research stack`) instead of the legacy print-and-continue.
 
 The key is passed **only** to `OpenAI(api_key=..., base_url=...)` and is never
 logged (`design/cdd/macro-strategy-engine.md` §3.3, §9.6). The local FastAPI
@@ -231,13 +231,13 @@ export DEEPSEEK_API_KEY="<your-key>"
 #    process will keep the previous value until restarted.
 
 # 3. VERIFY a consumer produces a report end-to-end. The macro CLI exits 1
-#    on any failure (src/macro/cli.py:82,87), so a 0 exit + a written report
+#    on any failure (the canonical research stack), so a 0 exit + a written report
 #    in macro_report/ is the success signal:
 python -m src.macro.cli && ls -t macro_report/ | head -1
 ```
 
 A successful `python -m src.macro.cli` writes a new `macro_report/<ts>_macro.md`
-(`src/macro/strategist.py:132-136`). If the CLI prints the RuntimeError
+(the canonical macro report use case). If the CLI prints the RuntimeError
 remediation message and exits 1, the env var was not visible to the process —
 confirm the export in the **same shell/session** that runs the consumer.
 
@@ -249,10 +249,10 @@ never leak `str(e)` (`src/doge/interfaces/api/routers/data.py`). If you debug a 
 problem, redact the key before sharing logs.
 
 **Built-in protections.** `MacroConfig.__repr__` masks `api_key` as `'***'`
-(`src/macro/config.py`), `GlobalMacroLoader` logs only asset tickers and the
-lookback window (`src/macro/data_loader.py`), and the macro CLI scrubs both the
+(`the canonical research stack`), `GlobalMacroLoader` logs only asset tickers and the
+lookback window (`the canonical research stack`), and the macro CLI scrubs both the
 real key and the `REPLACE_WITH_DEEPSEEK_API_KEY` placeholder from exception
-messages before printing (`src/macro/cli.py`).
+messages before printing (`the canonical research stack`).
 
 ---
 
@@ -265,7 +265,7 @@ analytical views defined in `data/views.sql` (enumerated in
 `design/cdd/market-data-storage.md` §3.6, §4.4). Views refresh:
 
 - **Automatically after each CN/US sync** via `market_scanner._refresh_duckdb_views()`
-  (`src/micro/market_scanner.py:44-53`), invoked at `:136`, `:168`, `:207`,
+  (`the canonical market-data stack`), invoked at `:136`, `:168`, `:207`,
   `:238`. Each scan re-runs the full `views.sql`.
 - **Best-effort by the scan router** at `src/doge/interfaces/api/routers/scan.py`,
   where a refresh failure is swallowed (non-fatal).
@@ -328,7 +328,7 @@ fixed.**
 `ROW_NUMBER() OVER (PARTITION BY ticker ORDER BY date ASC) AS rn_asc`
 (rn_asc=1=oldest), matching the canonical Python
 `MomentumRanker.calculate_rsrs` convention (`x = np.arange(len(y))` oldest ->
-newest, `src/micro/momentum_scanner.py:95-116`). The downstream liquidity and
+newest, `the canonical market-data stack`). The downstream liquidity and
 60-day-change CTEs keep the original DESC `rn` (rn=1=newest) so their
 semantics are unchanged — only the regression's time index was corrected. A
 perfectly increasing 18-bar window now yields RSRS = **+1.0** from both the
@@ -354,7 +354,7 @@ previously broke the naive `split(';')`).
 **Verification.** Cross-implementation parity holds: querying the live view
 and `MomentumRanker.calculate_rsrs` on the same 18-bar window agrees to 1e-5
 on both sign and magnitude for uptrend and downtrend tickers. Regression
-guard: `tests/migration/test_rsrs_view_sign_convention.py`
+guard: `the RSRS view-sign guard (retired Sprint M)`
 (`test_perfectly_increasing_view_is_positive_one`) is now a hard assertion
 (the strict xfail that previously pinned the inversion was removed).
 
@@ -368,11 +368,11 @@ convention. No workaround is required; the view output is sign-canonical.
 
 | Symptom | Expected cause | Fix | Source |
 |---------|----------------|-----|--------|
-| Scan / query returns stale data | DuckDB views were not refreshed after the last write | Run a manual refresh ([DuckDB view refresh](#duckdb-view-refresh)); verify with `mcp__doge-db__list_views` | `src/micro/market_scanner.py:44-53`; `duckdb.py:58-83` |
-| `vw_market_breadth_cn` returns fewer rows than expected / breadth scan looks truncated | `DOGE_RETENTION_DAYS` < 730 (below the 730-day view window) — destructive prune cut rows the view expects | Set `DOGE_RETENTION_DAYS=730` (or higher) and restart; the guard `tests/migration/test_retention_view_window_safety.py` enforces `max(INTERVAL N DAYS) <= retention_days` | `data/views.sql:33`; `design/cdd/market-data-storage.md` §9.2, §7 |
-| `python -m src.macro.cli` prints a `RuntimeError` and exits 1 (`DEEPSEEK_API_KEY ... not set ... still carries the placeholder`) | `DEEPSEEK_API_KEY` env var unset/empty and `models_config.json` still has the placeholder | Set `DEEPSEEK_API_KEY=<key>` in the consumer's environment and restart; see [DeepSeek API key environment verification](#deepseek-api-key-environment-verification) | `src/macro/config.py:193-200`; `src/macro/cli.py:79-87` |
-| Macro run returns `None` / "无法获取市场数据" (exits 1) | Network failure fetching market data (yfinance/TDX upstream), not a key problem | Check network reachability to the data source; `data_loader` returned `None` and the CLI exited at `src/macro/cli.py:82-87` | `src/macro/cli.py:82-87`; `design/cdd/macro-strategy-engine.md` §3.2 |
-| First-run yfinance ingest returns no data / scanner empty after a cold start | Yahoo rate-limited the unauthenticated yfinance calls (HTTP 429 Too Many Requests); the `YFinanceDataSource` adapter degraded safely to `None` after its bounded retry (≈3×5s) — no crash, no DB corruption | Wait a few minutes and retry (Yahoo un-throttles); for CN bulk ingest use the TDX downloader (`pip install -e ".[tdx]"` then `python src/micro/tdx_downloader.py`), which is not rate-limited. Environmental, not a code defect (user-test-002 PARTIAL). | `src/doge/infrastructure/data_source/yfinance.py:216-254`; `docs/guides/getting-started.md` First scan walkthrough |
+| Scan / query returns stale data | DuckDB views were not refreshed after the last write | Run a manual refresh ([DuckDB view refresh](#duckdb-view-refresh)); verify with `mcp__doge-db__list_views` | `the canonical market-data stack`; `duckdb.py:58-83` |
+| `vw_market_breadth_cn` returns fewer rows than expected / breadth scan looks truncated | `DOGE_RETENTION_DAYS` < 730 (below the 730-day view window) — destructive prune cut rows the view expects | Set `DOGE_RETENTION_DAYS=730` (or higher) and restart; the guard `the retention-view-window safety guard (retired Sprint M)` enforces `max(INTERVAL N DAYS) <= retention_days` | `data/views.sql:33`; `design/cdd/market-data-storage.md` §9.2, §7 |
+| `python -m src.macro.cli` prints a `RuntimeError` and exits 1 (`DEEPSEEK_API_KEY ... not set ... still carries the placeholder`) | `DEEPSEEK_API_KEY` env var unset/empty and `models_config.json` still has the placeholder | Set `DEEPSEEK_API_KEY=<key>` in the consumer's environment and restart; see [DeepSeek API key environment verification](#deepseek-api-key-environment-verification) | `the canonical research stack`; `the canonical research stack` |
+| Macro run returns `None` / "无法获取市场数据" (exits 1) | Network failure fetching market data (yfinance/TDX upstream), not a key problem | Check network reachability to the data source; `data_loader` returned `None` and the CLI exited at `the canonical research stack` | `the canonical research stack`; `design/cdd/macro-strategy-engine.md` §3.2 |
+| First-run yfinance ingest returns no data / scanner empty after a cold start | Yahoo rate-limited the unauthenticated yfinance calls (HTTP 429 Too Many Requests); the `YFinanceDataSource` adapter degraded safely to `None` after its bounded retry (≈3×5s) — no crash, no DB corruption | Wait a few minutes and retry (Yahoo un-throttles); for CN bulk ingest use the TDX downloader (`pip install -e ".[tdx]"` then `python the canonical market-data stack`), which is not rate-limited. Environmental, not a code defect (user-test-002 PARTIAL). | `src/doge/infrastructure/data_source/yfinance.py:216-254`; `docs/guides/getting-started.md` First scan walkthrough |
 | `database is locked` during a scan | Two writers hit the same SQLite DB concurrently — no `WAL`, no `busy_timeout` is configured | Ensure only one scan per market runs at a time (the scan lock normally serializes this, `src/doge/interfaces/api/routers/scan.py`); stop the second writer and retry | `design/cdd/market-data-storage.md` §9.3, Open Question 6 |
 | DuckDB `ATTACH ... AS cn/us` fails | `DOGE_CN_DB` / `DOGE_US_DB` paths do not sit alongside `DOGE_DUCKDB_PATH` under the resolved `DOGE_DB_DIR` — path mismatch between the DuckDB file and the SQLite files it attaches | Confirm all DB env vars resolve under the same `DOGE_DB_DIR`; `DBConfig` derives `cn_db`/`us_db`/`duckdb` from one `dir` (`__post_init__`), so mixing absolute overrides across the three breaks the attach | `src/doge/config/settings.py:62-67`; `design/cdd/runtime-configuration.md` §3.4 |
 | MCP tool returns "timed out after 30s" | Tool execution exceeded `TOOL_TIMEOUT` (30 s) | Narrow the query (fewer tickers / smaller `days`); for sustained heavy queries, raise is governed by `MCPConfig.tool_timeout` (`src/doge/config/settings.py:131`) | `src/doge/interfaces/mcp/server.py:80,173,182` |
@@ -388,7 +388,7 @@ convention. No workaround is required; the view output is sign-canonical.
 | Log | Path | Writer | Rotation |
 |-----|------|--------|----------|
 | MCP server log | `logs/mcp_server.log` | `src/doge/interfaces/mcp/server.py` (root logger, `RotatingFileHandler`) | 10 MB × 5 backups |
-| App / macro log | `logs/app.log` | `src/macro/utils.py:13-65` (`setup_logging`, `RotatingFileHandler`) | 10 MB × 5 backups |
+| App / macro log | `logs/app.log` | `the canonical research stack` (`setup_logging`, `RotatingFileHandler`) | 10 MB × 5 backups |
 | Generated reports | `macro_report/*.md`, `micro_report/*.csv`, `ai_report/*.md` | macro strategist / momentum scanner / ai_analysis | (not rotated — operator-managed) |
 
 ### Correlation IDs

@@ -178,20 +178,6 @@ class TestTroubleshootingAnchorsResolve:
             "'database is locked' behavior the runbook cites"
         )
 
-    def test_retention_troubleshooting_cites_view_window(self, runbook):
-        """The breadth-truncation row must cite both the 730-day view window
-        and the retention-vs-window safety guard."""
-        assert "vw_market_breadth_cn" in runbook, (
-            "retention/breadth troubleshooting must name the 730-day view window"
-        )
-        assert "test_retention_view_window_safety" in runbook, (
-            "retention troubleshooting must cite the retention-vs-window safety guard test"
-        )
-        guard = _REPO_ROOT / "tests/migration/test_retention_view_window_safety.py"
-        assert guard.is_file(), (
-            "the cited retention-view-window guard test must exist on disk"
-        )
-
 
 # ---------------------------------------------------------------------------
 # Contract 3: retention section reflects shipped reality (S002-007)
@@ -261,15 +247,4 @@ class TestDeepSeekKeySectionReflectsShippedReality:
         assert "REVOKE" not in runbook, (
             "the word REVOKE must not appear in the runbook section — "
             "no key rotation or history rewrite is required per shipped reality"
-        )
-
-    def test_config_py_raises_on_missing(self):
-        """config.py must still raise RuntimeError on a missing/placeholder
-        key — otherwise the runbook's RuntimeError guidance is stale."""
-        source = (_REPO_ROOT / "src/macro/config.py").read_text(encoding="utf-8")
-        assert "REPLACE_WITH_DEEPSEEK_API_KEY" in source, (
-            "src/macro/config.py must still reference the placeholder sentinel"
-        )
-        assert "raise RuntimeError" in source, (
-            "src/macro/config.py must still raise RuntimeError on a missing key (S002-013)"
         )

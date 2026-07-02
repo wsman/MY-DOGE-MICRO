@@ -153,8 +153,6 @@ class TestSavePricesRaisesStorageWriteErrorOnFailure:
         self, tmp_path, monkeypatch
     ):
         """BLOCKING (ADR-0003:222): a write failure raises StorageWriteError."""
-        # Arrange — force the legacy writer to raise by monkeypatching the
-        # save_stock_data_custom import inside SQLiteStorageRepository.save_prices.
         db_path = tmp_path / "market_cn.db"
         _init_db(db_path)
 
@@ -166,20 +164,19 @@ class TestSavePricesRaisesStorageWriteErrorOnFailure:
         read_repo = MagicMock(spec=IStockRepository)
         repo = SQLiteStorageRepository(read_repo=read_repo)
 
-        # Inject a failing legacy writer via the SAME module the adapter
-        # imports lazily (``from micro.database import save_stock_data_custom``
-        # inside save_prices). Patching ``micro.database`` is picked up because
-        # the adapter re-reads the attribute at call time.
-        import micro.database as legacy_db
+        # Inject a failing write by patching DataFrame.to_sql on the frame
+        # instance (the ported save_prices calls frame.to_sql directly, no
+        # longer delegating to micro.database.save_stock_data_custom).
+        frame = _make_frame()
 
-        def _failing_save(data, db_path, retention_days=None):
+        def _failing_to_sql(*args, **kwargs):
             raise sqlite3.OperationalError("forced underlying write failure")
 
-        monkeypatch.setattr(legacy_db, "save_stock_data_custom", _failing_save)
+        monkeypatch.setattr(frame, "to_sql", _failing_to_sql)
 
         # Act + Assert
         with pytest.raises(StorageWriteError):
-            repo.save_prices("cn", _make_frame())
+            repo.save_prices("cn", frame)
 
         settings_module.reset_settings()
 
