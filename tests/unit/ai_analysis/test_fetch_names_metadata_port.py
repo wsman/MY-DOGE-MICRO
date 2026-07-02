@@ -10,7 +10,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from doge.application.composition import build_populate_stock_names_use_case
+from doge.bootstrap.gateway import GatewayContainer
+def build_populate_stock_names_use_case(*a, **kw): return GatewayContainer().build_populate_stock_names_use_case(*a, **kw)
 from doge.application.contracts.request import PopulateStockNamesRequest
 from doge.application.use_cases.populate_stock_names import PopulateStockNamesUseCase
 from doge.core.ports.metadata import ITickerMetadataSource

@@ -12,7 +12,7 @@ from doge.application.agent.model_response_assembler import ModelResponseAssembl
 from doge.application.agent.run_lifecycle_service import RunLifecycleService
 from doge.application.agent.run_stepper import RunStepper
 from doge.application.agent.runtime_kernel import RuntimeKernel
-from doge.application.agent.tools import ToolRegistry, ToolResult
+from doge.application.tools import ToolRegistry, ToolResult
 from doge.application.agent.transition_recorder import TransitionRecorder
 from doge.application.services.citation_service import CitationService
 from doge.application.services.claim_validation_service import ClaimValidationService

@@ -1,7 +1,9 @@
 import pytest
 
-from doge.application.agent.tools import ToolRegistry, ToolResult
-from doge.application.composition import build_persisted_research_agent_runtime
+from doge.application.tools import ToolRegistry, ToolResult
+from doge.bootstrap.runtime import RuntimeContainer
+def build_persisted_research_agent_runtime(model=None, tool_registry=None, event_publisher=None, db_path=None):
+    return RuntimeContainer(db_path=db_path).build_persisted_research_agent_runtime(model=model, tool_registry=tool_registry, event_publisher=event_publisher)
 from doge.core.domain.agent_models import RunStatus
 from doge.infrastructure.agent.inmemory_runtime import InMemoryResearchAgentRuntime
 from doge.infrastructure.agent.scripted_model import ScriptedAgentModel

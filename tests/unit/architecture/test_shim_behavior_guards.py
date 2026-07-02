@@ -8,7 +8,6 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 SHIM_FILES = [
-    PROJECT_ROOT / "src" / "doge" / "application" / "agent" / "tools.py",
     PROJECT_ROOT / "src" / "doge" / "interfaces" / "api" / "routers" / "__init__.py",
 ]
 

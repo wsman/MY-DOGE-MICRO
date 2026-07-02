@@ -39,13 +39,3 @@ class TestCoreServicesImportGate:
                 assert pattern not in text, (
                     f"{source_path.relative_to(pkg_path)} imports legacy surface: {pattern}"
                 )
-
-    def test_core_services_composition_is_shim_only(self):
-        """The deprecated core.services.composition re-exports from application."""
-        import doge.core.services.composition as legacy_comp
-
-        source = Path(inspect.getfile(legacy_comp)).read_text(encoding="utf-8")
-        assert "from doge.application.composition import" in source
-        # It no longer contains direct infrastructure imports.
-        assert "from doge.infrastructure" not in source
-        assert "import doge.infrastructure" not in source

@@ -1,7 +1,8 @@
 import json
 import sys
 
-from doge.application import composition
+from doge.bootstrap.gateway import GatewayContainer
+composition = GatewayContainer()
 from doge.config import reset_settings
 from doge.infrastructure.secrets import EnvSecretProvider, ProcessSecretProvider
 

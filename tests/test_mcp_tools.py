@@ -13,7 +13,8 @@ from pathlib import Path
 import pytest
 from starlette.testclient import TestClient
 
-from doge.application import composition
+from doge.bootstrap.workspace import WorkspaceContainer
+composition = WorkspaceContainer()
 from doge.config import reset_settings
 from doge.core.domain.platform_models import Project, ResearchCase, Workspace
 from doge.interfaces.mcp import server as srv

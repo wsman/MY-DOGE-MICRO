@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from doge.application.agent.tools import ToolRegistry
+from doge.application.tools import ToolRegistry
 from doge.bootstrap.runtime import RuntimeContainer
 from doge.core.domain.agent_models import AgentArtifact, AgentEvent, EventType, RunStatus
 from doge.core.domain.tool_policy import ToolCategory

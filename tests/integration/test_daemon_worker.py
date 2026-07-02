@@ -7,9 +7,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 from doge.config import reset_settings
-from doge.application.agent.tools import ToolRegistry, ToolResult
+from doge.application.tools import ToolRegistry, ToolResult
 from doge.application.agent.worker import AsyncioWorker
-from doge.application.composition import build_agent_unit_of_work, build_persisted_research_agent_runtime
+from doge.bootstrap.runtime import RuntimeContainer
+def build_agent_unit_of_work(db_path=None, event_publisher=None):
+    return RuntimeContainer(db_path=db_path).build_agent_unit_of_work(event_publisher=event_publisher)
+def build_persisted_research_agent_runtime(model=None, tool_registry=None, event_publisher=None, db_path=None):
+    return RuntimeContainer(db_path=db_path).build_persisted_research_agent_runtime(model=model, tool_registry=tool_registry, event_publisher=event_publisher)
 from doge.core.domain.agent_models import AgentSession, EventType, RunStatus
 from doge.core.ports.agent_model import AgentMessage, AgentResponse
 from doge.infrastructure.database.agent_repositories import SQLiteIdempotencyStore, SQLiteRunQueue, SQLiteSessionRepository

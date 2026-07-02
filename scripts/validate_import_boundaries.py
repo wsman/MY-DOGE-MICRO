@@ -1,9 +1,9 @@
-"""Validate import boundaries: production code must not import compatibility shims.
+"""Validate import boundaries: production code must not import retired paths.
 
 Enforces ADR-0027 and ``docs/architecture/file-structure-policy.md``: new
 platform code under ``src/doge/`` must import the canonical modules
-(``doge.interfaces.gateway.routers``, ``doge.application.tools``), not the
-compatibility shims (``doge.interfaces.api.routers.v1``,
+(``doge.interfaces.gateway.routers``, ``doge.application.tools``), not retired
+or compatibility paths (``doge.interfaces.api.routers.v1``,
 ``doge.application.agent.tools``).
 
 The shim files themselves (and the whole ``routers/v1`` shim package) are

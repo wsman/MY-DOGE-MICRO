@@ -47,17 +47,9 @@ def test_runtime_gateway_and_tools_do_not_directly_import_legacy_top_level_modul
             assert illegal == [], f"{path.relative_to(PROJECT_ROOT)} imports legacy modules directly: {illegal}"
 
 
-def test_application_agent_tools_module_remains_a_compatibility_shim() -> None:
-    path = PROJECT_ROOT / "src" / "doge" / "application" / "agent" / "tools.py"
-    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-    body = _without_module_docstring(tree.body)
-
-    assert all(isinstance(node, (ast.ImportFrom, ast.Assign)) for node in body)
-    assert "from doge.application.tools import ToolRegistry, ToolResult, build_default_tool_registry" in path.read_text(
-        encoding="utf-8"
-    )
-    assert "def " not in path.read_text(encoding="utf-8")
-    assert "class " not in path.read_text(encoding="utf-8")
+# test_application_agent_tools_module_remains_a_compatibility_shim retired in
+# Sprint M: the agent.tools shim was deleted after consumers migrated to
+# doge.application.tools directly.
 
 
 def _imports(path: Path) -> list[str]:

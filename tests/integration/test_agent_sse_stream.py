@@ -4,7 +4,8 @@ import time
 
 from fastapi.testclient import TestClient
 
-from doge.application.composition import build_research_agent_runtime
+from doge.bootstrap.runtime import RuntimeContainer
+def build_research_agent_runtime(*a, **kw): return RuntimeContainer().build_research_agent_runtime(*a, **kw)
 from doge.config import reset_settings
 from doge.core.domain.agent_models import AgentEvent, AgentRun, EventType, RunStatus
 from doge.infrastructure.database.agent_repositories import SQLiteEventRepository, SQLiteRunRepository

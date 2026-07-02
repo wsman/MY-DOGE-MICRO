@@ -191,18 +191,16 @@ class _RaisingAfterResponses(FakeMarketViewRepository):
 
 
 # ---------------------------------------------------------------------------
-# Bootstrap containers own the infrastructure import (composition is a shim)
+# Bootstrap containers own the infrastructure import (composition shim retired)
 # ---------------------------------------------------------------------------
 def test_bootstrap_owns_infrastructure_imports():
-    """P1B: bootstrap wiring modules import infrastructure; composition and services do not."""
-    import doge.application.composition as comp
+    """P1B: bootstrap wiring modules import infrastructure; services do not."""
     import doge.bootstrap.gateway_factories as gateway_factories
     from doge.bootstrap import runtime, workspace
 
-    comp_source = Path(inspect.getfile(comp)).read_text(encoding="utf-8")
-    assert "from doge.infrastructure" not in comp_source, (
-        "doge.application.composition must be a thin shim with no infrastructure imports"
-    )
+    with pytest.raises(ModuleNotFoundError):
+        importlib.import_module("doge.application.composition")
+
     # The bootstrap container(s) and their bounded-context factory modules are the
     # sanctioned wiring sites. GatewayContainer and RuntimeContainer are now thin
     # facades, so their infrastructure wiring lives in the factory modules.
@@ -227,12 +225,12 @@ def test_bootstrap_owns_infrastructure_imports():
 
 def test_composition_factories_return_services_bound_to_port():
     """The build_* factories return services whose repository is a port."""
-    from doge.application.composition import (
-        build_anomaly_service,
-        build_breadth_service,
-        build_ranking_service,
-        build_view_service,
-    )
+    from doge.bootstrap.gateway import GatewayContainer
+    _gw = GatewayContainer()
+    build_anomaly_service = _gw.build_anomaly_service
+    build_breadth_service = _gw.build_breadth_service
+    build_ranking_service = _gw.build_ranking_service
+    build_view_service = _gw.build_view_service
 
     # We do NOT call the factories' default path here (that would build a real
     # DuckDB connection). Inject a fake to prove the factory wires a port.

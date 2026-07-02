@@ -6,7 +6,6 @@ import ast
 import inspect
 from pathlib import Path
 
-import doge.application.composition as composition
 from doge.bootstrap.gateway import GatewayContainer
 from doge.bootstrap.runtime import RuntimeContainer
 from doge.bootstrap.workspace import WorkspaceContainer
@@ -100,10 +99,7 @@ _GATEWAY_FACTORIES = [
     "build_file_upload_service",
 ]
 
-_APPLICATION_COMPOSITION_IMPORT_ALLOWLIST = {
-    "src/doge/core/services/composition.py",
-    "src/micro/market_scanner.py",
-}
+_APPLICATION_COMPOSITION_IMPORT_ALLOWLIST: set[str] = set()
 
 
 def _imports_application_composition(path: Path) -> bool:
@@ -143,22 +139,6 @@ def test_runtime_container_retains_high_level_factory_facade_methods() -> None:
         assert "composition." not in source
         assert "_composition()" not in source
         assert f"{_RUNTIME_FACTORY_MODULE_BY_METHOD[method_name]}.{method_name}" in source
-
-
-def test_composition_high_level_factories_are_runtime_container_shims() -> None:
-    """P1A: legacy composition entry points delegate to RuntimeContainer."""
-    for factory_name in _RUNTIME_HIGH_LEVEL_FACTORIES:
-        assert hasattr(composition, factory_name), f"composition missing {factory_name}"
-        source = inspect.getsource(getattr(composition, factory_name))
-
-        assert "_runtime_container" in source
-
-
-def test_composition_leaf_factories_are_runtime_container_shims() -> None:
-    for factory_name in _RUNTIME_LEAF_FACTORIES:
-        source = inspect.getsource(getattr(composition, factory_name))
-
-        assert "_runtime_container" in source
 
 
 def test_runtime_container_leaf_factories_build_expected_adapters(tmp_path) -> None:
@@ -203,13 +183,6 @@ def test_gateway_container_factories_do_not_delegate_to_composition() -> None:
 
         assert "composition." not in source
         assert "_composition()" not in source
-
-
-def test_composition_leaf_factories_are_gateway_container_shims() -> None:
-    for factory_name in _GATEWAY_FACTORIES:
-        source = inspect.getsource(getattr(composition, factory_name))
-
-        assert "_gateway_container" in source
 
 
 def test_migrated_entrypoints_use_bootstrap_not_legacy_composition() -> None:

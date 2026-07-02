@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 from doge.application.agent.tool_service import ToolApplicationService
-from doge.application.agent.tools import build_default_tool_registry
+from doge.application.tools import build_default_tool_registry
 from doge.core.domain.enterprise_context import EnterpriseContext
 from doge.core.domain.tool_policy import ToolCategory
 
@@ -246,7 +246,12 @@ def test_tool_application_service_has_no_legacy_direct_execution_branch():
 
 
 def test_composition_uses_provider_facade_by_default(monkeypatch, tmp_path):
-    from doge.application import composition
+    from doge.bootstrap.gateway import GatewayContainer
+    class composition:
+        @staticmethod
+        def build_tool_application_service(*a, **kw):
+            db_path = kw.pop("db_path", None)
+            return GatewayContainer(db_path=db_path).build_tool_application_service(*a, **kw)
     from doge.config import reset_settings
 
     monkeypatch.delenv("DOGE_FEATURE_CAPABILITY_REGISTRY", raising=False)

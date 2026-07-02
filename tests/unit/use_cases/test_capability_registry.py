@@ -6,7 +6,7 @@ from doge.application.capabilities.registry import (
     ModelProviderCapabilityProvider,
     ToolRegistryCapabilityProvider,
 )
-from doge.application.agent.tools import build_default_tool_registry
+from doge.application.tools import build_default_tool_registry
 from doge.application.agent.tool_service import ToolApplicationService
 from doge.infrastructure.code_execution.python import SubprocessCodeExecutor
 from doge.config import Settings

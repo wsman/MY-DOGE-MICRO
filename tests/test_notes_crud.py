@@ -9,7 +9,8 @@ import sqlite3
 
 import pytest
 
-from doge.application.composition import build_manage_notes_use_case
+from doge.bootstrap.gateway import GatewayContainer
+def build_manage_notes_use_case(*a, **kw): return GatewayContainer().build_manage_notes_use_case(*a, **kw)
 from doge.application.contracts.request import ManageNoteRequest
 
 

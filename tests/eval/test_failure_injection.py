@@ -3,7 +3,7 @@ from typing import Any, AsyncIterator
 
 import pytest
 
-from doge.application.agent.tools import ToolRegistry, ToolResult
+from doge.application.tools import ToolRegistry, ToolResult
 from doge.core.domain.agent_models import EventType, RunStatus
 from doge.core.ports.agent_model import AgentMessage, AgentResponse, IAgentModel
 from doge.infrastructure.agent.inmemory_runtime import InMemoryResearchAgentRuntime

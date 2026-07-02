@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 
-from doge.application.agent.tools import ToolRegistry
+from doge.application.tools import ToolRegistry
 from doge.bootstrap.runtime import RuntimeContainer
 from doge.core.domain.agent_models import RunStatus
 from doge.core.ports.agent_model import AgentMessage, AgentResponse, IAgentModel

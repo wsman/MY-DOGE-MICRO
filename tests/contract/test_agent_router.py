@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
-from doge.application.composition import build_research_agent_runtime
+from doge.bootstrap.runtime import RuntimeContainer
+def build_research_agent_runtime(*a, **kw): return RuntimeContainer().build_research_agent_runtime(*a, **kw)
 from doge.interfaces.api import deps
 from doge.interfaces.api.main import app
 
