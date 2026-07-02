@@ -49,6 +49,25 @@ explicit and must not become the runtime default.
 - Claiming live provider quality from scripted cases.
 - Changing product module ownership.
 
+## Evidence Checklist
+
+Before attaching demo or eval output to a sprint, record:
+
+- The exact command and case file.
+- Whether the run used scripted models, fixtures, or live adapters.
+- The generated artifact path and timestamp.
+- The local pass/fail result and any skipped capabilities.
+- The external gates that remain open after the local run.
+
+This keeps deterministic evidence useful without overstating what it proves.
+
+## Safety Notes
+
+- Keep fixture portfolios and scripted model outputs labeled as demo evidence.
+- Do not copy live provider credentials into case files or evidence docs.
+- Prefer repeatable local cases for regression checks; use operator handoff
+  docs when a live provider or human approval is required.
+
 ## Key References
 
 - Eval guide: [../guides/run-eval.md](../guides/run-eval.md)

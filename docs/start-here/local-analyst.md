@@ -30,6 +30,22 @@ produce an artifact without first reading the full API or architecture docs.
    question, inspect events, and approve or deny requested actions. When the
    workflow needs exact flags or JSONL output, return to [../CLI.md](../CLI.md).
 
+## Five-Minute Demo (`doge demo`)
+
+When you want a zero-key, scripted walkthrough before driving your own session,
+run the bundled demo instead of (or before) the interactive session:
+
+```bash
+doge demo
+```
+
+`doge demo` replays a scripted, deterministic scenario with no live provider
+key, while `doge session --interactive` lets you submit your own questions and
+resolve real approvals against the persisted runtime. Use the demo to confirm
+the install and see the trace/artifact/citation shape; use the interactive
+session to do real analyst work. For the eval/batch harness behind repeatable
+demo cases, see [eval-demo-owner.md](eval-demo-owner.md).
+
 ## What To Expect
 
 - The CLI is a product entrypoint, not a second platform stack.

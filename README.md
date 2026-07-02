@@ -26,13 +26,10 @@ pip install -e .
 
 Use one of the three Platform Alpha paths:
 
-```bash
-doge session --interactive          # local analyst path
-doged serve --port 8901             # daemon gateway path
-```
-
-SDK integrators should use the Python or TypeScript SDKs against `/v1`; start
-at [docs/start-here/sdk-integrator.md](docs/start-here/sdk-integrator.md).
+- **Local analyst** — `doge session --interactive`
+- **Daemon gateway** — `doged serve --port 8901`
+- **SDK integrator** — Python or TypeScript SDK against `/v1`; start at
+  [docs/start-here/sdk-integrator.md](docs/start-here/sdk-integrator.md)
 
 Secondary surfaces and setup references live outside the quick path:
 `doge demo` is covered by [docs/start-here/eval-demo-owner.md](docs/start-here/eval-demo-owner.md),

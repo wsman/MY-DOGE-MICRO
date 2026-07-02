@@ -53,6 +53,19 @@ runtime.
 - Calling legacy `/api/*` from new Web code.
 - Declaring production readiness from a local browser run.
 
+## Contract Checklist
+
+Before changing the workspace, confirm:
+
+- New runtime calls use the TypeScript SDK or a thin `/v1` adapter.
+- Platform entity types come from `doge-sdk`, not a Web-local duplicate.
+- Feature-flagged views handle disabled endpoints with clear empty/error state.
+- Approval, citation, eval, and artifact displays preserve daemon wire fields.
+- Legacy deep links stay available when the product-domain shell changes.
+
+These checks keep the browser UI a client of the daemon contract rather than a
+parallel product stack.
+
 ## Key References
 
 - Web README: [../../web/README.md](../../web/README.md)
