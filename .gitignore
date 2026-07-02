@@ -42,6 +42,10 @@ web/dist/
 .vite/
 packages/*/node_modules/
 packages/*/dist/
+packages/*/build/
+
+# Local smoke/build workspaces
+.tmp/
 
 # Claude Code user-specific
 .claude/settings.local.json

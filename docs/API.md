@@ -1,8 +1,9 @@
 # HTTP API Reference (FastAPI)
 
 The local-first HTTP backend of MY-DOGE-MICRO. A single FastAPI application
-(`doge.interfaces.api.main`) binds to `127.0.0.1:8901` and exposes **88 product
-routes**: 34 legacy `/api/*` compatibility routes plus 54 daemon/v1 routes.
+(`doge.interfaces.api.main`) binds to `127.0.0.1:8901` by default and exposes
+**88 HTTP routes**: 34 legacy `/api/*` compatibility routes plus 54 daemon/v1
+and health routes.
 Per ADR-0024, new platform work should target `/v1/*` through SDK clients.
 Legacy `/api/*` remains for local compatibility and emits deprecation metadata
 headers.
@@ -31,11 +32,11 @@ not part of the main user workflow.
 | Property | Value | Source |
 |---|---|---|
 | Application | `FastAPI(title="MY-DOGE API", version="0.1.0")` | `src/doge/interfaces/api/main.py` |
-| Bind host | `127.0.0.1` (loopback only) | `src/doge/interfaces/api/main.py` |
+| Bind host | `127.0.0.1` by default; non-loopback requires the remote-bind gate | `src/doge/interfaces/api/main.py` |
 | Bind port | `8901` | `src/doge/interfaces/api/main.py` |
-| Auth | None (local-first) | see [Authentication](#authentication) |
+| Auth | Mode-driven: `local_demo` no bearer token; `enterprise` bearer provider fail-closed | see [Authentication](#authentication) |
 | Routers | legacy `/api/*` routers + v1 daemon routers | `src/doge/interfaces/api/main.py` |
-| Product routes | 88 (34 legacy routes + 54 v1/health routes) | `src/doge/interfaces/api/main.py` |
+| HTTP routes | 88 (34 legacy `/api/*` routes + 54 daemon/v1 and health routes) | `src/doge/interfaces/api/main.py` |
 | Framework | FastAPI 0.123.8 + uvicorn 0.38.0 | `pyproject.toml:19-20` |
 | Streaming | sse-starlette 3.0.3 (`EventSourceResponse`) | `pyproject.toml:21` |
 
@@ -91,30 +92,31 @@ Two response modes are used (`design/cdd/fastapi-service.md` §9.1):
 
    See [SSE Contract](reference/http-api-contracts.md#sse-contract) for the event format.
 
-HTTP/1.1 over loopback, served by uvicorn. No HTTPS termination in the service
-itself (local-first; a reverse proxy would own TLS if ever needed).
+HTTP/1.1 over loopback, served by uvicorn by default. Remote bind is a
+promotion gate and requires explicit TLS termination acknowledgement.
 
 ## Authentication
 
-**None.** This is a local-first API with no remote clients in scope. Safety
-rests entirely on the loopback bind:
+Authentication is mode-driven (`DOGE_AUTH_MODE`, `AuthConfig` in
+`src/doge/config/settings.py`):
 
-- The server binds to `127.0.0.1` (`src/doge/interfaces/api/main.py`), so no remote client
-  can reach it in the default configuration.
-- `.claude/rules/api-code.md`'s "auth failure" contract-test case is therefore
-  N/A and intentionally skipped (documented in `tests/test_api_routers.py:5-8`).
-
-> **WARNING — rebinding is a security event.** If you change the bind host to
-> `0.0.0.0` (or any non-loopback interface) the API becomes reachable from the
-> LAN **with no authentication and with permissive CORS**
-> (`allow_origins=["*"]`, `src/doge/interfaces/api/main.py`). Binding off-loopback REQUIRES
-> both (a) tightening CORS to an explicit origin allow-list and (b) adding an
-> auth layer — see [CORS](reference/http-api-contracts.md#cors) and ADR-0007 §Decision 2 + Migration Plan
-> step 3. Neither exists today.
+- `local_demo` (default): no bearer token required. This is safe only for the
+  default loopback bind (`127.0.0.1`). Legacy `/api/*` routers are mounted only
+  for local loopback demo mode.
+- `enterprise`: a bearer provider (OIDC/JWKS or static token) is required.
+  Startup fails closed with `RuntimeError` when the provider is deny-all
+  (`_validate_api_auth_startup`). Tenant, role, entitlement, approval authority,
+  and project claims are resolved through the configured claim names. Legacy
+  `/api/*` routers are disabled in enterprise mode.
+- Remote non-loopback bind is a promotion gate. It requires
+  `DOGE_ALLOW_REMOTE_BIND=1`, `DOGE_AUTH_MODE=enterprise`, a non-deny-all
+  provider, explicit CORS allow-list with no `"*"`, and
+  `tls_termination_required=True`. `_resolve_bind_host` and
+  `_validate_api_remote_bind_startup` enforce this before serving.
 
 ## Full Reference
 
-- Route table and per-route reference (all 88 product routes; primary v1
+- Route table and per-route reference (all 88 HTTP routes; primary v1
   families `sessions`, `runs`, `documents`, `tools`, `platform`; legacy
   `/api/*`; operator appendix):
   [reference/http-api.md](reference/http-api.md)

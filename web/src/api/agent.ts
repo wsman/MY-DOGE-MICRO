@@ -1,41 +1,19 @@
 import { dogeClient } from './client'
+import type {
+  AgentApproval as SdkAgentApproval,
+  AgentArtifact as SdkAgentArtifact,
+  AgentEvent as SdkAgentEvent,
+  AgentRun as SdkAgentRun,
+} from 'doge-sdk'
 
-export interface AgentEvent {
-  event_id: string
-  run_id: string
-  event_type: string
-  payload: Record<string, any>
-  created_at: string
-}
+type WebRecord = Record<string, unknown> & Record<string, any>
 
-export interface AgentArtifact {
-  artifact_id: string
-  kind: string
-  title: string
-  content: string
-  data: Record<string, any>
-  created_at: string
-}
-
-export interface AgentApproval {
-  approval_id: string
-  action: string
-  risk_level: string
-  status: string
-  created_at: string
-  resolved_at?: string | null
-}
-
-export interface AgentRun {
-  run_id: string
-  workflow: string
-  question: string
-  market: string
-  language: string
-  status: string
+export type AgentEvent = Omit<SdkAgentEvent, 'payload'> & { payload: WebRecord }
+export type AgentArtifact = Omit<SdkAgentArtifact, 'data'> & { data: WebRecord }
+export type AgentApproval = SdkAgentApproval
+export type AgentRun = Omit<SdkAgentRun, 'events' | 'artifacts'> & {
   events: AgentEvent[]
   artifacts: AgentArtifact[]
-  approvals: AgentApproval[]
 }
 
 export interface CreateAgentRunRequest {
@@ -63,11 +41,11 @@ export async function createAgentRun(payload: CreateAgentRunRequest): Promise<Ag
 }
 
 export async function fetchAgentRun(runId: string): Promise<AgentRun> {
-  return await dogeClient.runs.get(runId) as unknown as AgentRun
+  return await dogeClient.runs.get(runId)
 }
 
 export async function approveAgentRun(runId: string, approvalId: string, approved: boolean): Promise<AgentRun> {
-  const run = await dogeClient.runs.approve(runId, approvalId, approved) as unknown as AgentRun
+  const run = await dogeClient.runs.approve(runId, approvalId, approved)
   return isSettledForDisplay(run.status) ? run : await streamAgentRun(runId, latestEventId(run))
 }
 
@@ -87,6 +65,6 @@ function isSettledEvent(eventType: string): boolean {
 }
 
 function latestEventId(run: AgentRun): string | undefined {
-  const last = run.events?.[run.events.length - 1] as (AgentEvent & { sequence?: number }) | undefined
-  return last?.sequence === undefined ? undefined : String(last.sequence)
+  const last = run.events[run.events.length - 1]
+  return last ? String(last.sequence) : undefined
 }

@@ -27,8 +27,14 @@ describe('ResearchAgentView accessibility', () => {
       run_id: 'run-1',
       workflow: 'investment_research',
       question: 'Analyze',
+      session_id: null,
       market: 'us',
       language: 'en',
+      document_ids: [],
+      portfolio_id: null,
+      model_policy: {},
+      workflow_context: null,
+      identity_snapshot: null,
       status: 'awaiting_approval',
       events: [
         {
@@ -36,6 +42,8 @@ describe('ResearchAgentView accessibility', () => {
           run_id: 'run-1',
           event_type: 'approval_requested',
           payload: { action: 'publish memo' },
+          sequence: 1,
+          schema_version: '1.0',
           created_at: 'now',
         },
         {
@@ -46,6 +54,8 @@ describe('ResearchAgentView accessibility', () => {
             usage: { total_tokens: 42, prompt_tokens: 30, cost_usd: 0.0012 },
             routing: { backend: 'direct_kimi_api', model: 'kimi-k2.6' },
           },
+          sequence: 2,
+          schema_version: '1.0',
           created_at: 'now',
         },
         {
@@ -67,6 +77,8 @@ describe('ResearchAgentView accessibility', () => {
               },
             },
           },
+          sequence: 3,
+          schema_version: '1.0',
           created_at: 'now',
         },
       ],
@@ -76,6 +88,7 @@ describe('ResearchAgentView accessibility', () => {
           kind: 'investment_memo',
           title: 'Memo',
           content: '# Memo\n\nSource evd-abc',
+          run_id: 'run-1',
           data: {
             usage: { total_tokens: 42 },
             citation_precision: 1,
@@ -90,10 +103,16 @@ describe('ResearchAgentView accessibility', () => {
           approval_id: 'appr-1',
           action: 'publish memo',
           risk_level: 'high',
+          run_id: 'run-1',
           status: 'pending',
           created_at: 'now',
+          resolved_at: null,
         },
       ],
+      cancel_requested_at: null,
+      schema_version: '1.0',
+      created_at: 'now',
+      updated_at: 'now',
     }
 
     const wrapper = mount(ResearchAgentView)
@@ -124,8 +143,14 @@ describe('ResearchAgentView accessibility', () => {
       run_id: 'run-2',
       workflow: 'investment_research',
       question: 'Analyze',
+      session_id: null,
       market: 'us',
       language: 'en',
+      document_ids: [],
+      portfolio_id: null,
+      model_policy: {},
+      workflow_context: null,
+      identity_snapshot: null,
       status: 'completed',
       events: [],
       artifacts: [
@@ -134,6 +159,7 @@ describe('ResearchAgentView accessibility', () => {
           kind: 'investment_memo',
           title: 'Memo',
           content: '# Memo\n\nSource evd-click',
+          run_id: 'run-2',
           data: {
             citations: [
               {
@@ -149,6 +175,10 @@ describe('ResearchAgentView accessibility', () => {
         },
       ],
       approvals: [],
+      cancel_requested_at: null,
+      schema_version: '1.0',
+      created_at: 'now',
+      updated_at: 'now',
     }
 
     const wrapper = mount(ResearchAgentView, { attachTo: document.body })

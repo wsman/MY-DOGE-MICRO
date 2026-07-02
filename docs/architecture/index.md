@@ -13,6 +13,7 @@ files in supporting roles.
 | Runtime-path shortcut | [canonical-runtime-path.md](canonical-runtime-path.md) |
 | Runtime path and frozen Alpha runtime contracts | [runtime-contracts.md](runtime-contracts.md) |
 | File placement and shim behavior rules | [file-structure-policy.md](file-structure-policy.md) |
+| Thin source layout placement map | [source-layout-map.md](source-layout-map.md) |
 | Detailed compatibility-surface registry | [compatibility-surfaces.md](compatibility-surfaces.md) |
 | Module ownership and include/exclude boundaries | [module-boundaries.md](module-boundaries.md) |
 | Data ownership pointers | [data-ownership.md](data-ownership.md) |

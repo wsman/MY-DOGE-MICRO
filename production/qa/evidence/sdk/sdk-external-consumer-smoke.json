@@ -4,26 +4,26 @@
       "name": "python_sdk_external_consumer",
       "status": "passed",
       "stdout": "python-consumer-ok",
-      "wheel": "D:\\Users\\Aby\\Desktop\\CodingTask\\MY-DOGE-MICRO\\.tmp\\sdk-external-consumer-smoke-platform\\python\\wheelhouse\\doge_sdk-0.1.0-py3-none-any.whl"
+      "wheel": "D:\\Users\\WSMAN\\Desktop\\Coding Task\\MY-DOGE-MICRO\\.tmp\\sdk-external-consumer-smoke\\python\\wheelhouse\\doge_sdk-0.1.0-py3-none-any.whl"
     },
     {
-      "entry_count": 11,
+      "entry_count": 16,
       "name": "typescript_sdk_external_consumer",
-      "package_size": 4954,
+      "package_size": 7529,
       "status": "passed",
       "stdout": "typescript-consumer-ok",
-      "tarball": "D:\\Users\\Aby\\Desktop\\CodingTask\\MY-DOGE-MICRO\\.tmp\\sdk-external-consumer-smoke-platform\\typescript\\doge-sdk-0.1.0.tgz",
-      "unpacked_size": 21043
+      "tarball": "D:\\Users\\WSMAN\\Desktop\\Coding Task\\MY-DOGE-MICRO\\.tmp\\sdk-external-consumer-smoke\\typescript\\doge-sdk-0.1.0.tgz",
+      "unpacked_size": 31340
     }
   ],
-  "finished_at": "2026-06-22T14:21:05.258900+00:00",
-  "output_dir": "D:\\Users\\Aby\\Desktop\\CodingTask\\MY-DOGE-MICRO\\production\\qa\\evidence\\sdk",
+  "finished_at": "2026-07-02T17:35:55.928405+00:00",
+  "output_dir": "D:\\Users\\WSMAN\\Desktop\\Coding Task\\MY-DOGE-MICRO\\production\\qa\\evidence\\sdk",
   "schema": "doge.sdk_external_consumer_smoke.v1",
-  "started_at": "2026-06-22T14:20:38.862208+00:00",
+  "started_at": "2026-07-02T17:35:28.285487+00:00",
   "summary": {
     "checks": 2,
     "failures": 0,
     "passed": true
   },
-  "workspace": "D:\\Users\\Aby\\Desktop\\CodingTask\\MY-DOGE-MICRO\\.tmp\\sdk-external-consumer-smoke-platform"
+  "workspace": "D:\\Users\\WSMAN\\Desktop\\Coding Task\\MY-DOGE-MICRO\\.tmp\\sdk-external-consumer-smoke"
 }

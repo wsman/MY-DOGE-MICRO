@@ -2,15 +2,19 @@
 
 Enforces ADR-0027 and ``docs/architecture/file-structure-policy.md``: new
 platform code under ``src/doge/`` must import the canonical modules
-(``doge.interfaces.gateway.routers``, ``doge.application.tools``), not retired
-or compatibility paths (``doge.interfaces.api.routers.v1``,
-``doge.application.agent.tools``).
+(``doge.interfaces.gateway.routers``, ``doge.application.tools``, and the
+persisted runtime path), not retired, compatibility, or demo-only paths
+(``doge.interfaces.api.routers.v1``, ``doge.application.agent.tools``,
+``doge.interfaces.api_legacy``, or
+``doge.infrastructure.agent.inmemory_runtime``).
 
-The shim files themselves (and the whole ``routers/v1`` shim package) are
-excluded — they are the re-export surfaces, not offenders.
+Compatibility shims, legacy route mounting, ``api_legacy`` itself, and the
+explicitly gated demo fallback factory are allowlisted. They are the migration
+surfaces, not offenders.
 
 This is a ratchet with a zero baseline: the clean tree has no production
-importers of these shims, so any new offender fails immediately.
+importers of these retired paths outside the allowlist, so any new offender
+fails immediately.
 """
 from __future__ import annotations
 
@@ -30,14 +34,21 @@ SCAN_PACKAGE_ROOT = SRC_ROOT / "doge"
 FORBIDDEN_PREFIXES = (
     "doge.interfaces.api.routers.v1",
     "doge.application.agent.tools",
+    "doge.interfaces.api_legacy",
+    "doge.infrastructure.agent.inmemory_runtime",
 )
 
-# The shim re-export surfaces themselves: excluded from the scan.
-SHIM_FILES = {
+# Compatibility and demo-gated surfaces themselves: excluded from the scan.
+ALLOWLIST_FILES = {
     SCAN_PACKAGE_ROOT / "application" / "agent" / "tools.py",
+    SCAN_PACKAGE_ROOT / "bootstrap" / "runtime_factories" / "runtime_kernel.py",
+    SCAN_PACKAGE_ROOT / "interfaces" / "api" / "routes.py",
     SCAN_PACKAGE_ROOT / "interfaces" / "api" / "routers" / "__init__.py",
 }
-SHIM_DIRS = ()
+ALLOWLIST_DIRS = (
+    SCAN_PACKAGE_ROOT / "interfaces" / "api" / "routers",
+    SCAN_PACKAGE_ROOT / "interfaces" / "api_legacy",
+)
 
 
 @dataclass(frozen=True)
@@ -47,9 +58,10 @@ class Finding:
 
     def format(self) -> str:
         return (
-            f"{_display(self.path)}: imports forbidden compatibility shim "
-            f"'{self.module}'; import the canonical module instead "
-            f"(doge.interfaces.gateway.routers / doge.application.tools)"
+            f"{_display(self.path)}: imports forbidden compatibility/demo path "
+            f"'{self.module}'; use the canonical path instead "
+            f"(doge.interfaces.gateway.routers / doge.application.tools / "
+            f"persisted runtime)"
         )
 
 
@@ -70,11 +82,18 @@ def main(argv: list[str] | None = None) -> int:
 def validate(root: Path = ROOT) -> list[Finding]:
     findings: list[Finding] = []
     scan_root = (root / "src" / "doge") if root != ROOT else SCAN_PACKAGE_ROOT
-    shim_files = {(root / "src" / "doge" / "application" / "agent" / "tools.py")}
-    shim_files.add(root / "src" / "doge" / "interfaces" / "api" / "routers" / "__init__.py")
-    shim_dirs = [root / "src" / "doge" / "interfaces" / "api" / "routers" / "v1"]
+    allowlist_files = {
+        root / "src" / "doge" / "application" / "agent" / "tools.py",
+        root / "src" / "doge" / "bootstrap" / "runtime_factories" / "runtime_kernel.py",
+        root / "src" / "doge" / "interfaces" / "api" / "routes.py",
+        root / "src" / "doge" / "interfaces" / "api" / "routers" / "__init__.py",
+    }
+    allowlist_dirs = [
+        root / "src" / "doge" / "interfaces" / "api" / "routers",
+        root / "src" / "doge" / "interfaces" / "api_legacy",
+    ]
     for path in sorted(scan_root.rglob("*.py")):
-        if _is_shim(path, shim_files, shim_dirs):
+        if _is_allowed_path(path, allowlist_files, allowlist_dirs):
             continue
         if "__pycache__" in path.parts:
             continue
@@ -92,11 +111,11 @@ def validate(root: Path = ROOT) -> list[Finding]:
     return findings
 
 
-def _is_shim(path: Path, shim_files: set[Path], shim_dirs: list[Path]) -> bool:
+def _is_allowed_path(path: Path, allowlist_files: set[Path], allowlist_dirs: list[Path]) -> bool:
     resolved = path.resolve()
-    if resolved in {p.resolve() for p in shim_files}:
+    if resolved in {p.resolve() for p in allowlist_files}:
         return True
-    for d in shim_dirs:
+    for d in allowlist_dirs:
         try:
             resolved.relative_to(d.resolve())
             return True

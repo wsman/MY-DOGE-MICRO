@@ -146,7 +146,7 @@ handler.
 
 ## Decision
 
-1. **API surface** — the 88 product routes enumerated in `docs/API.md` and
+1. **API surface** — the 88 HTTP routes enumerated in `docs/API.md` and
    summarized in fastapi-service CDD §4.1 are the canonical contract. Any new
    route requires a docs/CDD update and a contract test. The OpenAPI
    auto-generated routes (`/openapi.json`, `/docs`, `/redoc`) are

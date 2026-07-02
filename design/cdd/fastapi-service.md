@@ -4,7 +4,7 @@
 > **Slug**: `fastapi-service`
 > **Status**: In Review
 > **Last Verified**: 2026-06-22
-> **Notes**: Major release-follow-up update; canonical app, 88 product routes, Research Copilot compatibility routes, document routes, daemon `/v1/*` routes, platform object/template/capability routes, portfolio import, audit/enterprise governance routes, SSE behavior, and shipped error envelope are reflected here.
+> **Notes**: Major release-follow-up update; canonical app, 88 HTTP routes, Research Copilot compatibility routes, document routes, daemon `/v1/*` routes, platform object/template/capability routes, portfolio import, audit/enterprise governance routes, SSE behavior, and shipped error envelope are reflected here.
 > **Depends on**: #1 `runtime-configuration`, #2 `market-data-storage`, #4 `macro-strategy-engine`, #5 `micro-momentum-scanner`, #13 `research-copilot-agent-runtime`, #14 `document-evidence-pipeline`
 > **Depended on by**: #11 `vue-web-console`, #10 `pyqt-desktop-dashboard`, #15 `sdk-daemon-client-interfaces`
 > **Source files reverse-documented**: `src/doge/interfaces/api/main.py`, `src/doge/interfaces/api/routers/{scan,data,notes,macro,analysis,config,agent,documents}.py`, `src/doge/interfaces/api/routers/v1/*.py`; `src/api/*` is compatibility shim history only.
@@ -16,9 +16,9 @@
 
 The FastAPI Service is the local-first HTTP interface layer of MY-DOGE-MICRO.
 The canonical application is `doge.interfaces.api.main:app`, launched on
-`127.0.0.1:8901`. It exposes **88 product routes**:
+`127.0.0.1:8901`. It exposes **88 HTTP routes**:
 
-- 34 legacy `/api/*` product routes, including top-level helpers, market scan,
+- 34 legacy `/api/*` compatibility routes, including top-level helpers, market scan,
   data browsing, notes, macro reports, analysis reports, config, Research
   Copilot demo routes, and document registration.
 - 54 daemon/v1 routes for health/readiness, sessions, runs, explicit run resume, run summaries,
@@ -144,7 +144,7 @@ persisted event replay via `Last-Event-ID`.
 
 The route table is canonical in [docs/API.md](../../docs/API.md) and is guarded
 by `tests/contract/test_api_doc_route_coverage.py`. The current count is exactly
-**88 product routes**:
+**88 HTTP routes**:
 
 | Range | Surface | Count |
 |---|---|---:|
@@ -240,7 +240,7 @@ The required production contract is:
 
 ## 8. Acceptance Criteria
 
-- [x] `docs/API.md` enumerates exactly 88 product routes.
+- [x] `docs/API.md` enumerates exactly 88 HTTP routes.
 - [x] `tests/contract/test_api_doc_route_coverage.py` verifies docs-vs-live route
       coverage.
 - [x] HTTPException and unhandled exceptions use the shipped non-leaking error

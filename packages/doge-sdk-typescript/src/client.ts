@@ -6,7 +6,18 @@ import { parseSse } from './streaming.js'
 
 export { DocumentsResource } from './document.js'
 export { CapabilitiesResource, PlatformResource } from './platform.js'
-export { DogeApiError, type DogeEvent, RunsResource, type RunStreamOptions } from './run.js'
+export {
+  type AgentApproval,
+  type AgentArtifact,
+  type AgentEvent,
+  type AgentRun,
+  DogeApiError,
+  type DogeEvent,
+  type RunEventType,
+  RunsResource,
+  type RunStatus,
+  type RunStreamOptions,
+} from './run.js'
 export { Session, SessionsResource, type AgentSession } from './session.js'
 
 interface DogeClientOptions {

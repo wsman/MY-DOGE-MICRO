@@ -9,6 +9,8 @@ Architecture details start at [docs/index.md](docs/index.md). The reader-facing
 architecture authorities are [overview.md](docs/architecture/overview.md),
 [runtime-contracts.md](docs/architecture/runtime-contracts.md), and
 [file-structure-policy.md](docs/architecture/file-structure-policy.md).
+The product-package names and eight bounded contexts are reconciled in
+[overview.md](docs/architecture/overview.md#canonical-bounded-contexts).
 
 Legacy `/api/*`, `doge.application.composition`, and the in-memory agent runtime
 are compatibility or demo surfaces, not alternate platform stacks. The retired
@@ -22,28 +24,21 @@ Install the core package from the repository root:
 pip install -e .
 ```
 
-Run the zero-key local demo:
+Use one of the three Platform Alpha paths:
 
 ```bash
-doge demo
+doge session --interactive          # local analyst path
+doged serve --port 8901             # daemon gateway path
 ```
 
-Recommended Platform Alpha entrypoints:
+SDK integrators should use the Python or TypeScript SDKs against `/v1`; start
+at [docs/start-here/sdk-integrator.md](docs/start-here/sdk-integrator.md).
 
-```bash
-doge session --interactive          # embedded local research session
-doged serve --port 8901             # loopback daemon gateway
-```
-
-Backend source and command:
-
-```bash
-# backend source: src/doge/interfaces/api/main.py
-python -m uvicorn doge.interfaces.api.main:app --host 127.0.0.1 --port 8901
-```
-
-Vue console setup is covered in [guides/getting-started.md](docs/guides/getting-started.md).
-The MCP stdio helper remains `scripts/mcp_stdio.bat`.
+Secondary surfaces and setup references live outside the quick path:
+`doge demo` is covered by [docs/start-here/eval-demo-owner.md](docs/start-here/eval-demo-owner.md),
+backend internals remain at `src/doge/interfaces/api/main.py`, Vue setup is in
+[guides/getting-started.md](docs/guides/getting-started.md), and MCP stdio
+still uses `scripts/mcp_stdio.bat`.
 
 The PyQt desktop dashboard (`src/interface/`) was removed in Sprint M; the
 Web/SDK/`/v1` path is the platform UX. The `gui` extra is no longer shipped.

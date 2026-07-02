@@ -1,71 +1,66 @@
 # User Scenarios
 
-MY-DOGE-MICRO is organized around four primary scenarios. These are scenario
-contracts, not new bounded contexts. Per ADR-0021, recurring scenarios should
-compose existing capabilities and workflow templates.
+MY-DOGE-MICRO is organized around five reader-facing user paths. These are
+scenario contracts, not new bounded contexts. Per ADR-0021, recurring scenarios
+compose existing product modules, platform services, and workflow templates.
 
-## Market Scan
+## Local Analyst
 
-- **User**: local operator reviewing daily or weekly market conditions.
-- **Problem**: identify momentum, breadth, anomaly, and ticker context without
-  switching between scripts and reports.
-- **Included capabilities**: RSRS ranking, breadth, volume anomalies, ticker
-  lookup, market archives, scanner compatibility workflow.
-- **Excluded capabilities**: memo drafting, portfolio rebalance approval, live
-  trading, production broker execution.
-- **Entrypoints**: Web Market, scanner deep link, CLI, MCP market tools.
-- **Bounded contexts**: Market Intelligence, Quant & Data Lab, Governance &
-  Evaluation.
-- **Workflow-template relationship**: a Market Scan template may compose scan
-  inputs, market, filters, and evidence output but does not create a new module.
+- **User**: an analyst or developer running a local research workflow.
+- **Entrypoints**: `doge session --interactive`, `doge run`, `doge batch` when
+  the task is local and does not need a daemon.
+- **Owns**: local session creation, turns, approvals, traces, artifacts, and
+  local document references.
+- **Does not own**: daemon operations, remote bind hardening, enterprise auth,
+  SDK publishing, or production readiness claims.
+- **Primary docs**: [../start-here/local-analyst.md](../start-here/local-analyst.md),
+  [../CLI.md](../CLI.md).
 
-## Research Memo
+## Daemon Operator
 
-- **User**: operator or research assistant preparing a market, company, or
-  industry note.
-- **Problem**: combine research context, local evidence, AI assistance, and
-  citation preservation in one auditable flow.
-- **Included capabilities**: macro/industry report use cases, notes, document
-  evidence, RAG lookup, claims/citations, agent runs.
-- **Excluded capabilities**: ungrounded investment advice, undisclosed source
-  claims, live provider evidence without operator credentials.
-- **Entrypoints**: Web Research, Research Agent deep link, `/v1` run APIs,
-  Python/TypeScript SDK clients, CLI session/run commands.
-- **Bounded contexts**: Research, Workspace & Workflow, Agent Runtime,
-  Knowledge & Evidence, Governance & Evaluation.
-- **Workflow-template relationship**: a Research Memo template defines inputs,
-  required evidence, allowed tools, output memo contract, and eval profile.
+- **User**: a local operator or PoC maintainer exposing the Alpha daemon
+  gateway to SDK, Web, or remote CLI clients.
+- **Entrypoints**: `doged serve`, `doged status`, `doged doctor`.
+- **Owns**: process role selection, loopback readiness, feature flags, bind
+  posture, and `/v1` availability.
+- **Does not own**: product research logic, market calculations, Web state
+  machines, SDK package release, or live external gate closure.
+- **Primary docs**: [../start-here/daemon-operator.md](../start-here/daemon-operator.md),
+  [../operations/runbook.md](../operations/runbook.md).
 
-## Portfolio Risk
+## SDK Integrator
 
-- **User**: operator reviewing holdings exposure or preparing a risk scenario.
-- **Problem**: understand portfolio concentration, shocks, and high-risk actions
-  before publishing or proposing changes.
-- **Included capabilities**: portfolio CSV import, exposure review, risk service,
-  scenario analysis, rebalance proposal tool.
-- **Excluded capabilities**: brokerage order placement, managed-account
-  execution, production compliance sign-off.
-- **Entrypoints**: Web Portfolio, portfolio/risk agent tools, `/v1` portfolio
-  APIs where available.
-- **Bounded contexts**: Portfolio & Risk, Market Intelligence, Governance &
-  Evaluation.
-- **Workflow-template relationship**: a Portfolio Risk template composes
-  holdings, market context, scenario assumptions, approval requirements, and
-  audit output.
+- **User**: a Python or TypeScript client author integrating with the daemon.
+- **Entrypoints**: Python SDK, TypeScript SDK, and the `/v1` daemon API.
+- **Owns**: client configuration, sessions, runs, documents, approvals,
+  streaming replay, platform/capability reads, and SDK-side error handling.
+- **Does not own**: business tool execution, model adapters, direct persistence,
+  legacy `/api/*`, or hard-coded product tool catalogs.
+- **Primary docs**: [../start-here/sdk-integrator.md](../start-here/sdk-integrator.md),
+  [../API.md](../API.md).
 
-## Governed Agent Workflow
+## Research Workspace
 
-- **User**: operator or developer running and auditing agent-assisted work.
-- **Problem**: run, approve, inspect, and preserve agent workflows without
-  bypassing tenant, tool, evidence, or maturity policy.
-- **Included capabilities**: workspaces, projects, research cases, workflow
-  templates, sessions, runs, events, approvals, artifacts, audit exports,
-  capability registry, maturity status.
-- **Excluded capabilities**: production live-gate completion without operator
-  evidence, ungoverned model/tool calls, direct persistence edits from UI.
-- **Entrypoints**: Web Workspace, `/v1` cases/templates/runs, SDK clients, CLI.
-- **Bounded contexts**: Workspace & Workflow, Agent Runtime, Knowledge &
-  Evidence, Governance & Evaluation.
-- **Workflow-template relationship**: the scenario is itself the governed
-  workflow-template path; new workflows should extend templates and policy
-  metadata rather than adding runtime modules.
+- **User**: a research, portfolio, or risk user working in the Web workspace.
+- **Entrypoints**: Web Research Workspace, TypeScript SDK, and `/v1` sessions,
+  runs, documents, platform, and capability routes.
+- **Owns**: interaction state, document upload UI, run timeline display,
+  approval actions, artifacts, citations, and feature-flagged workspace views.
+- **Does not own**: direct tool invocation, direct database access, its own run
+  state machine, duplicate runtime contracts, or legacy `/api/*` calls.
+- **Primary docs**: [../start-here/research-workspace.md](../start-here/research-workspace.md),
+  [../../web/README.md](../../web/README.md).
+
+## Eval / Demo Owner
+
+- **User**: a demo owner, QA operator, or SA preparing deterministic cases and
+  local validation evidence.
+- **Entrypoints**: `doge batch --cases ...`, eval runners, scripted models,
+  fixture data, and demo docs.
+- **Owns**: deterministic cases, repeatable scripted behavior, local eval
+  reports, fixture portfolios, and demo-only evidence labels.
+- **Does not own**: runtime defaults, production model fallback, external
+  provider approval, W3-live analyst closure, AUTH-prod, or SDK registry
+  release gates.
+- **Primary docs**: [../start-here/eval-demo-owner.md](../start-here/eval-demo-owner.md),
+  [../guides/run-eval.md](../guides/run-eval.md).

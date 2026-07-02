@@ -6,6 +6,80 @@ export interface DogeEvent {
   data: Record<string, unknown>
 }
 
+export type RunStatus =
+  | 'created'
+  | 'queued'
+  | 'running'
+  | 'awaiting_approval'
+  | 'cancelling'
+  | 'cancelled'
+  | 'completed'
+  | 'failed'
+
+export type RunEventType =
+  | 'run_created'
+  | 'run_queued'
+  | 'model_response'
+  | 'tool_call'
+  | 'tool_result'
+  | 'approval_requested'
+  | 'approval_resolved'
+  | 'artifact_created'
+  | 'run_cancelled'
+  | 'error'
+
+export interface AgentEvent {
+  event_id: string
+  run_id: string
+  event_type: RunEventType | string
+  payload: Record<string, unknown>
+  sequence: number
+  schema_version: string
+  created_at: string
+}
+
+export interface AgentArtifact {
+  artifact_id: string
+  kind: string
+  title: string
+  content: string
+  run_id: string
+  data: Record<string, unknown>
+  created_at: string
+}
+
+export interface AgentApproval {
+  approval_id: string
+  action: string
+  risk_level: string
+  run_id: string
+  status: string
+  created_at: string
+  resolved_at: string | null
+}
+
+export interface AgentRun {
+  run_id: string
+  workflow: string
+  question: string
+  session_id: string | null
+  market: string
+  language: string
+  document_ids: string[]
+  portfolio_id: string | null
+  model_policy: Record<string, unknown>
+  workflow_context: unknown | null
+  identity_snapshot: unknown | null
+  status: RunStatus | string
+  events: AgentEvent[]
+  artifacts: AgentArtifact[]
+  approvals: AgentApproval[]
+  cancel_requested_at: string | null
+  schema_version: string
+  created_at: string
+  updated_at: string
+}
+
 export interface RunStreamOptions {
   lastEventId?: string
   reconnect?: boolean
@@ -36,8 +110,8 @@ export class RunsResource {
     this.root = root
   }
 
-  get(runId: string): Promise<Record<string, unknown>> {
-    return this.root.request('GET', `/v1/runs/${runId}`)
+  get(runId: string): Promise<AgentRun> {
+    return this.root.request<AgentRun>('GET', `/v1/runs/${runId}`)
   }
 
   async summary(runId: string): Promise<Record<string, unknown>> {
@@ -95,18 +169,18 @@ export class RunsResource {
     }
   }
 
-  approve(runId: string, approvalId: string, approved = true): Promise<Record<string, unknown>> {
-    return this.root.request('POST', `/v1/runs/${runId}/approvals/${approvalId}`, { approved })
+  approve(runId: string, approvalId: string, approved = true): Promise<AgentRun> {
+    return this.root.request<AgentRun>('POST', `/v1/runs/${runId}/approvals/${approvalId}`, { approved })
   }
 
-  resume(runId: string, options: RunResumeOptions = {}): Promise<Record<string, unknown>> {
+  resume(runId: string, options: RunResumeOptions = {}): Promise<AgentRun> {
     const body: Record<string, unknown> = { approved: options.approved ?? true }
     if (options.approvalId !== undefined) body.approval_id = options.approvalId
-    return this.root.request('POST', `/v1/runs/${runId}/resume`, body)
+    return this.root.request<AgentRun>('POST', `/v1/runs/${runId}/resume`, body)
   }
 
-  cancel(runId: string): Promise<Record<string, unknown>> {
-    return this.root.request('POST', `/v1/runs/${runId}/cancel`)
+  cancel(runId: string): Promise<AgentRun> {
+    return this.root.request<AgentRun>('POST', `/v1/runs/${runId}/cancel`)
   }
 }
 

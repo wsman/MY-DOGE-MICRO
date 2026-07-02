@@ -1,11 +1,11 @@
 """
 MY-DOGE-MICRO FastAPI Backend
-Tauri sidecar — runs on localhost:8901
+Tauri sidecar - runs on localhost:8901
 """
 
-import logging
+from __future__ import annotations
+
 import os
-from contextlib import asynccontextmanager
 
 # S002-009 / TR-011: project root sourced from get_settings() (ADR-0001
 # forbidden pattern ``_PROJECT_ROOT`` dirname-walk). The module-global name is
@@ -13,283 +13,39 @@ from contextlib import asynccontextmanager
 # monkeypatch it to a temp dir; only the *derivation* changed (settings vs
 # os.path.dirname walk).
 
-# ── OpenBLAS 安全设置 ────────────────────────────────
+# OpenBLAS safety settings.
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 
-from fastapi import Depends, FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-
 from doge.config import get_settings
-from doge.core.ports.repository import ISchemaBrowser
-from doge.interfaces.api import deps
-from doge.interfaces.api.middleware.tenant_context import TenantContextMiddleware
-from doge.interfaces.api_legacy.routers import scan, data, notes, macro, analysis, config, agent, documents
-from doge.interfaces.gateway.routers import audit as v1_audit
-from doge.interfaces.gateway.routers import documents as v1_documents
-from doge.interfaces.gateway.routers import enterprise as v1_enterprise
-from doge.interfaces.gateway.routers import health as v1_health
-from doge.interfaces.gateway.routers import platform as v1_platform
-from doge.interfaces.gateway.routers import portfolios as v1_portfolios
-from doge.interfaces.gateway.routers import runs as v1_runs
-from doge.interfaces.gateway.routers import sessions as v1_sessions
-from doge.interfaces.gateway.routers import tools as v1_tools
+from doge.interfaces.api.app_factory import create_app
+from doge.interfaces.api.auth import (
+    _build_api_auth_provider,
+    _has_oidc_config,
+    _validate_api_auth_startup,
+)
+from doge.interfaces.api.middleware import _LEGACY_API_SUNSET
+from doge.interfaces.api.routes import (
+    _register_legacy_api_routes,
+    _register_v1_routes,
+    _should_mount_legacy_api,
+    health,
+    stats,
+)
+from doge.interfaces.api.startup_gates import (
+    _LOOPBACK_HOSTS,
+    _configured_bind_host,
+    _resolve_bind_host,
+    _validate_api_remote_bind_startup,
+)
 
-logger = logging.getLogger("doge.api")
-_LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
-
-# Module-global project root — derived from Settings, monkeypatchable in tests.
+# Module-global project root - derived from Settings, monkeypatchable in tests.
 _PROJECT_ROOT = str(get_settings().project_root)
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    settings = get_settings()
-    process_role = settings.daemon.process_role
-    worker = None
-    outbox_publisher = None
-    if process_role in {"all", "worker"}:
-        worker = deps.get_daemon_worker()
-        if settings.features.runtime_outbox_publisher:
-            outbox_publisher = deps.get_runtime_outbox_publisher()
-            outbox_publisher.start()
-        worker.start()
-    try:
-        yield
-    finally:
-        if worker is not None:
-            await worker.stop()
-        if outbox_publisher is not None:
-            await outbox_publisher.stop()
-
-
-app = FastAPI(title="MY-DOGE API", version="0.1.0", lifespan=lifespan)
-
-_settings = get_settings()
-_LEGACY_API_DEPRECATION_DOC = (
-    "https://github.com/wsman/MY-DOGE-MICRO/blob/main/"
-    "docs/architecture/adr-0024-single-stack-runtime-direction.md"
-)
-_LEGACY_API_SUNSET = "Wed, 30 Sep 2026 00:00:00 GMT"
-
-
-def _build_api_auth_provider(settings, secret_provider_factory=None):
-    """Build API enterprise auth using the configured secret-provider boundary."""
-
-    return deps.build_api_auth_provider(settings, secret_provider_factory=secret_provider_factory)
-
-
-def _has_oidc_config(auth_config) -> bool:
-    return deps.has_oidc_config(auth_config)
-
-
-_auth_provider = _build_api_auth_provider(_settings)
-
-
-def _validate_api_auth_startup(settings, auth_provider) -> None:
-    """Fail startup when enterprise mode has no usable bearer provider."""
-
-    if settings.auth.mode != "enterprise":
-        return
-    if deps.is_deny_all_enterprise_auth_provider(auth_provider):
-        raise RuntimeError(f"enterprise auth startup failed: {auth_provider.reason}")
-
-
-_validate_api_auth_startup(_settings, _auth_provider)
-app.add_middleware(
-    TenantContextMiddleware,
-    local_demo=_settings.auth.mode == "local_demo",
-    auth_provider=_auth_provider,
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=list(_settings.api.cors_allow_origins),
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-@app.middleware("http")
-async def _legacy_api_deprecation_headers(request, call_next):
-    response = await call_next(request)
-    if request.url.path.startswith("/api/"):
-        response.headers.setdefault("Deprecation", "true")
-        response.headers.setdefault("Sunset", _LEGACY_API_SUNSET)
-        response.headers.setdefault("Link", f'<{_LEGACY_API_DEPRECATION_DOC}>; rel="deprecation"')
-        response.headers.setdefault("X-DOGE-Compatibility-Surface", "legacy-api")
-    return response
-
-# ── 全局异常处理 (ADR-0007 Decision 3, S002-009) ─────
-# Stable string-enum error codes so UI consumers (and the S002-010 SSE client)
-# can branch on error.error.code instead of brittle numeric strings.
-_HTTP_STATUS_CODE = {
-    400: "bad_request",
-    404: "not_found",
-    409: "conflict",
-    422: "unprocessable",
-    500: "internal_error",
-}
-
-
-@app.exception_handler(HTTPException)
-async def _http_exception_handler(request, exc: HTTPException):
-    """Reshape operator-safe HTTPException(4xx/5xx, detail) into the stable
-    ``{"error": {"code", "message"}}`` envelope.
-
-    ``exc.detail`` is operator-authored fixed text (e.g. "note not found"), so
-    it passes through unchanged as the ``message`` field.
-    """
-    code = _HTTP_STATUS_CODE.get(exc.status_code, f"http_{exc.status_code}")
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"error": {"code": code, "message": exc.detail}},
-    )
-
-
-@app.exception_handler(Exception)
-async def _unhandled_exception_handler(request, exc: Exception):
-    """Catch-all for any otherwise-unhandled exception.
-
-    The raw exception (type, message, traceback) is logged server-side for
-    operator diagnosis; it is NEVER returned to the client — the response body
-    is a fixed operator-safe string so no internal path, SQL fragment, or stack
-    trace leaks over HTTP.
-    """
-    logger.exception("unhandled error on %s", request.url.path)
-    return JSONResponse(
-        status_code=500,
-        content={"error": {"code": "internal_error",
-                           "message": "internal server error"}},
-    )
-
-# NOTE: FastAPI's default 422 RequestValidationError handler is intentionally
-# left AS-IS (it emits {"detail": [...]}). Enveloping pydantic validation
-# errors is out of scope for S002-009; existing tests assert 422 status only.
-# S002-011 owns any follow-on ADR-0007 promotion-gate decisions.
-
-
-@app.get("/api/health")
-async def health():
-    return {"status": "ok"}
-
-
-async def stats(
-    browser: ISchemaBrowser = Depends(deps.get_schema_browser),
-):
-    """数据库概览统计"""
-    return browser.database_stats()
-
-
-def _configured_bind_host(settings) -> str:
-    return os.environ.get("DOGE_BIND_HOST") or settings.api.bind_host
-
-
-def _should_mount_legacy_api(settings, host: str | None = None) -> bool:
-    """Return whether local-demo legacy ``/api/*`` routers should be mounted."""
-
-    host = host or _configured_bind_host(settings)
-    if settings.auth.mode == "enterprise":
-        if not settings.api.enterprise_disable_legacy:
-            logger.warning("DOGE_API_ENTERPRISE_DISABLE_LEGACY=0 ignored in enterprise mode")
-        return False
-    if host not in _LOOPBACK_HOSTS:
-        return False
-    return True
-
-
-def _register_legacy_api_routes(target_app: FastAPI, settings) -> None:
-    """Mount legacy local-demo routers only when the deployment is loopback local."""
-
-    if not _should_mount_legacy_api(settings):
-        logger.info("legacy /api routers disabled for auth_mode=%s", settings.auth.mode)
-        return
-    target_app.include_router(scan.router, prefix="/api/scan", tags=["scan"])
-    target_app.include_router(data.router, prefix="/api/data", tags=["data"])
-    target_app.include_router(notes.router, prefix="/api/notes", tags=["notes"])
-    target_app.include_router(macro.router, prefix="/api/macro", tags=["macro"])
-    target_app.include_router(analysis.router, prefix="/api/analysis", tags=["analysis"])
-    target_app.include_router(config.router, prefix="/api/config", tags=["config"])
-    target_app.include_router(agent.router, prefix="/api/agent", tags=["agent"])
-    target_app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
-    target_app.add_api_route("/api/stats", stats, methods=["GET"])
-
-
-def _register_v1_routes(target_app: FastAPI) -> None:
-    target_app.include_router(v1_sessions.router, prefix="/v1", tags=["v1-sessions"])
-    target_app.include_router(v1_runs.router, prefix="/v1", tags=["v1-runs"])
-    target_app.include_router(v1_documents.router, prefix="/v1", tags=["v1-documents"])
-    target_app.include_router(v1_portfolios.router, prefix="/v1", tags=["v1-portfolios"])
-    target_app.include_router(v1_platform.router, prefix="/v1", tags=["v1-platform"])
-    target_app.include_router(v1_tools.router, prefix="/v1", tags=["v1-tools"])
-    target_app.include_router(v1_audit.router, prefix="/v1", tags=["v1-audit"])
-    target_app.include_router(v1_enterprise.router, prefix="/v1", tags=["v1-enterprise"])
-    target_app.include_router(v1_health.router, tags=["health"])
-
-
-# ── 注册路由 ─────────────────────────────────────────
-_register_legacy_api_routes(app, _settings)
-_register_v1_routes(app)
-
-
-# ── ADR-0007 strengthened-loopback-guarantee (S004-005) ──
-# ``allow_origins=["*"]`` (line 37) is safe ONLY because the API binds to
-# loopback. ``_resolve_bind_host`` makes that guarantee explicit and fail-closed
-# rather than implicit on the hardcoded default: a non-loopback bind (via
-# ``DOGE_BIND_HOST``) is rejected — CORS allow-list hardening + auth are required
-# first (see ADR-0007 Promotion gate).
-
-
-def _validate_api_remote_bind_startup(settings, auth_provider, host: str) -> None:
-    """Validate the promotion gate for non-loopback API binds."""
-
-    if host in _LOOPBACK_HOSTS:
-        return
-    assert settings.api.allow_remote_bind, (
-        "ADR-0007 remote-bind promotion: set DOGE_ALLOW_REMOTE_BIND=1 before "
-        "binding the API outside loopback."
-    )
-    assert settings.auth.mode == "enterprise", (
-        "ADR-0015 remote-bind promotion: non-loopback bind requires "
-        "DOGE_AUTH_MODE=enterprise."
-    )
-    assert not deps.is_deny_all_enterprise_auth_provider(auth_provider), (
-        "ADR-0015 remote-bind promotion: non-loopback bind requires a configured "
-        "enterprise auth provider."
-    )
-    assert settings.api.cors_allow_origins and "*" not in settings.api.cors_allow_origins, (
-        "ADR-0007 remote-bind promotion: non-loopback bind requires an explicit "
-        "CORS allow-list."
-    )
-    assert settings.api.tls_termination_required, (
-        "ADR-0015 remote-bind promotion: non-loopback bind requires TLS "
-        "termination acknowledgement."
-    )
-
-
-def _resolve_bind_host(settings=None, auth_provider=None) -> str:
-    """Resolve the API bind host, enforcing the ADR-0007 loopback guarantee.
-
-    Returns the configured host. Non-loopback binds pass only through the
-    ADR-0007/ADR-0015 promotion gate.
-    """
-    settings = settings or _settings
-    auth_provider = _auth_provider if auth_provider is None else auth_provider
-    host = _configured_bind_host(settings)
-    if host in _LOOPBACK_HOSTS:
-        return host
-    try:
-        _validate_api_remote_bind_startup(settings, auth_provider, host)
-    except AssertionError as exc:
-        raise AssertionError(
-        "ADR-0007 loopback guarantee: non-loopback bind requires CORS allow-list "
-            "hardening + auth first (see ADR-0007 Promotion gate). "
-            f"{exc}"
-        ) from exc
-    return host
+app = create_app()
 
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host=_resolve_bind_host(), port=8901)

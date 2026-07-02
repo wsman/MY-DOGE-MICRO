@@ -8,6 +8,13 @@ roots, persisted runtime state, `/v1` routes, and SDK clients.
 
 ## Canonical Bounded Contexts
 
+The four `doge.products.*` packages (`market`, `portfolio`, `research`, and
+`quant`) are external product-module names used for source ownership and tool
+placement. The eight bounded contexts are the internal governance map, adding
+Workspace, Runtime, Knowledge/Evidence, and Governance/Evaluation platform
+contexts. These are two views of the same architecture, not conflicting module
+counts.
+
 | # | Context | Type | Design doc |
 |---|---------|------|------------|
 | 1 | Market Intelligence | Product | [../../design/cdd/bc-01-market-intelligence.md](../../design/cdd/bc-01-market-intelligence.md) |

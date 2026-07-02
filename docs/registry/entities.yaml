@@ -707,7 +707,7 @@ entities:
       source: "src/doge/interfaces/mcp/tools/views.py:6-10"
       notes: "run_sql explicitly ABSENT (pinned by test_run_sql_removed)."
 
-  # --- FastAPI routes (88 canonical product routes) owned by Module #9 ---
+  # --- FastAPI routes (88 canonical HTTP routes) owned by Module #9 ---
   api_routes:
     # main router
     - {num: 1, method: GET, path: "/api/health", router: main, source: "src/doge/interfaces/api/main.py"}

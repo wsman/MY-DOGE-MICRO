@@ -21,7 +21,7 @@ def test_new_platform_and_product_code_does_not_import_application_composition()
 
 
 def test_tool_application_service_uses_context_owned_tool_facades() -> None:
-    path = SRC_DOGE / "application" / "agent" / "tool_service.py"
+    path = SRC_DOGE / "application" / "tools" / "registry_factory.py"
     imports = set(_module_imports(path))
 
     assert {
@@ -31,6 +31,21 @@ def test_tool_application_service_uses_context_owned_tool_facades() -> None:
         "doge.products.quant.tools",
         "doge.products.research.tools",
     }.issubset(imports)
+    assert "doge.application.capabilities.market_provider" not in imports
+    assert "doge.application.capabilities.research_provider" not in imports
+    assert "doge.application.capabilities.portfolio_provider" not in imports
+    assert "doge.application.capabilities.quant_provider" not in imports
+
+
+def test_tool_application_service_facade_does_not_import_provider_owners() -> None:
+    path = SRC_DOGE / "application" / "agent" / "tool_service.py"
+    imports = set(_module_imports(path))
+
+    assert "doge.platform.governance.tools" not in imports
+    assert "doge.products.market.tools" not in imports
+    assert "doge.products.portfolio.tools" not in imports
+    assert "doge.products.quant.tools" not in imports
+    assert "doge.products.research.tools" not in imports
     assert "doge.application.capabilities.market_provider" not in imports
     assert "doge.application.capabilities.research_provider" not in imports
     assert "doge.application.capabilities.portfolio_provider" not in imports

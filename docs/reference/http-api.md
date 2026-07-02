@@ -1,7 +1,7 @@
 # HTTP API Reference
 
 Full route table and per-route reference for the MY-DOGE-MICRO FastAPI backend
-(88 product routes: 34 legacy `/api/*` + 54 daemon/v1). The quick-start
+(88 HTTP routes: 34 legacy `/api/*` + 54 daemon/v1). The quick-start
 narrative lives in [../API.md](../API.md); transport, SSE, CORS, error,
 concurrency, and OpenAPI contracts live in
 [http-api-contracts.md](http-api-contracts.md).
@@ -157,7 +157,7 @@ code cannot drift.
 
 > The OpenAPI surface also exposes `/openapi.json`, `/docs`,
 > `/docs/oauth2-redirect`, `/redoc` (FastAPI defaults) — infrastructure, not
-> product endpoints, so not counted in the 88 product routes above.
+> product endpoints, so not counted in the 88 HTTP routes above.
 
 ### Feature-Flagged Platform Surfaces
 

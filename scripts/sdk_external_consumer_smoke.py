@@ -50,7 +50,11 @@ def main() -> None:
         "failures": sum(1 for item in evidence["checks"] if item.get("status") != "passed"),
     }
     output_path = output_dir / "sdk-external-consumer-smoke.json"
-    output_path.write_text(json.dumps(evidence, indent=2, sort_keys=True), encoding="utf-8")
+    output_path.write_text(
+        json.dumps(evidence, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
     print(output_path)
     if not evidence["summary"]["passed"]:
         raise SystemExit(1)

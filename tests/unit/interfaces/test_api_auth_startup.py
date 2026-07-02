@@ -114,6 +114,21 @@ def test_remote_bind_rejects_unconfigured_enterprise_auth():
         api_main._validate_api_remote_bind_startup(settings, provider, "0.0.0.0")
 
 
+def test_remote_bind_rejects_missing_enterprise_auth_provider():
+    settings = Settings(
+        api=APIConfig(
+            bind_host="0.0.0.0",
+            allow_remote_bind=True,
+            cors_allow_origins=("http://localhost:5173",),
+            tls_termination_required=True,
+        ),
+        auth=AuthConfig(mode="enterprise", static_bearer_token="secret-token"),
+    )
+
+    with pytest.raises(AssertionError, match="configured enterprise auth provider"):
+        api_main._validate_api_remote_bind_startup(settings, None, "0.0.0.0")
+
+
 def test_remote_bind_rejects_wildcard_cors():
     settings = Settings(
         api=APIConfig(

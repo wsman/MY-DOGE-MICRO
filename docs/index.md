@@ -11,6 +11,8 @@ docs.
 | A local analyst | [start-here/local-analyst.md](start-here/local-analyst.md) | Run `doge session` and produce a local research artifact. |
 | Running the daemon | [start-here/daemon-operator.md](start-here/daemon-operator.md) | Start `doged serve`, check readiness, and use `/v1`. |
 | Integrating a system | [start-here/sdk-integrator.md](start-here/sdk-integrator.md) | Use the Python or TypeScript SDK against the daemon. |
+| Using the research workspace | [start-here/research-workspace.md](start-here/research-workspace.md) | Use the Web workspace through the TypeScript SDK and `/v1`. |
+| Owning eval or demo cases | [start-here/eval-demo-owner.md](start-here/eval-demo-owner.md) | Run deterministic cases without mixing demo behavior into production paths. |
 | Reviewing architecture | [start-here/architecture-reviewer.md](start-here/architecture-reviewer.md) | Check bounded contexts, runtime path, shims, and maturity. |
 | Preparing the Kimi SA demo | [start-here/kimi-sa-demo.md](start-here/kimi-sa-demo.md) | Follow the demo material without mixing it into product setup. |
 
@@ -66,6 +68,7 @@ reference/http-api.md; put contract changes there first, then update tests.
 | Runtime path shortcut | [architecture/canonical-runtime-path.md](architecture/canonical-runtime-path.md) |
 | Runtime contracts | [architecture/runtime-contracts.md](architecture/runtime-contracts.md) |
 | File structure policy | [architecture/file-structure-policy.md](architecture/file-structure-policy.md) |
+| Source layout map | [architecture/source-layout-map.md](architecture/source-layout-map.md) |
 | Compatibility surfaces | [architecture/compatibility-surfaces.md](architecture/compatibility-surfaces.md) |
 | Data ownership | [architecture/data-ownership.md](architecture/data-ownership.md) |
 | Bounded context index | [../design/cdd/module-index.md](../design/cdd/module-index.md) |
