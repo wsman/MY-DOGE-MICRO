@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
+
+import pytest
 
 from doge.config import reset_settings
 from doge.interfaces.daemon import main as doged_main
@@ -20,6 +23,12 @@ class _ReadinessResponse:
 
     def json(self):
         return self._payload
+
+
+def _clear_doged_cli_env() -> None:
+    os.environ.pop("DOGE_PROCESS_ROLE", None)
+    os.environ.pop("DOGE_BIND_HOST", None)
+    reset_settings()
 
 
 def test_doged_status_uses_configured_daemon_port(monkeypatch, capsys):
@@ -120,8 +129,7 @@ def test_doged_serve_api_role_starts_uvicorn(monkeypatch):
     try:
         doged_main.main(["serve", "--role", "api", "--port", "9014"])
     finally:
-        monkeypatch.delenv("DOGE_PROCESS_ROLE", raising=False)
-        reset_settings()
+        _clear_doged_cli_env()
 
     assert calls == [{
         "app": "doge.interfaces.api.main:app",
@@ -140,7 +148,56 @@ def test_doged_serve_worker_role_runs_worker_process(monkeypatch):
     try:
         doged_main.main(["serve", "--role", "worker"])
     finally:
-        monkeypatch.delenv("DOGE_PROCESS_ROLE", raising=False)
-        reset_settings()
+        _clear_doged_cli_env()
 
     assert calls == ["worker"]
+
+
+def test_doged_serve_host_argument_passes_loopback_host_to_uvicorn(monkeypatch):
+    calls: list[dict[str, object]] = []
+
+    def fake_run(app: str, *, host: str, port: int, reload: bool):
+        calls.append({"app": app, "host": host, "port": port, "reload": reload})
+
+    monkeypatch.setattr("uvicorn.run", fake_run)
+    reset_settings()
+
+    try:
+        doged_main.main(["serve", "--role", "api", "--host", "127.0.0.1", "--port", "9016"])
+    finally:
+        _clear_doged_cli_env()
+
+    assert calls == [{
+        "app": "doge.interfaces.api.main:app",
+        "host": "127.0.0.1",
+        "port": 9016,
+        "reload": False,
+    }]
+
+
+def test_doged_serve_host_localhost_alias_accepted(monkeypatch):
+    hosts: list[str] = []
+
+    def fake_run(app: str, *, host: str, port: int, reload: bool):
+        hosts.append(host)
+
+    monkeypatch.setattr("uvicorn.run", fake_run)
+    reset_settings()
+
+    try:
+        doged_main.main(["serve", "--role", "api", "--host", "localhost", "--port", "9017"])
+    finally:
+        _clear_doged_cli_env()
+
+    assert hosts == ["localhost"]
+
+
+def test_doged_serve_host_non_loopback_without_remote_bind_rejected(monkeypatch):
+    monkeypatch.setattr("uvicorn.run", lambda *a, **k: None)
+    reset_settings()
+
+    try:
+        with pytest.raises(AssertionError):
+            doged_main.main(["serve", "--role", "api", "--host", "0.0.0.0", "--port", "9018"])
+    finally:
+        _clear_doged_cli_env()

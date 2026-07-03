@@ -21,6 +21,7 @@ def build_parser() -> argparse.ArgumentParser:
     serve.add_argument("--port", type=int, default=None)
     serve.add_argument("--reload", action="store_true")
     serve.add_argument("--role", choices=_PROCESS_ROLES, default=None)
+    serve.add_argument("--host", default=None, help="loopback bind host (overrides DOGE_BIND_HOST)")
     status = sub.add_parser("status", help="check daemon health")
     status.add_argument("--port", type=int, default=None)
     doctor = sub.add_parser("doctor", help="show daemon readiness checks")
@@ -38,6 +39,8 @@ def main(argv: list[str] | None = None) -> None:
     if args.cmd == "serve":
         if args.role is not None:
             _set_process_role(args.role)
+        if args.host is not None:
+            _set_bind_host(args.host)
         if get_settings().daemon.process_role == "worker":
             _run_worker_process()
             return
@@ -84,6 +87,12 @@ def main_worker(argv: list[str] | None = None) -> None:
 
 def _set_process_role(role: str) -> None:
     os.environ["DOGE_PROCESS_ROLE"] = role
+    reset_settings()
+
+
+def _set_bind_host(host: str) -> None:
+    """Inject a CLI-supplied bind host through the same env path the API startup gate reads."""
+    os.environ["DOGE_BIND_HOST"] = host
     reset_settings()
 
 

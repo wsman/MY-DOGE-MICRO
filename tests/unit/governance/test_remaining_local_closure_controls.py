@@ -1,15 +1,34 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
-
-import yaml
 
 
 ROOT = Path(__file__).resolve().parents[3]
+JOB_KEY_PATTERN = re.compile(r"^  ([A-Za-z0-9_-]+):\s*$")
 
 
 def _read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
+
+
+def _ci_job_names() -> set[str]:
+    names: set[str] = set()
+    in_jobs = False
+
+    for line in _read(".github/workflows/ci.yml").splitlines():
+        if not in_jobs:
+            in_jobs = line == "jobs:"
+            continue
+
+        if line and not line.startswith(" "):
+            break
+
+        match = JOB_KEY_PATTERN.match(line)
+        if match:
+            names.add(match.group(1))
+
+    return names
 
 
 def test_pr_template_records_local_closure_guardrails() -> None:
@@ -32,9 +51,6 @@ def test_pr_template_records_local_closure_guardrails() -> None:
 
 
 def test_selective_ci_jobs_exist_for_product_platform_and_eval() -> None:
-    workflow = yaml.safe_load(_read(".github/workflows/ci.yml"))
-    jobs = set(workflow["jobs"])
-
     assert {
         "ci-market",
         "ci-research",
@@ -43,7 +59,7 @@ def test_selective_ci_jobs_exist_for_product_platform_and_eval() -> None:
         "ci-runtime-gateway",
         "ci-sdk",
         "ci-eval",
-    } <= jobs
+    } <= _ci_job_names()
 
 
 def test_operator_handoff_keeps_external_gates_pending() -> None:

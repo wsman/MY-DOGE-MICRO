@@ -199,10 +199,6 @@ def test_migrated_entrypoints_use_bootstrap_not_legacy_composition() -> None:
         "src/doge/interfaces/cli/commands/stock.py",
         "src/doge/interfaces/cli/commands/template.py",
         "src/doge/interfaces/mcp/server.py",
-        "src/doge/interfaces/mcp/tools/anomaly.py",
-        "src/doge/interfaces/mcp/tools/query_stock.py",
-        "src/doge/interfaces/mcp/tools/ranking.py",
-        "src/doge/interfaces/mcp/tools/views.py",
     ]
     for relative_path in paths:
         source = (PROJECT_ROOT / relative_path).read_text(encoding="utf-8")

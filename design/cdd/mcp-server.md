@@ -7,7 +7,7 @@
 > **Notes**: Reverse-documented and Wave-4 updated on 2026-06-12.
 > **Depends on**: #1 `runtime-configuration`, #2 `market-data-storage`, #7 `research-insight-knowledge-base`
 > **Depended on by**: Claude Code / MCP clients, optional local SSE clients
-> **Source files reverse-documented**: `doge_mcp.py`, `src/doge/interfaces/mcp/server.py`, `src/doge/interfaces/mcp/tools/*.py`, `docs/MCP_SERVER.md`, `.mcp.json`, `scripts/mcp_stdio.bat`, `scripts/start_mcp_sse.{sh,bat}`
+> **Source files reverse-documented**: `doge_mcp.py`, `src/doge/interfaces/mcp/server.py`, `docs/MCP_SERVER.md`, `.mcp.json`, `scripts/mcp_stdio.bat`, `scripts/start_mcp_sse.{sh,bat}`
 > **Related ADRs**: [ADR-0006](../../docs/architecture/adr-0006-mcp-transport-strategy.md), [ADR-0003](../../docs/architecture/adr-0003-storage-repository-contract.md), [ADR-0001](../../docs/architecture/adr-0001-brownfield-clean-architecture.md)
 
 ---
@@ -20,10 +20,13 @@ stdio for Claude Code and SSE for local HTTP MCP clients. Wave 4 retired the
 legacy root monolith; `doge_mcp.py` is now the canonical repo-root entrypoint
 and delegates to `src/doge/interfaces/mcp/server.py`.
 
-All tool implementations live under `src/doge/interfaces/mcp/tools/` and route
-through `doge.core.services`. Analytical reads use the storage layer's DuckDB
-read model and repository adapters; the tool boundary handles validation,
-timeouts, and string formatting for MCP clients.
+Since Sprint 020 the six data tools are implemented in
+`src/doge/interfaces/mcp/server.py` and dispatch through the shared
+`ToolRegistry` (`doge.application.tools`) — the same registry the `/v1/tools`
+gateway route and the agent runtime use — rather than a dedicated wrapper
+package. Analytical reads use the storage layer's DuckDB read model and
+repository adapters; the tool boundary handles validation, timeouts, and string
+formatting for MCP clients.
 
 ## 2. User Promise / JTBD
 

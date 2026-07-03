@@ -77,6 +77,12 @@ mcp__doge-db__list_views
 
 ## 工具清单
 
+> **Sprint 020:** 六个数据工具（query_stock / stock_overview / rsrs_ranking /
+> market_breadth / volume_anomalies / list_views）现通过共享 `ToolRegistry`
+> （`doge.application.tools`）执行，与 `/v1/tools` 网关路由共用同一工具面，不再
+> 使用独立的 `doge.interfaces.mcp.tools` 包装层。工具名称、参数与返回列均不变。
+> 工具实现集中在 `src/doge/interfaces/mcp/server.py`。
+
 ### query_stock
 
 查询个股行情数据，含 OHLCV、均线、ATR、波动率等技术指标。

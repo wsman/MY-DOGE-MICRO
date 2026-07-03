@@ -111,7 +111,7 @@ def _verdict(measured_ms: float, budget_ms: float, ok: bool) -> str:
 # ── Surface definitions ────────────────────────────────────────────────────
 def _import_tools():
     """Import the 6 MCP tool-body async functions (lazy, after path bootstrap)."""
-    from doge.interfaces.mcp.tools import (
+    from doge.interfaces.mcp.server import (
         query_stock,
         stock_overview,
         rsrs_ranking,

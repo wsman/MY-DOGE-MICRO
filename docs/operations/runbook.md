@@ -307,7 +307,8 @@ DuckDBConnection(read_only=False).refresh_views()
 ### Verify a refresh
 
 Use the `mcp__doge-db__list_views` MCP tool, which enumerates every view with
-its row count and columns (`src/doge/interfaces/mcp/tools/views.py`). After a refresh, every
+its row count and columns (declared in `src/doge/interfaces/mcp/server.py`;
+dispatches through the shared `ToolRegistry`). After a refresh, every
 view should report a non-null, non-zero row count (for markets that have data).
 A view showing `"rows": null` means its `COUNT(*)` failed — investigate that
 view's SQL against the underlying SQLite table.

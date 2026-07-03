@@ -70,6 +70,20 @@ production_ready: false
 stable_declaration: forbidden
 ```
 
+### Surface Classification
+
+Authoritative source: [runtime-maturity.yaml](docs/progress/runtime-maturity.yaml)
+`single_stack_direction.compatibility_surfaces`.
+
+| Surface | Classification | Notes |
+|---|---|---|
+| `/v1/*` gateway routers | Canonical | `doge.interfaces.gateway.routers` |
+| `doge.application.tools` | Canonical | shared tool registry across runtime / MCP / HTTP |
+| Legacy `/api/*` | Compatibility | `doge.interfaces.api_legacy.routers`; deprecation headers; removal not before 2026-09-30 |
+| In-memory runtime | Demo / test only | `doge.infrastructure.agent.inmemory_runtime`; not the production path |
+| `doge.application.composition` | Removed | replaced by `doge.bootstrap.processes` (Sprint M) |
+| PyQt desktop dashboard | Removed | replaced by Web / SDK / `/v1` (Sprint M) |
+
 The latest remotely verified SHA remains
 `ee4c3283bb69ae21671ffd2d9fef908e4819ce16`, with GitHub Actions run
 `28448012096` recorded in

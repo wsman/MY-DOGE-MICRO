@@ -682,30 +682,30 @@ entities:
     - name: query_stock
       signature: "(ticker: str, market: str = 'cn', days: int = 20) -> str"
       owner: mcp-server
-      source: "src/doge/interfaces/mcp/tools/query_stock.py:59-66"
+      source: "src/doge/interfaces/mcp/server.py:489-498"
     - name: stock_overview
       signature: "(ticker: str, market: str = 'cn') -> str"
       owner: mcp-server
-      source: "src/doge/interfaces/mcp/tools/query_stock.py:69-108"
-      notes: "Filters deleted_at IS NULL (Phase-2 soft-delete fix)."
+      source: "src/doge/interfaces/mcp/server.py:501-508"
+      notes: "Overview dispatches through the shared ToolRegistry; notes enrichment is rendered by _render_stock_overview() via INoteRepository.get_ticker_with_context, so soft-delete filtering remains enforced by the repository port."
     - name: rsrs_ranking
       signature: "(market: str = 'cn', top: int = 20) -> str"
       owner: mcp-server
-      source: "src/doge/interfaces/mcp/tools/ranking.py:24-29"
+      source: "src/doge/interfaces/mcp/server.py:511-514"
     - name: market_breadth
       signature: "(market: str = 'cn', days: int = 10) -> str"
       owner: mcp-server
-      source: "src/doge/interfaces/mcp/tools/ranking.py:32-37"
+      source: "src/doge/interfaces/mcp/server.py:517-520"
     - name: volume_anomalies
       signature: "(min_ratio: float = 3.0, top: int = 20) -> str"
       owner: mcp-server
-      source: "src/doge/interfaces/mcp/tools/anomaly.py:24-28"
+      source: "src/doge/interfaces/mcp/server.py:523-526"
       notes: "CN-only."
     - name: list_views
       signature: "() -> str"
       owner: mcp-server
-      source: "src/doge/interfaces/mcp/tools/views.py:6-10"
-      notes: "run_sql explicitly ABSENT (pinned by test_run_sql_removed)."
+      source: "src/doge/interfaces/mcp/server.py:529-536"
+      notes: "MCP intentionally exposes only curated data tools; run_sql, run_sql_query, and run_python_analysis are absent from the MCP surface."
 
   # --- FastAPI routes (88 canonical HTTP routes) owned by Module #9 ---
   api_routes:

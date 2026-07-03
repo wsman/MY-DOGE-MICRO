@@ -25,16 +25,9 @@ from typing import Any, Dict, List
 
 import anyio
 
-from doge.bootstrap import build_app_container
+from doge.application.tools.factory import build_default_tool_registry
+from doge.bootstrap import build_app_container, build_gateway_container
 from doge.config import get_settings
-from doge.interfaces.mcp.tools import (
-    query_stock,
-    stock_overview,
-    rsrs_ranking,
-    market_breadth,
-    volume_anomalies,
-    list_views,
-)
 
 # ── Logging ───────────────────────────────────────────
 LOG_DIR = Path(get_settings().data_dir) / "logs"
@@ -246,7 +239,6 @@ def _validate_market(market: str) -> str:
 
 
 def _validate_ticker(ticker: str) -> str:
-    from doge.interfaces.mcp.tools.query_stock import normalize_ticker
     if not isinstance(ticker, str) or not ticker.strip():
         raise ValueError("ticker is required")
     return normalize_ticker(ticker.strip())
@@ -300,6 +292,248 @@ def _serialize(obj: Any) -> Any:
     if isinstance(obj, dict):
         return {key: _serialize(value) for key, value in obj.items()}
     return obj
+
+
+# ── Data tools (shared ToolRegistry) ─────────────────
+# Sprint 020 convergence: the six market/quant data tools dispatch through the
+# same ToolRegistry the HTTP gateway uses (doge.application.tools), so MCP /
+# runtime / HTTP share ONE tool surface. The former hand-rolled wrappers under
+# doge.interfaces.mcp.tools were removed. These module-level functions preserve
+# the MCP text contract (column tables / overview block / JSON view list) and
+# keep the interface-layer presentation concerns here: ticker normalization and
+# the deterministic no-DB demo fallback. ``_timed`` remains the sole timeout.
+_DATA_REGISTRY = None
+
+
+def _get_data_registry():
+    """Build once and return the shared tool registry wired via the gateway container.
+
+    Mirrors ``doge.bootstrap.runtime_factories.tools.build_default_tool_registry``
+    (``gateway_container().build_tool_application_service()``) so MCP and the HTTP
+    ``/v1/tools`` route execute against an identical provider set.
+    """
+    global _DATA_REGISTRY
+    if _DATA_REGISTRY is None:
+        _DATA_REGISTRY = build_default_tool_registry(
+            service=build_gateway_container().build_tool_application_service()
+        )
+    return _DATA_REGISTRY
+
+
+async def _execute_data_tool(name: str, arguments: dict):
+    """Dispatch a data tool through the shared registry and return its ToolResult."""
+    return await _get_data_registry().execute_async(name, arguments)
+
+
+def normalize_ticker(ticker: str, market: str = "cn") -> str:
+    """Normalize a bare code to an exchange-suffixed ticker (CN only).
+
+    Mirrors the legacy ``ai_analysis.normalize_ticker`` contract: rejects
+    non-strings, empty input, codes longer than 20 chars, and codes containing
+    characters outside ``[A-Za-z0-9.\\-]``. Codes already carrying an exchange
+    suffix (``.``) and non-CN markets are returned unchanged.
+    """
+    import re
+    if not isinstance(ticker, str):
+        raise ValueError("ticker must be a string")
+    code = ticker.strip()
+    if not code:
+        raise ValueError("ticker is required")
+    if len(code) > 20:
+        raise ValueError("ticker too long (max 20 chars)")
+    if not re.match(r"^[A-Za-z0-9.\-]+$", code):
+        raise ValueError("ticker contains invalid characters")
+    if market != "cn" or "." in code:
+        return code
+    if code[0] == "6":
+        return f"{code}.SH"
+    elif code[0] in ("0", "3"):
+        return f"{code}.SZ"
+    elif code[0] in ("4", "8"):
+        return f"{code}.BJ"
+    return code
+
+
+def _demo_prices(ticker: str, market: str, days: int) -> list[dict]:
+    """Return deterministic fallback rows when the local demo DB is absent."""
+    samples = {
+        ("cn", "600000.SH"): [
+            {
+                "date": "2026-06-19",
+                "open": 9.90,
+                "high": 10.20,
+                "low": 9.80,
+                "close": 10.10,
+                "volume": 128000000,
+                "ret_pct": 1.20,
+                "ma_5": 9.95,
+                "ma_10": 9.88,
+                "ma_20": 9.72,
+                "ma_60": 9.40,
+                "atr14": 0.18,
+                "ma60_dev": 7.45,
+                "vol_20d": 1.85,
+            },
+            {
+                "date": "2026-06-18",
+                "open": 9.75,
+                "high": 9.95,
+                "low": 9.70,
+                "close": 9.98,
+                "volume": 112000000,
+                "ret_pct": 0.70,
+                "ma_5": 9.86,
+                "ma_10": 9.80,
+                "ma_20": 9.68,
+                "ma_60": 9.38,
+                "atr14": 0.17,
+                "ma60_dev": 6.40,
+                "vol_20d": 1.76,
+            },
+        ],
+        ("us", "AAPL"): [
+            {
+                "date": "2026-06-19",
+                "open": 212.40,
+                "high": 216.10,
+                "low": 211.85,
+                "close": 215.30,
+                "volume": 54200000,
+                "amount": 11670260000.0,
+            },
+            {
+                "date": "2026-06-18",
+                "open": 210.10,
+                "high": 213.50,
+                "low": 209.75,
+                "close": 212.05,
+                "volume": 49800000,
+                "amount": 10560100000.0,
+            },
+        ],
+    }
+    rows = samples.get((market, ticker), [])
+    return rows[: max(0, int(days or 0))]
+
+
+def _fallback_views() -> list[dict]:
+    """Deterministic view list when DuckDB views are unavailable (no-DB demo)."""
+    names = [
+        "vw_daily_enriched_cn",
+        "vw_market_breadth_cn",
+        "vw_rsrs_ranking_cn",
+        "vw_volume_anomalies_cn",
+        "vw_cross_sectional_return_cn",
+        "vw_market_breadth_us",
+        "vw_rsrs_ranking_us",
+    ]
+    return [{"view": name, "rows": 0, "columns": ""} for name in names]
+
+
+def _format_rows_result(result, columns_from_first: bool, empty_message: str) -> str:
+    """Render a rows-bearing ToolResult as a column table, or ``empty_message``."""
+    data = result.data if (result.ok and isinstance(result.data, dict)) else {}
+    rows = data.get("rows") or []
+    if not rows:
+        return empty_message
+    if columns_from_first and isinstance(rows[0], dict):
+        columns = list(rows[0].keys())
+        body = [list(r.values()) for r in rows]
+    else:
+        columns = []
+        body = [list(r) for r in rows]
+    return _fmt(columns, body)
+
+
+def _render_stock_overview(ticker: str, market: str, overview: dict) -> str:
+    """Render the overview block. Notes are an MCP presentation enrichment read
+    via the INoteRepository port (S004-003); the overview data itself comes from
+    the registry tool above."""
+    lines = [f"=== {ticker} ({market.upper()}) ==="]
+    try:
+        ctx = build_gateway_container().build_note_repository().get_ticker_with_context(ticker, market)
+    except Exception:
+        ctx = {"notes": [], "note_count_total": 0}
+    name = ctx.get("name_cn")
+    sector = ctx.get("sector")
+    note_count = ctx.get("note_count_total", 0)
+    notes = ctx.get("notes", [])[:5]
+
+    if name:
+        lines.append(f"名称: {name}")
+    if sector:
+        lines.append(f"板块: {sector}")
+
+    prices = overview.get("prices", []) if isinstance(overview, dict) else []
+    if prices:
+        latest = prices[0]
+        lines.append(f"\n最新: {latest['date']} 收盘: {latest['close']}")
+        if len(prices) > 1:
+            prev = prices[1]
+            chg = (latest["close"] - prev["close"]) / prev["close"] * 100
+            lines.append(f"涨跌幅: {chg:.2f}%")
+        for p in prices:
+            lines.append(f"  {p['date']} | O:{p['open']} H:{p['high']} L:{p['low']} C:{p['close']} V:{p['volume']}")
+
+    if notes:
+        lines.append(f"\n笔记 ({note_count} 条):")
+        for n in notes:
+            content = n.get("content") or ""
+            lines.append(f"  [{n.get('created_at', '')}] {content[:80]}")
+    else:
+        lines.append("\n暂无笔记")
+
+    return "\n".join(lines)
+
+
+async def query_stock(ticker: str, market: str = "cn", days: int = 20) -> str:
+    """Query stock OHLCV + indicators through the shared tool registry."""
+    t = normalize_ticker(ticker, market)
+    result = await _execute_data_tool("query_stock", {"ticker": t, "market": market, "days": days})
+    data = result.data if (result.ok and isinstance(result.data, dict)) else {}
+    rows = data.get("rows") or _demo_prices(t, market, days)
+    if not rows:
+        return f"No data for {t}"
+    columns = list(rows[0].keys()) if isinstance(rows[0], dict) else []
+    return _fmt(columns, [list(r.values()) for r in rows] if isinstance(rows[0], dict) else [list(r) for r in rows])
+
+
+async def stock_overview(ticker: str, market: str = "cn") -> str:
+    """Stock overview through the shared tool registry (notes enriched at presentation)."""
+    t = normalize_ticker(ticker, market)
+    result = await _execute_data_tool("stock_overview", {"ticker": t, "market": market})
+    overview = result.data if (result.ok and isinstance(result.data, dict)) else {}
+    if overview.get("status") == "unavailable":
+        overview = {"ticker": t, "market": market, "name": None, "prices": _demo_prices(t, market, 3)}
+    return _render_stock_overview(t, market, overview)
+
+
+async def rsrs_ranking(market: str = "cn", top: int = 20) -> str:
+    """RSRS momentum ranking through the shared tool registry."""
+    result = await _execute_data_tool("rsrs_ranking", {"market": market, "top": top})
+    return _format_rows_result(result, columns_from_first=True, empty_message="No data")
+
+
+async def market_breadth(market: str = "cn", days: int = 10) -> str:
+    """Market breadth through the shared tool registry."""
+    result = await _execute_data_tool("market_breadth", {"market": market, "days": days})
+    return _format_rows_result(result, columns_from_first=True, empty_message="No data")
+
+
+async def volume_anomalies(min_ratio: float = 3.0, top: int = 20) -> str:
+    """Volume anomalies through the shared tool registry."""
+    result = await _execute_data_tool("volume_anomalies", {"min_ratio": min_ratio, "top": top})
+    return _format_rows_result(result, columns_from_first=True, empty_message="No anomalies")
+
+
+async def list_views() -> str:
+    """List analytical views through the shared tool registry (JSON list contract)."""
+    result = await _execute_data_tool("list_views", {})
+    if result.ok and isinstance(result.data, dict):
+        views = result.data.get("views") or []
+        if views:
+            return json.dumps(views, indent=2, ensure_ascii=False)
+    return json.dumps(_fallback_views(), indent=2, ensure_ascii=False)
 
 
 def _workspace_container():

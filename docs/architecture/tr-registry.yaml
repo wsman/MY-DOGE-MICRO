@@ -597,7 +597,7 @@ requirements:
     system: research-insight-knowledge-base
     cdd: design/cdd/research-insight-knowledge-base.md
     section: "interface layer §6 gate"
-    requirement: "src/doge/interfaces/api/routers/notes.py and src/doge/interfaces/mcp/tools/query_stock.py route through INoteRepository (Depends / get_ticker_with_context); no direct sqlite3 in src/api or src/doge/interfaces — the §6 layer-rule grep gate is green."
+    requirement: "src/doge/interfaces/api/routers/notes.py and src/doge/interfaces/mcp/server.py stock_overview presentation route through INoteRepository (Depends / _render_stock_overview -> get_ticker_with_context); no direct sqlite3 in src/api or src/doge/interfaces — the §6 layer-rule grep gate is green."
     adr: docs/architecture/adr-0001-brownfield-clean-architecture.md
     test: tests/test_notes_crud.py
     created: 2026-06-14

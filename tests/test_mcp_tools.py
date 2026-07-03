@@ -1,9 +1,11 @@
 """Tests for MCP server tools, validation, and lifecycle.
 
 Retargeted (Batch-5) from the legacy ``mcp_server`` monolith to the modular
-``doge.interfaces.mcp.server`` + ``doge.interfaces.mcp.tools`` packages. The
-editable install (``pip install -e .``) resolves ``doge`` as a top-level
-package, so no ``sys.path`` shim is needed here.
+``doge.interfaces.mcp.server`` package. Since Sprint 020 the six data tools
+dispatch through the shared ``ToolRegistry`` (``doge.application.tools``); the
+former ``doge.interfaces.mcp.tools`` wrapper package was removed. The editable
+install (``pip install -e .``) resolves ``doge`` as a top-level package, so no
+``sys.path`` shim is needed here.
 """
 import asyncio
 import json
@@ -313,10 +315,15 @@ class TestPidManager:
 
 class TestToolsNotPresent:
     @pytest.mark.asyncio
-    async def test_run_sql_removed(self):
+    async def test_high_risk_registry_tools_not_exposed(self):
+        # MCP deliberately exposes only the 6 curated data tools, not the full
+        # ToolRegistry surface. run_sql_query / run_python_analysis are
+        # registry tools that must NOT leak onto the MCP wire surface.
         tools = await mcp.list_tools()
         names = [t.name for t in tools]
         assert "run_sql" not in names
+        assert "run_sql_query" not in names
+        assert "run_python_analysis" not in names
 
     @pytest.mark.asyncio
     async def test_expected_tools_present(self):
@@ -348,11 +355,7 @@ class TestToolsNotPresent:
 
 class TestQueryStockMock:
     @pytest.mark.asyncio
-    async def test_invalid_market(self, monkeypatch):
-        async def mock_impl(*args, **kwargs):
-            return "should not reach"
-
-        monkeypatch.setattr(srv, "query_stock", mock_impl)
+    async def test_invalid_market(self):
         with pytest.raises(ValueError, match="Invalid market"):
             srv._validate_market("xx")
 
