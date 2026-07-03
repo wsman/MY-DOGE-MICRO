@@ -106,7 +106,7 @@ def redact_run_summary_for_request(
     """Apply document ACL citation redaction for a run-summary payload."""
     if not is_enterprise_request(request):
         return result
-    from doge.application.use_cases.run_summary import redact_inaccessible_citations
+    from doge.platform.evidence import redact_inaccessible_citations
 
     document_ids = sorted(
         {

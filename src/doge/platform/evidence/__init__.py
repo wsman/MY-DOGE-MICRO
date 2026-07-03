@@ -2,7 +2,11 @@
 
 from doge.application.services.citation_service import CitationService
 from doge.application.services.claim_validation_service import ClaimValidationService
-from doge.application.services.file_upload_service import FileUploadError, FileUploadService
+from doge.application.services.file_upload_service import (
+    FileUploadError,
+    FileUploadService,
+    FileUploadTooLargeError,
+)
 from doge.application.services.financial_eval_service import FinancialEvalService
 from doge.application.services.multimodal_evidence_service import (
     EvidenceBundle,
@@ -47,6 +51,7 @@ __all__ = [
     "ExtractionResult",
     "FileUploadError",
     "FileUploadService",
+    "FileUploadTooLargeError",
     "FinancialEvalService",
     "IClaimRepository",
     "IDocumentRepository",

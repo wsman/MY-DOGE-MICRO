@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 
-from doge.application.services.portfolio_import_service import (
+from doge.products.portfolio import (
     PortfolioImportError,
     PortfolioImportService,
 )

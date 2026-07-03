@@ -7,7 +7,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 
-from doge.application.use_cases.run_summary import BuildRunSummary
+from doge.platform.evidence import BuildRunSummary
 from doge.core.ports.enterprise_governance import IEnterpriseGovernanceRepository
 from doge.interfaces.api import deps
 from doge.interfaces.api.handlers import ExecuteWorkflowHandler, ResearchCaseRunHandler

@@ -19,7 +19,7 @@ def test_canonical_agent_domain_import_matches_legacy_module() -> None:
 
 def test_canonical_runtime_kernel_import_matches_legacy_module() -> None:
     from doge.application.agent import runtime_kernel as legacy
-    from doge.application.runtime import kernel as canonical
+    from doge.platform import runtime as canonical
 
     assert canonical.RuntimeKernel is legacy.RuntimeKernel
     assert canonical.RunLifecycleService is legacy.RunLifecycleService

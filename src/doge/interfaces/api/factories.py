@@ -14,14 +14,14 @@ from typing import Any
 
 def build_portfolio_import_service(portfolio_repository: Any):
     """Build the CSV portfolio import service bound to a portfolio repository."""
-    from doge.application.services.portfolio_import_service import PortfolioImportService
+    from doge.products.portfolio import PortfolioImportService
 
     return PortfolioImportService(portfolio_repository)
 
 
 def build_event_bus():
     """Build the in-process event bus used by daemon/v1 streams."""
-    from doge.application.agent.event_bus import EventBus
+    from doge.platform.runtime import EventBus
 
     return EventBus()
 
@@ -37,7 +37,7 @@ def build_daemon_worker(
     auto_start: bool,
 ):
     """Build the singleton asyncio daemon worker from its wired collaborators."""
-    from doge.application.agent.worker import AsyncioWorker
+    from doge.platform.runtime import AsyncioWorker
 
     return AsyncioWorker(
         runtime,
@@ -52,6 +52,6 @@ def build_daemon_worker(
 
 def build_runtime_outbox_publisher(outbox_repository: Any, event_bus: Any):
     """Build the optional transactional outbox publisher loop."""
-    from doge.application.agent.outbox_publisher import OutboxPublisher
+    from doge.platform.runtime import OutboxPublisher
 
     return OutboxPublisher(outbox_repository, event_bus)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 
-from doge.application.services.file_upload_service import FileUploadError
+from doge.platform.evidence import FileUploadError
 from doge.interfaces.cli.commands.session_embedded import cancel_embedded_run, resolve_embedded_approval
 from doge.interfaces.cli.commands.session_gateway import (
     GatewayArgs,

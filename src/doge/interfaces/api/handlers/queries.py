@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from doge.application.use_cases.run_summary import redact_inaccessible_citations
+from doge.platform.evidence import redact_inaccessible_citations
 from doge.core.ports.enterprise_governance import EnterpriseAuditEvent
 
 

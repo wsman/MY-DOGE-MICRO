@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import Response
 
-from doge.application.services.audit_export_manifest import build_audit_export_manifest
+from doge.platform.governance import build_audit_export_manifest
 from doge.config import get_settings
 from doge.core.security import redact_secrets
 from doge.core.ports.enterprise_governance import IEnterpriseGovernanceRepository

@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
-from doge.application.services.file_upload_service import (
+from doge.platform.evidence import (
     FileUploadError,
     FileUploadService,
     FileUploadTooLargeError,

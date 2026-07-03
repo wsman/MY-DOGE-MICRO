@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
 
-from doge.application.use_cases.capability_registry import BuildCapabilityRegistry
+from doge.platform.workspace import BuildCapabilityRegistry
 from doge.core.ports.enterprise_governance import IEnterpriseGovernanceRepository
 from doge.interfaces.api import deps
 from doge.interfaces.api.enterprise_access import (

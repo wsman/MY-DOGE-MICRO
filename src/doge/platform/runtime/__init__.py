@@ -55,6 +55,7 @@ _EXPORTS = {
     "ModelPolicy": ("doge.core.domain.model_policy", "ModelPolicy"),
     "ModelResponseAssembler": ("doge.application.agent.model_response_assembler", "ModelResponseAssembler"),
     "ModelRouter": ("doge.application.agent.model_router", "ModelRouter"),
+    "OutboxPublisher": ("doge.application.agent.outbox_publisher", "OutboxPublisher"),
     "ProfileRegistry": ("doge.core.domain.execution_profile", "ProfileRegistry"),
     "RoutingDecision": ("doge.core.ports.model_router", "RoutingDecision"),
     "RunStatus": ("doge.core.domain.agent_models", "RunStatus"),

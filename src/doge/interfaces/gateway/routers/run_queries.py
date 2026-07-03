@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from doge.application.use_cases.run_summary import BuildRunSummary
+from doge.platform.evidence import BuildRunSummary
 from doge.core.ports.agent_runtime import IResearchAgentRuntime
 from doge.core.ports.enterprise_governance import IEnterpriseGovernanceRepository
 from doge.interfaces.api import deps

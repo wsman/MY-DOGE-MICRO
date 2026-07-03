@@ -13,8 +13,8 @@ from typing import Any
 
 from fastapi import Depends, HTTPException, Request
 
-from doge.application.use_cases.capability_registry import BuildCapabilityRegistry
-from doge.application.use_cases.run_summary import BuildRunSummary
+from doge.platform.workspace import BuildCapabilityRegistry
+from doge.platform.evidence import BuildRunSummary
 from doge.core.ports.agent_runtime import IResearchAgentRuntime
 from doge.core.ports.document_repository import IDocumentRepository
 from doge.core.ports.enterprise_governance import IEnterpriseGovernanceRepository
