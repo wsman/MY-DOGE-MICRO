@@ -113,7 +113,7 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: python -m pip install -e .
-      - run: python -m pytest tests/unit/layer_gates tests/unit/governance tests/unit/gateway tests/contract/test_api_doc_route_coverage.py -q
+      - run: python -m pytest tests/unit/layer_gates tests/unit/architecture tests/unit/governance tests/unit/gateway tests/contract/test_api_doc_route_coverage.py -q
 
   ci-sdk:
     name: ci-sdk

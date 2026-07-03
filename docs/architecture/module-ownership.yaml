@@ -11,8 +11,7 @@
       "display_name": "Market Intelligence",
       "owner": "doge.products.market",
       "path_patterns": [
-        "src/doge/products/market/**/*.py",
-        "src/doge/application/capabilities/market_provider.py"
+        "src/doge/products/market/**/*.py"
       ],
       "allowed_dependencies": [
         "doge.application.use_cases",
@@ -30,9 +29,7 @@
       "display_name": "Research",
       "owner": "doge.products.research",
       "path_patterns": [
-        "src/doge/products/research/**/*.py",
-        "src/doge/application/capabilities/research_provider.py",
-        "src/doge/application/capabilities/fundamental_provider.py"
+        "src/doge/products/research/**/*.py"
       ],
       "allowed_dependencies": [
         "doge.application.use_cases",
@@ -50,8 +47,7 @@
       "display_name": "Portfolio & Risk",
       "owner": "doge.products.portfolio",
       "path_patterns": [
-        "src/doge/products/portfolio/**/*.py",
-        "src/doge/application/capabilities/portfolio_provider.py"
+        "src/doge/products/portfolio/**/*.py"
       ],
       "allowed_dependencies": [
         "doge.application.services",
@@ -70,7 +66,6 @@
       "owner": "doge.products.quant",
       "path_patterns": [
         "src/doge/products/quant/**/*.py",
-        "src/doge/application/capabilities/quant_provider.py",
         "src/doge/application/capabilities/executors/**/*.py"
       ],
       "allowed_dependencies": [
@@ -150,8 +145,6 @@
         "src/doge/platform/governance/**/*.py",
         "src/doge/products/__init__.py",
         "src/doge/application/capabilities/__init__.py",
-        "src/doge/application/capabilities/compliance_provider.py",
-        "src/doge/application/capabilities/publishing_provider.py",
         "src/doge/application/capabilities/registry.py",
         "src/doge/application/capabilities/tool_utils.py"
       ],

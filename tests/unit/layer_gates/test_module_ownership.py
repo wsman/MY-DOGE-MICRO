@@ -61,6 +61,27 @@ def test_module_ownership_forbidden_imports_are_enforced() -> None:
     assert violations == []
 
 
+def test_module_ownership_non_glob_paths_must_exist() -> None:
+    """Non-glob path_patterns must resolve to real files.
+
+    Dead literal paths (e.g. retired provider files) silently match nothing and
+    give a false sense of ownership coverage. This assertion fails loudly so dead
+    entries cannot linger again.
+    """
+    manifest = _load_manifest()
+    missing: list[str] = []
+    for context_name, context in manifest["contexts"].items():
+        for pattern in context["path_patterns"]:
+            if any(ch in pattern for ch in ("*", "?", "[")):
+                continue  # glob -- existence not checkable
+            if not (PROJECT_ROOT / pattern).is_file():
+                missing.append(f"{context_name}: {pattern}")
+    assert missing == [], (
+        "module-ownership.yaml has non-glob path_patterns pointing at missing files: "
+        + "; ".join(missing)
+    )
+
+
 def _load_manifest() -> dict:
     return json.loads(MANIFEST.read_text(encoding="utf-8"))
 

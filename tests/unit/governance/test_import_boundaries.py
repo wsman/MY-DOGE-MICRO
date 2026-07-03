@@ -153,3 +153,37 @@ def test_scanner_ignores_demo_fallback_factory_allowlist(tmp_path: Path):
     findings = validate(tmp_path)
 
     assert findings == []
+
+
+def test_scanner_flags_a_gateway_router_importing_infrastructure(tmp_path: Path):
+    # Location-scoped rule: gateway routers must not import adapters/infrastructure
+    # directly; they route through the sanctioned wiring seam at interfaces/api/deps.
+    pkg = tmp_path / "src" / "doge" / "interfaces" / "gateway" / "routers"
+    pkg.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "bad.py").write_text(
+        "from doge.infrastructure.llm.scripted_agent_model import ScriptedAgentModel\n",
+        encoding="utf-8",
+    )
+
+    findings = validate(tmp_path)
+
+    assert any(
+        "doge.infrastructure" in f.module and "gateway" in f.format() for f in findings
+    )
+
+
+def test_scanner_does_not_flag_non_gateway_infrastructure_import(tmp_path: Path):
+    # The location-scoped rule targets gateway routers only; a non-gateway file
+    # importing infrastructure is not flagged by this rule.
+    pkg = tmp_path / "src" / "doge" / "offending"
+    pkg.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "uses_infra.py").write_text(
+        "from doge.infrastructure.llm.scripted_agent_model import ScriptedAgentModel\n",
+        encoding="utf-8",
+    )
+
+    findings = validate(tmp_path)
+
+    assert not any("doge.infrastructure" in f.module for f in findings)

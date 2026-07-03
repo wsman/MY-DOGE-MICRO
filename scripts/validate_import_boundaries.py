@@ -51,12 +51,38 @@ ALLOWLIST_DIRS = (
 )
 
 
+# Location-scoped rules: certain directories must not import infrastructure or
+# adapter packages directly. Gateway routers route through the sanctioned wiring
+# seam at ``interfaces/api/deps.py``; they must not open adapter/infra modules.
+# Ratchets at zero baseline.
+@dataclass(frozen=True)
+class LocationRule:
+    parts: tuple[str, ...]  # subdir under src/doge, e.g. ("interfaces", "gateway", "routers")
+    forbidden_roots: tuple[str, ...]
+    advice: str
+
+
+LOCATION_RULES: tuple[LocationRule, ...] = (
+    LocationRule(
+        parts=("interfaces", "gateway", "routers"),
+        forbidden_roots=("doge.adapters", "doge.infrastructure"),
+        advice=(
+            "imports infrastructure/adapter package directly; route through the "
+            "sanctioned wiring seam at doge.interfaces.api.deps"
+        ),
+    ),
+)
+
+
 @dataclass(frozen=True)
 class Finding:
     path: Path
     module: str
+    advice: str = ""
 
     def format(self) -> str:
+        if self.advice:
+            return f"{_display(self.path)}: {self.advice} ('{self.module}')"
         return (
             f"{_display(self.path)}: imports forbidden compatibility/demo path "
             f"'{self.module}'; use the canonical path instead "
@@ -108,6 +134,25 @@ def validate(root: Path = ROOT) -> list[Finding]:
         for module in _imported_modules(tree, pkg_parts):
             if _is_forbidden(module):
                 findings.append(Finding(path, module))
+
+    # Location-scoped rules (e.g. gateway routers must not import adapters/infra).
+    for rule in LOCATION_RULES:
+        loc_root = scan_root.joinpath(*rule.parts)
+        if not loc_root.is_dir():
+            continue
+        for path in sorted(loc_root.rglob("*.py")):
+            if "__pycache__" in path.parts:
+                continue
+            text = path.read_text(encoding="utf-8")
+            try:
+                tree = ast.parse(text, filename=str(path))
+            except SyntaxError:
+                findings.append(Finding(path, "<unparseable>", advice=rule.advice))
+                continue
+            pkg_parts = _package_parts(path, root)
+            for module in _imported_modules(tree, pkg_parts):
+                if _matches_any(module, rule.forbidden_roots):
+                    findings.append(Finding(path, module, advice=rule.advice))
     return findings
 
 
@@ -167,6 +212,10 @@ def _is_forbidden(module: str) -> bool:
         if module == prefix or module.startswith(prefix + "."):
             return True
     return False
+
+
+def _matches_any(module: str, roots: tuple[str, ...]) -> bool:
+    return any(module == root or module.startswith(root + ".") for root in roots)
 
 
 def _display(path: Path) -> str:
