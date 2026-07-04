@@ -106,3 +106,15 @@ Automated trading, production investment-advice approval, KYC/AML decisions,
 multi-tenant hosted production, and any Stable/Production-Ready claim. See the
 primary scenario's Out Of Scope section in
 [multimodal-portfolio-research.md](multimodal-portfolio-research.md).
+
+## Maturity Vocabulary
+
+When describing this Alpha stage, use the coordinated vocabulary rather than
+promotion language: **Local Alpha** (current maturity), **Production-shaped**
+(the architecture has production-shaped surfaces such as `/v1`, the
+RuntimeKernel, and the SDKs, but makes no production claim),
+**Production-readiness gates open** (S017-003 / W3-live / AUTH-prod / S017-007
+remain operator-owned), and **not production ready** (the canonical
+`production_ready: false` / `stable_declaration: forbidden` posture). See
+[runtime-levels.md](../architecture/runtime-levels.md) for the authoritative
+maturity labels.

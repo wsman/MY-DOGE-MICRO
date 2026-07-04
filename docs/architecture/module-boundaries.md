@@ -47,6 +47,15 @@ the code-package / external-naming view; runtime, gateway, and eval concerns
 map to the Agent Runtime, Knowledge & Evidence, and Governance & Evaluation
 contexts.
 
+> **Cross-reference:** the persona labels in the map below (Local Quant
+> Operator / Researcher-Portfolio Manager / Enterprise Integrator / Eval-Demo
+> Owner) are an architecture-composition view of the **5 reader paths** in
+> [user-scenarios.md](../product/user-scenarios.md) — Local Quant Operator ≈
+> Local Analyst; Researcher/PM ≈ Research Workspace; Enterprise Integrator ≈
+> SDK Integrator + Daemon Operator; Eval/Demo Owner = Eval/Demo Owner. Labels
+> are retained for cross-reference stability; new docs should prefer the
+> reader-path names.
+
 | Scenario | User Goal | Contexts Composed | Primary Entrypoints |
 |----------|-----------|-------------------|---------------------|
 | Local Quant Operator | Inspect breadth, momentum, ticker, anomaly, local DB, and macro-report signals. | Market Intelligence, Quant & Data Lab, Governance & Evaluation | CLI, MCP, Web Market, legacy scanner compatibility |

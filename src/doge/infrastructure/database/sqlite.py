@@ -3,13 +3,20 @@
 Replaces scattered `sqlite3.connect()` calls in routers and analysis modules.
 """
 
-import os
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Generator
 
 from doge.config import get_settings
+
+
+def _ensure_parent_dir(db_path: str) -> None:
+    if db_path == ":memory:" or db_path.startswith("file:"):
+        return
+    parent = Path(db_path).expanduser().parent
+    if str(parent) not in ("", "."):
+        parent.mkdir(parents=True, exist_ok=True)
 
 
 def get_sqlite_stats(db_path: Path | str) -> dict:
@@ -68,7 +75,9 @@ class SQLiteConnection:
     @contextmanager
     def connect(self) -> Generator[sqlite3.Connection, None, None]:
         """Yield a configured SQLite connection."""
-        conn = sqlite3.connect(self._resolve_path())
+        db_path = self._resolve_path()
+        _ensure_parent_dir(db_path)
+        conn = sqlite3.connect(db_path)
         conn.execute("PRAGMA foreign_keys = ON")
         if self._use_row_factory:
             conn.row_factory = sqlite3.Row

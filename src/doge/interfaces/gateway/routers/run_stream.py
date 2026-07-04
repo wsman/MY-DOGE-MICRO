@@ -1,12 +1,15 @@
 """v1 run SSE streaming route.
 
-This route uses ``RunStreamHandler`` which combines historical replay via
-``runtime.list_events`` with live events via ``IEventSubscriber.subscribe``.
-This is the canonical live SSE implementation.
+This route uses ``RunStreamHandler``, the canonical live SSE implementation.
+``RunStreamHandler`` serves both historical replay and the live tail through
+``IEventSubscriber.subscribe``; ``runtime.list_events`` is used only as a
+terminal-state sequence probe (``RunStreamHandler._max_event_sequence_after``),
+not as the replay iterator.
 
 Streaming semantics (per ADR-0025):
-- ``list_events`` = synchronous persisted query (historical replay)
-- ``stream_events`` = replay-only async iterator (not used here)
+- ``list_events`` = synchronous persisted query (used here only to probe the
+  max event sequence for terminal-state handling)
+- ``stream_events`` = replay-only async iterator (not used by this route)
 - ``RunStreamHandler`` + ``IEventSubscriber.subscribe`` = live cross-process SSE
 
 New clients should use this ``/v1/runs/{run_id}/stream`` endpoint.

@@ -70,6 +70,14 @@ production_ready: false
 stable_declaration: forbidden
 ```
 
+The coordinated vocabulary for this Alpha stage is: **Local Alpha** (current
+maturity), **Production-shaped** (the architecture has production-shaped
+surfaces such as `/v1`, the RuntimeKernel, and the SDKs, but makes no
+production claim), **Production-readiness gates open** (S017-003 / W3-live /
+AUTH-prod / S017-007 remain operator-owned), and **not production ready** (the
+canonical `production_ready: false` / `stable_declaration: forbidden` posture
+above).
+
 ### Surface Classification
 
 Authoritative source: [runtime-maturity.yaml](docs/progress/runtime-maturity.yaml)
@@ -96,6 +104,32 @@ promoting the verified SHA above.
 No README, release note, or docs entry should claim Stable, GA, or Production
 Ready while those values remain unchanged. See
 [runtime-levels.md](docs/architecture/runtime-levels.md).
+
+## Architecture At A Glance
+
+MY-DOGE-MICRO has one architecture, counted three ways depending on the
+question:
+
+- **3 runtime levels** — Level 1 embedded CLI/session, Level 2 daemon gateway,
+  Level 3 SDK & platform; see [runtime-levels.md](docs/architecture/runtime-levels.md).
+- **5 reader paths (4 product + 1 eval)** — Local Analyst, Daemon Operator,
+  SDK Integrator, Research Workspace, Eval-Demo Owner; see
+  [user-scenarios.md](docs/product/user-scenarios.md). The Quick Start above
+  highlights the 3 most common entrypoints (Local Analyst / Daemon / SDK
+  Integrator); [docs/index.md](docs/index.md) adds Architecture Reviewer and
+  Kimi SA Demo as specialist doc-discovery paths on top of these 5.
+- **8 bounded contexts** per ADR-0021 (4 product modules plus 4 platform
+  contexts); see
+  [overview.md](docs/architecture/overview.md#canonical-bounded-contexts).
+  This is the only canonical module count.
+- **1 RuntimeKernel facade**
+  (`doge.bootstrap.runtime_factories.runtime_kernel`) backs all three levels;
+  the in-memory runtime is demo/test-only.
+
+The engineering-layer "Interfaces / Runtime / Model / Tools / Evidence" view
+sometimes used in reviews is intentionally **not** canonicalized as a module
+taxonomy: it conflicts with ADR-0021's bounded-context model and would
+introduce a third module-count vocabulary.
 
 ## Security
 
