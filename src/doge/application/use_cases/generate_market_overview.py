@@ -80,6 +80,43 @@ class GenerateMarketOverviewUseCase:
         out_path.write_text(markdown, encoding="utf-8")
         return MarketOverviewResponse(market=request.market, markdown=markdown)
 
+    def brief(self, request: GenerateMarketOverviewRequest) -> MarketOverviewResponse:
+        """Run the overview workflow and return a console-oriented brief."""
+        now = datetime.now()
+        date_label = now.strftime("%Y-%m-%d %H:%M")
+        try:
+            max_d = self._max_date()
+        except Exception:
+            max_d = None
+        if max_d is None:
+            return MarketOverviewResponse(
+                market=request.market,
+                markdown=self._render_brief_empty(date_label, request.market),
+            )
+
+        cutoff_10d = (max_d - timedelta(days=10)).strftime("%Y-%m-%d")
+        cutoff_90d = (max_d - timedelta(days=90)).strftime("%Y-%m-%d")
+        try:
+            stats = self._market_stats(cutoff_10d)
+            breadth = self._market_breadth(cutoff_90d)
+            leaders = self._rsrs_top20(request.market, request.top)
+            spikes = self._volume_spikes(request.market, request.top)
+        except Exception:
+            return MarketOverviewResponse(
+                market=request.market,
+                markdown=self._render_brief_empty(date_label, request.market),
+            )
+        markdown = self._render_brief(
+            date_label,
+            max_d,
+            request.market,
+            stats,
+            breadth,
+            leaders,
+            spikes,
+        )
+        return MarketOverviewResponse(market=request.market, markdown=markdown)
+
     def _max_date(self) -> Optional[datetime]:
         df = self._view_repo.execute(
             "SELECT MAX(CAST(date AS DATE)) AS max_date FROM cn.stock_prices"
@@ -234,3 +271,104 @@ class GenerateMarketOverviewUseCase:
             f"> 生成时间: {date_label} | 数据截止: _无数据_\n\n"
             "_无近期数据_\n"
         )
+
+    def _render_brief(
+        self,
+        date_label: str,
+        max_d: datetime,
+        market: str,
+        stats: pd.DataFrame,
+        breadth: pd.DataFrame,
+        leaders: pd.DataFrame,
+        spikes: pd.DataFrame,
+    ) -> str:
+        regime = self._market_regime(stats)
+        lines = [
+            "# Market Brief\n",
+            f"> Generated: {date_label} | Data through: {max_d.date()} | Market: {market.upper()}\n",
+            "## 1. Market Regime\n",
+            regime,
+            "\n",
+            "## 2. Breadth\n",
+        ]
+        lines.append(breadth.head(5).to_markdown(index=False) if not breadth.empty else "_No breadth data_")
+        lines.extend(["\n", "## 3. Momentum Leaders\n"])
+        lines.append(leaders.head(10).to_markdown(index=False) if not leaders.empty else "_No momentum data_")
+        lines.extend(["\n", "## 4. Volume Anomalies\n"])
+        lines.append(spikes.head(10).to_markdown(index=False) if not spikes.empty else "_No volume anomalies_")
+        lines.extend(["\n", "## 5. Watchlist\n"])
+        lines.extend(self._watchlist_lines(leaders, spikes))
+        lines.extend(["\n", "## 6. Suggested Research Questions\n"])
+        lines.extend(self._research_question_lines(leaders, spikes, regime))
+        lines.append("\n")
+        return "\n".join(lines)
+
+    def _render_brief_empty(self, date_label: str, market: str) -> str:
+        return "\n".join(
+            [
+                "# Market Brief\n",
+                f"> Generated: {date_label} | Data through: _no data_ | Market: {market.upper()}\n",
+                "## 1. Market Regime\n",
+                "Neutral - no local market data available.",
+                "\n",
+                "## 2. Breadth\n",
+                "_No breadth data_",
+                "\n",
+                "## 3. Momentum Leaders\n",
+                "_No momentum data_",
+                "\n",
+                "## 4. Volume Anomalies\n",
+                "_No volume anomalies_",
+                "\n",
+                "## 5. Watchlist\n",
+                "- No watchlist candidates from local data.",
+                "\n",
+                "## 6. Suggested Research Questions\n",
+                "- Which data feed should be refreshed before running research?",
+                "\n",
+            ]
+        )
+
+    def _market_regime(self, stats: pd.DataFrame) -> str:
+        if stats.empty:
+            return "Neutral - insufficient breadth data."
+        latest = stats.iloc[0]
+        advance_ratio = float(latest.get("advance_ratio") or 0)
+        avg_return = float(latest.get("avg_return_pct") or 0)
+        if advance_ratio >= 55 and avg_return >= 0:
+            label = "Risk-On"
+        elif advance_ratio <= 45 and avg_return < 0:
+            label = "Risk-Off"
+        else:
+            label = "Neutral"
+        return (
+            f"{label} - advance ratio {advance_ratio:.1f}% and average return "
+            f"{avg_return:.2f}% on the latest local trading day."
+        )
+
+    def _watchlist_lines(self, leaders: pd.DataFrame, spikes: pd.DataFrame) -> list[str]:
+        lines: list[str] = []
+        for _, row in leaders.head(5).iterrows():
+            lines.append(
+                f"- {row.get('ticker')}: RSRS rank {row.get('rank')}, "
+                f"60d change {row.get('pct_change_60d')}%"
+            )
+        spike_tickers = [str(row.get("ticker")) for _, row in spikes.head(3).iterrows()]
+        if spike_tickers:
+            lines.append(f"- Volume anomaly follow-up: {', '.join(spike_tickers)}")
+        return lines or ["- No watchlist candidates from local data."]
+
+    def _research_question_lines(
+        self,
+        leaders: pd.DataFrame,
+        spikes: pd.DataFrame,
+        regime: str,
+    ) -> list[str]:
+        questions = [f"- What would invalidate the current {regime.split(' - ', 1)[0]} read?"]
+        if not leaders.empty:
+            ticker = leaders.iloc[0].get("ticker")
+            questions.append(f"- Why is {ticker} leading momentum, and is the move evidence-backed?")
+        if not spikes.empty:
+            ticker = spikes.iloc[0].get("ticker")
+            questions.append(f"- Does the volume anomaly in {ticker} signal news, rotation, or noise?")
+        return questions

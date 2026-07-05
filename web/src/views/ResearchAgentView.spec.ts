@@ -22,7 +22,10 @@ vi.mock('../api/documents', () => ({
 vi.mock('../stores/platform', () => ({
   usePlatformStore: () => ({
     capabilities: null,
+    capabilitiesById: {},
+    workflowTemplates: [],
     loadCapabilities: vi.fn(async () => null),
+    loadWorkflowTemplates: vi.fn(async () => []),
   }),
 }))
 

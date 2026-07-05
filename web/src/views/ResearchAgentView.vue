@@ -13,6 +13,7 @@
           :autosize="{ minRows: 5, maxRows: 8 }"
           aria-label="Research question"
         />
+        <RunPreflightChecklist />
         <n-button type="primary" size="small" :loading="store.loading" @click="startRun">
           Run
         </n-button>
@@ -94,6 +95,7 @@ import EmptyStateCtas from '../components/agent/EmptyStateCtas.vue'
 import GuidedFlow from '../components/agent/GuidedFlow.vue'
 import ExecutionProfileSelector from '../components/agent/ExecutionProfileSelector.vue'
 import PortfolioImporter from '../components/agent/PortfolioImporter.vue'
+import RunPreflightChecklist from '../components/agent/RunPreflightChecklist.vue'
 import ScenarioPicker from '../components/agent/ScenarioPicker.vue'
 import type { ImportedPortfolio } from '../api/portfolio'
 import { useAgentStore } from '../stores/agent'

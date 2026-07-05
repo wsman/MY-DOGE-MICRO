@@ -56,7 +56,7 @@ def _live_defaults():
     parser = _build_parser()
     sub = parser._subparsers._group_actions[0]
     out = {}
-    for name in ("stock", "rsrs", "breadth", "anomaly", "demo"):
+    for name in ("stock", "rsrs", "breadth", "brief", "anomaly", "demo"):
         subparser = sub.choices[name]
         defaults = {}
         for action in subparser._actions:
@@ -78,6 +78,7 @@ def _live_defaults():
         ["stock", "301599.SZ", "--market", "CN"],   # case-sensitive, not "cn"
         ["rsrs", "--market", "jp"],                 # rsrs accepts --market
         ["breadth", "--market", "global"],          # breadth accepts --market
+        ["brief", "--market", "global"],            # brief accepts --market
     ],
 )
 def test_subcommand_rejects_invalid_market_with_argparse_exit_2(argv):
@@ -121,6 +122,13 @@ def test_breadth_defaults_parse():
     assert args.days == 10
 
 
+def test_brief_defaults_parse():
+    args, code = _parse_or_exit(["brief"])
+    assert code == 0
+    assert args.market == "cn"
+    assert args.top == 20
+
+
 def test_anomaly_defaults_and_range_parse():
     # default --min-ratio 3.0, --top 20 (src/cli.py:138-139)
     args, code = _parse_or_exit(["anomaly"])
@@ -139,7 +147,7 @@ def test_market_choices_are_exactly_cn_and_us():
     # The doc states --market accepts cn|us for stock/rsrs/breadth.
     parser = _build_parser()
     sub = parser._subparsers._group_actions[0]
-    for name in ("stock", "rsrs", "breadth"):
+    for name in ("stock", "rsrs", "breadth", "brief"):
         action = next(
             a for a in sub.choices[name]._actions if "--market" in a.option_strings
         )
@@ -168,6 +176,7 @@ def test_doc_defaults_match_live_argparse():
         "stock": {"--days": "20", "--market": "cn"},
         "rsrs": {"--top": "20", "--market": "cn"},
         "breadth": {"--days": "10", "--market": "cn"},
+        "brief": {"--top": "20", "--market": "cn"},
         "anomaly": {"--min-ratio": "3.0", "--top": "20"},
         "demo": {"--market": "cn", "--top": "5"},
     }
@@ -194,12 +203,13 @@ def test_doc_cites_cli_source_anchors():
     # The doc references these line anchors for the canonical CLI parser.
     # These ranges must stay in sync with ``src/doge/interfaces/cli/main.py``.
     required_refs = [
-        "src/doge/interfaces/cli/main.py:53-56",   # stock parser
-        "src/doge/interfaces/cli/main.py:59-61",   # rsrs parser
-        "src/doge/interfaces/cli/main.py:64-66",   # breadth parser
-        "src/doge/interfaces/cli/main.py:69-71",   # anomaly parser
-        "src/doge/interfaces/cli/main.py:74-76",   # demo parser
-        "src/doge/interfaces/cli/main.py:86-102",  # dispatch
+        "src/doge/interfaces/cli/main.py:70-73",   # stock parser
+        "src/doge/interfaces/cli/main.py:76-78",   # rsrs parser
+        "src/doge/interfaces/cli/main.py:81-83",   # breadth parser
+        "src/doge/interfaces/cli/main.py:86-88",   # brief parser
+        "src/doge/interfaces/cli/main.py:91-93",   # anomaly parser
+        "src/doge/interfaces/cli/main.py:96-98",   # demo parser
+        "src/doge/interfaces/cli/main.py:231-247",  # dispatch
     ]
     for ref in required_refs:
         assert ref in text, f"docs/CLI.md missing required source anchor {ref}"

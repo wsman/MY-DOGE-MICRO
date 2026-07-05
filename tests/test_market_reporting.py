@@ -276,6 +276,75 @@ class TestGenerateMarketOverviewUseCase:
         resp = uc.execute(GenerateMarketOverviewRequest())
         assert "_无近期数据_" in resp.markdown
 
+    def test_brief_renders_six_console_sections_without_writing_file(
+        self,
+        monkeypatch,
+        tmp_path,
+        rsrs_top20_df,
+        volume_spikes_df,
+        stats_df,
+        breadth_df,
+    ):
+        handlers = [
+            ("std_return_pct", breadth_df),
+            ("advance_ratio", stats_df),
+            ("rank <= ?", rsrs_top20_df),
+            ("vw_volume_anomalies_cn", volume_spikes_df),
+        ]
+        fake_repo = FakeMarketViewRepository(handlers, max_date="2026-06-12")
+        uc = GenerateMarketOverviewUseCase(
+            view_repo=fake_repo,
+            breadth_service=BreadthService(fake_repo),
+            ranking_service=RankingService(fake_repo),
+            anomaly_service=AnomalyService(fake_repo),
+        )
+        monkeypatch.setattr(
+            "doge.application.use_cases.generate_market_overview.get_settings",
+            lambda: _fake_settings(tmp_path),
+        )
+
+        resp = uc.brief(GenerateMarketOverviewRequest(top=3))
+
+        text = resp.markdown
+        assert text.startswith("# Market Brief")
+        assert "## 1. Market Regime" in text
+        assert "## 2. Breadth" in text
+        assert "## 3. Momentum Leaders" in text
+        assert "## 4. Volume Anomalies" in text
+        assert "## 5. Watchlist" in text
+        assert "## 6. Suggested Research Questions" in text
+        assert "Neutral" in text
+        assert "600000.SH" in text
+        assert not any((tmp_path / "ai_report").glob("market_overview_*.md"))
+
+    def test_brief_returns_empty_sections_when_local_tables_are_missing(
+        self,
+        monkeypatch,
+        tmp_path,
+    ):
+        class MissingTableRepo(FakeMarketViewRepository):
+            def execute(self, sql, params=None):
+                raise RuntimeError("missing local table")
+
+        fake_repo = MissingTableRepo([])
+        uc = GenerateMarketOverviewUseCase(
+            view_repo=fake_repo,
+            breadth_service=BreadthService(fake_repo),
+            ranking_service=RankingService(fake_repo),
+            anomaly_service=AnomalyService(fake_repo),
+        )
+        monkeypatch.setattr(
+            "doge.application.use_cases.generate_market_overview.get_settings",
+            lambda: _fake_settings(tmp_path),
+        )
+
+        resp = uc.brief(GenerateMarketOverviewRequest())
+
+        assert "## 1. Market Regime" in resp.markdown
+        assert "## 6. Suggested Research Questions" in resp.markdown
+        assert "_no data_" in resp.markdown
+        assert not any((tmp_path / "ai_report").glob("market_overview_*.md"))
+
 
 # ---------------------------------------------------------------------------
 # Anomaly report use case

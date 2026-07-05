@@ -22,7 +22,12 @@ Install the core package from the repository root:
 
 ```bash
 pip install -e .
+doge start
 ```
+
+`doge start` is the first-run launcher. It routes you to the local CLI session,
+daemon gateway, Web workspace, deterministic demo, or readiness check without
+requiring you to memorize the subcommands first.
 
 Use one of the three Platform Alpha paths:
 

@@ -4,6 +4,7 @@ Usage:
     doge stock <ticker> [--market cn] [--days 20]
     doge rsrs [--market cn] [--top 20]
     doge breadth [--market cn] [--days 10]
+    doge brief [--market cn] [--top 20]
     doge anomaly [--min-ratio 3.0] [--top 20]
     doge demo [--market cn] [--top 5]
     doge macro [--verbose]
@@ -42,6 +43,7 @@ for _stream_name in ("stdout", "stderr"):
 from doge.interfaces.cli.commands import (
     cmd_anomaly,
     cmd_batch,
+    cmd_brief,
     cmd_breadth,
     cmd_case,
     cmd_demo,
@@ -79,6 +81,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_breadth = sub.add_parser("breadth", help="market breadth (advancers/decliners)")
     p_breadth.add_argument("--market", default="cn", choices=["cn", "us"])
     p_breadth.add_argument("--days", type=int, default=10)
+
+    # brief
+    p_brief = sub.add_parser("brief", help="console market brief (CN local data)")
+    p_brief.add_argument("--market", default="cn", choices=["cn", "us"])
+    p_brief.add_argument("--top", type=int, default=20)
 
     # anomaly
     p_anomaly = sub.add_parser("anomaly", help="volume anomaly detection")
@@ -227,6 +234,7 @@ def main(argv: list[str] | None = None) -> None:
         "breadth": cmd_breadth,
         "anomaly": cmd_anomaly,
         "batch": cmd_batch,
+        "brief": cmd_brief,
         "demo": cmd_demo,
         "doctor": cmd_doctor,
         "macro": cmd_macro,

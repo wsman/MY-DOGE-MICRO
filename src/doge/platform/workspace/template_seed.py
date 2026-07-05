@@ -95,6 +95,58 @@ BUILTIN_TEMPLATES: list[dict[str, Any]] = [
         }},
     },
     {
+        "slug": "risk_alert",
+        "name": "Risk Alert",
+        "description": "Event-driven risk signal with evidence and action candidates.",
+        "input_schema": {
+            "required": ["event", "market"],
+            "properties": {
+                "event": {"type": "string"},
+                "market": {"type": "string"},
+                "portfolio_id": {"type": "string"},
+            },
+        },
+        "run_instructions": (
+            "Assess the risk event, identify affected holdings or watchlist names, "
+            "cite supporting evidence, and propose action candidates for review."
+        ),
+        "tool_policy": {"model_policy": {"execution_profile": "portfolio_review", "max_tool_rounds": 6}},
+        "evidence_policy": {"material_claims_require_citation": True, "numeric_claims_require_tool_result": True},
+        "output_contract": {"sections": ["risk_signal", "affected_exposure", "evidence", "action_candidates"]},
+        "metadata": {"contract": {
+            "required_capabilities": ["feature.workflow_templates"],
+            "eval_policy": ["tool_success", "citation_precision", "numerical_consistency"],
+            "approval_policy": {"trade_action": "required", "publish": "required"},
+            "ui_schema": {"layout": "risk-alert"},
+        }},
+    },
+    {
+        "slug": "portfolio_impact_note",
+        "name": "Portfolio Impact Note",
+        "description": "Translate a market or company event into portfolio exposure impact.",
+        "input_schema": {
+            "required": ["event", "portfolio_id"],
+            "properties": {
+                "event": {"type": "string"},
+                "portfolio_id": {"type": "string"},
+                "market": {"type": "string"},
+            },
+        },
+        "run_instructions": (
+            "Summarize the event, map it to portfolio exposure and concentration, "
+            "surface scenario impacts, and list investment committee questions."
+        ),
+        "tool_policy": {"model_policy": {"execution_profile": "portfolio_review", "max_tool_rounds": 7}},
+        "evidence_policy": {"material_claims_require_citation": True, "numeric_claims_require_tool_result": True},
+        "output_contract": {"sections": ["event_summary", "portfolio_exposure", "impact_assessment", "ic_questions"]},
+        "metadata": {"contract": {
+            "required_capabilities": ["feature.workflow_templates"],
+            "eval_policy": ["tool_success", "numerical_consistency", "citation_precision"],
+            "approval_policy": {"trade_action": "required"},
+            "ui_schema": {"layout": "portfolio-impact-note"},
+        }},
+    },
+    {
         "slug": "investment_committee_memo",
         "name": "Investment Committee Memo",
         "description": "Structured memo with claims and citations.",
