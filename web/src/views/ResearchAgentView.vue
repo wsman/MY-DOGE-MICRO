@@ -1,8 +1,10 @@
 <template>
   <div class="research-agent-view" aria-label="Research Agent workspace">
-    <section class="input-pane" aria-labelledby="research-agent-input-title">
+    <section ref="inputPaneRef" class="input-pane" aria-labelledby="research-agent-input-title">
       <div id="research-agent-input-title" class="pane-header">Input</div>
       <n-space vertical size="small">
+        <GuidedFlow @select="onStepSelect" />
+        <ScenarioPicker />
         <n-select v-model:value="store.market" :options="marketOptions" size="small" aria-label="Market" />
         <ExecutionProfileSelector v-model="store.executionProfile" />
         <n-input
@@ -20,19 +22,25 @@
       </n-space>
     </section>
 
-    <section class="memo-pane" aria-labelledby="research-agent-memo-title">
+    <section ref="memoPaneRef" class="memo-pane" aria-labelledby="research-agent-memo-title">
       <div id="research-agent-memo-title" class="pane-header">Research Memo</div>
       <n-alert v-if="store.error" type="error" :show-icon="false" role="alert" aria-live="assertive">
         {{ store.error.message }}
       </n-alert>
       <div v-if="store.latestMemo" class="memo-body" aria-live="polite" v-html="renderedMemo" />
-      <div v-else class="empty-state">No memo generated</div>
+      <EmptyStateCtas
+        v-else
+        @run-demo="store.startDemoRun"
+        @load-sample="loadSampleCase"
+        @upload="scrollToInput"
+        @import-portfolio="scrollToInput"
+      />
     </section>
 
     <section class="evidence-pane" aria-labelledby="research-agent-evidence-title">
       <div id="research-agent-evidence-title" class="pane-header">Evidence</div>
       <div class="status-row" role="status" aria-live="polite" :aria-label="statusAnnouncement">
-        <n-tag :type="statusType" size="small">{{ store.run?.status || 'idle' }}</n-tag>
+        <n-tag :type="toneFor(store.run?.status)" size="small">{{ labelFor(store.run?.status) }}</n-tag>
         <n-tag size="small">tokens {{ usage.total_tokens ?? 0 }}</n-tag>
       </div>
       <CitationDrilldown :memo="store.latestMemo" :artifacts="store.artifacts" :events="store.events" />
@@ -57,6 +65,7 @@
 
     <section class="quality-pane" aria-labelledby="research-agent-quality-title">
       <div id="research-agent-quality-title" class="pane-header">Quality</div>
+      <MaturityPanel />
       <CostEvalPanel :artifacts="store.artifacts" :events="store.events" />
     </section>
 
@@ -73,22 +82,51 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import MarkdownIt from 'markdown-it'
 import { NAlert, NButton, NInput, NSelect, NSpace, NTag } from 'naive-ui'
 import CitationDrilldown from '../components/agent/CitationDrilldown.vue'
 import CostEvalPanel from '../components/agent/CostEvalPanel.vue'
+import MaturityPanel from '../components/common/MaturityPanel.vue'
 import DocumentSelector from '../components/agent/DocumentSelector.vue'
 import DocumentUploader from '../components/agent/DocumentUploader.vue'
+import EmptyStateCtas from '../components/agent/EmptyStateCtas.vue'
+import GuidedFlow from '../components/agent/GuidedFlow.vue'
 import ExecutionProfileSelector from '../components/agent/ExecutionProfileSelector.vue'
 import PortfolioImporter from '../components/agent/PortfolioImporter.vue'
+import ScenarioPicker from '../components/agent/ScenarioPicker.vue'
 import type { ImportedPortfolio } from '../api/portfolio'
 import { useAgentStore } from '../stores/agent'
 import { useDocumentStore } from '../stores/documents'
+import { labelFor, toneFor } from '../utils/runStatus'
 
 const store = useAgentStore()
 const documentStore = useDocumentStore()
 const md = new MarkdownIt()
+const inputPaneRef = ref<HTMLElement | null>(null)
+
+function scrollToInput() {
+  inputPaneRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function loadSampleCase() {
+  store.selectedScenarioSlug = 'earnings_review'
+  scrollToInput()
+}
+
+const memoPaneRef = ref<HTMLElement | null>(null)
+
+function scrollToMemo() {
+  memoPaneRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function onStepSelect(stepId: string) {
+  if (stepId === 'memo') {
+    scrollToMemo()
+  } else {
+    scrollToInput()
+  }
+}
 
 const marketOptions = [
   { label: 'US Market', value: 'us' },
@@ -96,17 +134,10 @@ const marketOptions = [
 ]
 
 const renderedMemo = computed(() => md.render(store.latestMemo))
-const statusType = computed(() => {
-  if (store.run?.status === 'completed') return 'success'
-  if (store.run?.status === 'awaiting_approval') return 'warning'
-  if (store.run?.status === 'failed') return 'error'
-  return 'default'
-})
 const usage = computed(() => store.artifacts[0]?.data?.usage ?? {})
 const statusAnnouncement = computed(() => {
-  const status = store.run?.status || 'idle'
   const tokens = usage.value.total_tokens ?? 0
-  return `Agent status ${status}; tokens ${tokens}`
+  return `Agent status ${labelFor(store.run?.status)}; tokens ${tokens}`
 })
 
 function approvalLabel(approval: { risk_level: string; status: string; action: string }) {

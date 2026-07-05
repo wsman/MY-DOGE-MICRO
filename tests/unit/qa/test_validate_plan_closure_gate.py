@@ -4,16 +4,25 @@ from pathlib import Path
 import subprocess
 import sys
 
-from scripts.validate_plan_closure_gate import EvidenceGate, _gate_result, _resolve_evidence_path, _validate_gate, validate_all
+from scripts.validate_plan_closure_gate import (
+    DEFAULT_SOURCE_PLAN,
+    EvidenceGate,
+    _gate_result,
+    _resolve_evidence_path,
+    _validate_gate,
+    validate_all,
+)
 
 
 ROOT = Path(__file__).resolve().parents[3]
+UX1_SOURCE_PLAN = "C:/Users/WSMAN/.claude/plans/agent-sharded-lagoon.md"
 
 
 def test_plan_closure_gate_reports_controlled_open_items():
     result = validate_all(allow_open=True)
 
     assert result["schema"] == "doge.plan_closure_gate.v1"
+    assert result["source_plan"] == DEFAULT_SOURCE_PLAN
     assert result["result"] == "open"
     assert result["acceptable"] is True
     assert result["summary"] == {
@@ -66,6 +75,15 @@ def test_plan_closure_gate_strict_mode_does_not_accept_open_items():
     assert all(item["next_action"] for item in result["gates"])
 
 
+def test_plan_closure_gate_accepts_source_plan_override():
+    result = validate_all(allow_open=True, source_plan=UX1_SOURCE_PLAN)
+
+    assert result["source_plan"] == UX1_SOURCE_PLAN
+    assert result["acceptable"] is True
+    assert result["summary"]["open"] == 4
+    assert result["summary"]["passed"] == 2
+
+
 def test_plan_closure_gate_cli_requires_allow_open_for_zero_exit():
     script = ROOT / "scripts" / "validate_plan_closure_gate.py"
     strict = subprocess.run(
@@ -92,6 +110,27 @@ def test_plan_closure_gate_cli_requires_allow_open_for_zero_exit():
     assert allowed_payload["acceptable"] is True
     assert allowed_payload["summary"]["open"] == 4
     assert allowed_payload["summary"]["passed"] == 2
+
+
+def test_plan_closure_gate_cli_accepts_source_plan_override():
+    script = ROOT / "scripts" / "validate_plan_closure_gate.py"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--allow-open",
+            "--source-plan",
+            UX1_SOURCE_PLAN,
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert payload["source_plan"] == UX1_SOURCE_PLAN
+    assert payload["acceptable"] is True
 
 
 def test_plan_closure_gate_prefers_completed_evidence_over_template(tmp_path):

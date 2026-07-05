@@ -44,9 +44,9 @@ CHECKS: tuple[SurfaceCheck, ...] = (
         "session turn create",
         "POST",
         "/v1/sessions/{session_id}/turns",
-        ("def create_turn(", 'f"/v1/sessions/{session_id}/turns"'),
-        ("createTurn(sessionId: string", "`/v1/sessions/${sessionId}/turns`"),
-        ("session.run(payload.question", "document_ids: payload.document_ids"),
+        ("def create_turn(", 'f"/v1/sessions/{session_id}/turns"', "workflow: str | None = None"),
+        ("createTurn(sessionId: string", "`/v1/sessions/${sessionId}/turns`", "workflow?: string"),
+        ("session.run(payload.question", "document_ids: payload.document_ids", "workflow: payload.workflow"),
     ),
     SurfaceCheck(
         "run get",

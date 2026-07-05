@@ -20,15 +20,18 @@
 <script setup lang="ts">
 import { NButton, NSpace, NTag } from 'naive-ui'
 import type { WorkflowExecution } from 'doge-sdk'
+import { toneFor } from '../../utils/runStatus'
 
 defineProps<{ executions: WorkflowExecution[] }>()
 defineEmits<{ 'open-run': [runId: string] }>()
 
+// WorkflowExecution status overlaps RunStatus plus the execution-specific
+// 'preflight_failed'. Delegate the shared tones to runStatus and keep only the
+// execution-specific override here so no RunStatus literals are duplicated
+// (Sprint UX-1 Slice A, WEB-2).
 function statusType(status: string) {
-  if (status === 'completed') return 'success'
-  if (status === 'failed' || status === 'cancelled' || status === 'preflight_failed') return 'error'
-  if (status === 'queued' || status === 'running' || status === 'awaiting_approval') return 'warning'
-  return 'default'
+  if (status === 'preflight_failed') return 'error'
+  return toneFor(status)
 }
 </script>
 

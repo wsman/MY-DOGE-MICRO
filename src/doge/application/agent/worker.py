@@ -118,6 +118,7 @@ class AsyncioWorker:
         model_policy: dict[str, Any] | None = None,
         identity_snapshot: dict[str, Any] | None = None,
         idempotency_key: str | None = None,
+        workflow: str = "investment_research",
     ) -> str:
         if self._unit_of_work is None:
             raise RuntimeError("agent unit of work is not configured")
@@ -126,7 +127,7 @@ class AsyncioWorker:
         run_id = await self._unit_of_work.enqueue_run_and_turn(
             session_id=session_id,
             message=message,
-            workflow="investment_research",
+            workflow=workflow,
             market=market,
             language=language,
             document_ids=document_ids or [],

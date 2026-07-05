@@ -106,6 +106,7 @@ python -m macro.cli --verbose
 | [`breadth`](#doge-breadth) | 市场宽度（涨跌家数） | `--market`、`--days` | `src/doge/interfaces/cli/commands/breadth.py` |
 | [`anomaly`](#doge-anomaly) | 成交量异动检测 | `--min-ratio`、`--top` | `src/doge/interfaces/cli/commands/anomaly.py` |
 | [`demo`](#doge-demo) | 5 分钟无配置演示 | `--market`、`--top` | `src/doge/interfaces/cli/commands/demo.py` |
+| [`start`](#doge-start) | 首次运行启动器：5 选 1 路径分发 | `--path` | `src/doge/interfaces/cli/commands/start.py` |
 | [`macro`](#宏观-clidoge-macro) | 宏观策略报告 | `--verbose` | `src/doge/interfaces/cli/commands/macro.py` |
 | [`doctor`](#doge-doctor) | 本地配置、数据库、文档存储、模型配置诊断 | `--json` | `src/doge/interfaces/cli/commands/doctor.py` |
 | [`session`](#research-copilot-clidoge-session--doge-run) | 创建/恢复 Research Copilot 会话 | `--title`、`--resume`、`--message`、`--follow`、`--jsonl` | `src/doge/interfaces/cli/commands/session.py` |
@@ -255,6 +256,25 @@ doge demo --market us --top 10
 
 任一查询返回数据即视为成功（退出码 0）。所有查询都为空时打印帮助信息并以 `EXIT_NO_DATA`（1）退出（`src/doge/interfaces/cli/commands/demo.py` 的 `cmd_demo()`）。
 
+### doge start
+
+首次运行启动器：把操作者路由到 5 条主路径，无需记忆子命令。
+
+```bash
+doge start                                       # 交互式 5 选 1 菜单（非 TTY 时只打印菜单并以 0 退出）
+doge start --path cli|daemon|web|demo|doctor     # 非交互式分发
+```
+
+| 路径 | 行为 |
+|------|------|
+| `cli` | 打印 `doge session --interactive`（交互式会话，由操作者执行） |
+| `daemon` | 打印 `doged serve --port 8901`（持久 daemon，由操作者执行） |
+| `web` | 打印 Web workspace 指引（`cd web && npm run dev`，然后打开 http://127.0.0.1:5173；`8901` 是 daemon/API 端口） |
+| `demo` | 内联执行 `doge demo`（5 分钟演示） |
+| `doctor` | 内联执行 `doge doctor`（本地诊断） |
+
+`doge start` 自身永不非零退出；未知 `--path` 由 argparse 拒绝（退出码 2）；内联的 `demo`/`doctor` 沿用各自既有退出码。源码：`src/doge/interfaces/cli/commands/start.py`。
+
 ---
 
 ## 输出格式
@@ -278,9 +298,10 @@ doge demo --market us --top 10
 ```bash
 doge doctor
 doge doctor --json
+doge doctor --next
 ```
 
-`doge doctor` 执行本地静态与可访问性检查：配置加载、数据库路径、tracked views SQL、agent SQLite 可访问性、document storage 可写性、模型 provider 配置状态。critical checks 全部通过时退出码为 0，否则为 1；`--json` 输出机器可读结果。
+`doge doctor` 执行本地静态与可访问性检查：配置加载、数据库路径、tracked views SQL、agent SQLite 可访问性、document storage 可写性、模型 provider 配置状态。critical checks 全部通过时退出码为 0，否则为 1；`--json` 输出机器可读结果。 `--next`（UX-1 Slice C）在每个失败的检查旁追加可执行下一步指引：JSON 模式为附加的顶层 `guidance[]`（不传 `--next` 时 JSON 与现状逐字节一致），文本模式为 `next:` 块；退出码不变。
 
 ---
 

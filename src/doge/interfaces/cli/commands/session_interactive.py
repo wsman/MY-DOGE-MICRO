@@ -23,6 +23,11 @@ from doge.interfaces.cli.commands.session_presenter import (
 )
 
 
+def _count_pending(approvals) -> int:
+    """Count approvals still pending (UX-1 Slice D ``/status`` context line)."""
+    return sum(1 for a in approvals if getattr(a, "status", None) == "pending")
+
+
 def interactive_loop(
     session_id: str,
     market: str,
@@ -37,6 +42,7 @@ def interactive_loop(
     document_ids: list[str] = []
     portfolio_id: str | None = None
     last_run_id: str | None = None
+    pending_count = 0
     while True:
         try:
             line = input("> ").strip()
@@ -46,6 +52,20 @@ def interactive_loop(
             continue
         if line in {"/exit", "/quit"}:
             return
+        if line == "/help":
+            print("Files: /attach, /portfolio")
+            print("Tools: /tools")
+            print("Run: /trace, /artifacts, /cancel")
+            print("Approval: /approve, /deny")
+            print("Session: /new, /resume, /save, /status, /exit")
+            continue
+        if line == "/status":
+            print(
+                f"ses={session_id} docs={len(document_ids)} "
+                f"portfolio={portfolio_id or '-'} "
+                f"last_run={last_run_id or 'none'} pending={pending_count}"
+            )
+            continue
         if line == "/new":
             if mode == "gateway":
                 session = gateway_create_session(
@@ -138,6 +158,7 @@ def interactive_loop(
                 continue
             last_run_id = run.run_id
             print_run_summary(run)
+            pending_count = _count_pending(getattr(run, "approvals", []))
             continue
         if line == "/cancel" or line.startswith("/cancel "):
             run_id = line.split(maxsplit=1)[1] if " " in line else last_run_id
@@ -158,6 +179,7 @@ def interactive_loop(
                 continue
             last_run_id = run.run_id
             print_run_summary(run)
+            pending_count = _count_pending(getattr(run, "approvals", []))
             continue
         if line == "/save":
             print(f"session_id={session_id}")
@@ -185,3 +207,4 @@ def interactive_loop(
         last_run_id = run.run_id
         print(f"run_id={run.run_id} status={run.status.value}")
         print_pending_approvals(run, session_id=session_id, mode=mode)
+        pending_count = _count_pending(getattr(run, "approvals", []))

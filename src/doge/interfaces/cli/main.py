@@ -12,6 +12,7 @@ Usage:
     doge run "question" [--session <session_id>] [--json] [--trace] [--follow] [--jsonl]
     doge run --resume <run_id> [--approval <approval_id>] [--deny]
     doge batch --cases cases.json [--output results.json]
+    doge start [--path {cli,daemon,web,demo,doctor}]
     doge template list|show|seed
     doge case list|show|preflight|execute|review|decision
 
@@ -49,6 +50,7 @@ from doge.interfaces.cli.commands import (
     cmd_run,
     cmd_rsrs,
     cmd_session,
+    cmd_start,
     cmd_stock,
     cmd_template,
 )
@@ -97,6 +99,21 @@ def build_parser() -> argparse.ArgumentParser:
     # doctor
     p_doctor = sub.add_parser("doctor", help="run local diagnostics")
     p_doctor.add_argument("--json", action="store_true")
+    p_doctor.add_argument(
+        "--next",
+        action="store_true",
+        help="print environment-aware next-step guidance per failing check",
+    )
+
+    # start
+    p_start = sub.add_parser(
+        "start", help="first-run launcher: choose a path"
+    )
+    p_start.add_argument(
+        "--path",
+        choices=["cli", "daemon", "web", "demo", "doctor"],
+        help="non-interactive path dispatch",
+    )
 
     # session
     p_session = sub.add_parser("session", help="create or resume an agent session")
@@ -214,6 +231,7 @@ def main(argv: list[str] | None = None) -> None:
         "doctor": cmd_doctor,
         "macro": cmd_macro,
         "session": cmd_session,
+        "start": cmd_start,
         "run": cmd_run,
         "template": cmd_template,
         "case": cmd_case,

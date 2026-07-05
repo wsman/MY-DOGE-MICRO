@@ -602,3 +602,71 @@ def test_cli_trace_and_artifact_output_redacts_sensitive_payloads(monkeypatch, c
     assert "MOONSHOT_API_KEY=<redacted>" in out
     assert "\"api_key\": \"<redacted>\"" in out
     assert "\"access_token\": \"<redacted>\"" in out
+
+
+def test_cli_interactive_status_shows_session_context(monkeypatch, capsys):
+    lines = iter(["/status", "/exit"])
+    monkeypatch.setattr("builtins.input", lambda _prompt="": next(lines))
+
+    session_command._interactive_loop("ses-cli", "us")
+
+    out = capsys.readouterr().out
+    assert "ses=ses-cli" in out
+    assert "docs=0" in out
+    assert "portfolio=-" in out
+    assert "last_run=none" in out
+    assert "pending=0" in out
+
+
+def test_cli_interactive_help_prints_grouped_commands(monkeypatch, capsys):
+    lines = iter(["/help", "/exit"])
+    monkeypatch.setattr("builtins.input", lambda _prompt="": next(lines))
+
+    session_command._interactive_loop("ses-cli", "us")
+
+    out = capsys.readouterr().out
+    assert "Files:" in out
+    assert "Tools:" in out
+    assert "Run:" in out
+    assert "Approval:" in out
+    assert "Session:" in out
+    # /status is listed in the Session group.
+    assert "/status" in out
+
+
+def test_cli_interactive_status_pending_count_tracks_run_approvals(monkeypatch, capsys):
+    class FakeExecuteRun:
+        async def execute(self, *args, **kwargs):
+            return SimpleNamespace(
+                run_id="run-cli",
+                status=SimpleNamespace(value="awaiting_approval"),
+                approvals=[
+                    SimpleNamespace(
+                        approval_id="appr-1",
+                        action="publish",
+                        risk_level="high",
+                        status="pending",
+                    ),
+                    SimpleNamespace(
+                        approval_id="appr-2",
+                        action="review",
+                        risk_level="low",
+                        status="pending",
+                    ),
+                ],
+            )
+
+    lines = iter(["Analyze AAPL", "/status", "/exit"])
+    monkeypatch.setattr("builtins.input", lambda _prompt="": next(lines))
+
+    class FakeRuntimeContainer:
+        def build_execute_run_use_case(self):
+            return FakeExecuteRun()
+
+    monkeypatch.setattr(session_command, "_runtime_container", lambda: FakeRuntimeContainer())
+
+    session_command._interactive_loop("ses-cli", "us")
+
+    out = capsys.readouterr().out
+    # After a turn whose run has 2 pending approvals, /status reports pending=2.
+    assert "ses=ses-cli docs=0 portfolio=- last_run=run-cli pending=2" in out

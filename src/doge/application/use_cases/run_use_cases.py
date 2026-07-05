@@ -27,12 +27,13 @@ class ExecuteRun:
         document_ids: list[str] | None = None,
         portfolio_id: str | None = None,
         model_policy: dict[str, Any] | ModelPolicy | None = None,
+        workflow: str = "investment_research",
     ) -> AgentRun:
         scope = TenantScope.local()
         run = await self._runtime.create_run(
             scope,
             {
-                "workflow": "investment_research",
+                "workflow": workflow,
                 "question": question,
                 "session_id": session_id,
                 "market": market,

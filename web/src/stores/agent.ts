@@ -8,6 +8,7 @@ export const useAgentStore = defineStore('agent', () => {
   const question = ref('Analyze the company earnings quality, industry momentum, and portfolio impact.')
   const market = ref<'cn' | 'us'>('us')
   const executionProfile = ref('financial_research')
+  const selectedScenarioSlug = ref('investment_committee_memo')
   const documentIds = ref<string[]>([])
   const portfolioId = ref<string | null>(null)
   const run = ref<AgentRun | null>(null)
@@ -24,7 +25,7 @@ export const useAgentStore = defineStore('agent', () => {
     error.value = null
     try {
       run.value = await createAgentRun({
-        workflow: 'investment_research',
+        workflow: selectedScenarioSlug.value,
         question: question.value,
         execution_profile: executionProfile.value,
         document_ids: documentIds.value,
@@ -69,6 +70,7 @@ export const useAgentStore = defineStore('agent', () => {
     question,
     market,
     executionProfile,
+    selectedScenarioSlug,
     documentIds,
     portfolioId,
     run,

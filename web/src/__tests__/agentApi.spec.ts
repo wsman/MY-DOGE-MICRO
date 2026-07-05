@@ -63,6 +63,7 @@ describe('agent api', () => {
       portfolio_id: 'portfolio-1',
       execution_profile: 'web_research',
       model_policy: { max_tool_rounds: 4 },
+      workflow: 'investment_research',
     })
     expect(mocks.runs.stream).toHaveBeenCalledWith('run-1', { lastEventId: undefined, reconnect: true })
     expect(mocks.runs.get).toHaveBeenCalledWith('run-1')

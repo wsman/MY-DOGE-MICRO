@@ -16,6 +16,16 @@ vi.mock('../api/documents', () => ({
   uploadDocument: vi.fn(),
 }))
 
+// MaturityPanel (UX-1 Slice E) reads the platform capability store and
+// self-loads it on mount. Stub the store so mounting ResearchAgentView does
+// not trigger a real /v1/capabilities fetch under jsdom.
+vi.mock('../stores/platform', () => ({
+  usePlatformStore: () => ({
+    capabilities: null,
+    loadCapabilities: vi.fn(async () => null),
+  }),
+}))
+
 describe('ResearchAgentView accessibility', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -120,7 +130,7 @@ describe('ResearchAgentView accessibility', () => {
     const status = wrapper.find('[role="status"]')
     expect(status.exists()).toBe(true)
     expect(status.attributes('aria-live')).toBe('polite')
-    expect(status.attributes('aria-label')).toBe('Agent status awaiting_approval; tokens 42')
+    expect(status.attributes('aria-label')).toBe('Agent status Waiting on your approval; tokens 42')
 
     const approval = wrapper.find('[role="group"]')
     expect(approval.attributes('aria-label')).toBe('high risk approval pending: publish memo')

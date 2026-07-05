@@ -36,6 +36,7 @@ export async function createAgentRun(payload: CreateAgentRunRequest): Promise<Ag
     portfolio_id: payload.portfolio_id,
     execution_profile: payload.execution_profile,
     model_policy: payload.model_policy,
+    workflow: payload.workflow,
   })
   return await streamAgentRun(runId)
 }

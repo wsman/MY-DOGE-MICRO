@@ -21,10 +21,13 @@ class Session:
         *,
         execution_profile: str = "financial_research",
         model_policy: dict[str, Any] | None = None,
+        workflow: str | None = None,
         **kwargs: Any,
     ) -> str:
         policy = dict(model_policy or {})
         policy.setdefault("execution_profile", execution_profile)
+        if workflow is not None:
+            kwargs["workflow"] = workflow
         return self.create_turn(question, model_policy=policy, **kwargs)
 
 
@@ -38,10 +41,13 @@ class AsyncSession(Session):
         *,
         execution_profile: str = "financial_research",
         model_policy: dict[str, Any] | None = None,
+        workflow: str | None = None,
         **kwargs: Any,
     ) -> str:
         policy = dict(model_policy or {})
         policy.setdefault("execution_profile", execution_profile)
+        if workflow is not None:
+            kwargs["workflow"] = workflow
         return await self.create_turn(question, model_policy=policy, **kwargs)
 
 

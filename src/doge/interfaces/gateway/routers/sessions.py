@@ -35,6 +35,7 @@ class CreateTurnRequest(BaseModel):
     document_ids: list[str] = Field(default_factory=list)
     portfolio_id: str | None = None
     model_policy: dict[str, Any] = Field(default_factory=dict)
+    workflow: str = "investment_research"
 
 
 @router.post("/sessions")
@@ -93,6 +94,7 @@ async def create_turn(
                 document_ids=body.document_ids,
                 portfolio_id=body.portfolio_id,
                 model_policy=body.model_policy,
+                workflow=body.workflow,
                 idempotency_key=idempotency_key,
             ),
             access=access,

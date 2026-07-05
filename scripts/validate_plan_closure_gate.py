@@ -22,6 +22,7 @@ from scripts.validate_sdk_release_approval_evidence import validate as validate_
 
 
 RUNTIME_MATURITY = ROOT / "docs" / "progress" / "runtime-maturity.yaml"
+DEFAULT_SOURCE_PLAN = "C:\\Users\\Aby\\.claude\\plans\\9b77f9c-kimi-twinkly-map.md"
 
 
 @dataclass(frozen=True)
@@ -152,7 +153,11 @@ GATES = [
 ]
 
 
-def validate_all(*, allow_open: bool = False) -> dict[str, Any]:
+def validate_all(
+    *,
+    allow_open: bool = False,
+    source_plan: str | None = None,
+) -> dict[str, Any]:
     gate_results = [_validate_gate(gate, allow_open=allow_open) for gate in GATES]
     posture_errors = _validate_non_production_posture()
     summary = {
@@ -163,10 +168,15 @@ def validate_all(*, allow_open: bool = False) -> dict[str, Any]:
         "invalid": sum(1 for item in gate_results if item["status"] == "invalid"),
     }
     complete = summary["passed"] == summary["total"] and not posture_errors
-    acceptable = complete or (allow_open and summary["failed"] == 0 and summary["invalid"] == 0 and not posture_errors)
+    acceptable = complete or (
+        allow_open
+        and summary["failed"] == 0
+        and summary["invalid"] == 0
+        and not posture_errors
+    )
     return {
         "schema": "doge.plan_closure_gate.v1",
-        "source_plan": "C:\\Users\\Aby\\.claude\\plans\\9b77f9c-kimi-twinkly-map.md",
+        "source_plan": source_plan or DEFAULT_SOURCE_PLAN,
         "result": "complete" if complete else "open",
         "acceptable": acceptable,
         "summary": summary,
@@ -275,11 +285,20 @@ def _runtime_text() -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Validate the 9b77f9c plan external closure gate.")
-    parser.add_argument("--allow-open", action="store_true", help="Return 0 when remaining gates are controlled open items.")
+    parser = argparse.ArgumentParser(description="Validate the plan external closure gate.")
+    parser.add_argument(
+        "--allow-open",
+        action="store_true",
+        help="Return 0 when remaining gates are controlled open items.",
+    )
+    parser.add_argument(
+        "--source-plan",
+        default=None,
+        help="Override the source_plan value in the output without changing gate semantics.",
+    )
     args = parser.parse_args(argv)
 
-    result = validate_all(allow_open=args.allow_open)
+    result = validate_all(allow_open=args.allow_open, source_plan=args.source_plan)
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0 if result["acceptable"] else 1
 

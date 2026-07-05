@@ -13,13 +13,24 @@ from doge.infrastructure.database.readiness import sqlite_access_check
 
 
 def cmd_doctor(args) -> None:
-    """Run local diagnostics for the non-daemon CLI surface."""
+    """Run local diagnostics for the non-daemon CLI surface.
 
+    ``--next`` (Sprint UX-1 Slice C, CLI-2) adds environment-aware next-step
+    guidance: in JSON mode an additive top-level ``guidance[]`` array (existing
+    fields unchanged; JSON without ``--next`` is byte-identical), in text mode a
+    ``next:`` block per failing check. Exit code is unchanged (1 on not_ready).
+    """
+    show_next = getattr(args, "next", False)
     report = build_local_diagnostics()
     if getattr(args, "json", False):
+        if show_next:
+            # Additive only with --next; JSON without it stays byte-identical.
+            report["guidance"] = _guidance_for(report)
         print(json.dumps(report, ensure_ascii=False, sort_keys=True))
     else:
         _print_text_report(report)
+        if show_next:
+            _print_next_guidance(report)
     if report["status"] != "ok":
         sys.exit(1)
 
@@ -133,3 +144,51 @@ def _print_text_report(report: dict[str, Any]) -> None:
         status = "ok" if check.get("ok") else "failed"
         suffix = f": {check['message']}" if check.get("message") else ""
         print(f"{name}={status}{suffix}")
+
+
+# Static, per-check next-step guidance for ``doge doctor --next`` (UX-1 Slice C).
+# Keys mirror the check names emitted by ``build_local_diagnostics``. A failing
+# check with no entry here simply gets no guidance row.
+_NEXT_STEPS: dict[str, list[str]] = {
+    "config": [
+        "Check that the project root and db_dir are writable and not locked by another process."
+    ],
+    "database_paths": [
+        "Ensure the data/ directory exists and the CN/US/research/agent SQLite paths are writable."
+    ],
+    "tracked_views_sql": [
+        "The tracked views SQL file (src/doge/infrastructure/database/views.sql) is missing — restore it from version control or reinstall the package."
+    ],
+    "agent_database": [
+        "Ensure the agent-state SQLite DB parent directory exists and is writable (DOGE_AGENT_DB)."
+    ],
+    "document_storage": [
+        "Ensure the document storage directory exists and is writable (DOGE_DOCUMENT_STORAGE_DIR)."
+    ],
+    "model_provider_configuration": [
+        "Set MOONSHOT_API_KEY (Kimi) or DEEPSEEK_API_KEY to enable a live model; otherwise the deterministic scripted fallback is used."
+    ],
+}
+
+
+def _guidance_for(report: dict[str, Any]) -> list[dict[str, Any]]:
+    """Build the additive ``guidance[]`` block: one entry per failing check that
+    has a known next-step, each carrying its static ``next_steps`` list."""
+    guidance: list[dict[str, Any]] = []
+    for name, check in report.get("checks", {}).items():
+        if check.get("ok") or name not in _NEXT_STEPS:
+            continue
+        guidance.append({"check": name, "next_steps": list(_NEXT_STEPS[name])})
+    return guidance
+
+
+def _print_next_guidance(report: dict[str, Any]) -> None:
+    """Print a ``next:`` block per failing check (text mode, ``--next`` only)."""
+    guidance = _guidance_for(report)
+    if not guidance:
+        return
+    print("next:")
+    for entry in guidance:
+        print(f"  {entry['check']}:")
+        for step in entry["next_steps"]:
+            print(f"    - {step}")

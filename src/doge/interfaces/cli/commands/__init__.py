@@ -10,6 +10,7 @@ from doge.interfaces.cli.commands.macro import cmd_macro
 from doge.interfaces.cli.commands.run import cmd_run
 from doge.interfaces.cli.commands.rsrs import cmd_rsrs
 from doge.interfaces.cli.commands.session import cmd_session
+from doge.interfaces.cli.commands.start import cmd_start
 from doge.interfaces.cli.commands.stock import cmd_stock
 from doge.interfaces.cli.commands.template import cmd_template
 
@@ -25,5 +26,6 @@ __all__ = [
     "cmd_macro",
     "cmd_run",
     "cmd_session",
+    "cmd_start",
     "cmd_template",
 ]

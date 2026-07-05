@@ -57,6 +57,39 @@ def test_v1_post_turns_returns_202_with_run_id(tmp_path, monkeypatch):
     assert response.json()["run_id"].startswith("run-")
 
 
+def test_v1_post_turns_persists_non_default_workflow(tmp_path, monkeypatch):
+    # ADR-0028: a non-default workflow on the turn body must reach the persisted
+    # run via the route-handler body->command seam (sessions.py create_turn).
+    _reset_agent_deps(monkeypatch, tmp_path)
+    with TestClient(app) as client:
+        session = client.post("/v1/sessions", json={"title": "API"}).json()
+        run_id = client.post(
+            f"/v1/sessions/{session['session_id']}/turns",
+            json={"message": "Analyze", "workflow": "portfolio_risk_review"},
+        ).json()["run_id"]
+        time.sleep(0.2)
+
+        body = client.get(f"/v1/runs/{run_id}").json()
+
+    assert body["workflow"] == "portfolio_risk_review"
+
+
+def test_v1_post_turns_persists_default_workflow_when_absent(tmp_path, monkeypatch):
+    # Absent workflow preserves the legacy default at the HTTP boundary.
+    _reset_agent_deps(monkeypatch, tmp_path)
+    with TestClient(app) as client:
+        session = client.post("/v1/sessions", json={"title": "API"}).json()
+        run_id = client.post(
+            f"/v1/sessions/{session['session_id']}/turns",
+            json={"message": "Analyze"},
+        ).json()["run_id"]
+        time.sleep(0.2)
+
+        body = client.get(f"/v1/runs/{run_id}").json()
+
+    assert body["workflow"] == "investment_research"
+
+
 def test_v1_get_run_returns_status(tmp_path, monkeypatch):
     _reset_agent_deps(monkeypatch, tmp_path)
     with TestClient(app) as client:

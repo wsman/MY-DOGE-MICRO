@@ -25,7 +25,11 @@ export class Session {
 
   async run(
     question: string,
-    options: Record<string, unknown> & { execution_profile?: string, model_policy?: Record<string, unknown> } = {},
+    options: Record<string, unknown> & {
+      execution_profile?: string
+      model_policy?: Record<string, unknown>
+      workflow?: string
+    } = {},
   ): Promise<string> {
     const { execution_profile = 'financial_research', model_policy = {}, ...rest } = options
     return this.createTurn(question, {

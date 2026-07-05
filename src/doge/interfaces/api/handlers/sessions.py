@@ -31,6 +31,7 @@ class SubmitSessionTurnCommand:
     document_ids: list[str] = field(default_factory=list)
     portfolio_id: str | None = None
     model_policy: dict[str, Any] = field(default_factory=dict)
+    workflow: str = "investment_research"
     identity_snapshot: dict[str, Any] | None = None
     idempotency_key: str | None = None
     tenant_id: str | None = None
@@ -107,6 +108,7 @@ class SubmitSessionTurnHandler:
             document_ids=command.document_ids,
             portfolio_id=command.portfolio_id,
             model_policy=_trusted_model_policy(command.model_policy),
+            workflow=command.workflow,
             identity_snapshot=(
                 snapshot.to_dict()
                 if (snapshot := self._trusted_identity_snapshot(access)) is not None
