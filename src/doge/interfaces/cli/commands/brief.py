@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import sys
 
-from doge.application.contracts.request import GenerateMarketOverviewRequest
 from doge.bootstrap import build_gateway_container
 from doge.interfaces.cli.constants import EXIT_NO_DATA
+from doge.products.market import GenerateMarketOverviewRequest
 
 
 def cmd_brief(args) -> None:

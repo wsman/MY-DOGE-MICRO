@@ -784,3 +784,27 @@ adr_index:
     path: docs/architecture/adr-0027-shim-sunset-policy.md
     governs: "compatibility shim behavior, canonical replacement paths, parity gates, migration notes, and removal discipline"
     depends_on: [ADR-0021, ADR-0022, ADR-0024]
+
+  - id: ADR-0028
+    title: "Additive Session Turn Workflow Field"
+    status: Accepted
+    date: "2026-07-05"
+    path: docs/architecture/adr-0028-additive-session-turn-workflow-field.md
+    governs: "optional workflow field on session-turn requests, SDK/Web workflow propagation, and backward-compatible default workflow behavior"
+    depends_on: [ADR-0007, ADR-0011, ADR-0018]
+
+  - id: ADR-0029
+    title: "Additive Approval Explanation Fields"
+    status: Accepted
+    date: "2026-07-05"
+    path: docs/architecture/adr-0029-additive-approval-explanation-fields.md
+    governs: "optional AgentApproval explanation metadata across runtime, persistence, API, SDK, and Web approval cards"
+    depends_on: [ADR-0007, ADR-0011, ADR-0024, ADR-0028]
+
+  - id: ADR-0030
+    title: "Structured Claim Contract"
+    status: Accepted
+    date: "2026-07-05"
+    path: docs/architecture/adr-0030-structured-claim-contract.md
+    governs: "structured claim metadata on research memo artifacts and additive /v1 run-claim fields for future conclusion-evidence matrix work"
+    depends_on: [ADR-0014, ADR-0017, ADR-0026, ADR-0029]

@@ -1,7 +1,23 @@
 # ADR-0030: Structured Claim Contract for Research Memo Evidence
 
-Status: Accepted
-Date: 2026-07-05
+## Status
+
+Accepted
+
+## Date
+
+2026-07-05
+
+## Decision Makers
+
+wsman (product owner) · Codex implementation agent
+
+## Summary
+
+Sprint 023 adds an additive structured-claim contract for research memo
+evidence. The contract makes memo conclusions machine-readable for a future
+conclusion-evidence matrix without adding a new persistence table or changing
+production posture.
 
 ## Context
 

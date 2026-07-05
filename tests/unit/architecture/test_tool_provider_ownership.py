@@ -27,11 +27,18 @@ def test_tool_providers_are_importable_from_owning_contexts() -> None:
 def test_tool_application_service_exposes_generic_executor() -> None:
     service = ToolApplicationService()
 
-    assert service.execute("request_approval", "publish", "high") == {
+    result = service.execute("request_approval", "publish", "high")
+
+    base = {key: result[key] for key in ("approval_required", "action", "risk_level")}
+    assert base == {
         "approval_required": True,
         "action": "publish",
         "risk_level": "high",
     }
+    assert result["why_needed"]
+    assert result["impact"]
+    assert result["deny_consequence"]
+    assert result["publish_target"]
 
 
 def test_tool_application_service_compatibility_delegate_list_is_frozen() -> None:

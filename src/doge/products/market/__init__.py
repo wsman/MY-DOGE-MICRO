@@ -6,6 +6,7 @@ from doge.application.use_cases.generate_market_overview import GenerateMarketOv
 from doge.application.use_cases.populate_stock_names import PopulateStockNamesUseCase
 from doge.application.use_cases.query_ticker import QueryTickerUseCase
 from doge.application.use_cases.scan_market import ScanMarketUseCase
+from doge.application.contracts.request import GenerateMarketOverviewRequest
 from doge.core.domain.models import (
     BreadthRecord,
     MarketType,
@@ -33,6 +34,7 @@ __all__ = [
     "GenerateAnomalyReportUseCase",
     "GenerateCatalogUseCase",
     "GenerateMarketOverviewUseCase",
+    "GenerateMarketOverviewRequest",
     "IMarketDataSource",
     "IMarketViewRepository",
     "ITickerMetadataSource",
