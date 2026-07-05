@@ -37,6 +37,11 @@ def test_run_summary_api_returns_structured_resources():
     assert summary.status_code == 200
     assert summary.json()["summary"]["status"] == "current"
     assert claims.json()["claims"][0]["claim_id"] == "claim-1"
+    claim = claims.json()["claims"][0]
+    assert claim["status"] == "supported"
+    assert claim["numeric_check_status"] == "passed"
+    assert claim["risk_level"] == "low"
+    assert claim["evidence_refs"][0]["evidence_id"] == "evd-1"
     assert citations.json()["citations"][0]["document_id"] == "doc-allowed"
     assert evaluation.json()["eval"]["coverage_ratio"] == 1.0
     assert evaluation.json()["eval"]["claim_evidence_relation_count"] == 1

@@ -190,6 +190,10 @@ export interface RunClaim {
   run_id: string
   claim_text: string
   support_status: string
+  status: string
+  evidence_refs: JsonObject[]
+  numeric_check_status: string
+  risk_level: string
   evidence_count: number
   source: string
 }

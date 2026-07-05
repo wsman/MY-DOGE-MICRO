@@ -40,6 +40,18 @@ continuation, or external-gate state. Sprint 022 implements them across runtime
 code, persistence, API response models, SDK types, Web approval cards, and the
 golden runtime fixture.
 
+### Structured Claim Artifact Data
+
+ADR-0030 adds an additive `structured_claims` list to investment memo
+`AgentArtifact.data`. Each row contains `claim_id`, `claim_text`, `status`,
+`evidence_refs`, `numeric_check_status`, and `risk_level`. The row is derived
+from existing claim, citation, and relation data so older artifacts can still be
+projected through the run summary use case.
+
+This is the B3 Phase 1 contract foundation for a future conclusion-evidence
+matrix. It does not add a new persistence table and does not declare the full
+matrix UI complete.
+
 ## Persistence Shape
 
 The SQLite contract is part of the runtime contract. The frozen tables are:

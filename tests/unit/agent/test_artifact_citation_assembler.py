@@ -179,6 +179,28 @@ def test_assembler_content_with_evidence_gets_citations(assembler, run, evidence
     assert "coverage_ratio" in artifact.data
 
 
+def test_assembler_emits_matrix_ready_structured_claims(assembler, run, evidence_chunk):
+    content = "NVDA leads the semiconductor ranking."
+    tool_results = [
+        ToolResult(
+            name="stock_overview",
+            data={"ticker": "NVDA"},
+            evidence_refs=[evidence_chunk.to_dict()],
+        )
+    ]
+
+    artifact = assembler.assemble(run, content, tool_results)
+
+    structured = artifact.data["structured_claims"]
+    assert structured
+    claim = structured[0]
+    assert claim["claim_text"] == "NVDA leads the semiconductor ranking."
+    assert claim["status"] == "supported"
+    assert claim["evidence_refs"][0]["evidence_id"] == evidence_chunk.evidence_id
+    assert claim["numeric_check_status"] == "not_applicable"
+    assert claim["risk_level"] == "low"
+
+
 def test_assembler_content_without_evidence_returns_artifact_unchanged(assembler, run):
     content = "This is a general statement without specific numbers."
     tool_results = []

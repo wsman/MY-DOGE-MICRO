@@ -26,6 +26,7 @@ from doge.interfaces.gateway.routers._response_models import (
     CaseDecisionResponse,
     ProjectResponse,
     ResearchCaseResponse,
+    RunClaimResponse,
     RunEvalResponse,
     WorkflowExecutionResponse,
     WorkflowTemplateResponse,
@@ -118,6 +119,29 @@ def test_run_eval_response_validates_full_backend_shape():
     assert out["classification_confidence_avg"] == 0.66
     assert out["numeric_validation"] == {"n": 1}
     assert out["metrics"]["contradicted_relation_count"] == 0
+
+
+def test_run_claim_response_preserves_structured_claim_fields():
+    payload = {
+        "claim_id": "claim-1",
+        "summary_id": "summary-1",
+        "run_id": "run-1",
+        "claim_text": "Revenue grew 12%.",
+        "support_status": "supported",
+        "status": "supported",
+        "evidence_refs": [{"evidence_id": "evd-1", "source": "doc p.1"}],
+        "numeric_check_status": "passed",
+        "risk_level": "low",
+        "evidence_count": 1,
+        "source": "artifact",
+    }
+
+    out = RunClaimResponse.model_validate(payload).model_dump()
+
+    assert out["status"] == "supported"
+    assert out["numeric_check_status"] == "passed"
+    assert out["risk_level"] == "low"
+    assert out["evidence_refs"][0]["evidence_id"] == "evd-1"
 
 
 def test_approval_list_response_preserves_explanation_fields():

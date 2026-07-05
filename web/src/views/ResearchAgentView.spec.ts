@@ -107,6 +107,16 @@ describe('ResearchAgentView accessibility', () => {
             citation_precision: 1,
             numerical_consistency: 0.5,
             tool_execution_success: 1,
+            structured_claims: [
+              {
+                claim_id: 'claim-1',
+                claim_text: 'Revenue growth was supported by accelerator demand.',
+                status: 'supported',
+                evidence_refs: [{ evidence_id: 'evd-abc' }],
+                numeric_check_status: 'not_applicable',
+                risk_level: 'low',
+              },
+            ],
           },
           created_at: 'now',
         },
@@ -173,6 +183,13 @@ describe('ResearchAgentView accessibility', () => {
     expect(wrapper.text()).toContain('Citation Precision')
     expect(wrapper.text()).toContain('100%')
     expect(wrapper.text()).toContain('doc-1 p.3')
+    const claims = wrapper.find('[aria-label="Structured claims"]')
+    expect(claims.exists()).toBe(true)
+    expect(claims.text()).toContain('Revenue growth was supported by accelerator demand.')
+    expect(claims.text()).toContain('supported')
+    expect(claims.text()).toContain('not_applicable')
+    expect(claims.text()).toContain('low')
+    expect(claims.text()).toContain('1 evidence')
     expect(wrapper.text()).not.toContain('annual report')
 
     wrapper.unmount()

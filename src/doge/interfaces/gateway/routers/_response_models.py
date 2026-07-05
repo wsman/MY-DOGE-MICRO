@@ -198,6 +198,10 @@ class RunClaimResponse(_AllowedExtra):
     run_id: str
     claim_text: str
     support_status: str
+    status: str = ""
+    evidence_refs: list[dict[str, Any]] = Field(default_factory=list)
+    numeric_check_status: str = "not_checked"
+    risk_level: str = "medium"
     evidence_count: int = 0
     source: str
 

@@ -14,6 +14,7 @@ from doge.core.domain.claim_models import (
 from doge.core.domain.evidence_chunk_models import EvidenceChunk
 from doge.core.ports.evidence_repository import IEvidenceRepository
 from doge.core.ports.runtime_services import ToolResult
+from doge.application.services.structured_claims import build_structured_claims
 from doge.shared.scope import TenantScope
 
 
@@ -80,6 +81,9 @@ class ArtifactCitationAssembler:
 
         support_status = self._compute_support_status(validated_claims)
         coverage_ratio = self._compute_coverage_ratio(validated_claims, relations)
+        claim_payloads = [c.to_dict() for c in validated_claims]
+        citation_payloads = [c.to_dict() for c in citations]
+        relation_payloads = [r.to_dict() for r in relations]
 
         return AgentArtifact(
             artifact_id=f"art-{run.run_id}-cited",
@@ -88,9 +92,10 @@ class ArtifactCitationAssembler:
             content=enriched_content,
             run_id=run.run_id,
             data={
-                "claims": [c.to_dict() for c in validated_claims],
-                "citations": [c.to_dict() for c in citations],
-                "relations": [r.to_dict() for r in relations],
+                "claims": claim_payloads,
+                "structured_claims": build_structured_claims(claim_payloads, citation_payloads, relation_payloads),
+                "citations": citation_payloads,
+                "relations": relation_payloads,
                 "support_status": support_status,
                 "coverage_ratio": coverage_ratio,
                 "numeric_validation": {},

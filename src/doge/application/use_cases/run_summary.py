@@ -5,6 +5,10 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
+from doge.application.services.structured_claims import (
+    build_structured_claims,
+    merge_structured_claim_fields,
+)
 from doge.application.services.financial_eval_service import FinancialEvalService
 from doge.core.domain.agent_models import AgentArtifact, AgentEvent, AgentRun, RunStatus
 from doge.core.ports.agent_runtime import IResearchAgentRuntime
@@ -51,6 +55,8 @@ class BuildRunSummary:
         claims = _claims_for(run, artifacts, evidence, summary["summary_id"])
         citations = _citations_for(run, artifacts, evidence, claims)
         relations = _relations_for(run, artifacts)
+        structured_claims = _structured_claims_for(artifacts, claims, citations, relations)
+        claims = merge_structured_claim_fields(claims, structured_claims)
         evaluation = _eval_for(
             run,
             artifact,
@@ -228,6 +234,19 @@ def _relations_for(run: AgentRun, artifacts: list[AgentArtifact]) -> list[dict[s
                 }
             )
     return relations
+
+
+def _structured_claims_for(
+    artifacts: list[AgentArtifact],
+    claims: list[dict[str, Any]],
+    citations: list[dict[str, Any]],
+    relations: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    for artifact in reversed(artifacts):
+        structured = _list_field(artifact.data.get("structured_claims"))
+        if structured:
+            return structured
+    return build_structured_claims(claims, citations, relations)
 
 
 def _normalize_relation_status(status: str) -> str:

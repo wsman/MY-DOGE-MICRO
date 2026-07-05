@@ -280,10 +280,17 @@ summary/citation/eval reads. SDK mapping: `client.runs`.
   - `GET /v1/runs/{run_id}/eval`
   - Required flag: `DOGE_FEATURE_RUN_SUMMARY_API=1`; disabled endpoints return
     **404**.
+  - `GET /claims` preserves the existing claim fields and additively returns
+    `status`, `evidence_refs`, `numeric_check_status`, and `risk_level` for B3
+    Phase 1 structured-claim consumers.
 
 Approval explanation metadata is additive under ADR-0029. It gives operators
 and SDK consumers approval context without changing approval resolution,
 entitlement checks, run continuation, or the external-gate posture.
+
+Structured claim metadata is additive under ADR-0030. It makes memo conclusions
+machine-readable for a future conclusion-evidence matrix without changing the
+runtime maturity posture or closing external/operator gates.
 
 ### documents
 

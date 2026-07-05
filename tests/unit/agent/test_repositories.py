@@ -124,13 +124,23 @@ def test_sqlite_artifact_repository_roundtrip(tmp_path):
     db = tmp_path / "agent_state.db"
     run = AgentRun.create(workflow="investment_research", question="q")
     SQLiteRunRepository(db).save(run)
-    artifact = run.add_artifact("memo", "Memo", "content", {"x": 1})
+    structured_claims = [
+        {
+            "claim_id": "claim-1",
+            "claim_text": "Revenue grew 12%.",
+            "status": "supported",
+            "evidence_refs": [{"evidence_id": "evd-1"}],
+            "numeric_check_status": "passed",
+            "risk_level": "low",
+        }
+    ]
+    artifact = run.add_artifact("memo", "Memo", "content", {"x": 1, "structured_claims": structured_claims})
     SQLiteArtifactRepository(db).save(artifact)
 
     loaded = SQLiteArtifactRepository(db).list_for_run(run.run_id)
 
     assert loaded[0].content == "content"
-    assert loaded[0].data == {"x": 1}
+    assert loaded[0].data == {"x": 1, "structured_claims": structured_claims}
 
 
 def test_sqlite_session_repository_roundtrip(tmp_path):

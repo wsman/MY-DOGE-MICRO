@@ -87,6 +87,8 @@ The daemon owns feature flags; the SDK does not override them.
 - `DOGE_FEATURE_CAPABILITY_REGISTRY=1` enables `client.capabilities`.
 - `DOGE_FEATURE_RUN_SUMMARY_API=1` enables run summary, claims, citations, and
   eval methods.
+  Claim rows include additive structured metadata: `status`, `evidence_refs`,
+  `numeric_check_status`, and `risk_level`.
 
 Disabled feature-flagged endpoints throw `DogeApiError` with status code 404.
 

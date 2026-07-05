@@ -45,6 +45,17 @@
         <n-tag size="small">tokens {{ usage.total_tokens ?? 0 }}</n-tag>
       </div>
       <CitationDrilldown :memo="store.latestMemo" :artifacts="store.artifacts" :events="store.events" />
+      <div v-if="structuredClaims.length" class="claim-list" aria-label="Structured claims">
+        <div v-for="claim in structuredClaims" :key="claim.claim_id" class="claim-item">
+          <div class="claim-text">{{ claim.claim_text }}</div>
+          <div class="claim-meta">
+            <n-tag size="small">{{ claim.status }}</n-tag>
+            <n-tag size="small">{{ claim.numeric_check_status }}</n-tag>
+            <n-tag size="small">{{ claim.risk_level }}</n-tag>
+            <span>{{ claim.evidence_refs.length }} evidence</span>
+          </div>
+        </div>
+      </div>
       <div class="approval-list" aria-label="Approval requests">
         <div
           v-for="approval in store.approvals"
@@ -143,6 +154,11 @@ const marketOptions = [
 
 const renderedMemo = computed(() => md.render(store.latestMemo))
 const usage = computed(() => store.artifacts[0]?.data?.usage ?? {})
+const structuredClaims = computed(() => {
+  const claims = store.artifacts.find(item => item.kind === 'investment_memo')?.data?.structured_claims
+  if (!Array.isArray(claims)) return []
+  return claims.map(claimRow).filter(row => row.claim_id && row.claim_text)
+})
 const statusAnnouncement = computed(() => {
   const tokens = usage.value.total_tokens ?? 0
   return `Agent status ${labelFor(store.run?.status)}; tokens ${tokens}`
@@ -184,6 +200,32 @@ function approvalLabel(approval: ApprovalDisplay) {
 function textValue(value: unknown) {
   if (value === undefined || value === null) return ''
   return String(value).trim()
+}
+
+interface StructuredClaimDisplay {
+  claim_id: string
+  claim_text: string
+  status: string
+  numeric_check_status: string
+  risk_level: string
+  evidence_refs: unknown[]
+}
+
+function claimRow(value: unknown): StructuredClaimDisplay {
+  const item = isRecord(value) ? value : {}
+  const refs = Array.isArray(item.evidence_refs) ? item.evidence_refs : []
+  return {
+    claim_id: textValue(item.claim_id),
+    claim_text: textValue(item.claim_text),
+    status: textValue(item.status) || 'unverified',
+    numeric_check_status: textValue(item.numeric_check_status) || 'not_checked',
+    risk_level: textValue(item.risk_level) || 'medium',
+    evidence_refs: refs,
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
 }
 
 async function startRun() {
@@ -267,6 +309,33 @@ section {
 .approval-list {
   display: grid;
   gap: 10px;
+}
+
+.claim-list {
+  display: grid;
+  gap: 8px;
+}
+
+.claim-item {
+  border: 1px solid var(--dgm-border);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.claim-text {
+  color: var(--dgm-text);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.claim-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+  align-items: center;
+  color: var(--dgm-text-faint);
+  font-size: 12px;
 }
 
 .approval-item {
