@@ -171,11 +171,18 @@ def test_provider_facade_registry_schema_and_execution_results_match_legacy_path
 def test_provider_facade_high_risk_tools_still_require_approval():
     registry = build_default_tool_registry(service=_service(use_capability_providers=True))
 
-    result = registry.execute("publish_investment_memo", {"memo_id": "memo-1"})
+    result = registry.execute(
+        "publish_investment_memo",
+        {"memo_id": "memo-1", "distribution_list": ["ops@example.test"]},
+    )
 
     assert result.ok is True
     assert result.data["approval_required"] is True
     assert result.data["risk_level"] == "high"
+    assert result.data["why_needed"]
+    assert result.data["impact"]
+    assert result.data["deny_consequence"]
+    assert result.data["publish_target"] == "ops@example.test"
 
 
 def test_provider_facade_high_risk_metadata_is_descriptor_owned():

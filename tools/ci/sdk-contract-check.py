@@ -132,9 +132,10 @@ CHECKS: tuple[SurfaceCheck, ...] = (
 
 # OpenAPI response schema name -> TypeScript interface name (platform entity parity).
 # Each schema is produced by a response_model declared in
-# src/doge/interfaces/gateway/routers/_response_models.py; the TS interface lives in
-# packages/doge-sdk-typescript/src/platform-types.ts. OpenAPI and TS properties must
-# stay aligned so neither side silently drops or invents a wire field.
+# src/doge/interfaces/gateway/routers/_response_models.py; the TS interface
+# lives in packages/doge-sdk-typescript/src/run.ts or src/platform-types.ts.
+# OpenAPI and TS properties must stay aligned so neither side silently drops or
+# invents a wire field.
 ENTITY_PARITY: tuple[tuple[str, str], ...] = (
     ("WorkspaceResponse", "Workspace"),
     ("ProjectResponse", "Project"),
@@ -148,6 +149,7 @@ ENTITY_PARITY: tuple[tuple[str, str], ...] = (
     ("RunClaimResponse", "RunClaim"),
     ("RunCitationResponse", "RunCitation"),
     ("RunEvalResponse", "RunEval"),
+    ("ApprovalResponse", "AgentApproval"),
 )
 
 ENTITY_PARITY_ALLOWED_TS_EXTRA: dict[str, frozenset[str]] = {

@@ -17,6 +17,7 @@ from doge.interfaces.api.handlers import (
 )
 from doge.interfaces.gateway.routers._common import serialize
 from doge.interfaces.gateway.routers._response_models import (
+    ApprovalListResponse,
     RunCitationsEnvelopeResponse,
     RunClaimsEnvelopeResponse,
     RunEvalEnvelopeResponse,
@@ -186,7 +187,7 @@ async def get_run_eval(
     }
 
 
-@router.get("/runs/{run_id}/approvals")
+@router.get("/runs/{run_id}/approvals", response_model=ApprovalListResponse)
 async def get_approvals(
     request: Request,
     run_id: str,

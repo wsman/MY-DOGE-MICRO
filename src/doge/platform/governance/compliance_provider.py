@@ -44,7 +44,15 @@ class ComplianceToolProvider:
         )
 
     def request_approval(self, action: str, risk_level: str = "high") -> dict[str, Any]:
-        return {"approval_required": True, "action": action, "risk_level": risk_level}
+        return {
+            "approval_required": True,
+            "action": action,
+            "risk_level": risk_level,
+            "why_needed": "This workflow requested human approval before continuing a governed action.",
+            "impact": f"Approval allows the workflow to continue with: {action}.",
+            "deny_consequence": "The governed action is not performed and the run stops at the approval checkpoint.",
+            "publish_target": "not specified",
+        }
 
     def screen_compliance_risk(self, text: str) -> dict[str, Any]:
         lowered = text.lower()

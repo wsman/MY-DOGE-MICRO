@@ -188,6 +188,10 @@ def test_research_case_execution_preflight_and_execute_records_execution(tmp_pat
     assert review["approvals"][0]["approval_id"].startswith("appr-")
     assert review["approvals"][0]["action"] == "publish memo"
     assert review["approvals"][0]["status"] == "pending"
+    assert review["approvals"][0]["why_needed"] == "Publishing requires review."
+    assert review["approvals"][0]["impact"] == "Memo can be distributed."
+    assert review["approvals"][0]["deny_consequence"] == "Run stops before publishing."
+    assert review["approvals"][0]["publish_target"] == "ic@example.com"
 
 
 def test_research_case_assets_decisions_and_review(tmp_path):
@@ -354,7 +358,14 @@ class _Runtime:
             workflow_context=request.get("workflow_context"),
             identity_snapshot=request.get("identity_snapshot"),
         )
-        run.add_approval("publish memo", "high")
+        run.add_approval(
+            "publish memo",
+            "high",
+            why_needed="Publishing requires review.",
+            impact="Memo can be distributed.",
+            deny_consequence="Run stops before publishing.",
+            publish_target="ic@example.com",
+        )
         self.runs[run.run_id] = run
         return run
 

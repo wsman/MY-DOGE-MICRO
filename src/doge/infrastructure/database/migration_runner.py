@@ -69,6 +69,7 @@ def _migrations() -> tuple[Migration, ...]:
         Migration("runtime", "run_workflow_context", _migrate_run_workflow_context),
         Migration("runtime", "runtime_outbox", _migrate_runtime_outbox),
         Migration("runtime", "run_queue_leases", _migrate_run_queue_leases),
+        Migration("runtime", "approval_explanation_fields", _migrate_approval_explanation_fields),
         Migration("runtime", "runtime_child_foreign_keys", _migrate_runtime_child_foreign_keys),
         Migration("runtime", "runtime_query_indexes", _migrate_runtime_query_indexes),
     )
@@ -283,6 +284,19 @@ def _migrate_run_queue_leases(conn: sqlite3.Connection) -> None:
     )
 
 
+def _migrate_approval_explanation_fields(conn: sqlite3.Connection) -> None:
+    columns = _columns(conn, "approvals")
+    additions = {
+        "why_needed": "TEXT NOT NULL DEFAULT ''",
+        "impact": "TEXT NOT NULL DEFAULT ''",
+        "deny_consequence": "TEXT NOT NULL DEFAULT ''",
+        "publish_target": "TEXT NOT NULL DEFAULT ''",
+    }
+    for column, ddl in additions.items():
+        if column not in columns:
+            conn.execute(f"ALTER TABLE approvals ADD COLUMN {column} {ddl}")
+
+
 def _migrate_runtime_child_foreign_keys(conn: sqlite3.Connection) -> None:
     _rebuild_table_with_foreign_keys(
         conn,
@@ -353,10 +367,27 @@ def _migrate_runtime_child_foreign_keys(conn: sqlite3.Connection) -> None:
             status TEXT NOT NULL,
             created_at TEXT NOT NULL,
             resolved_at TEXT,
+            why_needed TEXT NOT NULL DEFAULT '',
+            impact TEXT NOT NULL DEFAULT '',
+            deny_consequence TEXT NOT NULL DEFAULT '',
+            publish_target TEXT NOT NULL DEFAULT '',
             FOREIGN KEY(run_id) REFERENCES runs(run_id)
         )
         """,
-        ("approval_id", "tenant_id", "run_id", "action", "risk_level", "status", "created_at", "resolved_at"),
+        (
+            "approval_id",
+            "tenant_id",
+            "run_id",
+            "action",
+            "risk_level",
+            "status",
+            "created_at",
+            "resolved_at",
+            "why_needed",
+            "impact",
+            "deny_consequence",
+            "publish_target",
+        ),
         "runs",
     )
 

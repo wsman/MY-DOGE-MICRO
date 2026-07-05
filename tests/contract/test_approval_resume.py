@@ -9,6 +9,13 @@ from doge.shared.scope import TenantScope
 from tests.unit.agent.test_runtime_kernel import _kernel
 
 
+def test_openapi_approval_response_exposes_explanation_fields() -> None:
+    from doge.interfaces.api.main import app
+
+    props = app.openapi()["components"]["schemas"]["ApprovalResponse"]["properties"]
+    assert {"why_needed", "impact", "deny_consequence", "publish_target"}.issubset(props)
+
+
 @pytest.mark.asyncio
 async def test_approval_resolution_queues_and_resume_continues_agent_loop(tmp_path) -> None:
     kernel = _kernel(tmp_path)

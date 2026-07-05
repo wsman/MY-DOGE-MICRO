@@ -94,7 +94,16 @@ def run():
 
 @pytest.fixture
 def approval(run):
-    a = AgentApproval(approval_id="appr-1", action="publish", risk_level="high", run_id=run.run_id)
+    a = AgentApproval(
+        approval_id="appr-1",
+        action="publish",
+        risk_level="high",
+        run_id=run.run_id,
+        why_needed="Publishing requires review.",
+        impact="Memo can be distributed.",
+        deny_consequence="Run stops before publishing.",
+        publish_target="ic@example.com",
+    )
     return a
 
 
@@ -135,6 +144,10 @@ async def test_approval_coordinator_resolve_approved_queues_run(coordinator, run
     assert result.status == RunStatus.QUEUED
     assert approval.status == "approved"
     assert approval.resolved_at is not None
+    assert approval.why_needed == "Publishing requires review."
+    assert approval.impact == "Memo can be distributed."
+    assert approval.deny_consequence == "Run stops before publishing."
+    assert approval.publish_target == "ic@example.com"
 
 
 @pytest.mark.asyncio

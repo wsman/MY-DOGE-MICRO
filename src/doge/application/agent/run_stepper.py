@@ -169,6 +169,10 @@ class RunStepper:
                     approval = run.add_approval(
                         action=result.data.get("action", name),
                         risk_level=result.data.get("risk_level", "high"),
+                        why_needed=result.data.get("why_needed", ""),
+                        impact=result.data.get("impact", ""),
+                        deny_consequence=result.data.get("deny_consequence", ""),
+                        publish_target=result.data.get("publish_target", ""),
                     )
                     await self._recorder.record(
                         run,
@@ -178,6 +182,10 @@ class RunStepper:
                             "approval_id": approval.approval_id,
                             "action": approval.action,
                             "risk_level": approval.risk_level,
+                            "why_needed": approval.why_needed,
+                            "impact": approval.impact,
+                            "deny_consequence": approval.deny_consequence,
+                            "publish_target": approval.publish_target,
                         })],
                     )
                     return self._hydrate(scope, run)

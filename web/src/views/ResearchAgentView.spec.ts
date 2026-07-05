@@ -116,6 +116,23 @@ describe('ResearchAgentView accessibility', () => {
           approval_id: 'appr-1',
           action: 'publish memo',
           risk_level: 'high',
+          why_needed: 'External publishing requires review.',
+          impact: 'Memo becomes visible to the client.',
+          deny_consequence: 'Memo remains internal.',
+          publish_target: 'client portal',
+          run_id: 'run-1',
+          status: 'pending',
+          created_at: 'now',
+          resolved_at: null,
+        },
+        {
+          approval_id: 'appr-2',
+          action: 'archive memo',
+          risk_level: 'low',
+          why_needed: '  ',
+          impact: undefined,
+          deny_consequence: '',
+          publish_target: undefined,
           run_id: 'run-1',
           status: 'pending',
           created_at: 'now',
@@ -135,8 +152,19 @@ describe('ResearchAgentView accessibility', () => {
     expect(status.attributes('aria-live')).toBe('polite')
     expect(status.attributes('aria-label')).toBe('Agent status Waiting on your approval; tokens 42')
 
-    const approval = wrapper.find('[role="group"]')
-    expect(approval.attributes('aria-label')).toBe('high risk approval pending: publish memo')
+    const approvals = wrapper.findAll('[role="group"]')
+    const approval = approvals[0]
+    expect(approval.attributes('aria-label')).toBe(
+      'high risk approval pending: publish memo; why needed: External publishing requires review.',
+    )
+    expect(approval.findAll('.detail-row').map(row => row.text())).toEqual([
+      'Why neededExternal publishing requires review.',
+      'ImpactMemo becomes visible to the client.',
+      'Deny consequenceMemo remains internal.',
+      'Publish targetclient portal',
+    ])
+    expect(approvals[1].attributes('aria-label')).toBe('low risk approval pending: archive memo')
+    expect(approvals[1].findAll('.detail-row')).toHaveLength(0)
 
     const timeline = wrapper.find('[role="list"][aria-label="Agent event timeline"]')
     expect(timeline.exists()).toBe(true)

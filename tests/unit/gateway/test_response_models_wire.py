@@ -10,6 +10,7 @@ dropped, free-form dict fields passed through).
 
 from __future__ import annotations
 
+from doge.core.domain.agent_models import AgentApproval
 from doge.core.domain.platform_models import (
     CaseDecision,
     Project,
@@ -20,6 +21,8 @@ from doge.core.domain.platform_models import (
 )
 from doge.interfaces.gateway.routers._common import serialize
 from doge.interfaces.gateway.routers._response_models import (
+    ApprovalListResponse,
+    ApprovalResponse,
     CaseDecisionResponse,
     ProjectResponse,
     ResearchCaseResponse,
@@ -71,6 +74,18 @@ def test_each_entity_response_accepts_its_serialized_dataclass():
         (ResearchCaseResponse, ResearchCase(case_id="c", project_id="p", title="t")),
         (WorkflowExecutionResponse, WorkflowExecution(execution_id="e", case_id="c", template_id="t")),
         (CaseDecisionResponse, CaseDecision(decision_id="d", case_id="c", decision_type="approve")),
+        (
+            ApprovalResponse,
+            AgentApproval(
+                approval_id="a",
+                action="publish",
+                risk_level="high",
+                why_needed="why",
+                impact="impact",
+                deny_consequence="deny",
+                publish_target="target",
+            ),
+        ),
     ]
     for response_model, dataclass_instance in pairs:
         out = response_model.model_validate(serialize(dataclass_instance)).model_dump()
@@ -103,3 +118,24 @@ def test_run_eval_response_validates_full_backend_shape():
     assert out["classification_confidence_avg"] == 0.66
     assert out["numeric_validation"] == {"n": 1}
     assert out["metrics"]["contradicted_relation_count"] == 0
+
+
+def test_approval_list_response_preserves_explanation_fields():
+    approval = AgentApproval(
+        approval_id="appr-1",
+        action="publish memo",
+        risk_level="high",
+        run_id="run-1",
+        why_needed="Publishing requires review.",
+        impact="Memo can be distributed.",
+        deny_consequence="Run stops before publishing.",
+        publish_target="ic@example.com",
+    )
+
+    out = ApprovalListResponse.model_validate({"approvals": [serialize(approval)]}).model_dump()
+
+    item = out["approvals"][0]
+    assert item["why_needed"] == "Publishing requires review."
+    assert item["impact"] == "Memo can be distributed."
+    assert item["deny_consequence"] == "Run stops before publishing."
+    assert item["publish_target"] == "ic@example.com"

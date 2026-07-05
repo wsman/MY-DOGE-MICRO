@@ -38,6 +38,7 @@ def test_context_migration_registry_declares_context_ownership():
         "runtime:run_workflow_context",
         "runtime:runtime_outbox",
         "runtime:run_queue_leases",
+        "runtime:approval_explanation_fields",
         "runtime:runtime_query_indexes",
     }.issubset(keys)
     assert {"runtime", "evidence"}.issubset(contexts)
@@ -173,10 +174,11 @@ def test_bootstrap_upgrades_legacy_agent_database_with_context_migrations(tmp_pa
             "runtime:run_workflow_context",
             "runtime:runtime_outbox",
             "runtime:run_queue_leases",
+            "runtime:approval_explanation_fields",
             "runtime:runtime_child_foreign_keys",
             "runtime:runtime_query_indexes",
         }.issubset(applied)
-        assert len(applied) == 14
+        assert len(applied) == 15
 
 
 def test_runtime_context_migration_adds_query_indexes(tmp_path):
@@ -197,6 +199,56 @@ def test_runtime_context_migration_adds_query_indexes(tmp_path):
         "idx_artifacts_run_created",
         "idx_run_queue_status_worker_lease",
     }.issubset(indexes)
+
+
+def test_bootstrap_adds_approval_explanation_fields_to_legacy_approvals(tmp_path):
+    db = tmp_path / "legacy_approvals.db"
+    with sqlite3.connect(db) as conn:
+        conn.executescript(
+            """
+            CREATE TABLE runs (
+                run_id TEXT PRIMARY KEY,
+                session_id TEXT,
+                workflow TEXT NOT NULL,
+                question TEXT NOT NULL,
+                status TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+            CREATE TABLE approvals (
+                approval_id TEXT PRIMARY KEY,
+                run_id TEXT NOT NULL,
+                action TEXT NOT NULL,
+                risk_level TEXT NOT NULL,
+                status TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                resolved_at TEXT
+            );
+            INSERT INTO runs(run_id, workflow, question, status, created_at, updated_at)
+            VALUES ('run-1', 'investment_research', 'q', 'awaiting_approval', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z');
+            INSERT INTO approvals(approval_id, run_id, action, risk_level, status, created_at, resolved_at)
+            VALUES ('appr-1', 'run-1', 'publish memo', 'high', 'pending', '2026-01-01T00:00:00Z', NULL);
+            """
+        )
+
+    bootstrap_agent_schema(db)
+    bootstrap_agent_schema(db)
+
+    with sqlite3.connect(db) as conn:
+        assert {
+            "why_needed",
+            "impact",
+            "deny_consequence",
+            "publish_target",
+        }.issubset(_columns(conn, "approvals"))
+        row = conn.execute(
+            """
+            SELECT why_needed, impact, deny_consequence, publish_target
+            FROM approvals
+            WHERE approval_id = 'appr-1'
+            """
+        ).fetchone()
+        assert row == ("", "", "", "")
 
 
 def test_runtime_context_schema_declares_child_foreign_keys(tmp_path):

@@ -237,6 +237,31 @@ def test_sqlite_runtime_repositories_filter_by_tenant(tmp_path):
     ]
 
 
+def test_sqlite_approval_repository_round_trips_explanation_fields(tmp_path):
+    db = tmp_path / "agent_state.db"
+    runs = SQLiteRunRepository(db)
+    approvals = SQLiteApprovalRepository(db)
+    run = AgentRun.create(workflow="investment_research", question="q")
+    runs.save(run)
+    approval = run.add_approval(
+        "publish memo",
+        "high",
+        why_needed="Publishing requires review.",
+        impact="Memo can be distributed.",
+        deny_consequence="Run stops before publishing.",
+        publish_target="ic@example.com",
+    )
+
+    approvals.save(approval)
+    loaded = approvals.get(approval.approval_id)
+
+    assert loaded is not None
+    assert loaded.why_needed == "Publishing requires review."
+    assert loaded.impact == "Memo can be distributed."
+    assert loaded.deny_consequence == "Run stops before publishing."
+    assert loaded.publish_target == "ic@example.com"
+
+
 def test_sqlite_runtime_repositories_reject_cross_tenant_writes(tmp_path):
     db = tmp_path / "agent_state.db"
     sessions = SQLiteSessionRepository(db)

@@ -73,6 +73,10 @@ const approvalId = (run.approvals as Array<{ approval_id: string }>)[0].approval
 await client.runs.resume(runId, { approvalId, approved: true })
 ```
 
+Approval objects may include optional explanation metadata:
+`why_needed`, `impact`, `deny_consequence`, and `publish_target`. Older daemon
+snapshots may omit these fields.
+
 ## Feature Flags
 
 The daemon owns feature flags; the SDK does not override them.

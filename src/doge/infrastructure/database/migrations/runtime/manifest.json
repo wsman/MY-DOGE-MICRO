@@ -8,6 +8,7 @@
     "run_workflow_context",
     "runtime_outbox",
     "run_queue_leases",
+    "approval_explanation_fields",
     "runtime_child_foreign_keys",
     "runtime_query_indexes"
   ]

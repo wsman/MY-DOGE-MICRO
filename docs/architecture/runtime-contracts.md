@@ -1,8 +1,8 @@
 # Runtime Contracts
 
 Status: Alpha contract freeze. This file freezes the current local runtime
-contract shape; it does not promote MY-DOGE-MICRO to Stable, Beta, GA, or
-Production Ready.
+contract shape; it does not promote MY-DOGE-MICRO beyond its current Local
+Alpha posture.
 
 Canonical execution path:
 
@@ -17,16 +17,28 @@ doge.bootstrap.processes
 
 The v1 runtime contract covers six persisted agent objects:
 
-| Model | Owns | Stable fields |
+| Model | Owns | Contract fields |
 |---|---|---|
 | `AgentSession` | Multi-turn research context. | `session_id`, `title`, `tenant_id`, `created_at`, `updated_at`, `turns` |
 | `AgentTurn` | One user turn inside a session. | `turn_id`, `session_id`, `user_message`, `run_id`, `tenant_id`, `created_at` |
 | `AgentRun` | One executable runtime job. | `run_id`, `workflow`, `question`, `session_id`, `market`, `language`, `document_ids`, `portfolio_id`, `model_policy`, `workflow_context`, `identity_snapshot`, `status`, `events`, `artifacts`, `approvals`, `cancel_requested_at`, `schema_version`, `created_at`, `updated_at` |
 | `AgentEvent` | Append-only trace event. | `event_id`, `run_id`, `event_type`, `payload`, `sequence`, `schema_version`, `created_at` |
 | `AgentArtifact` | Runtime-produced output. | `artifact_id`, `kind`, `title`, `content`, `run_id`, `data`, `created_at` |
-| `AgentApproval` | Human or policy approval request. | `approval_id`, `action`, `risk_level`, `run_id`, `status`, `created_at`, `resolved_at` |
+| `AgentApproval` | Human or policy approval request. | `approval_id`, `action`, `risk_level`, `run_id`, `status`, `created_at`, `resolved_at`, `why_needed`, `impact`, `deny_consequence`, `publish_target` |
 
 `AgentRun.schema_version` and `AgentEvent.schema_version` are currently `1.0`.
+
+### Additive Approval Explanation Fields
+
+ADR-0029 adds four optional `AgentApproval` explanation fields:
+`why_needed`, `impact`, `deny_consequence`, and `publish_target`. They are
+passive metadata for operator and SDK consumers. Empty string means no
+explanation was supplied.
+
+The fields do not change approval status transitions, entitlement checks, run
+continuation, or external-gate state. Sprint 022 implements them across runtime
+code, persistence, API response models, SDK types, Web approval cards, and the
+golden runtime fixture.
 
 ## Persistence Shape
 

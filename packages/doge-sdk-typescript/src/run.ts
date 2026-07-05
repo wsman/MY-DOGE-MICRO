@@ -56,6 +56,10 @@ export interface AgentApproval {
   status: string
   created_at: string
   resolved_at: string | null
+  why_needed?: string
+  impact?: string
+  deny_consequence?: string
+  publish_target?: string
 }
 
 export interface AgentRun {

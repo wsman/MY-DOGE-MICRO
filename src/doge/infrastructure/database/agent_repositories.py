@@ -441,15 +441,32 @@ class SQLiteApprovalRepository(_BaseAgentRepository, IApprovalRepository):
             )
             conn.execute(
                 """
-                INSERT INTO approvals(approval_id, tenant_id, run_id, action, risk_level, status, created_at, resolved_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO approvals(
+                    approval_id,
+                    tenant_id,
+                    run_id,
+                    action,
+                    risk_level,
+                    status,
+                    created_at,
+                    resolved_at,
+                    why_needed,
+                    impact,
+                    deny_consequence,
+                    publish_target
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(approval_id) DO UPDATE SET
                     tenant_id = excluded.tenant_id,
                     run_id = excluded.run_id,
                     action = excluded.action,
                     risk_level = excluded.risk_level,
                     status = excluded.status,
-                    resolved_at = excluded.resolved_at
+                    resolved_at = excluded.resolved_at,
+                    why_needed = excluded.why_needed,
+                    impact = excluded.impact,
+                    deny_consequence = excluded.deny_consequence,
+                    publish_target = excluded.publish_target
                 """,
                 (
                     approval.approval_id,
@@ -460,6 +477,10 @@ class SQLiteApprovalRepository(_BaseAgentRepository, IApprovalRepository):
                     approval.status,
                     approval.created_at,
                     approval.resolved_at,
+                    approval.why_needed,
+                    approval.impact,
+                    approval.deny_consequence,
+                    approval.publish_target,
                 ),
             )
             conn.commit()
@@ -974,6 +995,10 @@ def _row_to_approval(row: sqlite3.Row) -> AgentApproval:
         status=row["status"],
         created_at=row["created_at"],
         resolved_at=row["resolved_at"],
+        why_needed=row["why_needed"],
+        impact=row["impact"],
+        deny_consequence=row["deny_consequence"],
+        publish_target=row["publish_target"],
     )
 
 

@@ -68,6 +68,10 @@ class AgentApproval:
     status: str = "pending"
     created_at: str = field(default_factory=utc_now)
     resolved_at: Optional[str] = None
+    why_needed: str = ""
+    impact: str = ""
+    deny_consequence: str = ""
+    publish_target: str = ""
 
 
 @dataclass
@@ -208,12 +212,25 @@ class AgentRun:
         self.updated_at = utc_now()
         return artifact
 
-    def add_approval(self, action: str, risk_level: str) -> AgentApproval:
+    def add_approval(
+        self,
+        action: str,
+        risk_level: str,
+        *,
+        why_needed: str = "",
+        impact: str = "",
+        deny_consequence: str = "",
+        publish_target: str = "",
+    ) -> AgentApproval:
         approval = AgentApproval(
             approval_id=f"appr-{uuid4().hex[:12]}",
             run_id=self.run_id,
             action=action,
             risk_level=risk_level,
+            why_needed=why_needed,
+            impact=impact,
+            deny_consequence=deny_consequence,
+            publish_target=publish_target,
         )
         self.approvals.append(approval)
         self.updated_at = utc_now()

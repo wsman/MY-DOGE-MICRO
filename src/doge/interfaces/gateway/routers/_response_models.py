@@ -144,6 +144,24 @@ class CaseDecisionListResponse(_AllowedExtra):
     decisions: list[CaseDecisionResponse] = Field(default_factory=list)
 
 
+class ApprovalResponse(_AllowedExtra):
+    approval_id: str
+    action: str
+    risk_level: str
+    run_id: str = ""
+    status: str = "pending"
+    created_at: str = ""
+    resolved_at: str | None = None
+    why_needed: str = ""
+    impact: str = ""
+    deny_consequence: str = ""
+    publish_target: str = ""
+
+
+class ApprovalListResponse(_AllowedExtra):
+    approvals: list[ApprovalResponse] = Field(default_factory=list)
+
+
 class CapabilityResponse(_AllowedExtra):
     capability_id: str
     kind: str

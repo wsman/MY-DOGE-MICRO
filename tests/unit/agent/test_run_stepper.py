@@ -459,7 +459,15 @@ async def test_run_stepper_step_requests_approval_when_tool_returns_approval_req
         async def execute(self, *, context, tool_name, arguments, run_id, timeout_seconds, request_id):
             return ToolResult(
                 name=tool_name,
-                data={"approval_required": True, "action": "publish", "risk_level": "high"},
+                data={
+                    "approval_required": True,
+                    "action": "publish",
+                    "risk_level": "high",
+                    "why_needed": "Publishing requires review.",
+                    "impact": "Memo can be distributed.",
+                    "deny_consequence": "Run stops before publishing.",
+                    "publish_target": "ic@example.com",
+                },
             )
 
     stepper = RunStepper(
@@ -484,7 +492,15 @@ async def test_run_stepper_step_requests_approval_when_tool_returns_approval_req
     assert result.status == RunStatus.AWAITING_APPROVAL
     assert len(result.approvals) == 1
     assert result.approvals[0].action == "publish"
-    assert any(e.event_type == EventType.APPROVAL_REQUESTED for e in run.events)
+    assert result.approvals[0].why_needed == "Publishing requires review."
+    assert result.approvals[0].impact == "Memo can be distributed."
+    assert result.approvals[0].deny_consequence == "Run stops before publishing."
+    assert result.approvals[0].publish_target == "ic@example.com"
+    event = next(e for e in run.events if e.event_type == EventType.APPROVAL_REQUESTED)
+    assert event.payload["why_needed"] == "Publishing requires review."
+    assert event.payload["impact"] == "Memo can be distributed."
+    assert event.payload["deny_consequence"] == "Run stops before publishing."
+    assert event.payload["publish_target"] == "ic@example.com"
 
 
 @pytest.mark.asyncio

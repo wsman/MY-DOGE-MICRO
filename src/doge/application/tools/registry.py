@@ -124,6 +124,10 @@ class ToolRegistry:
                 result.data.setdefault("approval_required", True)
                 result.data.setdefault("action", name)
                 result.data.setdefault("risk_level", "high")
+                result.data.setdefault("why_needed", "")
+                result.data.setdefault("impact", "")
+                result.data.setdefault("deny_consequence", "")
+                result.data.setdefault("publish_target", "")
             return result
         except Exception:  # noqa: BLE001 - tool failures become trace data
             safe_error = SafeError.create("tool_execution_failed", "tool execution failed")

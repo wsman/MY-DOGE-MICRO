@@ -48,11 +48,16 @@ class PublishingToolProvider:
         )
 
     def publish_investment_memo(self, memo_id: str, distribution_list: list[str] | None = None) -> dict[str, Any]:
+        targets = distribution_list or []
         return {
             "approval_required": True,
             "action": f"publish investment memo {memo_id}",
             "risk_level": "high",
-            "distribution_list": distribution_list or [],
+            "distribution_list": targets,
+            "why_needed": "Publishing an investment memo is a governed action that can distribute research conclusions outside the draft workspace.",
+            "impact": "Approval releases the memo content and its evidence trail to the selected audience.",
+            "deny_consequence": "The memo remains unpublished and the run stops at the approval checkpoint.",
+            "publish_target": ", ".join(targets) if targets else "not specified",
         }
 
     def propose_portfolio_rebalance(
@@ -66,4 +71,8 @@ class PublishingToolProvider:
             "risk_level": "high",
             "portfolio_id": portfolio_id,
             "proposed_changes": proposed_changes or [],
+            "why_needed": "Portfolio rebalance proposals are high-risk investment actions that require human review before use.",
+            "impact": "Approval records the proposal as reviewed and allows the workflow to continue with action candidates.",
+            "deny_consequence": "The rebalance proposal is not advanced and the run stops at the approval checkpoint.",
+            "publish_target": f"portfolio {portfolio_id}",
         }

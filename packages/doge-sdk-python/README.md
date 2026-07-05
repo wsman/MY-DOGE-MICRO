@@ -67,6 +67,10 @@ approval_id = run["approvals"][0]["approval_id"]
 client.runs.resume(run_id, approval_id=approval_id, approved=True)
 ```
 
+Approval dictionaries may include optional explanation metadata:
+`why_needed`, `impact`, `deny_consequence`, and `publish_target`. Older daemon
+snapshots may omit these keys.
+
 ## Feature Flags
 
 The daemon owns feature flags; the SDK does not override them.

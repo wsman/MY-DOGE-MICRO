@@ -63,7 +63,11 @@
       "run_id",
       "status",
       "created_at",
-      "resolved_at"
+      "resolved_at",
+      "why_needed",
+      "impact",
+      "deny_consequence",
+      "publish_target"
     ]
   },
   "domain_schema_versions": {
@@ -133,7 +137,11 @@
       "risk_level",
       "status",
       "created_at",
-      "resolved_at"
+      "resolved_at",
+      "why_needed",
+      "impact",
+      "deny_consequence",
+      "publish_target"
     ]
   },
   "sdk_shapes": {

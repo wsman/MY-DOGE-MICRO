@@ -198,7 +198,7 @@ for platform helpers.
 This is the recommended Platform Alpha API surface for new CLI, SDK, and Web
 work. It is intentionally smaller than the full mounted FastAPI app. Exhaustive
 schemas remain available through `GET /openapi.json`; this section documents
-the stable user-path contract and the feature flags that affect it.
+the current user-path contract and the feature flags that affect it.
 
 Every primary v1 endpoint accepts the optional `Authorization: Bearer
 <DOGE_API_TOKEN>` header when `DOGE_API_TOKEN` is configured, and optional
@@ -257,6 +257,10 @@ summary/citation/eval reads. SDK mapping: `client.runs`.
   - Response **200**: `{"artifacts": [AgentArtifact, ...]}`.
 - `GET /v1/runs/{run_id}/approvals`
   - Response **200**: `{"approvals": [AgentApproval, ...]}`.
+  - `AgentApproval` fields: `approval_id`, `action`, `risk_level`, `run_id`,
+    `status`, `created_at`, `resolved_at`, plus optional explanation fields
+    `why_needed`, `impact`, `deny_consequence`, and `publish_target`.
+    Empty explanation fields mean no explanation was supplied.
 - `POST /v1/runs/{run_id}/approvals/{approval_id}`
   - Body: `{"approved": true}`.
   - Response **202**: serialized run after the approval is resolved and a
@@ -276,6 +280,10 @@ summary/citation/eval reads. SDK mapping: `client.runs`.
   - `GET /v1/runs/{run_id}/eval`
   - Required flag: `DOGE_FEATURE_RUN_SUMMARY_API=1`; disabled endpoints return
     **404**.
+
+Approval explanation metadata is additive under ADR-0029. It gives operators
+and SDK consumers approval context without changing approval resolution,
+entitlement checks, run continuation, or the external-gate posture.
 
 ### documents
 
@@ -368,7 +376,7 @@ Platform Alpha/Level 3 Experimental.
 > Do not add new platform features to these routers.
 
 All request bodies are `application/json`. Path and query params are validated
-by FastAPI/Pydantic at the boundary. Every error response uses the stable
+by FastAPI/Pydantic at the boundary. Every error response uses the documented
 `{"error": {"code", "message"}}` envelope — see [Error Contract](http-api-contracts.md#error-contract).
 
 ### Pydantic request models
@@ -620,7 +628,9 @@ Returns stored run events as SSE (`event: agent_event`, JSON payload per event).
 Returns `{"artifacts": [...]}`.
 
 #### `GET /api/agent/runs/{run_id}/approvals` — `agent.py`
-Returns `{"approvals": [...]}`.
+Returns `{"approvals": [...]}`. Approval objects may include the additive
+ADR-0029 explanation fields `why_needed`, `impact`, `deny_consequence`, and
+`publish_target` when the producer supplied them.
 
 #### `POST /api/agent/runs/{run_id}/approvals/{approval_id}` — `agent.py`
 Body: `{"approved": true|false}`. This legacy endpoint does not continue the

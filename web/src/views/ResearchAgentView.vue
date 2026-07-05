@@ -55,6 +55,12 @@
         >
           <div class="approval-title">{{ approval.risk_level }} · {{ approval.status }}</div>
           <div class="approval-action">{{ approval.action }}</div>
+          <div v-if="approvalDetailRows(approval).length" class="approval-details">
+            <div v-for="row in approvalDetailRows(approval)" :key="row.key" class="detail-row">
+              <span>{{ row.label }}</span>
+              <strong>{{ row.value }}</strong>
+            </div>
+          </div>
           <n-space v-if="approval.status === 'pending'" size="small">
             <n-button size="tiny" type="primary" @click="store.resolveApproval(approval.approval_id, true)">Approve</n-button>
             <n-button size="tiny" @click="store.resolveApproval(approval.approval_id, false)">Deny</n-button>
@@ -142,8 +148,42 @@ const statusAnnouncement = computed(() => {
   return `Agent status ${labelFor(store.run?.status)}; tokens ${tokens}`
 })
 
-function approvalLabel(approval: { risk_level: string; status: string; action: string }) {
-  return `${approval.risk_level} risk approval ${approval.status}: ${approval.action}`
+interface ApprovalDisplay {
+  risk_level: string
+  status: string
+  action: string
+  why_needed?: unknown
+  impact?: unknown
+  deny_consequence?: unknown
+  publish_target?: unknown
+}
+
+const approvalDetailFields = [
+  { key: 'why_needed', label: 'Why needed' },
+  { key: 'impact', label: 'Impact' },
+  { key: 'deny_consequence', label: 'Deny consequence' },
+  { key: 'publish_target', label: 'Publish target' },
+] as const
+
+function approvalDetailRows(approval: ApprovalDisplay) {
+  return approvalDetailFields
+    .map(field => ({
+      key: field.key,
+      label: field.label,
+      value: textValue(approval[field.key]),
+    }))
+    .filter(row => row.value)
+}
+
+function approvalLabel(approval: ApprovalDisplay) {
+  const whyNeeded = textValue(approval.why_needed)
+  const suffix = whyNeeded ? `; why needed: ${whyNeeded}` : ''
+  return `${approval.risk_level} risk approval ${approval.status}: ${approval.action}${suffix}`
+}
+
+function textValue(value: unknown) {
+  if (value === undefined || value === null) return ''
+  return String(value).trim()
 }
 
 async function startRun() {
@@ -244,6 +284,28 @@ section {
   font-size: 12px;
   color: var(--dgm-text-muted);
   margin: 4px 0 8px;
+}
+
+.approval-details {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.detail-row {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 8px;
+  font-size: 12px;
+}
+
+.detail-row span {
+  color: var(--dgm-text-faint);
+}
+
+.detail-row strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .timeline {

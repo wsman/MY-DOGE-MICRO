@@ -94,6 +94,10 @@ CREATE TABLE IF NOT EXISTS approvals (
     status TEXT NOT NULL,
     created_at TEXT NOT NULL,
     resolved_at TEXT,
+    why_needed TEXT NOT NULL DEFAULT '',
+    impact TEXT NOT NULL DEFAULT '',
+    deny_consequence TEXT NOT NULL DEFAULT '',
+    publish_target TEXT NOT NULL DEFAULT '',
     FOREIGN KEY(run_id) REFERENCES runs(run_id)
 );
 
