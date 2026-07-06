@@ -161,24 +161,12 @@ def test_bootstrap_upgrades_legacy_agent_database_with_context_migrations(tmp_pa
                 "SELECT name FROM schema_migrations ORDER BY name"
             ).fetchall()
         }
-        assert {
+        expected_applied = {
             "agent_schema_v1",
-            "runtime:idempotency_key_scope",
-            "evidence:documents_metadata",
-            "runtime:tenant_partition_columns",
-            "runtime:local_tenant_backfill",
-            "evidence:local_tenant_backfill",
-            "portfolio:local_tenant_backfill",
-            "workspace:local_tenant_backfill",
-            "runtime:run_identity_snapshot",
-            "runtime:run_workflow_context",
-            "runtime:runtime_outbox",
-            "runtime:run_queue_leases",
-            "runtime:approval_explanation_fields",
-            "runtime:runtime_child_foreign_keys",
-            "runtime:runtime_query_indexes",
-        }.issubset(applied)
-        assert len(applied) == 15
+            *(migration.key for migration in registered_migrations()),
+        }
+        assert expected_applied.issubset(applied)
+        assert len(applied) == len(expected_applied)
 
 
 def test_runtime_context_migration_adds_query_indexes(tmp_path):

@@ -1,6 +1,7 @@
 {
   "context": "workspace",
   "migrations": [
+    "case_progress_steps",
     "local_tenant_backfill"
   ]
 }

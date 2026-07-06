@@ -808,3 +808,91 @@ adr_index:
     path: docs/architecture/adr-0030-structured-claim-contract.md
     governs: "structured claim metadata on research memo artifacts and additive /v1 run-claim fields for future conclusion-evidence matrix work"
     depends_on: [ADR-0014, ADR-0017, ADR-0026, ADR-0029]
+
+  - id: ADR-0031
+    title: "Conclusion Evidence Matrix Interaction"
+    status: Accepted
+    date: "2026-07-05"
+    path: docs/architecture/adr-0031-conclusion-evidence-matrix-interaction.md
+    governs: "Web conclusion-evidence matrix interaction, citation drilldown, and run-status next-action hints"
+    depends_on: [ADR-0014, ADR-0017, ADR-0026, ADR-0030]
+
+  - id: ADR-0032
+    title: "Workspace Mode and Memo Export"
+    status: Accepted
+    date: "2026-07-05"
+    path: docs/architecture/adr-0032-workspace-mode-and-memo-export.md
+    governs: "Analyst/Developer workspace mode split and browser-local memo export actions"
+    depends_on: [ADR-0020, ADR-0026, ADR-0031]
+
+  - id: ADR-0033
+    title: "Local Daemon Operator CLI"
+    status: Accepted
+    date: "2026-07-05"
+    path: docs/architecture/adr-0033-local-daemon-operator-cli.md
+    governs: "local doged operator diagnostics for daemon health, runs, queue, features, and routes"
+    depends_on: [ADR-0024, ADR-0027]
+
+  - id: ADR-0034
+    title: "Portfolio Import Auto Summary"
+    status: Accepted
+    date: "2026-07-05"
+    path: docs/architecture/adr-0034-portfolio-import-auto-summary.md
+    governs: "additive portfolio import summary and Web portfolio importer preview"
+    depends_on: [ADR-0013, ADR-0024]
+
+  - id: ADR-0035
+    title: "Demo Pack And SDK Cookbooks"
+    status: Accepted
+    date: "2026-07-05"
+    path: docs/architecture/adr-0035-demo-pack-and-sdk-cookbooks.md
+    governs: "local demo packet export and Python/TypeScript SDK cookbook scaffolding"
+    depends_on: [ADR-0024, ADR-0026]
+
+  - id: ADR-0036
+    title: "Run List And Comparison"
+    status: Accepted
+    date: "2026-07-05"
+    path: docs/architecture/adr-0036-run-list-and-comparison.md
+    governs: "compact run listing contract and Web run comparison panel"
+    depends_on: [ADR-0024, ADR-0028]
+
+  - id: ADR-0037
+    title: "Case Progress Contract"
+    status: Accepted
+    date: "2026-07-05"
+    path: docs/architecture/adr-0037-case-progress-contract.md
+    governs: "case progress persistence, /v1 case progress contract, SDK helpers, and Web progress panel"
+    depends_on: [ADR-0016, ADR-0018, ADR-0024]
+
+  - id: ADR-0038
+    title: "Cross-Surface Handoff Closure"
+    status: Accepted
+    date: "2026-07-06"
+    path: docs/architecture/adr-0038-cross-surface-handoff-closure.md
+    governs: "CLI/export/operator/example handoff surfaces and first-run research guidance"
+    depends_on: [ADR-0024, ADR-0031, ADR-0032, ADR-0033, ADR-0035, ADR-0037]
+
+  - id: ADR-0039
+    title: "Analyst Product Home"
+    status: Accepted
+    date: "2026-07-06"
+    path: docs/architecture/adr-0039-analyst-product-home.md
+    governs: "analyst-first Home work queue, recent artifacts, and developer-mode diagnostics"
+    depends_on: [ADR-0020, ADR-0036, ADR-0037, ADR-0038]
+
+  - id: ADR-0040
+    title: "Approval Policy Surfacing"
+    status: Accepted
+    date: "2026-07-06"
+    path: docs/architecture/adr-0040-approval-policy-surfacing.md
+    governs: "display-only workflow-template approval policy metadata in Research and Case approval panels"
+    depends_on: [ADR-0028, ADR-0029, ADR-0037, ADR-0039]
+
+  - id: ADR-0041
+    title: "Python SDK Typed Run Result Models"
+    status: Accepted
+    date: "2026-07-06"
+    path: docs/architecture/adr-0041-python-sdk-typed-models.md
+    governs: "dict-compatible Python SDK typed run result models"
+    depends_on: [ADR-0028, ADR-0036, ADR-0040]

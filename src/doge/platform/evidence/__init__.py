@@ -20,6 +20,7 @@ from doge.application.services.page_extraction_service import (
     PageExtractionService,
 )
 from doge.application.services.rag_service import RAGService
+from doge.application.use_cases.demo_pack import DemoPackExporter, DemoPackResult
 from doge.application.use_cases.run_summary import BuildRunSummary, redact_inaccessible_citations
 from doge.core.domain.chunk_models import DocumentChunk
 from doge.core.domain.claim_models import CitationRecord, ClaimRecord
@@ -44,6 +45,8 @@ __all__ = [
     "DocumentChunk",
     "DocumentPage",
     "DocumentStatus",
+    "DemoPackExporter",
+    "DemoPackResult",
     "EvidenceBundle",
     "EvidenceBundleRecord",
     "EvidenceChunk",

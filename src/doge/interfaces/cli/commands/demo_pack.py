@@ -5,8 +5,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from doge.application.use_cases.demo_pack import DemoPackExporter
 from doge.bootstrap import build_runtime_container
+from doge.platform.evidence import DemoPackExporter
 from doge.shared.scope import TenantScope
 
 
