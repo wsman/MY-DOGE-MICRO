@@ -1,0 +1,996 @@
+{
+  "count": 23,
+  "records": [
+    {
+      "category": "analytical",
+      "description": "Calculate deterministic ratios from supplied fields.",
+      "metadata": {
+        "method_name": "calculate_financial_ratios",
+        "provider": "tool_application_service"
+      },
+      "name": "calculate_financial_ratios",
+      "requires_approval": false,
+      "risk_level": "medium",
+      "status": "available",
+      "tool_name": "calculate_financial_ratios"
+    },
+    {
+      "category": "read_only",
+      "description": "Compare demo consensus estimates.",
+      "metadata": {
+        "method_name": "compare_consensus_estimates",
+        "provider": "tool_application_service"
+      },
+      "name": "compare_consensus_estimates",
+      "requires_approval": false,
+      "risk_level": "low",
+      "status": "available",
+      "tool_name": "compare_consensus_estimates"
+    },
+    {
+      "category": "generative",
+      "description": "Generate an evidence-aware industry report.",
+      "metadata": {
+        "method_name": "generate_industry_report",
+        "provider": "tool_application_service"
+      },
+      "name": "generate_industry_report",
+      "requires_approval": false,
+      "risk_level": "medium",
+      "status": "available",
+      "tool_name": "generate_industry_report"
+    },
+    {
+      "category": "read_only",
+      "description": "Search local company announcements/notes.",
+      "metadata": {
+        "method_name": "get_company_announcements",
+        "provider": "tool_application_service"
+      },
+      "name": "get_company_announcements",
+      "requires_approval": false,
+      "risk_level": "low",
+      "status": "available",
+      "tool_name": "get_company_announcements"
+    },
+    {
+      "category": "read_only",
+      "description": "Get demo financial statement fields.",
+      "metadata": {
+        "method_name": "get_financial_statements",
+        "provider": "tool_application_service"
+      },
+      "name": "get_financial_statements",
+      "requires_approval": false,
+      "risk_level": "low",
+      "status": "available",
+      "tool_name": "get_financial_statements"
+    },
+    {
+      "category": "read_only",
+      "description": "Resolve local industry classification metadata.",
+      "metadata": {
+        "method_name": "get_industry_classification",
+        "provider": "tool_application_service"
+      },
+      "name": "get_industry_classification",
+      "requires_approval": false,
+      "risk_level": "low",
+      "status": "available",
+      "tool_name": "get_industry_classification"
+    },
+    {
+      "category": "read_only",
+      "description": "Get portfolio exposure.",
+      "metadata": {
+        "method_name": "get_portfolio_exposure",
+        "provider": "tool_application_service"
+      },
+      "name": "get_portfolio_exposure",
+      "requires_approval": false,
+      "risk_level": "low",
+      "status": "available",
+      "tool_name": "get_portfolio_exposure"
+    },
+    {
+      "category": "read_only",
+      "description": "List available analytical views.",
+      "metadata": {
+        "method_name": "list_views",
+        "provider": "tool_application_service"
+      },
+      "name": "list_views",
+      "requires_approval": false,
+      "risk_level": "low",
+      "status": "available",
+      "tool_name": "list_views"
+    },
+    {
+      "category": "read_only",
+      "description": "Look up source evidence snippets.",
+      "metadata": {
+        "method_name": "lookup_evidence",
+        "provider": "tool_application_service"
+      },
+      "name": "lookup_evidence",
+      "requires_approval": false,
+      "risk_level": "low",
+      "status": "available",
+      "tool_name": "lookup_evidence"
+    },
+    {
+      "category": "read_only",
+      "description": "Get market breadth rows.",
+      "metadata": {
+        "method_name": "market_breadth",
+        "provider": "tool_application_service"
+      },
+      "name": "market_breadth",
+      "requires_approval": false,
+      "risk_level": "low",
+      "status": "available",
+      "tool_name": "market_breadth"
+    },
+    {
+      "category": "analytical",
+      "description": "Get deterministic portfolio risk approximations.",
+      "metadata": {
+        "method_name": "portfolio_risk",
+        "provider": "tool_application_service"
+      },
+      "name": "portfolio_risk",
+      "requires_approval": false,
+      "risk_level": "medium",
+      "status": "available",
+      "tool_name": "portfolio_risk"
+    },
+    {
+      "category": "high_risk",
+      "description": "Request approval for a proposed rebalance.",
+      "metadata": {
+        "approval_required": true,
+        "method_name": "propose_portfolio_rebalance",
+        "provider": "tool_application_service",
+        "risk_level": "high"
+      },
+      "name": "propose_portfolio_rebalance",
+      "requires_approval": true,
+      "risk_level": "high",
+      "status": "available",
+      "tool_name": "propose_portfolio_rebalance"
+    },
+    {
+      "category": "high_risk",
+      "description": "Request approval to publish an investment memo.",
+      "metadata": {
+        "approval_required": true,
+        "method_name": "publish_investment_memo",
+        "provider": "tool_application_service",
+        "risk_level": "high"
+      },
+      "name": "publish_investment_memo",
+      "requires_approval": true,
+      "risk_level": "high",
+      "status": "available",
+      "tool_name": "publish_investment_memo"
+    },
+    {
+      "category": "read_only",
+      "description": "Query OHLCV rows for a ticker.",
+      "metadata": {
+        "method_name": "query_stock",
+        "provider": "tool_application_service"
+      },
+      "name": "query_stock",
+      "requires_approval": false,
+      "risk_level": "low",
+      "status": "available",
+      "tool_name": "query_stock"
+    },
+    {
+      "category": "high_risk",
+      "description": "Request human approval for a high-risk action.",
+      "metadata": {
+        "approval_required": true,
+        "method_name": "request_approval",
+        "provider": "tool_application_service",
+        "risk_level": "high"
+      },
+      "name": "request_approval",
+      "requires_approval": true,
+      "risk_level": "high",
+      "status": "available",
+      "tool_name": "request_approval"
+    },
+    {
+      "category": "read_only",
+      "description": "Get RSRS momentum ranking.",
+      "metadata": {
+        "method_name": "rsrs_ranking",
+        "provider": "tool_application_service"
+      },
+      "name": "rsrs_ranking",
+      "requires_approval": false,
+      "risk_level": "low",
+      "status": "available",
+      "tool_name": "rsrs_ranking"
+    },
+    {
+      "category": "high_risk",
+      "description": "Run bounded demo Python analysis.",
+      "metadata": {
+        "approval_required": true,
+        "disabled_reason": "Python analysis execution is disabled by configuration.",
+        "executor": "disabled",
+        "method_name": "run_python_analysis",
+        "provider": "tool_application_service",
+        "risk_level": "high"
+      },
+      "name": "run_python_analysis",
+      "requires_approval": true,
+      "risk_level": "high",
+      "status": "disabled",
+      "tool_name": "run_python_analysis"
+    },
+    {
+      "category": "analytical",
+      "description": "Run a read-only SQL query against analytical views.",
+      "metadata": {
+        "method_name": "run_sql_query",
+        "provider": "tool_application_service"
+      },
+      "name": "run_sql_query",
+      "requires_approval": false,
+      "risk_level": "medium",
+      "status": "available",
+      "tool_name": "run_sql_query"
+    },
+    {
+      "category": "analytical",
+      "description": "Run deterministic portfolio scenario analysis.",
+      "metadata": {
+        "method_name": "scenario_analysis",
+        "provider": "tool_application_service"
+      },
+      "name": "scenario_analysis",
+      "requires_approval": false,
+      "risk_level": "medium",
+      "status": "available",
+      "tool_name": "scenario_analysis"
+    },
+    {
+      "category": "analytical",
+      "description": "Screen text for compliance risk phrases.",
+      "metadata": {
+        "method_name": "screen_compliance_risk",
+        "provider": "tool_application_service"
+      },
+      "name": "screen_compliance_risk",
+      "requires_approval": false,
+      "risk_level": "medium",
+      "status": "available",
+      "tool_name": "screen_compliance_risk"
+    },
+    {
+      "category": "read_only",
+      "description": "Get stock overview.",
+      "metadata": {
+        "method_name": "stock_overview",
+        "provider": "tool_application_service"
+      },
+      "name": "stock_overview",
+      "requires_approval": false,
+      "risk_level": "low",
+      "status": "available",
+      "tool_name": "stock_overview"
+    },
+    {
+      "category": "analytical",
+      "description": "Validate a material financial claim.",
+      "metadata": {
+        "method_name": "validate_financial_claims",
+        "provider": "tool_application_service"
+      },
+      "name": "validate_financial_claims",
+      "requires_approval": false,
+      "risk_level": "medium",
+      "status": "available",
+      "tool_name": "validate_financial_claims"
+    },
+    {
+      "category": "read_only",
+      "description": "Get volume anomaly rows.",
+      "metadata": {
+        "method_name": "volume_anomalies",
+        "provider": "tool_application_service"
+      },
+      "name": "volume_anomalies",
+      "requires_approval": false,
+      "risk_level": "low",
+      "status": "available",
+      "tool_name": "volume_anomalies"
+    }
+  ],
+  "schemas": [
+    {
+      "function": {
+        "description": "Calculate deterministic ratios from supplied fields.",
+        "name": "calculate_financial_ratios",
+        "parameters": {
+          "properties": {
+            "fields": {
+              "type": "object"
+            }
+          },
+          "required": [],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "analytical",
+      "x-doge-metadata": {
+        "method_name": "calculate_financial_ratios",
+        "provider": "tool_application_service"
+      },
+      "x-doge-status": "available"
+    },
+    {
+      "function": {
+        "description": "Compare demo consensus estimates.",
+        "name": "compare_consensus_estimates",
+        "parameters": {
+          "properties": {
+            "metric": {
+              "type": "string"
+            },
+            "ticker": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ticker"
+          ],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "read_only",
+      "x-doge-metadata": {
+        "method_name": "compare_consensus_estimates",
+        "provider": "tool_application_service"
+      },
+      "x-doge-status": "available"
+    },
+    {
+      "function": {
+        "description": "Generate an evidence-aware industry report.",
+        "name": "generate_industry_report",
+        "parameters": {
+          "properties": {
+            "industry": {
+              "type": "string"
+            },
+            "market": {
+              "enum": [
+                "cn",
+                "us"
+              ],
+              "type": "string"
+            },
+            "tickers": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "generative",
+      "x-doge-metadata": {
+        "method_name": "generate_industry_report",
+        "provider": "tool_application_service"
+      },
+      "x-doge-status": "available"
+    },
+    {
+      "function": {
+        "description": "Search local company announcements/notes.",
+        "name": "get_company_announcements",
+        "parameters": {
+          "properties": {
+            "limit": {
+              "maximum": 20,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "ticker": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ticker"
+          ],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "read_only",
+      "x-doge-metadata": {
+        "method_name": "get_company_announcements",
+        "provider": "tool_application_service"
+      },
+      "x-doge-status": "available"
+    },
+    {
+      "function": {
+        "description": "Get demo financial statement fields.",
+        "name": "get_financial_statements",
+        "parameters": {
+          "properties": {
+            "period": {
+              "enum": [
+                "annual",
+                "quarterly"
+              ],
+              "type": "string"
+            },
+            "statement_type": {
+              "enum": [
+                "income",
+                "balance",
+                "cashflow"
+              ],
+              "type": "string"
+            },
+            "ticker": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ticker"
+          ],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "read_only",
+      "x-doge-metadata": {
+        "method_name": "get_financial_statements",
+        "provider": "tool_application_service"
+      },
+      "x-doge-status": "available"
+    },
+    {
+      "function": {
+        "description": "Resolve local industry classification metadata.",
+        "name": "get_industry_classification",
+        "parameters": {
+          "properties": {
+            "market": {
+              "enum": [
+                "cn",
+                "us"
+              ],
+              "type": "string"
+            },
+            "ticker": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ticker"
+          ],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "read_only",
+      "x-doge-metadata": {
+        "method_name": "get_industry_classification",
+        "provider": "tool_application_service"
+      },
+      "x-doge-status": "available"
+    },
+    {
+      "function": {
+        "description": "Get portfolio exposure.",
+        "name": "get_portfolio_exposure",
+        "parameters": {
+          "properties": {
+            "portfolio_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "portfolio_id"
+          ],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "read_only",
+      "x-doge-metadata": {
+        "method_name": "get_portfolio_exposure",
+        "provider": "tool_application_service"
+      },
+      "x-doge-status": "available"
+    },
+    {
+      "function": {
+        "description": "List available analytical views.",
+        "name": "list_views",
+        "parameters": {
+          "properties": {},
+          "required": [],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "read_only",
+      "x-doge-metadata": {
+        "method_name": "list_views",
+        "provider": "tool_application_service"
+      },
+      "x-doge-status": "available"
+    },
+    {
+      "function": {
+        "description": "Look up source evidence snippets.",
+        "name": "lookup_evidence",
+        "parameters": {
+          "properties": {
+            "limit": {
+              "maximum": 20,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "query": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "read_only",
+      "x-doge-metadata": {
+        "method_name": "lookup_evidence",
+        "provider": "tool_application_service"
+      },
+      "x-doge-status": "available"
+    },
+    {
+      "function": {
+        "description": "Get market breadth rows.",
+        "name": "market_breadth",
+        "parameters": {
+          "properties": {
+            "days": {
+              "maximum": 30,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "market": {
+              "enum": [
+                "cn",
+                "us"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "read_only",
+      "x-doge-metadata": {
+        "method_name": "market_breadth",
+        "provider": "tool_application_service"
+      },
+      "x-doge-status": "available"
+    },
+    {
+      "function": {
+        "description": "Get deterministic portfolio risk approximations.",
+        "name": "portfolio_risk",
+        "parameters": {
+          "properties": {
+            "portfolio_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "portfolio_id"
+          ],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "analytical",
+      "x-doge-metadata": {
+        "method_name": "portfolio_risk",
+        "provider": "tool_application_service"
+      },
+      "x-doge-status": "available"
+    },
+    {
+      "function": {
+        "description": "Request approval for a proposed rebalance.",
+        "name": "propose_portfolio_rebalance",
+        "parameters": {
+          "properties": {
+            "portfolio_id": {
+              "type": "string"
+            },
+            "proposed_changes": {
+              "items": {
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "portfolio_id"
+          ],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "high_risk",
+      "x-doge-metadata": {
+        "approval_required": true,
+        "method_name": "propose_portfolio_rebalance",
+        "provider": "tool_application_service",
+        "risk_level": "high"
+      },
+      "x-doge-status": "available"
+    },
+    {
+      "function": {
+        "description": "Request approval to publish an investment memo.",
+        "name": "publish_investment_memo",
+        "parameters": {
+          "properties": {
+            "distribution_list": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "memo_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "memo_id"
+          ],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "high_risk",
+      "x-doge-metadata": {
+        "approval_required": true,
+        "method_name": "publish_investment_memo",
+        "provider": "tool_application_service",
+        "risk_level": "high"
+      },
+      "x-doge-status": "available"
+    },
+    {
+      "function": {
+        "description": "Query OHLCV rows for a ticker.",
+        "name": "query_stock",
+        "parameters": {
+          "properties": {
+            "days": {
+              "maximum": 500,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "market": {
+              "enum": [
+                "cn",
+                "us"
+              ],
+              "type": "string"
+            },
+            "ticker": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ticker"
+          ],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "read_only",
+      "x-doge-metadata": {
+        "method_name": "query_stock",
+        "provider": "tool_application_service"
+      },
+      "x-doge-status": "available"
+    },
+    {
+      "function": {
+        "description": "Request human approval for a high-risk action.",
+        "name": "request_approval",
+        "parameters": {
+          "properties": {
+            "action": {
+              "type": "string"
+            },
+            "risk_level": {
+              "enum": [
+                "medium",
+                "high"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "action",
+            "risk_level"
+          ],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "high_risk",
+      "x-doge-metadata": {
+        "approval_required": true,
+        "method_name": "request_approval",
+        "provider": "tool_application_service",
+        "risk_level": "high"
+      },
+      "x-doge-status": "available"
+    },
+    {
+      "function": {
+        "description": "Get RSRS momentum ranking.",
+        "name": "rsrs_ranking",
+        "parameters": {
+          "properties": {
+            "market": {
+              "enum": [
+                "cn",
+                "us"
+              ],
+              "type": "string"
+            },
+            "top": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "read_only",
+      "x-doge-metadata": {
+        "method_name": "rsrs_ranking",
+        "provider": "tool_application_service"
+      },
+      "x-doge-status": "available"
+    },
+    {
+      "function": {
+        "description": "Run bounded demo Python analysis.",
+        "name": "run_python_analysis",
+        "parameters": {
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "timeout": {
+              "maximum": 10,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "code"
+          ],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "high_risk",
+      "x-doge-metadata": {
+        "approval_required": true,
+        "disabled_reason": "Python analysis execution is disabled by configuration.",
+        "executor": "disabled",
+        "method_name": "run_python_analysis",
+        "provider": "tool_application_service",
+        "risk_level": "high"
+      },
+      "x-doge-status": "disabled"
+    },
+    {
+      "function": {
+        "description": "Run a read-only SQL query against analytical views.",
+        "name": "run_sql_query",
+        "parameters": {
+          "properties": {
+            "readonly": {
+              "type": "boolean"
+            },
+            "sql": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "sql"
+          ],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "analytical",
+      "x-doge-metadata": {
+        "method_name": "run_sql_query",
+        "provider": "tool_application_service"
+      },
+      "x-doge-status": "available"
+    },
+    {
+      "function": {
+        "description": "Run deterministic portfolio scenario analysis.",
+        "name": "scenario_analysis",
+        "parameters": {
+          "properties": {
+            "basis_points": {
+              "type": "number"
+            },
+            "portfolio_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "portfolio_id"
+          ],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "analytical",
+      "x-doge-metadata": {
+        "method_name": "scenario_analysis",
+        "provider": "tool_application_service"
+      },
+      "x-doge-status": "available"
+    },
+    {
+      "function": {
+        "description": "Screen text for compliance risk phrases.",
+        "name": "screen_compliance_risk",
+        "parameters": {
+          "properties": {
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "analytical",
+      "x-doge-metadata": {
+        "method_name": "screen_compliance_risk",
+        "provider": "tool_application_service"
+      },
+      "x-doge-status": "available"
+    },
+    {
+      "function": {
+        "description": "Get stock overview.",
+        "name": "stock_overview",
+        "parameters": {
+          "properties": {
+            "market": {
+              "enum": [
+                "cn",
+                "us"
+              ],
+              "type": "string"
+            },
+            "ticker": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ticker"
+          ],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "read_only",
+      "x-doge-metadata": {
+        "method_name": "stock_overview",
+        "provider": "tool_application_service"
+      },
+      "x-doge-status": "available"
+    },
+    {
+      "function": {
+        "description": "Validate a material financial claim.",
+        "name": "validate_financial_claims",
+        "parameters": {
+          "properties": {
+            "claim": {
+              "type": "string"
+            },
+            "market": {
+              "enum": [
+                "cn",
+                "us"
+              ],
+              "type": "string"
+            },
+            "ticker": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "claim",
+            "ticker"
+          ],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "analytical",
+      "x-doge-metadata": {
+        "method_name": "validate_financial_claims",
+        "provider": "tool_application_service"
+      },
+      "x-doge-status": "available"
+    },
+    {
+      "function": {
+        "description": "Get volume anomaly rows.",
+        "name": "volume_anomalies",
+        "parameters": {
+          "properties": {
+            "min_ratio": {
+              "maximum": 1000.0,
+              "minimum": 1.0,
+              "type": "number"
+            },
+            "top": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [],
+          "type": "object"
+        }
+      },
+      "type": "function",
+      "x-doge-category": "read_only",
+      "x-doge-metadata": {
+        "method_name": "volume_anomalies",
+        "provider": "tool_application_service"
+      },
+      "x-doge-status": "available"
+    }
+  ]
+}

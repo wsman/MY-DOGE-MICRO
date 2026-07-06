@@ -21,6 +21,7 @@ in [file-structure-policy.md](file-structure-policy.md),
 | Portfolio behavior | `src/doge/products/portfolio/` | Portfolio owns holdings, exposure, scenarios, and import contracts. |
 | Quant behavior | `src/doge/products/quant/` | Keep analytical execution bounded and feature-gated where required. |
 | Workspace, evidence, governance | `src/doge/platform/workspace/`, `src/doge/platform/evidence/`, `src/doge/platform/governance/` | These are platform services, not product modules. |
+| Slot contract and registry | `src/doge/platform/slots/` | Pure contract package (imports `core`/`shared`/stdlib only); built-in slot providers live beside their product code and slot-aware wiring lives in `bootstrap/runtime_factories/slots.py`. See ADR-0042. |
 | External adapters | `src/doge/adapters/` or existing `src/doge/infrastructure/` while migrating | Adapters implement ports and do not own business decisions. |
 | Process wiring | `src/doge/bootstrap/` | Bootstrap wires implementations; product modules should not become composition roots. |
 | Eval and deterministic demo logic | `src/doge/eval/`, `tests/eval/`, or explicit demo fixtures | Demo/test behavior must not become runtime default behavior. |

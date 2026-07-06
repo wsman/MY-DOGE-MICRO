@@ -56,6 +56,7 @@ from doge.interfaces.cli.commands import (
     cmd_run,
     cmd_rsrs,
     cmd_session,
+    cmd_slots,
     cmd_start,
     cmd_stock,
     cmd_template,
@@ -194,6 +195,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_template_seed.add_argument("--dry-run", action="store_true")
     p_template_seed.add_argument("--json", action="store_true")
 
+    # slots (ADR-0042; experimental, feature-flagged)
+    p_slots = sub.add_parser("slots", help="list and inspect platform slots (experimental)")
+    slots_sub = p_slots.add_subparsers(dest="slots_cmd", required=True)
+    p_slots_list = slots_sub.add_parser("list", help="list registered slots")
+    p_slots_list.add_argument("--json", action="store_true")
+    p_slots_show = slots_sub.add_parser("show", help="show a slot manifest + health + declared tools")
+    p_slots_show.add_argument("slot_id", help="slot id (e.g. market.core)")
+    p_slots_show.add_argument("--json", action="store_true")
+
     # case
     p_case = sub.add_parser("case", help="operate a research case workspace")
     case_sub = p_case.add_subparsers(dest="case_cmd", required=True)
@@ -257,6 +267,7 @@ def main(argv: list[str] | None = None) -> None:
         "export": cmd_export,
         "macro": cmd_macro,
         "session": cmd_session,
+        "slots": cmd_slots,
         "start": cmd_start,
         "run": cmd_run,
         "template": cmd_template,

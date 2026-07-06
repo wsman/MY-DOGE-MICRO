@@ -589,6 +589,18 @@ FEATURE_LIFECYCLES: dict[str, FeatureLifecycle] = {
         ),
         rollback_criterion="restore default False and disabled executor if Python analysis can execute without explicit operator enablement",
     ),
+    "slot_platform": FeatureLifecycle(
+        env_var="DOGE_FEATURE_SLOT_PLATFORM",
+        introduced="Sprint 033 Slot Platform Foundation; docs/architecture/adr-0042-slot-platform.md",
+        current_default=False,
+        target_default_on="after ADR-0042 parity evidence and full regression are green",
+        target_removal="one release cycle after slot-backed tool registration is byte-equivalent to the legacy path with an approved removal story",
+        replacement_behavior="built-in tool/model slots register their contributions through the SlotRegistry",
+        regression_commands=(
+            "python -m pytest tests/unit/platform/slots tests/unit/architecture/test_slot_boundary.py tests/cli/test_cli_slots.py tests/contract/test_tool_registry_slot_parity.py -q",
+        ),
+        rollback_criterion="restore default False if /v1/tools payload or tool execution differs from the flag-off baseline",
+    ),
 }
 
 
@@ -613,6 +625,9 @@ class FeatureConfig:
     )
     python_analysis_enabled: bool = field(
         default_factory=lambda: _env_bool("DOGE_FEATURE_PYTHON_ANALYSIS_ENABLED", False)
+    )
+    slot_platform: bool = field(
+        default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_PLATFORM", False)
     )
     python_analysis_executor: str = field(
         default_factory=lambda: (os.environ.get("DOGE_PYTHON_ANALYSIS_EXECUTOR") or "disabled").strip().lower()

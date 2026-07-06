@@ -31,6 +31,44 @@ maturity_labels:
   level_3_sdk_platform: experimental
   production_ready: false
 
+slot_platform_foundation_2026_07_06:
+  status: local_experimental_external_gates_open
+  scope:
+    - "Slot Platform Foundation (ADR-0042): SlotManifest v1 contract, ISlot/SlotContribution/SlotContext/SlotRegistry, and one built-in market.core tool slot."
+    - "Dual-path tool registration is feature-flagged behind DOGE_FEATURE_SLOT_PLATFORM (default false); flag-off tool-registry and runtime behavior are byte-identical to the legacy factory path."
+    - "doge slots list/show CLI (read-only, manifest-only) for slot discovery; no /v1 route, OpenAPI, SDK, Web, daemon-command, ModelRouter, or external-gate change."
+    - "Manifest permissions and health are declarative only in Sprint 033; filesystem/network/shell/secret/database enforcement is explicitly future work."
+  evidence:
+    - docs/architecture/adr-0042-slot-platform.md
+    - design/cdd/sprint-033-slot-platform.md
+    - src/doge/platform/slots/__init__.py
+    - src/doge/products/market/slot.py
+    - src/doge/bootstrap/runtime_factories/slots.py
+    - tests/unit/platform/slots
+    - tests/unit/architecture/test_slot_boundary.py
+    - tests/contract/test_tool_registry_slot_parity.py
+    - tests/cli/test_cli_slots.py
+    - tests/fixtures/slot_platform/baseline_v1_tools_flag_off.json
+  focused_tests:
+    - "py -3 -m pytest tests/unit/platform/slots tests/unit/architecture/test_slot_boundary.py tests/cli/test_cli_slots.py tests/contract/test_tool_registry_slot_parity.py -q"
+  validators:
+    - "py -3 scripts/validate_import_boundaries.py"
+    - "py -3 scripts/validate_alpha_maturity_honesty.py --file docs/architecture/adr-0042-slot-platform.md"
+    - "py -3 scripts/validate_plan_closure_gate.py --allow-open"
+    - "git diff --check"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+  notes:
+    - "Sprint 033 does NOT close any external/operator gate; posture remains 4 open / 2 passed."
+    - "Slot Platform is experimental and feature-flagged off; do not cite it as Stable or production-ready."
+
 single_stack_direction:
   status: local_convergence_complete_external_gates_open
   authority: docs/architecture/adr-0024-single-stack-runtime-direction.md

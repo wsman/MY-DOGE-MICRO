@@ -50,6 +50,7 @@ DOGE_FEATURE_VARS = [
     "DOGE_FEATURE_CAPABILITY_REGISTRY",
     "DOGE_FEATURE_RUNTIME_OUTBOX_PUBLISHER",
     "DOGE_FEATURE_PYTHON_ANALYSIS_ENABLED",
+    "DOGE_FEATURE_SLOT_PLATFORM",
     "DOGE_PYTHON_ANALYSIS_EXECUTOR",
 ]
 
@@ -290,6 +291,7 @@ class TestFeatureLifecycle:
         assert features.capability_registry is False
         assert features.runtime_outbox_publisher is False
         assert features.python_analysis_enabled is False
+        assert features.slot_platform is False
         assert features.python_analysis_executor == "disabled"
 
     def test_feature_lifecycle_metadata_covers_all_python_flags(self):
@@ -300,6 +302,7 @@ class TestFeatureLifecycle:
             "capability_registry",
             "runtime_outbox_publisher",
             "python_analysis_enabled",
+            "slot_platform",
         }
         assert {
             lifecycle.env_var for lifecycle in FEATURE_LIFECYCLES.values()

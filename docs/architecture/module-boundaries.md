@@ -20,6 +20,14 @@
   `doge.interfaces.api.routers.v1` is a compatibility shim only.
 - Tool registry implementations live under `doge.application.tools`; the former
   `doge.application.agent.tools` shim was removed in Sprint M.
+- The slot contract (`doge.platform.slots`) is a pure package: it imports only
+  `doge.core.*`, `doge.shared.*`, and the standard library, and must not import
+  `doge.config`, `doge.infrastructure`, `doge.adapters`, `doge.products`,
+  `doge.application.tools`, `doge.application.agent`, `doge.bootstrap`, or
+  `doge.interfaces`. Built-in slot providers live beside their product code
+  (e.g. `doge.products.market.slot.MarketCoreSlot` groups the market-facing tool
+  descriptors); slot-aware wiring lives in `doge.bootstrap.runtime_factories.slots`
+  behind `DOGE_FEATURE_SLOT_PLATFORM`. See ADR-0042.
 - ADR-0027 is the controlling sunset policy for compatibility shims. Shim files
   may re-export, delegate, warn, and preserve documented compatibility symbols
   only; they must not gain new behavior ownership.

@@ -137,6 +137,31 @@
       ],
       "compatibility_allowlist": []
     },
+    "slot_contract": {
+      "display_name": "Slot Contract",
+      "owner": "doge.platform.slots",
+      "path_patterns": [
+        "src/doge/platform/slots/**/*.py"
+      ],
+      "allowed_dependencies": [
+        "doge.core",
+        "doge.shared"
+      ],
+      "forbidden_dependencies": [
+        "doge.application.tools",
+        "doge.application.agent",
+        "doge.products.market",
+        "doge.products.research",
+        "doge.products.portfolio",
+        "doge.products.quant",
+        "doge.infrastructure",
+        "doge.adapters",
+        "doge.bootstrap",
+        "doge.interfaces",
+        "doge.config"
+      ],
+      "compatibility_allowlist": []
+    },
     "governance": {
       "display_name": "Governance & Evaluation",
       "owner": "doge.platform.governance",
