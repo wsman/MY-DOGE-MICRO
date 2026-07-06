@@ -68,6 +68,10 @@ approval_id = run["approvals"][0]["approval_id"]
 client.runs.resume(run_id, approval_id=approval_id, approved=True)
 ```
 
+Run responses remain dict-compatible. You can keep using `run["run_id"]`,
+`run.get("approvals", [])`, and plain-dict equality, or use typed convenience
+properties such as `run.run_id` and `run.approvals[0].approval_id`.
+
 Approval dictionaries may include optional explanation metadata:
 `why_needed`, `impact`, `deny_consequence`, and `publish_target`. Older daemon
 snapshots may omit these keys.

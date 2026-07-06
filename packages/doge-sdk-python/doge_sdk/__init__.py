@@ -2,5 +2,16 @@
 
 from doge_sdk.client import AsyncDogeClient, DogeClient
 from doge_sdk.run import DogeApiError, DogeEvent
+from doge_sdk.run_models import Approval, Artifact, Run, RunEvent, RunListItem
 
-__all__ = ["AsyncDogeClient", "DogeApiError", "DogeClient", "DogeEvent"]
+__all__ = [
+    "Approval",
+    "Artifact",
+    "AsyncDogeClient",
+    "DogeApiError",
+    "DogeClient",
+    "DogeEvent",
+    "Run",
+    "RunEvent",
+    "RunListItem",
+]

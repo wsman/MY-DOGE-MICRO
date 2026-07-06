@@ -10,6 +10,7 @@ from typing import Any, AsyncIterator, Awaitable, Callable, Iterator
 import httpx
 
 from doge_sdk._utils import redact_message, response_error_message
+from doge_sdk.run_models import Run, RunEvent, RunListItem
 
 
 class DogeApiError(RuntimeError):
@@ -24,18 +25,20 @@ class DogeEvent:
     type: str
     data: dict[str, Any]
 
+
 class RunsResource:
     def __init__(self, root: Any) -> None:
         self._root = root
 
-    def list(self, limit: int = 20, session_id: str | None = None) -> list[dict[str, Any]]:
+    def list(self, limit: int = 20, session_id: str | None = None) -> list[RunListItem]:
         params: dict[str, Any] = {"limit": limit}
         if session_id is not None:
             params["session_id"] = session_id
-        return self._root._request("GET", "/v1/runs", params=params)["runs"]
+        payload = self._root._request("GET", "/v1/runs", params=params)
+        return [RunListItem(item) for item in payload["runs"]]
 
-    def get(self, run_id: str) -> dict[str, Any]:
-        return self._root._request("GET", f"/v1/runs/{run_id}")
+    def get(self, run_id: str) -> Run:
+        return Run(self._root._request("GET", f"/v1/runs/{run_id}"))
 
     def summary(self, run_id: str) -> dict[str, Any]:
         return self._root._request("GET", f"/v1/runs/{run_id}/summary")["summary"]
@@ -49,12 +52,13 @@ class RunsResource:
     def evaluation(self, run_id: str) -> dict[str, Any]:
         return self._root._request("GET", f"/v1/runs/{run_id}/eval")["eval"]
 
-    def events(self, run_id: str, after_sequence: int = 0) -> list[dict[str, Any]]:
-        return self._root._request(
+    def events(self, run_id: str, after_sequence: int = 0) -> list[RunEvent]:
+        payload = self._root._request(
             "GET",
             f"/v1/runs/{run_id}/events",
             params={"after_sequence": after_sequence},
-        )["events"]
+        )
+        return [RunEvent(item) for item in payload["events"]]
 
     def stream(
         self,
@@ -89,11 +93,13 @@ class RunsResource:
                 attempts += 1
                 sleep(backoff_seconds * attempts)
 
-    def approve(self, run_id: str, approval_id: str, approved: bool = True) -> dict[str, Any]:
-        return self._root._request(
-            "POST",
-            f"/v1/runs/{run_id}/approvals/{approval_id}",
-            json={"approved": approved},
+    def approve(self, run_id: str, approval_id: str, approved: bool = True) -> Run:
+        return Run(
+            self._root._request(
+                "POST",
+                f"/v1/runs/{run_id}/approvals/{approval_id}",
+                json={"approved": approved},
+            )
         )
 
     def resume(
@@ -101,28 +107,35 @@ class RunsResource:
         run_id: str,
         approval_id: str | None = None,
         approved: bool = True,
-    ) -> dict[str, Any]:
+    ) -> Run:
         payload: dict[str, Any] = {"approved": approved}
         if approval_id is not None:
             payload["approval_id"] = approval_id
-        return self._root._request("POST", f"/v1/runs/{run_id}/resume", json=payload)
+        return Run(
+            self._root._request(
+                "POST",
+                f"/v1/runs/{run_id}/resume",
+                json=payload,
+            )
+        )
 
-    def cancel(self, run_id: str) -> dict[str, Any]:
-        return self._root._request("POST", f"/v1/runs/{run_id}/cancel")
+    def cancel(self, run_id: str) -> Run:
+        return Run(self._root._request("POST", f"/v1/runs/{run_id}/cancel"))
 
 
 class AsyncRunsResource:
     def __init__(self, root: Any) -> None:
         self._root = root
 
-    async def list(self, limit: int = 20, session_id: str | None = None) -> list[dict[str, Any]]:
+    async def list(self, limit: int = 20, session_id: str | None = None) -> list[RunListItem]:
         params: dict[str, Any] = {"limit": limit}
         if session_id is not None:
             params["session_id"] = session_id
-        return (await self._root._request("GET", "/v1/runs", params=params))["runs"]
+        payload = await self._root._request("GET", "/v1/runs", params=params)
+        return [RunListItem(item) for item in payload["runs"]]
 
-    async def get(self, run_id: str) -> dict[str, Any]:
-        return await self._root._request("GET", f"/v1/runs/{run_id}")
+    async def get(self, run_id: str) -> Run:
+        return Run(await self._root._request("GET", f"/v1/runs/{run_id}"))
 
     async def summary(self, run_id: str) -> dict[str, Any]:
         return (await self._root._request("GET", f"/v1/runs/{run_id}/summary"))["summary"]
@@ -136,12 +149,13 @@ class AsyncRunsResource:
     async def evaluation(self, run_id: str) -> dict[str, Any]:
         return (await self._root._request("GET", f"/v1/runs/{run_id}/eval"))["eval"]
 
-    async def events(self, run_id: str, after_sequence: int = 0) -> list[dict[str, Any]]:
-        return (await self._root._request(
+    async def events(self, run_id: str, after_sequence: int = 0) -> list[RunEvent]:
+        payload = await self._root._request(
             "GET",
             f"/v1/runs/{run_id}/events",
             params={"after_sequence": after_sequence},
-        ))["events"]
+        )
+        return [RunEvent(item) for item in payload["events"]]
 
     async def stream(
         self,
@@ -176,11 +190,13 @@ class AsyncRunsResource:
                 attempts += 1
                 await sleep(backoff_seconds * attempts)
 
-    async def approve(self, run_id: str, approval_id: str, approved: bool = True) -> dict[str, Any]:
-        return await self._root._request(
-            "POST",
-            f"/v1/runs/{run_id}/approvals/{approval_id}",
-            json={"approved": approved},
+    async def approve(self, run_id: str, approval_id: str, approved: bool = True) -> Run:
+        return Run(
+            await self._root._request(
+                "POST",
+                f"/v1/runs/{run_id}/approvals/{approval_id}",
+                json={"approved": approved},
+            )
         )
 
     async def resume(
@@ -188,11 +204,17 @@ class AsyncRunsResource:
         run_id: str,
         approval_id: str | None = None,
         approved: bool = True,
-    ) -> dict[str, Any]:
+    ) -> Run:
         payload: dict[str, Any] = {"approved": approved}
         if approval_id is not None:
             payload["approval_id"] = approval_id
-        return await self._root._request("POST", f"/v1/runs/{run_id}/resume", json=payload)
+        return Run(
+            await self._root._request(
+                "POST",
+                f"/v1/runs/{run_id}/resume",
+                json=payload,
+            )
+        )
 
-    async def cancel(self, run_id: str) -> dict[str, Any]:
-        return await self._root._request("POST", f"/v1/runs/{run_id}/cancel")
+    async def cancel(self, run_id: str) -> Run:
+        return Run(await self._root._request("POST", f"/v1/runs/{run_id}/cancel"))

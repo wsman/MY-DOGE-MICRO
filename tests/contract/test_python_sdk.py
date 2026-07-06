@@ -3,7 +3,15 @@ import json
 import httpx
 import pytest
 
-from doge_sdk import AsyncDogeClient, DogeApiError, DogeClient
+from doge_sdk import (
+    AsyncDogeClient,
+    DogeApiError,
+    DogeClient,
+    DogeEvent,
+    Run,
+    RunEvent,
+    RunListItem,
+)
 
 
 def test_python_sdk_create_session_and_stream():
@@ -60,6 +68,12 @@ def test_python_sdk_get_run():
     run = client.runs.get("run-test")
 
     assert run == {"run_id": "run-test", "status": "completed"}
+    assert isinstance(run, Run)
+    assert isinstance(run, dict)
+    assert run.run_id == "run-test"
+    assert run.status == "completed"
+    assert callable(run.get)
+    assert callable(run.keys)
 
 
 def test_python_sdk_list_runs():
@@ -75,6 +89,9 @@ def test_python_sdk_list_runs():
     runs = client.runs.list(limit=3, session_id="ses-1")
 
     assert runs == [{"run_id": "run-test", "status": "completed"}]
+    assert isinstance(runs[0], RunListItem)
+    assert runs[0].run_id == "run-test"
+    assert runs[0].status == "completed"
 
 
 def test_python_sdk_get_case_progress():
@@ -102,6 +119,9 @@ def test_python_sdk_get_run_events():
     events = client.runs.events("run-test", after_sequence=2)
 
     assert events == [{"sequence": 3, "event_type": "run_queued"}]
+    assert isinstance(events[0], RunEvent)
+    assert events[0].sequence == 3
+    assert events[0].event_type == "run_queued"
 
 
 def test_python_sdk_cancel_run():
@@ -115,6 +135,8 @@ def test_python_sdk_cancel_run():
     run = client.runs.cancel("run-test")
 
     assert run == {"run_id": "run-test", "status": "cancelling"}
+    assert isinstance(run, Run)
+    assert run.status == "cancelling"
 
 
 def test_python_sdk_list_and_get_sessions():
@@ -298,6 +320,7 @@ async def test_async_python_sdk_create_session_and_stream():
     assert session.session_id == "ses-test"
     assert run_id == "run-test"
     assert events[0].id == "1"
+    assert isinstance(events[0], DogeEvent)
 
 
 @pytest.mark.asyncio
@@ -354,6 +377,8 @@ def test_python_sdk_approve_returns_accepted_queued_run():
     run = client.runs.approve("run-test", "appr-1")
 
     assert run["status"] == "queued"
+    assert isinstance(run, Run)
+    assert run.status == "queued"
 
 
 def test_python_sdk_approval_resume_stream_contract():
@@ -381,6 +406,7 @@ def test_python_sdk_approval_resume_stream_contract():
     events = list(client.runs.stream("run-test"))
 
     assert run["status"] == "queued"
+    assert isinstance(run, Run)
     assert [event.type for event in events] == ["approval_resolved", "artifact_created"]
     assert seen_paths == [
         ("POST", "/v1/runs/run-test/approvals/appr-1"),
@@ -402,6 +428,8 @@ def test_python_sdk_resume_posts_explicit_resume_command():
     run = client.runs.resume("run-test", approval_id="appr-1")
 
     assert run["status"] == "completed"
+    assert isinstance(run, Run)
+    assert run.status == "completed"
     assert seen == {
         "method": "POST",
         "path": "/v1/runs/run-test/resume",
@@ -426,11 +454,51 @@ async def test_async_python_sdk_resume_posts_explicit_resume_command():
         run = await client.runs.resume("run-test", approval_id="appr-1")
 
     assert run["status"] == "completed"
+    assert isinstance(run, Run)
+    assert run.status == "completed"
     assert seen == {
         "method": "POST",
         "path": "/v1/runs/run-test/resume",
         "body": {"approval_id": "appr-1", "approved": True},
     }
+
+
+@pytest.mark.asyncio
+async def test_async_python_sdk_runs_return_typed_dict_models():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/v1/runs/run-test" and request.method == "GET":
+            return httpx.Response(200, json={"run_id": "run-test", "status": "completed"})
+        if request.url.path == "/v1/runs" and request.method == "GET":
+            return httpx.Response(200, json={"runs": [{"run_id": "run-test", "status": "completed"}]})
+        if request.url.path == "/v1/runs/run-test/events" and request.method == "GET":
+            return httpx.Response(200, json={"events": [{"sequence": 3, "event_type": "run_queued"}]})
+        if request.url.path == "/v1/runs/run-test/approvals/appr-1":
+            return httpx.Response(202, json={"run_id": "run-test", "status": "queued"})
+        if request.url.path == "/v1/runs/run-test/cancel":
+            return httpx.Response(202, json={"run_id": "run-test", "status": "cancelling"})
+        return httpx.Response(404, json={"error": {"message": "not found"}})
+
+    async with AsyncDogeClient(
+        base_url="http://testserver",
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        run = await client.runs.get("run-test")
+        runs = await client.runs.list()
+        events = await client.runs.events("run-test")
+        approved = await client.runs.approve("run-test", "appr-1")
+        cancelled = await client.runs.cancel("run-test")
+
+    assert run == {"run_id": "run-test", "status": "completed"}
+    assert isinstance(run, Run)
+    assert run.run_id == "run-test"
+    assert runs == [{"run_id": "run-test", "status": "completed"}]
+    assert isinstance(runs[0], RunListItem)
+    assert events == [{"sequence": 3, "event_type": "run_queued"}]
+    assert isinstance(events[0], RunEvent)
+    assert approved["status"] == "queued"
+    assert isinstance(approved, Run)
+    assert cancelled["status"] == "cancelling"
+    assert isinstance(cancelled, Run)
 
 
 def test_python_sdk_documents_get():
