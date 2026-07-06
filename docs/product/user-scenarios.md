@@ -46,9 +46,9 @@ product modules, platform services, and workflow templates.
 ## Research Workspace
 
 - **User**: a research, portfolio, or risk user working in the Web workspace.
-- **Entrypoints**: Web Research Workspace, TypeScript SDK, and `/v1` sessions,
-  runs, documents, platform, and capability routes.
-- **Owns**: interaction state, document upload UI, run timeline display,
+- **Entrypoints**: Web Home (`/home`), Web Research Workspace, TypeScript SDK,
+  and `/v1` sessions, runs, documents, platform, and capability routes.
+- **Owns**: Home interaction state, document upload UI, run timeline display,
   approval actions, artifacts, citations, and feature-flagged workspace views.
 - **Does not own**: direct tool invocation, direct database access, its own run
   state machine, duplicate runtime contracts, or legacy `/api/*` calls.

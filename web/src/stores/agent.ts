@@ -21,11 +21,12 @@ export const useAgentStore = defineStore('agent', () => {
   const approvals = computed(() => run.value?.approvals ?? [])
   const latestMemo = computed(() => artifacts.value.find(item => item.kind === 'investment_memo')?.content ?? '')
 
-  async function startDemoRun() {
+  async function startDemoRun(): Promise<AgentRun | null> {
     loading.value = true
     error.value = null
+    run.value = null
     try {
-      run.value = await createAgentRun({
+      const createdRun = await createAgentRun({
         workflow: selectedScenarioSlug.value,
         question: question.value,
         execution_profile: executionProfile.value,
@@ -39,8 +40,11 @@ export const useAgentStore = defineStore('agent', () => {
           require_citations: true,
         },
       })
+      run.value = createdRun
+      return createdRun
     } catch (e) {
       error.value = toFetchError(e)
+      return null
     } finally {
       loading.value = false
     }

@@ -36,6 +36,11 @@ Use one of the three Platform Alpha paths:
 - **SDK integrator** — Python or TypeScript SDK against `/v1`; start at
   [docs/start-here/sdk-integrator.md](docs/start-here/sdk-integrator.md)
 
+For browser work, run the daemon and Vite, then start at `/home`. The Home
+surface is the analyst entry point for starting research, running a local demo,
+reviewing recent runs/uploads/cases/approvals/memos, and checking Local Alpha
+readiness.
+
 Secondary surfaces and setup references live outside the quick path:
 `doge demo` is covered by [docs/start-here/eval-demo-owner.md](docs/start-here/eval-demo-owner.md),
 backend internals remain at `src/doge/interfaces/api/main.py`, Vue setup is in
