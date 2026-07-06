@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import json
 import os
+import zipfile
 
 import pytest
 
-from doge.core.domain.agent_models import AgentRun, RunStatus
+from doge.core.domain.agent_models import AgentEvent, AgentRun, EventType, RunStatus
 from doge.config import reset_settings
 from doge.interfaces.daemon import main as doged_main
 
@@ -170,6 +171,20 @@ def test_doged_runs_recent_json(monkeypatch, capsys):
     assert payload["runs"][0]["workflow"] == "earnings_review"
 
 
+def test_doged_runs_status_filters_recent_rows(monkeypatch, capsys):
+    completed = AgentRun.create(run_id="run-ok", workflow="earnings_review", question="ok")
+    completed.status = RunStatus.COMPLETED
+    failed = AgentRun.create(run_id="run-failed", workflow="earnings_review", question="failed")
+    failed.status = RunStatus.FAILED
+    monkeypatch.setattr(doged_main, "_recent_runs", lambda *, limit: [completed, failed])
+
+    doged_main.main(["runs", "--status", "failed"])
+
+    out = capsys.readouterr().out
+    assert "run_id=run-failed" in out
+    assert "run_id=run-ok" not in out
+
+
 def test_doged_queue_status_prints_counts(monkeypatch, capsys):
     monkeypatch.setattr(doged_main, "_queue_status", lambda: {"queued": 2, "running": 1})
 
@@ -200,6 +215,87 @@ def test_doged_routes_prints_registered_routes(monkeypatch, capsys):
 
     out = capsys.readouterr().out.splitlines()
     assert out == ["GET /health/ready ready", "POST /v1/sessions create_session"]
+
+
+def test_doged_explain_prints_failure_point(monkeypatch, capsys):
+    run = AgentRun.create(run_id="run-failed", workflow="earnings_review", question="failed")
+    run.status = RunStatus.FAILED
+    events = [
+        AgentEvent(
+            event_id="evt-1",
+            run_id="run-failed",
+            event_type=EventType.ERROR,
+            payload={"message": "tool timed out with sk-doged-secret"},
+            sequence=7,
+        )
+    ]
+    monkeypatch.setattr(doged_main, "_runtime", lambda: _Runtime(run, events))
+
+    doged_main.main(["explain", "run-failed"])
+
+    out = capsys.readouterr().out
+    assert "failure_point=error" in out
+    assert "sequence=7" in out
+    assert "tool timed out" in out
+    assert "sk-doged-secret" not in out
+    assert "next_actions=Inspect error,Re-run" in out
+
+
+def test_doged_explain_missing_run_exits_1(monkeypatch, capsys):
+    monkeypatch.setattr(doged_main, "_runtime", lambda: _Runtime(None, []))
+
+    with pytest.raises(SystemExit) as exc:
+        doged_main.main(["explain", "run-missing"])
+
+    assert exc.value.code == 1
+    assert "explain failed: run not found: run-missing" in capsys.readouterr().err
+
+
+def test_doged_support_bundle_writes_redacted_zip(tmp_path, monkeypatch, capsys):
+    failed = AgentRun.create(run_id="run-failed", workflow="earnings_review", question="failed")
+    failed.status = RunStatus.FAILED
+    completed = AgentRun.create(run_id="run-ok", workflow="earnings_review", question="ok")
+    completed.status = RunStatus.COMPLETED
+    monkeypatch.setattr(doged_main, "_fetch_readiness", lambda _port: {"status": "ready", "token": "sk-ready-secret"})
+    monkeypatch.setattr(doged_main, "_feature_rows", lambda: [{"name": "run_summary_api", "value": True}])
+    monkeypatch.setattr(doged_main, "_route_rows", lambda: [{"methods": ["GET"], "path": "/health/ready", "name": "ready"}])
+    monkeypatch.setattr(doged_main, "_queue_status", lambda: {"failed": 1})
+    monkeypatch.setattr(doged_main, "_recent_runs", lambda *, limit: [failed, completed])
+    monkeypatch.setattr(doged_main, "_config_payload", lambda: {"api_key": "sk-config-secret"})
+    monkeypatch.setattr(doged_main, "_version_payload", lambda: {"git_sha": "abc123"})
+    output = tmp_path / "support.zip"
+
+    doged_main.main(["support-bundle", "--output", str(output)])
+
+    assert f"support_bundle={output}" in capsys.readouterr().out
+    with zipfile.ZipFile(output) as archive:
+        names = set(archive.namelist())
+        assert names == {
+            "readiness.json",
+            "features.json",
+            "routes.json",
+            "queue.json",
+            "runs_failed.json",
+            "config_redacted.json",
+            "version.json",
+        }
+        combined = "\n".join(archive.read(name).decode("utf-8") for name in names)
+    assert "run-failed" in combined
+    assert "run-ok" not in combined
+    assert "sk-ready-secret" not in combined
+    assert "sk-config-secret" not in combined
+
+
+class _Runtime:
+    def __init__(self, run, events):
+        self._run = run
+        self._events = events
+
+    def get_run(self, scope, run_id):
+        return self._run if self._run is not None and self._run.run_id == run_id else None
+
+    def list_events(self, scope, run_id):
+        return self._events
 
 
 def test_doged_serve_api_role_starts_uvicorn(monkeypatch):

@@ -44,6 +44,8 @@ def test_cli_run_uses_runtime_container(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "run_id=run-cli" in out
     assert "status=completed" in out
+    assert "Next actions:" in out
+    assert "Open artifacts" in out
     assert captured == {
         "question": "Analyze AAPL",
         "kwargs": {
@@ -105,6 +107,7 @@ def test_cli_run_jsonl_emits_redacted_event_lines(monkeypatch, capsys):
     assert lines[1]["type"] == "event"
     assert lines[1]["event"]["payload"]["api_key"] == "<redacted>"
     assert "run-secret" not in json.dumps(lines, ensure_ascii=False)
+    assert "Next actions:" not in capsys.readouterr().out
 
 
 def test_cli_run_resume_uses_explicit_resume_use_case(monkeypatch, capsys):
@@ -151,7 +154,45 @@ def test_cli_run_resume_uses_explicit_resume_use_case(monkeypatch, capsys):
     assert "run_id=run-cli" in out
     assert "status=completed" in out
     assert "artifact=Memo" in out
+    assert "Next actions:" in out
     assert captured == {"run_id": "run-cli", "approval_id": "appr-1", "approved": True}
+
+
+def test_cli_run_awaiting_approval_prints_next_action(monkeypatch, capsys):
+    class FakeExecuteRun:
+        async def execute(self, question, **kwargs):
+            return SimpleNamespace(
+                run_id="run-cli",
+                status=SimpleNamespace(value="awaiting_approval"),
+                artifacts=[],
+                approvals=[SimpleNamespace(approval_id="appr-1", status="pending")],
+                events=[],
+            )
+
+    class FakeRuntimeContainer:
+        def build_execute_run_use_case(self):
+            return FakeExecuteRun()
+
+    monkeypatch.setattr(run_command, "_runtime_container", lambda: FakeRuntimeContainer())
+
+    run_command.cmd_run(
+        SimpleNamespace(
+            question="Analyze AAPL",
+            session=None,
+            market="us",
+            language="en",
+            portfolio=None,
+            max_tool_rounds=3,
+            json=False,
+            trace=False,
+            follow=False,
+            jsonl=False,
+        )
+    )
+
+    out = capsys.readouterr().out
+    assert "pending_approvals=appr-1" in out
+    assert "Approve or deny" in out
 
 
 def test_cli_run_deny_requires_approval(monkeypatch, capsys):

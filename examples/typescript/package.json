@@ -1,0 +1,21 @@
+{
+  "name": "doge-sdk-cookbooks",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "run-01": "tsx 01_create_session.ts",
+    "run-02": "tsx 02_upload_and_run.ts",
+    "run-03": "tsx 03_stream_and_approve.ts",
+    "run-04": "tsx 04_error_handling.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "doge-sdk": "file:../../packages/doge-sdk-typescript"
+  },
+  "devDependencies": {
+    "@types/node": "^24.12.2",
+    "tsx": "^4.21.0",
+    "typescript": "~6.0.2"
+  }
+}

@@ -8,6 +8,7 @@ from doge.interfaces.cli.commands.case import cmd_case
 from doge.interfaces.cli.commands.demo import cmd_demo
 from doge.interfaces.cli.commands.demo_pack import cmd_demo_pack
 from doge.interfaces.cli.commands.doctor import cmd_doctor
+from doge.interfaces.cli.commands.export import cmd_export
 from doge.interfaces.cli.commands.macro import cmd_macro
 from doge.interfaces.cli.commands.run import cmd_run
 from doge.interfaces.cli.commands.rsrs import cmd_rsrs
@@ -27,6 +28,7 @@ __all__ = [
     "cmd_demo",
     "cmd_demo_pack",
     "cmd_doctor",
+    "cmd_export",
     "cmd_macro",
     "cmd_run",
     "cmd_session",

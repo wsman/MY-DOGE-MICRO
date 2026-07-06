@@ -11,6 +11,7 @@ from typing import Any
 
 from doge.bootstrap import build_runtime_container
 from doge.core.security import redact_secrets
+from doge.interfaces.cli.run_status_labels import next_actions_for_run_status
 
 
 def cmd_run(args) -> None:
@@ -65,6 +66,11 @@ def cmd_run(args) -> None:
         pending = [approval for approval in run.approvals if approval.status == "pending"]
         if pending:
             print("pending_approvals=" + ",".join(approval.approval_id for approval in pending))
+    actions = next_actions_for_run_status(_status_value(run))
+    if actions:
+        print("Next actions:")
+        for action in actions:
+            print(f"  - {action}")
     if args.trace or getattr(args, "follow", False):
         _print_run_events(run, jsonl=False)
 

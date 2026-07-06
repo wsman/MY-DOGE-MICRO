@@ -1,5 +1,7 @@
+import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import { basename } from 'node:path'
+import { basename, dirname, isAbsolute, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { DogeClient } from 'doge-sdk'
 
@@ -8,7 +10,20 @@ const client = new DogeClient({
   apiToken: process.env.DOGE_API_TOKEN,
 })
 
-const source = process.env.DOGE_SAMPLE_DOC ?? 'README.md'
+const scriptDir = dirname(fileURLToPath(import.meta.url))
+
+function sampleDocPath(): string {
+  const raw = process.env.DOGE_SAMPLE_DOC
+  if (!raw) return resolve(scriptDir, '../../README.md')
+  if (isAbsolute(raw) || existsSync(raw)) return raw
+  const scriptRelative = resolve(scriptDir, raw)
+  if (existsSync(scriptRelative)) return scriptRelative
+  const repoRelative = resolve(scriptDir, '../..', raw)
+  if (existsSync(repoRelative)) return repoRelative
+  return raw
+}
+
+const source = sampleDocPath()
 const file = new Blob([await readFile(source)], { type: 'text/markdown' })
 const document = await client.documents.upload(file, basename(source))
 const session = await client.sessions.create('Document-backed research')

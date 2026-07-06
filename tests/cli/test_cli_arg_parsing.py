@@ -143,6 +143,21 @@ def test_anomaly_defaults_and_range_parse():
     assert args2.top == 50
 
 
+def test_export_parser_shape():
+    args, code = _parse_or_exit(["export", "run-1", "--format", "json", "--citations-only", "--output", "memo.json"])
+    assert code == 0
+    assert args.run_id == "run-1"
+    assert args.format == "json"
+    assert args.citations_only is True
+    assert args.output == "memo.json"
+
+
+def test_export_rejects_missing_run_id_with_exit_2():
+    args, code = _parse_or_exit(["export"])
+    assert code == 2
+    assert args is None
+
+
 def test_market_choices_are_exactly_cn_and_us():
     # The doc states --market accepts cn|us for stock/rsrs/breadth.
     parser = _build_parser()

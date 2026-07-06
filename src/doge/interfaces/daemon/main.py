@@ -7,10 +7,15 @@ import asyncio
 from dataclasses import fields
 import json
 import os
+from pathlib import Path
+import subprocess
 import sys
+import zipfile
 
 from doge.config import get_settings, reset_settings
 from doge.config.settings import FEATURE_LIFECYCLES
+from doge.core.security import redact_secrets
+from doge.interfaces.cli.run_status_labels import next_actions_for_run_status
 
 
 _PROCESS_ROLES = ("api", "worker", "all")
@@ -31,16 +36,22 @@ def build_parser() -> argparse.ArgumentParser:
     doctor.add_argument("--json", action="store_true")
     doctor.add_argument("--verbose", action="store_true", help="show nested readiness details")
     runs = sub.add_parser("runs", help="inspect recent persisted runs")
-    runs.add_argument("--recent", action="store_true", help="show recent runs")
+    runs.add_argument("--recent", action="store_true", help="canonical selector for recent persisted runs")
     runs.add_argument("--limit", type=int, default=10)
+    runs.add_argument("--status", help="filter recent runs by status")
     runs.add_argument("--json", action="store_true")
     queue = sub.add_parser("queue", help="inspect durable run queue")
-    queue.add_argument("--status", action="store_true", help="show queue status counts")
+    queue.add_argument("--status", action="store_true", help="canonical selector for queue status counts")
     queue.add_argument("--json", action="store_true")
     features = sub.add_parser("features", help="show configured feature flags")
     features.add_argument("--json", action="store_true")
     routes = sub.add_parser("routes", help="list registered API routes")
     routes.add_argument("--json", action="store_true")
+    explain = sub.add_parser("explain", help="explain a failed or terminal run")
+    explain.add_argument("run_id")
+    support = sub.add_parser("support-bundle", help="write a redacted operator support bundle")
+    support.add_argument("--output", required=True, help="zip file path")
+    support.add_argument("--limit", type=int, default=50, help="failed-runs lookup window")
     return parser
 
 
@@ -91,6 +102,8 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "runs":
         rows = [_run_summary(run) for run in _recent_runs(limit=args.limit)]
+        if args.status:
+            rows = [row for row in rows if row["status"] == args.status]
         if args.json:
             print(json.dumps({"runs": rows}, ensure_ascii=False, sort_keys=True))
         else:
@@ -116,6 +129,13 @@ def main(argv: list[str] | None = None) -> None:
             print(json.dumps({"routes": rows}, ensure_ascii=False, sort_keys=True))
         else:
             _print_routes(rows)
+        return
+    if args.cmd == "explain":
+        _explain_run(args.run_id)
+        return
+    if args.cmd == "support-bundle":
+        output = _write_support_bundle(Path(args.output), limit=args.limit)
+        print(f"support_bundle={output}")
         return
 
 
@@ -227,6 +247,125 @@ def _route_rows() -> list[dict[str, object]]:
             "name": getattr(route, "name", ""),
         })
     return sorted(rows, key=lambda row: (str(row["path"]), ",".join(row["methods"])))
+
+
+def _runtime():
+    from doge.bootstrap import build_runtime_container
+
+    return build_runtime_container().build_persisted_research_agent_runtime()
+
+
+def _explain_run(run_id: str) -> None:
+    from doge.core.domain.agent_models import EventType
+    from doge.shared.scope import TenantScope
+
+    runtime = _runtime()
+    scope = TenantScope.local()
+    run = runtime.get_run(scope, run_id)
+    if run is None:
+        print(f"explain failed: run not found: {run_id}", file=sys.stderr)
+        sys.exit(1)
+        return
+    events = runtime.list_events(scope, run_id)
+    error_event = next((event for event in reversed(events) if event.event_type == EventType.ERROR), None)
+    if error_event is None:
+        print("failure_point=none")
+        print(f"status={_status_value(run.status)}")
+    else:
+        payload = getattr(error_event, "payload", {}) or {}
+        print("failure_point=error")
+        print(f"sequence={getattr(error_event, 'sequence', 0)}")
+        print(f"message={_safe_message(payload)}")
+    print("next_actions=" + ",".join(next_actions_for_run_status(_status_value(run.status))))
+
+
+def _write_support_bundle(output: Path, *, limit: int) -> Path:
+    output.parent.mkdir(parents=True, exist_ok=True)
+    failed_runs = [
+        _run_summary(run)
+        for run in _recent_runs(limit=limit)
+        if _status_value(run.status) == "failed"
+    ]
+    payloads = {
+        "readiness.json": _readiness_payload(),
+        "features.json": {"features": _feature_rows()},
+        "routes.json": {"routes": _route_rows()},
+        "queue.json": {"queue": _queue_status()},
+        "runs_failed.json": {"runs": failed_runs},
+        "config_redacted.json": _config_payload(),
+        "version.json": _version_payload(),
+    }
+    with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for name, payload in payloads.items():
+            archive.writestr(
+                name,
+                json.dumps(redact_secrets(payload), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            )
+    return output
+
+
+def _readiness_payload() -> dict[str, object]:
+    try:
+        return _fetch_readiness(None)
+    except Exception as exc:  # noqa: BLE001 - support bundle records readiness failure safely
+        return {"status": "not_ready", "error": str(exc)}
+
+
+def _config_payload() -> dict[str, object]:
+    settings = get_settings()
+    payload: dict[str, object] = {"settings_class": type(settings).__name__}
+    for field in fields(settings):
+        name = field.name
+        value = getattr(settings, name)
+        if hasattr(value, "__dict__"):
+            payload[name] = {
+                key: _json_safe(item)
+                for key, item in vars(value).items()
+                if not key.startswith("_")
+            }
+        else:
+            payload[name] = _json_safe(value)
+    return payload
+
+
+def _version_payload() -> dict[str, object]:
+    return {
+        "package": "my-doge-micro",
+        "git_sha": _git_sha(),
+    }
+
+
+def _git_sha() -> str:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
+        return result.stdout.strip() or "unknown"
+    except Exception:
+        return "unknown"
+
+
+def _safe_message(payload: dict[str, object]) -> str:
+    candidate = payload.get("message") or payload.get("error") or payload.get("detail") or ""
+    if isinstance(candidate, dict):
+        candidate = candidate.get("message") or candidate.get("public_message") or json.dumps(candidate, sort_keys=True)
+    return str(redact_secrets(candidate))
+
+
+def _json_safe(value):
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, tuple):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, list):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, dict):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    return value
 
 
 def _run_summary(run) -> dict[str, object]:

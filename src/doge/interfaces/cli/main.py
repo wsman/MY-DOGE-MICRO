@@ -8,6 +8,7 @@ Usage:
     doge anomaly [--min-ratio 3.0] [--top 20]
     doge demo [--market cn] [--top 5]
     doge demo-pack --run-id <run_id> --output demo_packet/
+    doge export <run_id> [--format md|json] [--citations-only] [--output memo.md]
     doge macro [--verbose]
     doge doctor [--json]
     doge session [--title "..."]
@@ -50,6 +51,7 @@ from doge.interfaces.cli.commands import (
     cmd_demo,
     cmd_demo_pack,
     cmd_doctor,
+    cmd_export,
     cmd_macro,
     cmd_run,
     cmd_rsrs,
@@ -104,6 +106,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_demo_pack.add_argument("--run-id", help="persisted run id to export")
     p_demo_pack.add_argument("--case", help="alias for --run-id; retained for roadmap wording")
     p_demo_pack.add_argument("--output", required=True, help="output directory for packet files")
+
+    # export
+    p_export = sub.add_parser("export", help="export a persisted research-agent memo")
+    p_export.add_argument("run_id", help="persisted run id to export")
+    p_export.add_argument("--format", default="md", choices=["md", "json"], help="export format")
+    p_export.add_argument("--citations-only", action="store_true", help="export citations without memo body")
+    p_export.add_argument("--output", help="write output to path instead of stdout")
 
     # macro
     p_macro = sub.add_parser("macro", help="macro strategy report via configured text LLM")
@@ -245,6 +254,7 @@ def main(argv: list[str] | None = None) -> None:
         "brief": cmd_brief,
         "demo": cmd_demo,
         "doctor": cmd_doctor,
+        "export": cmd_export,
         "macro": cmd_macro,
         "session": cmd_session,
         "start": cmd_start,
