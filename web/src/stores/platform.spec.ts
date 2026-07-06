@@ -209,6 +209,7 @@ describe('platform store', () => {
     expect(store.projectsByWorkspaceId['wsp-1'][0].project_id).toBe('prj-1')
     expect(store.casesByProjectId['prj-1'][0].case_id).toBe('case-1')
     expect(store.workflowTemplates[0].template_id).toBe('tpl-1')
+    expect(store.workflowTemplatesBySlug.stock.template_id).toBe('tpl-1')
     expect(store.homeQueue?.pending_cases[0].reason).toBe('no_recent_execution')
   })
 

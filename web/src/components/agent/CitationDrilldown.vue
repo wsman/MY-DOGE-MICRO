@@ -55,6 +55,10 @@ export interface CitationRecord {
   evidence_id?: string
   citation_id?: string
   score?: number
+  source_type?: string
+  source_tool?: string
+  tool_name?: string
+  note_id?: string
 }
 </script>
 
@@ -138,6 +142,10 @@ function candidateFromRecord(record: unknown, index: number): CitationRecord | n
     evidence_id: evidenceId || undefined,
     citation_id: citationId || undefined,
     score: numberField(record, 'score', 'retrieval_score'),
+    source_type: textField(record, 'source_type', 'sourceType') || undefined,
+    source_tool: textField(record, 'source_tool', 'sourceTool') || undefined,
+    tool_name: textField(record, 'tool_name', 'toolName') || undefined,
+    note_id: textField(record, 'note_id', 'noteId') || undefined,
   }
 }
 

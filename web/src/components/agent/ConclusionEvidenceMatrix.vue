@@ -15,6 +15,13 @@
         <n-tag size="small" :type="riskTone(claim.risk_level)">{{ claim.risk_level }}</n-tag>
       </div>
       <div class="evidence-cell" aria-label="Evidence references">
+        <span
+          v-for="sourceType in sourceTypes(claim.evidence_refs)"
+          :key="sourceType"
+          class="source-type-badge"
+        >
+          {{ evidenceSourceLabel(sourceType) }}
+        </span>
         <button
           v-for="(ref, index) in claim.evidence_refs"
           :key="ref.key"
@@ -53,6 +60,7 @@ export interface EvidenceSelection {
 <script setup lang="ts">
 import { NTag } from 'naive-ui'
 import type { RunStatusTone } from '../../utils/runStatus'
+import { evidenceSourceLabel, evidenceSourceType } from '../../utils/evidenceSourceType'
 
 defineProps<{
   claims: ConclusionClaimDisplay[]
@@ -64,6 +72,17 @@ const emit = defineEmits<{
 
 function evidenceLabel(ref: ConclusionEvidenceRef, index: number) {
   return ref.source || ref.evidence_id || ref.citation_id || ref.chunk_id || `Evidence ${index + 1}`
+}
+
+function sourceTypes(refs: ConclusionEvidenceRef[]) {
+  const seen = new Set<string>()
+  return refs
+    .map(ref => evidenceSourceType(ref as unknown as Record<string, unknown>))
+    .filter(sourceType => {
+      if (seen.has(sourceType)) return false
+      seen.add(sourceType)
+      return true
+    })
 }
 
 function statusTone(status: string): RunStatusTone {
@@ -148,6 +167,19 @@ function riskTone(risk: string): RunStatusTone {
   text-align: left;
   cursor: pointer;
   overflow-wrap: anywhere;
+}
+
+.source-type-badge {
+  display: inline-block;
+  align-self: center;
+  padding: 2px 6px;
+  border: 1px solid var(--dgm-border);
+  border-radius: 999px;
+  color: var(--dgm-text-faint);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-transform: uppercase;
 }
 
 .evidence-chip:hover {

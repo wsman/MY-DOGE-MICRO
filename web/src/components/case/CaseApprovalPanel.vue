@@ -3,7 +3,7 @@
     <div id="case-approval-title" class="section-title">Approval</div>
     <div class="list">
       <article
-        v-for="approval in approvals"
+        v-for="approval in props.approvals"
         :key="String(approval.approval_id)"
         class="approval-row"
         role="group"
@@ -16,6 +16,7 @@
           </n-tag>
         </div>
         <p>{{ approval.action || 'Approval action pending' }}</p>
+        <ApprovalExplanation :approval="approval" :policy="policyForApproval(approval)" />
         <n-button
           v-if="approval.run_id"
           size="tiny"
@@ -25,7 +26,7 @@
           Open Run
         </n-button>
       </article>
-      <div v-if="!approvals.length" class="empty-state">No approvals pending</div>
+      <div v-if="!props.approvals.length" class="empty-state">No approvals pending</div>
     </div>
   </section>
 </template>
@@ -33,8 +34,15 @@
 <script setup lang="ts">
 import { NButton, NTag } from 'naive-ui'
 import type { JsonObject } from 'doge-sdk'
+import ApprovalExplanation from '../approval/ApprovalExplanation.vue'
+import type { ApprovalPolicy } from '../../utils/approvalPolicy'
 
-defineProps<{ approvals: JsonObject[] }>()
+const props = withDefaults(defineProps<{
+  approvals: JsonObject[]
+  policyByRunId?: Record<string, ApprovalPolicy>
+}>(), {
+  policyByRunId: () => ({}),
+})
 defineEmits<{
   openRun: [runId: string]
 }>()
@@ -44,6 +52,11 @@ function approvalLabel(approval: JsonObject): string {
   const status = String(approval.status || 'unknown')
   const action = String(approval.action || 'approval action')
   return `${risk} risk approval ${status}: ${action}`
+}
+
+function policyForApproval(approval: JsonObject): ApprovalPolicy | undefined {
+  const runId = typeof approval.run_id === 'string' ? approval.run_id : ''
+  return runId ? props.policyByRunId[runId] : undefined
 }
 </script>
 

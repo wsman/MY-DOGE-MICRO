@@ -19,6 +19,8 @@ describe('ConclusionEvidenceMatrix', () => {
           evidence({
             key: 'evd-1',
             evidence_id: 'evd-1',
+            document_id: 'annual-report',
+            page_number: 3,
             source: 'annual report p.3',
             snippet: 'Revenue grew 18%.',
           }),
@@ -42,7 +44,8 @@ describe('ConclusionEvidenceMatrix', () => {
     expect(wrapper.text()).toContain('supported')
     expect(wrapper.text()).toContain('passed')
     expect(wrapper.text()).toContain('low')
-    expect(wrapper.find('.evidence-chip').text()).toBe('annual report p.3')
+    expect(wrapper.find('.evidence-chip').text()).toContain('annual report p.3')
+    expect(wrapper.find('.evidence-cell').text()).toContain('Document')
     expect(wrapper.text()).toContain('Margin pressure is unresolved.')
     expect(wrapper.text()).toContain('No evidence')
   })
@@ -74,6 +77,26 @@ describe('ConclusionEvidenceMatrix', () => {
         ref,
       },
     ])
+  })
+
+  it('renders source type tags inside the evidence cell', () => {
+    const wrapper = mount(ConclusionEvidenceMatrix, {
+      props: {
+        claims: [
+          claim({
+            claim_id: 'claim-source',
+            claim_text: 'Claim with mixed evidence.',
+            evidence_refs: [
+              evidence({ key: 'doc', document_id: 'doc-1', page_number: 2, source: 'doc-1 p.2' }),
+              evidence({ key: 'tool', source_tool: 'validate_financial_claims', source: 'tool result' }),
+            ],
+          }),
+        ],
+      },
+    })
+
+    expect(wrapper.find('.evidence-cell').text()).toContain('Document')
+    expect(wrapper.find('.evidence-cell').text()).toContain('Tool')
   })
 })
 

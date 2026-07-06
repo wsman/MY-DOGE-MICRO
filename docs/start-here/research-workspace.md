@@ -26,15 +26,20 @@ runtime.
 
 3. Use the SDK-backed runtime flow.
 
-   Create or select a session, upload documents when needed, submit a turn,
-   follow run events, resolve approvals, and inspect artifacts or citations.
-   The route contract stays in [../API.md](../API.md).
+   Start at `/home`, then use `Start research` or `Run demo` to enter the
+   Research workspace. Create or select a session, upload documents when needed,
+   submit a turn, follow run events, resolve approvals, and inspect artifacts or
+   citations. The route contract stays in [../API.md](../API.md).
 
 ## What To Expect
 
 - Web calls should flow through the TypeScript SDK or a thin local adapter.
+- Home is the analyst entry surface for recent runs, uploads, cases, approvals,
+  memos, static portfolio/demo-pack actions, and Local Alpha readiness.
 - Runtime types come from the SDK contract.
 - Run state comes from `/v1` sessions, runs, events, approvals, and artifacts.
+- Approval panels show existing explanation fields and, when available,
+  read-only workflow-template policy rows from `metadata.contract.approval_policy`.
 - Feature-flagged workspace views may be hidden on a default daemon.
 - Level 3 SDK/platform remains experimental.
 

@@ -1,5 +1,6 @@
 <template>
   <div class="research-agent-view" :class="{ 'developer-mode': isDeveloperMode }" aria-label="Research Agent workspace">
+    <FirstRunGuide />
     <div class="workspace-toolbar" aria-label="Research workspace toolbar">
       <div class="mode-toggle" role="group" aria-label="Workspace mode">
         <n-button
@@ -139,12 +140,7 @@
         >
           <div class="approval-title">{{ approval.risk_level }} · {{ approval.status }}</div>
           <div class="approval-action">{{ approval.action }}</div>
-          <div v-if="approvalDetailRows(approval).length" class="approval-details">
-            <div v-for="row in approvalDetailRows(approval)" :key="row.key" class="detail-row">
-              <span>{{ row.label }}</span>
-              <strong>{{ row.value }}</strong>
-            </div>
-          </div>
+          <ApprovalExplanation :approval="approval" :policy="approvalPolicy" />
           <n-space v-if="approval.status === 'pending'" size="small">
             <n-button size="tiny" type="primary" @click="store.resolveApproval(approval.approval_id, true)">Approve</n-button>
             <n-button size="tiny" @click="store.resolveApproval(approval.approval_id, false)">Deny</n-button>
@@ -178,6 +174,7 @@ import { computed, ref } from 'vue'
 import MarkdownIt from 'markdown-it'
 import { CodeDownloadOutline, CopyOutline, DownloadOutline, PrintOutline } from '@vicons/ionicons5'
 import { NAlert, NButton, NIcon, NInput, NSelect, NSpace, NTag } from 'naive-ui'
+import ApprovalExplanation from '../components/approval/ApprovalExplanation.vue'
 import CitationDrilldown from '../components/agent/CitationDrilldown.vue'
 import type { CitationRecord } from '../components/agent/CitationDrilldown.vue'
 import ConclusionEvidenceMatrix from '../components/agent/ConclusionEvidenceMatrix.vue'
@@ -187,6 +184,7 @@ import MaturityPanel from '../components/common/MaturityPanel.vue'
 import DocumentSelector from '../components/agent/DocumentSelector.vue'
 import DocumentUploader from '../components/agent/DocumentUploader.vue'
 import EmptyStateCtas from '../components/agent/EmptyStateCtas.vue'
+import FirstRunGuide from '../components/agent/FirstRunGuide.vue'
 import GuidedFlow from '../components/agent/GuidedFlow.vue'
 import ExecutionProfileSelector from '../components/agent/ExecutionProfileSelector.vue'
 import PortfolioImporter from '../components/agent/PortfolioImporter.vue'
@@ -196,6 +194,8 @@ import ScenarioPicker from '../components/agent/ScenarioPicker.vue'
 import type { ImportedPortfolio } from '../api/portfolio'
 import { useAgentStore } from '../stores/agent'
 import { useDocumentStore } from '../stores/documents'
+import { usePlatformStore } from '../stores/platform'
+import { readTemplatePolicy } from '../utils/approvalPolicy'
 import {
   buildMemoExportPayload,
   collectCitationRecords,
@@ -211,6 +211,7 @@ import { labelFor, nextActionsFor, toneFor } from '../utils/runStatus'
 
 const store = useAgentStore()
 const documentStore = useDocumentStore()
+const platformStore = usePlatformStore()
 const md = new MarkdownIt()
 const inputPaneRef = ref<HTMLElement | null>(null)
 const isDeveloperMode = computed(() => !store.analystMode)
@@ -258,6 +259,10 @@ const activeClaimEvidenceRefs = computed(() => {
   return structuredClaims.value.find(claim => claim.claim_id === selectedClaimId.value)?.evidence_refs ?? []
 })
 const statusNextActions = computed(() => nextActionsFor(store.run?.status))
+const approvalPolicy = computed(() => {
+  const workflowSlug = store.run?.workflow ?? ''
+  return readTemplatePolicy(platformStore.workflowTemplatesBySlug[workflowSlug])
+})
 const statusAnnouncement = computed(() => {
   const tokens = isDeveloperMode.value ? `; tokens ${usage.value.total_tokens ?? 0}` : ''
   const next = statusNextActions.value.length ? `; next ${statusNextActions.value.join(', ')}` : ''
@@ -330,23 +335,6 @@ interface ApprovalDisplay {
   publish_target?: unknown
 }
 
-const approvalDetailFields = [
-  { key: 'why_needed', label: 'Why needed' },
-  { key: 'impact', label: 'Impact' },
-  { key: 'deny_consequence', label: 'Deny consequence' },
-  { key: 'publish_target', label: 'Publish target' },
-] as const
-
-function approvalDetailRows(approval: ApprovalDisplay) {
-  return approvalDetailFields
-    .map(field => ({
-      key: field.key,
-      label: field.label,
-      value: textValue(approval[field.key]),
-    }))
-    .filter(row => row.value)
-}
-
 function approvalLabel(approval: ApprovalDisplay) {
   const whyNeeded = textValue(approval.why_needed)
   const suffix = whyNeeded ? `; why needed: ${whyNeeded}` : ''
@@ -391,6 +379,10 @@ function citationRecordFromRef(value: unknown, index: number, claimId: string): 
     evidence_id: evidenceId || undefined,
     citation_id: citationId || undefined,
     score: numberValue(item.score ?? item.retrieval_score),
+    source_type: textField(item, 'source_type', 'sourceType') || undefined,
+    source_tool: textField(item, 'source_tool', 'sourceTool') || undefined,
+    tool_name: textField(item, 'tool_name', 'toolName') || undefined,
+    note_id: textField(item, 'note_id', 'noteId') || undefined,
   }
 }
 
@@ -541,28 +533,6 @@ section {
   font-size: 12px;
   color: var(--dgm-text-muted);
   margin: 4px 0 8px;
-}
-
-.approval-details {
-  display: grid;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.detail-row {
-  display: grid;
-  grid-template-columns: 104px minmax(0, 1fr);
-  gap: 8px;
-  font-size: 12px;
-}
-
-.detail-row span {
-  color: var(--dgm-text-faint);
-}
-
-.detail-row strong {
-  min-width: 0;
-  overflow-wrap: anywhere;
 }
 
 .timeline {

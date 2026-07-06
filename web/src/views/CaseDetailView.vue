@@ -70,7 +70,12 @@
             <div v-else class="empty-state">No eval</div>
           </section>
 
-          <CaseApprovalPanel class="panel-frame" :approvals="reviewApprovals" @open-run="openRun" />
+          <CaseApprovalPanel
+            class="panel-frame"
+            :approvals="reviewApprovals"
+            :policy-by-run-id="policyByRunId"
+            @open-run="openRun"
+          />
 
           <CaseDecisionPanel class="panel-frame" :decisions="decisions" @record="recordDecision" />
         </aside>
@@ -91,6 +96,7 @@ import ExecutionMonitor from '../components/case/ExecutionMonitor.vue'
 import PreflightResult from '../components/case/PreflightResult.vue'
 import TemplateConfigurator from '../components/case/TemplateConfigurator.vue'
 import { usePlatformStore } from '../stores/platform'
+import { readTemplatePolicy, type ApprovalPolicy } from '../utils/approvalPolicy'
 import type { AddCaseAssetPayload, CaseExecutionPayload, RecordCaseDecisionPayload } from 'doge-sdk'
 
 const route = useRoute()
@@ -109,6 +115,15 @@ const preflightResult = computed(() => store.preflightByCaseId[caseId.value])
 const reviewClaims = computed(() => review.value?.claims ?? [])
 const reviewCitations = computed(() => review.value?.citations ?? [])
 const reviewApprovals = computed(() => review.value?.approvals ?? [])
+const policyByRunId = computed<Record<string, ApprovalPolicy>>(() => {
+  const policies: Record<string, ApprovalPolicy> = {}
+  for (const execution of review.value?.executions ?? []) {
+    if (!execution.run_id || !execution.template_slug) continue
+    const policy = readTemplatePolicy(store.workflowTemplatesBySlug[execution.template_slug])
+    if (policy) policies[execution.run_id] = policy
+  }
+  return policies
+})
 const errorMessage = computed(() => store.error?.message ?? '')
 
 async function load() {

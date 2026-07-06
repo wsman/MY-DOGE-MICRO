@@ -6,6 +6,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ResearchAgentView from './ResearchAgentView.vue'
 import { useAgentStore } from '../stores/agent'
 
+const platformStoreMock = vi.hoisted(() => ({
+  capabilities: null as unknown,
+  capabilitiesById: {} as Record<string, unknown>,
+  workflowTemplates: [] as unknown[],
+  workflowTemplatesBySlug: {} as Record<string, unknown>,
+  loadCapabilities: vi.fn(async () => null),
+  loadWorkflowTemplates: vi.fn(async () => []),
+}))
+
 vi.mock('../api/agent', () => ({
   createAgentRun: vi.fn(),
   approveAgentRun: vi.fn(),
@@ -21,22 +30,24 @@ vi.mock('../api/documents', () => ({
 // self-loads it on mount. Stub the store so mounting ResearchAgentView does
 // not trigger a real /v1/capabilities fetch under jsdom.
 vi.mock('../stores/platform', () => ({
-  usePlatformStore: () => ({
-    capabilities: null,
-    capabilitiesById: {},
-    workflowTemplates: [],
-    loadCapabilities: vi.fn(async () => null),
-    loadWorkflowTemplates: vi.fn(async () => []),
-  }),
+  usePlatformStore: () => platformStoreMock,
 }))
 
 describe('ResearchAgentView accessibility', () => {
   beforeEach(() => {
+    window.localStorage.setItem('doge.firstRunSeen', '1')
     setActivePinia(createPinia())
+    platformStoreMock.capabilities = null
+    platformStoreMock.capabilitiesById = {}
+    platformStoreMock.workflowTemplates = []
+    platformStoreMock.workflowTemplatesBySlug = {}
+    platformStoreMock.loadCapabilities = vi.fn(async () => null)
+    platformStoreMock.loadWorkflowTemplates = vi.fn(async () => [])
   })
 
   afterEach(() => {
     document.body.innerHTML = ''
+    window.localStorage.clear()
     vi.restoreAllMocks()
   })
 
@@ -202,7 +213,8 @@ describe('ResearchAgentView accessibility', () => {
     expect(matrix.text()).toContain('supported')
     expect(matrix.text()).toContain('not_applicable')
     expect(matrix.text()).toContain('low')
-    expect(matrix.find('.evidence-chip').text()).toBe('evd-abc')
+    expect(matrix.find('.evidence-chip').text()).toContain('evd-abc')
+    expect(matrix.find('.evidence-cell').text()).toContain('Tool')
     expect(wrapper.text()).not.toContain('annual report')
 
     const developerButton = wrapper.findAll('button').find(button => button.text().includes('Developer'))
@@ -224,6 +236,65 @@ describe('ResearchAgentView accessibility', () => {
     expect(wrapper.text()).toContain('100%')
     expect(wrapper.text()).toContain('direct_kimi_api')
     expect(wrapper.text()).toContain('kimi-k2.6')
+
+    wrapper.unmount()
+  })
+
+  it('renders approval policy rows from the matching workflow template', () => {
+    platformStoreMock.workflowTemplatesBySlug = {
+      investment_research: {
+        metadata: {
+          contract: {
+            approval_policy: {
+              publish: 'required',
+            },
+          },
+        },
+      },
+    }
+    const store = useAgentStore()
+    store.run = {
+      run_id: 'run-policy',
+      workflow: 'investment_research',
+      question: 'Analyze',
+      session_id: null,
+      market: 'us',
+      language: 'en',
+      document_ids: [],
+      portfolio_id: null,
+      model_policy: {},
+      workflow_context: null,
+      identity_snapshot: null,
+      status: 'awaiting_approval',
+      events: [],
+      artifacts: [],
+      approvals: [
+        {
+          approval_id: 'appr-policy',
+          action: 'publish memo',
+          risk_level: 'high',
+          why_needed: 'External publishing requires review.',
+          impact: undefined,
+          deny_consequence: undefined,
+          publish_target: undefined,
+          run_id: 'run-policy',
+          status: 'pending',
+          created_at: 'now',
+          resolved_at: null,
+        },
+      ],
+      cancel_requested_at: null,
+      schema_version: '1.0',
+      created_at: 'now',
+      updated_at: 'now',
+    }
+
+    const wrapper = mount(ResearchAgentView)
+
+    expect(wrapper.find('.approval-item').findAll('.detail-row').map(row => row.text())).toEqual([
+      'Why neededExternal publishing requires review.',
+      'Policy · publishrequired',
+    ])
 
     wrapper.unmount()
   })

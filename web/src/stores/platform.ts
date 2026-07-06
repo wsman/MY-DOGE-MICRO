@@ -86,6 +86,9 @@ export const usePlatformStore = defineStore('platform', () => {
   const workflowTemplatesById = computed(() => (
     Object.fromEntries(workflowTemplates.value.map(item => [item.template_id, item]))
   ))
+  const workflowTemplatesBySlug = computed(() => (
+    Object.fromEntries(workflowTemplates.value.map(item => [item.slug, item]))
+  ))
   const projectsByWorkspaceId = computed(() => groupBy(projects.value, 'workspace_id'))
   const casesByProjectId = computed(() => groupBy(researchCases.value, 'project_id'))
 
@@ -331,6 +334,7 @@ export const usePlatformStore = defineStore('platform', () => {
     projectsById,
     researchCasesById,
     workflowTemplatesById,
+    workflowTemplatesBySlug,
     projectsByWorkspaceId,
     casesByProjectId,
     loadCapabilities,
