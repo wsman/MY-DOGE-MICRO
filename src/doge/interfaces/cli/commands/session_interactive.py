@@ -21,11 +21,34 @@ from doge.interfaces.cli.commands.session_presenter import (
     print_pending_approvals,
     print_run_summary,
 )
+from doge.interfaces.cli.run_status_labels import next_actions_for_run_status
 
 
 def _count_pending(approvals) -> int:
     """Count approvals still pending (UX-1 Slice D ``/status`` context line)."""
     return sum(1 for a in approvals if getattr(a, "status", None) == "pending")
+
+
+def _run_status_value(run) -> str | None:
+    """Extract a string status from dataclass, SDK, or test-double run objects."""
+    status = getattr(run, "status", None)
+    if not status:
+        return None
+    value = getattr(status, "value", status)
+    return str(value) if value else None
+
+
+def _gateway_payload_status(payload: dict | None) -> str | None:
+    if not payload:
+        return None
+    run = payload.get("run")
+    nested_status = run.get("status") if isinstance(run, dict) else None
+    status = payload.get("status") or nested_status or payload.get("status_code")
+    return str(status) if status else None
+
+
+def _next_action_hint(status: str | None) -> str:
+    return "; ".join(next_actions_for_run_status(status))
 
 
 def interactive_loop(
@@ -42,6 +65,7 @@ def interactive_loop(
     document_ids: list[str] = []
     portfolio_id: str | None = None
     last_run_id: str | None = None
+    last_run_status: str | None = None
     pending_count = 0
     while True:
         try:
@@ -63,7 +87,8 @@ def interactive_loop(
             print(
                 f"ses={session_id} docs={len(document_ids)} "
                 f"portfolio={portfolio_id or '-'} "
-                f"last_run={last_run_id or 'none'} pending={pending_count}"
+                f"last_run={last_run_id or 'none'} pending={pending_count} "
+                f"next_action={_next_action_hint(last_run_status)}"
             )
             continue
         if line == "/new":
@@ -77,11 +102,13 @@ def interactive_loop(
                 session = _session._runtime_container().build_create_session_use_case().execute()
                 session_id = session.session_id
             last_run_id = None
+            last_run_status = None
             print(f"session_id={session_id}")
             continue
         if line.startswith("/resume "):
             session_id = line.split(maxsplit=1)[1]
             last_run_id = None
+            last_run_status = None
             print(f"session_id={session_id}")
             continue
         if line.startswith("/attach "):
@@ -143,13 +170,14 @@ def interactive_loop(
             approval_id = line.split(maxsplit=1)[1]
             approved = line.startswith("/approve ")
             if mode == "gateway":
-                resolve_gateway_approval(
+                payload = resolve_gateway_approval(
                     GatewayArgs(daemon_url=daemon_url, api_token=api_token),
                     last_run_id,
                     approval_id,
                     approved,
                     follow=True,
                 )
+                last_run_status = _gateway_payload_status(payload) or last_run_status
                 continue
             try:
                 run = resolve_embedded_approval(last_run_id, approval_id, approved)
@@ -157,6 +185,7 @@ def interactive_loop(
                 print(f"approval_error={exc}")
                 continue
             last_run_id = run.run_id
+            last_run_status = _run_status_value(run)
             print_run_summary(run)
             pending_count = _count_pending(getattr(run, "approvals", []))
             continue
@@ -171,6 +200,7 @@ def interactive_loop(
                     run_id,
                 )
                 last_run_id = run_id
+                last_run_status = "cancelling"
                 continue
             try:
                 run = cancel_embedded_run(run_id)
@@ -178,6 +208,7 @@ def interactive_loop(
                 print(f"cancel_error={exc}")
                 continue
             last_run_id = run.run_id
+            last_run_status = _run_status_value(run)
             print_run_summary(run)
             pending_count = _count_pending(getattr(run, "approvals", []))
             continue
@@ -194,6 +225,7 @@ def interactive_loop(
                 portfolio_id=portfolio_id,
             )
             last_run_id = run_id
+            last_run_status = "running"
             print(f"run_id={run_id} status=accepted")
             print_gateway_stream(GatewayArgs(daemon_url=daemon_url, api_token=api_token), run_id)
             continue
@@ -205,6 +237,7 @@ def interactive_loop(
             portfolio_id=portfolio_id,
         ))
         last_run_id = run.run_id
+        last_run_status = _run_status_value(run)
         print(f"run_id={run.run_id} status={run.status.value}")
         print_pending_approvals(run, session_id=session_id, mode=mode)
         pending_count = _count_pending(getattr(run, "approvals", []))

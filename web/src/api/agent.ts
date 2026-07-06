@@ -4,6 +4,7 @@ import type {
   AgentArtifact as SdkAgentArtifact,
   AgentEvent as SdkAgentEvent,
   AgentRun as SdkAgentRun,
+  RunListItem as SdkRunListItem,
 } from 'doge-sdk'
 
 type WebRecord = Record<string, unknown> & Record<string, any>
@@ -11,6 +12,7 @@ type WebRecord = Record<string, unknown> & Record<string, any>
 export type AgentEvent = Omit<SdkAgentEvent, 'payload'> & { payload: WebRecord }
 export type AgentArtifact = Omit<SdkAgentArtifact, 'data'> & { data: WebRecord }
 export type AgentApproval = SdkAgentApproval
+export type RunListItem = SdkRunListItem
 export type AgentRun = Omit<SdkAgentRun, 'events' | 'artifacts'> & {
   events: AgentEvent[]
   artifacts: AgentArtifact[]
@@ -43,6 +45,10 @@ export async function createAgentRun(payload: CreateAgentRunRequest): Promise<Ag
 
 export async function fetchAgentRun(runId: string): Promise<AgentRun> {
   return await dogeClient.runs.get(runId)
+}
+
+export async function listAgentRuns(limit = 8): Promise<RunListItem[]> {
+  return await dogeClient.runs.list({ limit })
 }
 
 export async function approveAgentRun(runId: string, approvalId: string, approved: boolean): Promise<AgentRun> {

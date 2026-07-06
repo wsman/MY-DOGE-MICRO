@@ -1,7 +1,7 @@
 import pytest
 
 from doge.application.services.portfolio_import_service import PortfolioImportService
-from doge.application.services.portfolio_service import PortfolioService, RiskService, ScenarioService
+from doge.application.services.portfolio_service import PortfolioService, PortfolioSummaryService, RiskService, ScenarioService
 from doge.core.domain.portfolio_models import Portfolio, PortfolioHolding
 from doge.infrastructure.database.portfolio_repository import SQLitePortfolioRepository, demo_portfolio
 from doge.shared.scope import TenantScope
@@ -87,6 +87,52 @@ def test_portfolio_service_groups_exposure(tmp_path):
     assert result["total_market_value"] == 100.0
     assert {"name": "technology", "market_value": 60.0, "weight": 0.6} in result["by_sector"]
     assert {"name": "bond", "market_value": 40.0, "weight": 0.4} in result["by_asset_class"]
+
+
+def test_portfolio_summary_service_builds_import_summary(tmp_path):
+    repo = SQLitePortfolioRepository(tmp_path / "agent_state.db")
+    repo.save(Portfolio(
+        portfolio_id="p1",
+        name="Operator book",
+        holdings=[
+            PortfolioHolding("AAA", "equity", "technology", 60.0, quantity=3),
+            PortfolioHolding("BBB", "bond", "rates", 30.0, quantity=0),
+            PortfolioHolding("CCC", "cash", "cash", 10.0, quantity=10),
+        ],
+    ))
+
+    result = PortfolioSummaryService(repo).build_summary("p1")
+
+    assert result["holdings_count"] == 3
+    assert result["top_concentration"][0] == {
+        "symbol": "AAA",
+        "asset_class": "equity",
+        "sector": "technology",
+        "market_value": 60.0,
+        "weight": 0.6,
+    }
+    assert {"name": "rates", "market_value": 30.0, "weight": 0.3} in result["by_sector"]
+    assert result["missing_prices"] == [{"symbol": "BBB", "reason": "quantity missing; unit price unavailable"}]
+    assert result["suggested_run"] == {
+        "workflow": "portfolio_risk_review",
+        "question": "Analyze concentration and rate-shock risk for portfolio p1.",
+    }
+
+
+def test_portfolio_summary_preserves_fractional_total_weights(tmp_path):
+    repo = SQLitePortfolioRepository(tmp_path / "agent_state.db")
+    repo.save(Portfolio(
+        portfolio_id="p1",
+        name="Fractional book",
+        holdings=[
+            PortfolioHolding("AAA", "equity", "technology", 0.25, quantity=1),
+            PortfolioHolding("BBB", "bond", "rates", 0.25, quantity=1),
+        ],
+    ))
+
+    result = PortfolioSummaryService(repo).build_summary("p1")
+
+    assert [item["weight"] for item in result["top_concentration"]] == [0.5, 0.5]
 
 
 def test_risk_service_returns_deterministic_metrics(tmp_path):

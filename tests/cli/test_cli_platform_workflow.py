@@ -4,6 +4,7 @@ from doge.bootstrap import build_workspace_container
 from doge.config import reset_settings
 from doge.core.domain.platform_models import Project, ResearchCase, Workspace
 from doge.interfaces.cli.main import main
+from doge.platform.workspace.template_seed import BUILTIN_TEMPLATES
 
 
 def test_cli_template_seed_and_list(tmp_path, monkeypatch, capsys):
@@ -16,9 +17,13 @@ def test_cli_template_seed_and_list(tmp_path, monkeypatch, capsys):
     main(["template", "list", "--json"])
     list_payload = json.loads(capsys.readouterr().out)
 
+    expected_slugs = {item["slug"] for item in BUILTIN_TEMPLATES}
     assert "daily_market_brief" in seed_payload["inserted"]
-    assert len(seed_payload["inserted"]) == 8
-    assert len(list_payload["workflow_templates"]) == 8
+    assert {"risk_alert", "portfolio_impact_note"}.issubset(seed_payload["inserted"])
+    assert set(seed_payload["inserted"]) == expected_slugs
+    assert {
+        template["slug"] for template in list_payload["workflow_templates"]
+    } == expected_slugs
 
 
 def test_cli_case_preflight_and_execute_from_template(tmp_path, monkeypatch, capsys):

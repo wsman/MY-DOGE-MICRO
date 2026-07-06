@@ -62,6 +62,34 @@ def test_python_sdk_get_run():
     assert run == {"run_id": "run-test", "status": "completed"}
 
 
+def test_python_sdk_list_runs():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET"
+        assert request.url.path == "/v1/runs"
+        assert request.url.params["limit"] == "3"
+        assert request.url.params["session_id"] == "ses-1"
+        return httpx.Response(200, json={"runs": [{"run_id": "run-test", "status": "completed"}]})
+
+    client = DogeClient(base_url="http://testserver", transport=httpx.MockTransport(handler))
+
+    runs = client.runs.list(limit=3, session_id="ses-1")
+
+    assert runs == [{"run_id": "run-test", "status": "completed"}]
+
+
+def test_python_sdk_get_case_progress():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET"
+        assert request.url.path == "/v1/research-cases/case-1/progress"
+        return httpx.Response(200, json={"case_id": "case-1", "steps": [{"progress_id": "cps-1"}]})
+
+    client = DogeClient(base_url="http://testserver", transport=httpx.MockTransport(handler))
+
+    progress = client.platform.get_case_progress("case-1")
+
+    assert progress == [{"progress_id": "cps-1"}]
+
+
 def test_python_sdk_get_run_events():
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.method == "GET"

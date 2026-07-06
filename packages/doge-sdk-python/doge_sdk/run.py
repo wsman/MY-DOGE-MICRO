@@ -28,6 +28,12 @@ class RunsResource:
     def __init__(self, root: Any) -> None:
         self._root = root
 
+    def list(self, limit: int = 20, session_id: str | None = None) -> list[dict[str, Any]]:
+        params: dict[str, Any] = {"limit": limit}
+        if session_id is not None:
+            params["session_id"] = session_id
+        return self._root._request("GET", "/v1/runs", params=params)["runs"]
+
     def get(self, run_id: str) -> dict[str, Any]:
         return self._root._request("GET", f"/v1/runs/{run_id}")
 
@@ -108,6 +114,12 @@ class RunsResource:
 class AsyncRunsResource:
     def __init__(self, root: Any) -> None:
         self._root = root
+
+    async def list(self, limit: int = 20, session_id: str | None = None) -> list[dict[str, Any]]:
+        params: dict[str, Any] = {"limit": limit}
+        if session_id is not None:
+            params["session_id"] = session_id
+        return (await self._root._request("GET", "/v1/runs", params=params))["runs"]
 
     async def get(self, run_id: str) -> dict[str, Any]:
         return await self._root._request("GET", f"/v1/runs/{run_id}")

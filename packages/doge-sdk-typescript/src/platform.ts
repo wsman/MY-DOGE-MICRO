@@ -4,6 +4,7 @@ import type {
   CapabilitySnapshot,
   CaseAssetLink,
   CaseDecision,
+  CaseProgressStep,
   CaseRunLink,
   CaseReview,
   HomeQueue,
@@ -129,6 +130,14 @@ export class PlatformResource {
 
   getResearchCase(caseId: string): Promise<ResearchCase> {
     return this.root.request<ResearchCase>('GET', `/v1/research-cases/${caseId}`)
+  }
+
+  async getCaseProgress(caseId: string): Promise<CaseProgressStep[]> {
+    const payload = await this.root.request<{ steps: CaseProgressStep[] }>(
+      'GET',
+      `/v1/research-cases/${caseId}/progress`,
+    )
+    return payload.steps
   }
 
   homeQueue(limit = 20): Promise<HomeQueue> {

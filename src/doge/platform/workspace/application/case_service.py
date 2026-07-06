@@ -10,6 +10,7 @@ from doge.core.domain.enterprise_context import EnterpriseContext
 from doge.core.domain.platform_models import (
     CaseAssetLink,
     CaseDecision,
+    CaseProgressStep,
     CaseRunLink,
     Project,
     ResearchCase,
@@ -604,6 +605,33 @@ class ResearchCaseService:
             "warnings": [],
         }
 
+    def build_case_progress(self, context: PlatformRequestContext, case_id: str) -> dict[str, Any]:
+        research_case = self._require_case(context, case_id, "read")
+        persisted = self._repo.list_case_progress_steps(context.tenant_scope, case_id)
+        if persisted:
+            steps = persisted
+            source = "persisted"
+        else:
+            assets = self._repo.list_case_assets(context.tenant_scope, case_id)
+            executions = self.list_workflow_executions_for_case(context, case_id, limit=5)
+            decisions = self._repo.list_case_decisions(context.tenant_scope, case_id)
+            steps = _derived_progress_steps(
+                research_case=research_case,
+                assets=assets,
+                executions=executions,
+                decisions=decisions,
+                tenant_id=context.tenant_id,
+            )
+            source = "derived"
+        self._access.audit(
+            context,
+            "research_case_progress_read",
+            "research_case",
+            case_id,
+            metadata={"source": source, "step_count": len(steps)},
+        )
+        return {"case_id": case_id, "steps": steps, "source": source, "warnings": []}
+
     def build_home_queue(self, context: PlatformRequestContext, *, limit: int = 20) -> dict[str, Any]:
         cases = self.list(context, limit=limit)
         pending_cases: list[dict[str, Any]] = []
@@ -913,6 +941,111 @@ class PlatformAccessService:
 
 def _status_for_run(run: AgentRun) -> str:
     return run.status.value if hasattr(run.status, "value") else str(run.status)
+
+
+def _derived_progress_steps(
+    *,
+    research_case: ResearchCase,
+    assets: list[CaseAssetLink],
+    executions: list[WorkflowExecution],
+    decisions: list[CaseDecision],
+    tenant_id: str | None,
+) -> list[CaseProgressStep]:
+    latest_execution = executions[0] if executions else None
+    latest_decision = decisions[0] if decisions else None
+    evidence_done = bool(assets)
+    workflow_status = _progress_status_for_execution(latest_execution)
+    workflow_terminal = workflow_status == "done"
+    return [
+        CaseProgressStep.create(
+            case_id=research_case.case_id,
+            step_key="intake",
+            label="Case intake",
+            status="done",
+            owner="analyst",
+            timestamp=research_case.created_at,
+            next_action="Attach evidence assets" if not evidence_done else "Prepare workflow execution",
+            source_type="research_case",
+            source_id=research_case.case_id,
+            tenant_id=tenant_id,
+        ),
+        CaseProgressStep.create(
+            case_id=research_case.case_id,
+            step_key="evidence",
+            label="Evidence readiness",
+            status="done" if evidence_done else "blocked",
+            owner="analyst",
+            timestamp=assets[0].linked_at if evidence_done else research_case.updated_at,
+            blocking_issue="" if evidence_done else "No case assets linked",
+            next_action="Run workflow template" if evidence_done else "Attach a document, portfolio, or URL asset",
+            source_type="case_asset" if evidence_done else "research_case",
+            source_id=assets[0].asset_link_id if evidence_done else research_case.case_id,
+            tenant_id=tenant_id,
+            metadata={"asset_count": len(assets)},
+        ),
+        CaseProgressStep.create(
+            case_id=research_case.case_id,
+            step_key="workflow",
+            label="Workflow execution",
+            status=workflow_status,
+            owner="operator",
+            timestamp=latest_execution.updated_at if latest_execution else research_case.updated_at,
+            blocking_issue=_blocking_issue_for_execution(latest_execution),
+            next_action=_next_action_for_execution(latest_execution),
+            source_type="workflow_execution" if latest_execution else "research_case",
+            source_id=latest_execution.execution_id if latest_execution else research_case.case_id,
+            tenant_id=tenant_id,
+            metadata={"execution_count": len(executions)},
+        ),
+        CaseProgressStep.create(
+            case_id=research_case.case_id,
+            step_key="decision",
+            label="Governance decision",
+            status="done" if latest_decision else ("todo" if workflow_terminal else "blocked"),
+            owner="reviewer",
+            timestamp=latest_decision.created_at if latest_decision else research_case.updated_at,
+            blocking_issue="" if latest_decision or workflow_terminal else "Workflow output is not ready for decision",
+            next_action="Review recorded decision" if latest_decision else "Record approve, reject, hold, or escalate",
+            source_type="case_decision" if latest_decision else "research_case",
+            source_id=latest_decision.decision_id if latest_decision else research_case.case_id,
+            tenant_id=tenant_id,
+            metadata={"decision_count": len(decisions)},
+        ),
+    ]
+
+
+def _progress_status_for_execution(execution: WorkflowExecution | None) -> str:
+    if execution is None:
+        return "todo"
+    if execution.status in {"completed", "done"}:
+        return "done"
+    if execution.status in {"failed", "cancelled", "preflight_failed"}:
+        return "blocked"
+    return "in_progress"
+
+
+def _blocking_issue_for_execution(execution: WorkflowExecution | None) -> str:
+    if execution is None:
+        return ""
+    if execution.status == "preflight_failed":
+        return "Template preflight failed"
+    if execution.status == "failed":
+        return "Workflow run failed"
+    if execution.status == "cancelled":
+        return "Workflow run was cancelled"
+    return ""
+
+
+def _next_action_for_execution(execution: WorkflowExecution | None) -> str:
+    if execution is None:
+        return "Choose a workflow template and execute it"
+    if execution.status == "preflight_failed":
+        return "Fix preflight inputs or attach required assets"
+    if execution.status in {"failed", "cancelled"}:
+        return "Inspect the run and execute again if still needed"
+    if execution.status in {"completed", "done"}:
+        return "Review evidence and record a decision"
+    return "Monitor run status and resolve approvals"
 
 
 def _execution_links(run_id: str | None) -> dict[str, str]:

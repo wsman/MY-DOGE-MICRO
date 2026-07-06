@@ -19,6 +19,13 @@ def build_portfolio_import_service(portfolio_repository: Any):
     return PortfolioImportService(portfolio_repository)
 
 
+def build_portfolio_summary_service(portfolio_repository: Any):
+    """Build the portfolio import summary service bound to a portfolio repository."""
+    from doge.products.portfolio import PortfolioSummaryService
+
+    return PortfolioSummaryService(portfolio_repository)
+
+
 def build_event_bus():
     """Build the in-process event bus used by daemon/v1 streams."""
     from doge.platform.runtime import EventBus

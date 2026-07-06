@@ -179,6 +179,8 @@ def test_enterprise_portfolio_import_grants_creator_access(tmp_path):
 
     assert response.status_code == 200
     assert response.json()["tenant_id"] == "tenant-a"
+    assert response.json()["summary"]["holdings_count"] == 1
+    assert response.json()["summary"]["top_concentration"][0]["symbol"] == "AAPL"
     assert portfolio_repository.get("portfolio-created", tenant_id="tenant-a") is not None
     assert portfolio_repository.get("portfolio-created", tenant_id="tenant-b") is None
     assert governance.is_allowed(_context(), "portfolio", "portfolio-created", "read") is True

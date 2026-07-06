@@ -11,6 +11,7 @@ from doge.core.domain.agent_models import utc_now
 from doge.core.domain.platform_models import (
     CaseAssetLink,
     CaseDecision,
+    CaseProgressStep,
     CaseRunLink,
     Project,
     ResearchCase,
@@ -713,6 +714,88 @@ class SQLitePlatformRepository(IPlatformRepository):
         with self._connect() as conn:
             rows = conn.execute(sql, tuple(params)).fetchall()
         return [CaseDecision.from_mapping(dict(row)) for row in rows]
+
+    def save_case_progress_step(
+        self,
+        step: CaseProgressStep,
+        scope: TenantScope | str | None = None,
+        *,
+        tenant_id: str | None = None,
+    ) -> None:
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
+        with self._connect() as conn:
+            effective_tenant_id = resolve_tenant_id(
+                _tenant_id_for(conn, "research_cases", "case_id", step.case_id),
+                requested_tenant_id if requested_tenant_id is not None else step.tenant_id,
+            )
+            guard_existing_tenant(
+                conn,
+                table="case_progress_steps",
+                key_column="progress_id",
+                key_value=step.progress_id,
+                tenant_id=effective_tenant_id,
+            )
+            conn.execute(
+                """
+                INSERT INTO case_progress_steps(
+                    progress_id, case_id, tenant_id, step_key, label, status,
+                    owner, timestamp, blocking_issue, next_action, source_type,
+                    source_id, metadata
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(case_id, step_key) DO UPDATE SET
+                    progress_id = excluded.progress_id,
+                    tenant_id = excluded.tenant_id,
+                    label = excluded.label,
+                    status = excluded.status,
+                    owner = excluded.owner,
+                    timestamp = excluded.timestamp,
+                    blocking_issue = excluded.blocking_issue,
+                    next_action = excluded.next_action,
+                    source_type = excluded.source_type,
+                    source_id = excluded.source_id,
+                    metadata = excluded.metadata
+                """,
+                (
+                    step.progress_id,
+                    step.case_id,
+                    effective_tenant_id,
+                    step.step_key,
+                    step.label,
+                    step.status,
+                    step.owner,
+                    step.timestamp,
+                    step.blocking_issue,
+                    step.next_action,
+                    step.source_type,
+                    step.source_id,
+                    _json(step.metadata),
+                ),
+            )
+            conn.commit()
+
+    def list_case_progress_steps(
+        self,
+        scope: TenantScope | str | None = None,
+        case_id: str | None = None,
+        limit: int = 100,
+        *,
+        tenant_id: str | None = None,
+    ) -> list[CaseProgressStep]:
+        if case_id is None:
+            case_id = str(scope)
+            scope = None
+        sql = "SELECT * FROM case_progress_steps WHERE case_id = ?"
+        params: list[Any] = [case_id]
+        requested_tenant_id = _tenant_id_from_scope(scope, tenant_id)
+        if requested_tenant_id is not None:
+            sql += " AND tenant_id = ?"
+            params.append(requested_tenant_id)
+        sql += " ORDER BY timestamp ASC LIMIT ?"
+        params.append(limit)
+        with self._connect() as conn:
+            rows = conn.execute(sql, tuple(params)).fetchall()
+        return [CaseProgressStep.from_mapping(dict(row)) for row in rows]
 
     def _get_one(self, table: str, key: str, value: str, tenant_id: str | None):
         with self._connect() as conn:

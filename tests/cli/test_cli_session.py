@@ -616,6 +616,7 @@ def test_cli_interactive_status_shows_session_context(monkeypatch, capsys):
     assert "portfolio=-" in out
     assert "last_run=none" in out
     assert "pending=0" in out
+    assert "next_action=Start a run" in out
 
 
 def test_cli_interactive_help_prints_grouped_commands(monkeypatch, capsys):
@@ -670,3 +671,4 @@ def test_cli_interactive_status_pending_count_tracks_run_approvals(monkeypatch, 
     out = capsys.readouterr().out
     # After a turn whose run has 2 pending approvals, /status reports pending=2.
     assert "ses=ses-cli docs=0 portfolio=- last_run=run-cli pending=2" in out
+    assert "next_action=Approve or deny" in out

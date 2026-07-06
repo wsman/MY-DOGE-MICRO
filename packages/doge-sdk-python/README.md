@@ -51,6 +51,7 @@ run_id = session.run("Analyze NVDA earnings risk")
 
 run = client.runs.get(run_id)
 events = client.runs.events(run_id)
+recent_runs = client.runs.list(limit=5)
 ```
 
 Upload a document:
@@ -70,6 +71,22 @@ client.runs.resume(run_id, approval_id=approval_id, approved=True)
 Approval dictionaries may include optional explanation metadata:
 `why_needed`, `impact`, `deny_consequence`, and `publish_target`. Older daemon
 snapshots may omit these keys.
+
+`client.runs.list(limit=20, session_id=None)` returns compact run rows for
+history and comparison views. Rows include counts and status metadata, not full
+events or artifacts; use `client.runs.get(run_id)` for the full run.
+
+## Cookbook Files
+
+Standalone examples live in `examples/python/`:
+
+- `01_create_session.py`
+- `02_upload_and_run.py`
+- `03_stream_and_approve.py`
+- `04_error_handling.py`
+
+They mirror the quick-start flows without adding SDK resources or changing the
+package surface.
 
 ## Feature Flags
 

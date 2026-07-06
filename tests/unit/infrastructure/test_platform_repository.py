@@ -3,6 +3,7 @@ import pytest
 from doge.core.domain.platform_models import (
     CaseAssetLink,
     CaseDecision,
+    CaseProgressStep,
     Project,
     ResearchCase,
     WorkflowExecution,
@@ -162,11 +163,25 @@ def test_platform_repository_persists_case_assets_executions_and_decisions(tmp_p
         tenant_id="tenant-a",
     )
     repo.save_case_decision(decision)
+    progress = CaseProgressStep.create(
+        case_id=case.case_id,
+        step_key="workflow",
+        label="Workflow",
+        status="in_progress",
+        owner="research-agent",
+        next_action="Monitor queued execution.",
+        source_type="execution",
+        source_id=execution.execution_id,
+        tenant_id="tenant-a",
+        metadata={"template_slug": template.slug},
+    )
+    repo.save_case_progress_step(progress)
 
     assert repo.list_case_assets(case.case_id, tenant_id="tenant-a") == [asset]
     assert repo.get_workflow_execution(execution.execution_id, tenant_id="tenant-a") == execution
     assert repo.list_workflow_executions(case.case_id, tenant_id="tenant-a") == [execution]
     assert repo.list_case_decisions(case.case_id, tenant_id="tenant-a") == [decision]
+    assert repo.list_case_progress_steps(case.case_id, tenant_id="tenant-a") == [progress]
 
     updated = repo.update_workflow_execution_status(
         execution.execution_id,

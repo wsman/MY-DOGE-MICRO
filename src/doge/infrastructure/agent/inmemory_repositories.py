@@ -95,6 +95,7 @@ class InMemoryRunRepository(IRunRepository):
         self,
         session_id: str,
         scope: TenantScope | str | None = None,
+        limit: int = 20,
         *,
         tenant_id: str | None = None,
     ) -> list[AgentRun]:
@@ -104,7 +105,7 @@ class InMemoryRunRepository(IRunRepository):
             if run.session_id == session_id and _matches_tenant(_tenant_id_from_run(run), requested_tenant_id)
         ]
         hydrated: list[AgentRun] = []
-        for run in sorted(runs, key=lambda item: item.created_at):
+        for run in sorted(runs, key=lambda item: item.created_at)[:limit]:
             loaded = self.get(run.run_id, tenant_id=requested_tenant_id)
             if loaded is not None:
                 hydrated.append(loaded)

@@ -57,6 +57,14 @@ CHECKS: tuple[SurfaceCheck, ...] = (
         ("fetchAgentRun", "dogeClient.runs.get"),
     ),
     SurfaceCheck(
+        "run list",
+        "GET",
+        "/v1/runs",
+        ("def list(self, limit: int = 20, session_id: str | None = None)", '"/v1/runs"'),
+        ("async list(options:", "`/v1/runs?${params.toString()}`"),
+        ("listAgentRuns", "dogeClient.runs.list"),
+    ),
+    SurfaceCheck(
         "run stream",
         "GET",
         "/v1/runs/{run_id}/stream",
@@ -127,6 +135,14 @@ CHECKS: tuple[SurfaceCheck, ...] = (
         ("executeCaseTemplate(", "`/v1/research-cases/${caseId}/executions`"),
         ("executeCaseTemplate(", "`/v1/research-cases/${caseId}/executions`"),
     ),
+    SurfaceCheck(
+        "case progress",
+        "GET",
+        "/v1/research-cases/{case_id}/progress",
+        ("def get_case_progress(self, case_id: str)", 'f"/v1/research-cases/{case_id}/progress"'),
+        ("getCaseProgress(caseId: string)", "`/v1/research-cases/${caseId}/progress`"),
+        ("getCaseProgress(caseId", "dogeClient.platform.getCaseProgress"),
+    ),
 )
 
 
@@ -143,9 +159,11 @@ ENTITY_PARITY: tuple[tuple[str, str], ...] = (
     ("WorkflowTemplateResponse", "WorkflowTemplate"),
     ("WorkflowExecutionResponse", "WorkflowExecution"),
     ("CaseDecisionResponse", "CaseDecision"),
+    ("CaseProgressStepResponse", "CaseProgressStep"),
     ("CapabilityResponse", "Capability"),
     ("CapabilitySnapshotResponse", "CapabilitySnapshot"),
     ("RunSummaryResponse", "RunSummary"),
+    ("RunListItemResponse", "RunListItem"),
     ("RunClaimResponse", "RunClaim"),
     ("RunCitationResponse", "RunCitation"),
     ("RunEvalResponse", "RunEval"),

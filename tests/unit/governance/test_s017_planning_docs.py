@@ -266,10 +266,11 @@ def test_fastapi_route_count_governance_syncs_to_s017_surface():
         entities_registry,
     )
 
-    assert len(route_rows) == 88
-    assert len(entity_routes) == 88
+    assert len(route_rows) == 90
+    assert len(entity_routes) == 90
     assert set(entity_routes) == set(route_rows)
     for path in [
+        "/v1/runs",
         "/v1/portfolios/import",
         "/v1/runs/{run_id}/summary",
         "/v1/runs/{run_id}/resume",
@@ -282,6 +283,7 @@ def test_fastapi_route_count_governance_syncs_to_s017_surface():
         "/v1/home-queue",
         "/v1/research-cases/{case_id}/executions",
         "/v1/research-cases/{case_id}/review",
+        "/v1/research-cases/{case_id}/progress",
         "/v1/workflow-templates",
         "/v1/capabilities",
         "/v1/audit/events",
@@ -298,12 +300,12 @@ def test_fastapi_route_count_governance_syncs_to_s017_surface():
         tr_registry,
         traceability,
         adr_0007,
-        imported_state,
     ]:
-        assert "88 HTTP routes" in text
+        assert "90 HTTP routes" in text
         assert "51 HTTP routes" not in text
-    assert "88 canonical HTTP routes" in entities_registry
+    assert "90 canonical HTTP routes" in entities_registry
     assert "51 canonical HTTP routes" not in entities_registry
+    assert "88 HTTP routes" in imported_state
 
 
 def test_platformization_adr_disposition_review_keeps_proposed_alpha_boundary():

@@ -32,6 +32,13 @@ def _create_run(client: TestClient) -> str:
     ).json()["run_id"]
 
 
+def _create_run_in_session(client: TestClient, session_id: str, message: str = "Analyze") -> str:
+    return client.post(
+        f"/v1/sessions/{session_id}/turns",
+        json={"message": message},
+    ).json()["run_id"]
+
+
 def _wait_for_run(client: TestClient, run_id: str, statuses: set[str], timeout: float = 4.0) -> dict:
     deadline = time.monotonic() + timeout
     body = {}
@@ -101,6 +108,43 @@ def test_v1_get_run_returns_status(tmp_path, monkeypatch):
 
     assert response.status_code == 200
     assert response.json()["status"] in {"queued", "running", "awaiting_approval", "completed"}
+
+
+def test_v1_list_runs_returns_compact_comparison_rows(tmp_path, monkeypatch):
+    _reset_agent_deps(monkeypatch, tmp_path)
+    with TestClient(app) as client:
+        run_id = _create_run(client)
+        time.sleep(0.2)
+
+        response = client.get("/v1/runs", params={"limit": 5})
+
+    assert response.status_code == 200
+    rows = response.json()["runs"]
+    assert rows[0]["run_id"] == run_id
+    assert rows[0]["workflow"] == "investment_research"
+    assert rows[0]["status"] in {"queued", "running", "awaiting_approval", "completed"}
+    assert "events" not in rows[0]
+    assert "artifacts" not in rows[0]
+    assert "event_count" in rows[0]
+    assert "artifact_count" in rows[0]
+
+
+def test_v1_list_runs_applies_limit_with_session_filter(tmp_path, monkeypatch):
+    _reset_agent_deps(monkeypatch, tmp_path)
+    with TestClient(app) as client:
+        session = client.post("/v1/sessions", json={"title": "API"}).json()
+        first_run_id = _create_run_in_session(client, session["session_id"], "Analyze one")
+        _create_run_in_session(client, session["session_id"], "Analyze two")
+        time.sleep(0.2)
+
+        response = client.get(
+            "/v1/runs",
+            params={"session_id": session["session_id"], "limit": 1},
+        )
+
+    assert response.status_code == 200
+    rows = response.json()["runs"]
+    assert [row["run_id"] for row in rows] == [first_run_id]
 
 
 def test_v1_get_run_events_returns_sequence(tmp_path, monkeypatch):
@@ -410,6 +454,17 @@ def test_v1_portfolio_import_persists_csv_holdings(tmp_path, monkeypatch):
     assert body["name"] == "Operator book"
     assert body["total_market_value"] == 3400.0
     assert [holding["symbol"] for holding in body["holdings"]] == ["AAPL", "TLT"]
+    assert body["summary"]["holdings_count"] == 2
+    assert body["summary"]["top_concentration"][0]["symbol"] == "AAPL"
+    assert body["summary"]["by_sector"] == [
+        {"name": "rates", "market_value": 900.0, "weight": 0.264706},
+        {"name": "technology", "market_value": 2500.0, "weight": 0.735294},
+    ]
+    assert body["summary"]["missing_prices"] == []
+    assert body["summary"]["suggested_run"] == {
+        "workflow": "portfolio_risk_review",
+        "question": "Analyze concentration and rate-shock risk for portfolio portfolio-test.",
+    }
 
 
 def test_v1_portfolio_import_rejects_invalid_csv(tmp_path, monkeypatch):

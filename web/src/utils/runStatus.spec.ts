@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { labelFor, sentenceFor, toneFor, type RunStatusValue } from './runStatus'
+import { labelFor, nextActionsFor, sentenceFor, toneFor, type RunStatusValue } from './runStatus'
 
 /**
  * runStatus spec (Sprint UX-1 Slice A, WEB-2).
@@ -66,11 +66,30 @@ describe('runStatus', () => {
     expect(sentenceFor(undefined)).toBe('Idle')
   })
 
+  it('returns next-action hints for all 8 backend RunStatus members', () => {
+    expect(nextActionsFor('created')).toEqual(['Wait for worker'])
+    expect(nextActionsFor('queued')).toEqual(['Wait for worker'])
+    expect(nextActionsFor('running')).toEqual(['Watch live'])
+    expect(nextActionsFor('awaiting_approval')).toEqual(['Approve or deny'])
+    expect(nextActionsFor('cancelling')).toEqual(['Wait for cancel'])
+    expect(nextActionsFor('cancelled')).toEqual(['Re-queue or discard'])
+    expect(nextActionsFor('completed')).toEqual(['Open artifacts'])
+    expect(nextActionsFor('failed')).toEqual(['Inspect error', 'Re-run'])
+  })
+
+  it('returns no next-action hint for idle or unknown statuses', () => {
+    expect(nextActionsFor(undefined)).toEqual([])
+    expect(nextActionsFor(null)).toEqual([])
+    expect(nextActionsFor('')).toEqual([])
+    expect(nextActionsFor('data_unavailable')).toEqual([])
+  })
+
   it('labels all 8 backend RunStatus members without hitting the fallback', () => {
     // Parity guard: every known member resolves to a real label, never the
     // "Status: <raw>" fallback. Catches a util that forgot a member.
     for (const status of ALL_STATUSES) {
       expect(labelFor(status)).not.toBe(`Status: ${status}`)
+      expect(nextActionsFor(status)).not.toHaveLength(0)
     }
   })
 })

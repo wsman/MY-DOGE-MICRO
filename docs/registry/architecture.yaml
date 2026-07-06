@@ -47,7 +47,7 @@ superseded_systems:
   - {num: 6, slug: market-reporting, name: "Market Reporting", category: Feature, layer: Feature, cdd: design/cdd/market-reporting.md, status: "superseded_by: ADR-0021", target: "Market Intelligence", notes: "Pure-SQL reports; NO LLM"}
   - {num: 7, slug: research-insight-knowledge-base, name: "Research Insight Knowledge Base", category: Core, layer: Core, cdd: design/cdd/research-insight-knowledge-base.md, status: "superseded_by: ADR-0021", target: "Research / Knowledge & Evidence", notes: "Owns stock_notes + stock_names historical store"}
   - {num: 8, slug: mcp-server, name: "MCP Server", category: Interface, layer: Interface, cdd: design/cdd/mcp-server.md, status: "superseded_by: ADR-0021", target: "entrypoints/mcp"}
-  - {num: 9, slug: fastapi-service, name: "FastAPI Service", category: Interface, layer: Interface, cdd: design/cdd/fastapi-service.md, status: "superseded_by: ADR-0021", target: "entrypoints/api", notes: "88 HTTP routes; 127.0.0.1:8901; legacy /api plus daemon /v1/platform"}
+  - {num: 9, slug: fastapi-service, name: "FastAPI Service", category: Interface, layer: Interface, cdd: design/cdd/fastapi-service.md, status: "superseded_by: ADR-0021", target: "entrypoints/api", notes: "90 HTTP routes; 127.0.0.1:8901; legacy /api plus daemon /v1/platform"}
   - {num: 10, slug: pyqt-desktop-dashboard, name: "PyQt Desktop Dashboard", category: Presentation, layer: Presentation, cdd: design/cdd/pyqt-desktop-dashboard.md, status: "superseded_by: ADR-0021", target: "entrypoints/pyqt"}
   - {num: 11, slug: vue-web-console, name: "Vue Web Console", category: Presentation, layer: Presentation, cdd: design/cdd/vue-web-console.md, status: "superseded_by: ADR-0021", target: "web"}
   - {num: 12, slug: clean-architecture-migration, name: "Clean Architecture Migration", category: Operations, layer: Operations, cdd: design/cdd/clean-architecture-migration.md, status: "superseded_by: ADR-0021", target: "architecture governance"}
@@ -189,7 +189,7 @@ interfaces:
     consumers: [vue-web-console, pyqt-desktop-dashboard]
     transports: [http]
     adr: docs/architecture/adr-0007-api-surface-and-cors.md
-    signature: "88 HTTP routes; JSON + SSE; bind 127.0.0.1:8901; legacy /api compatibility plus preferred /v1 daemon/platform routes"
+    signature: "90 HTTP routes; JSON + SSE; bind 127.0.0.1:8901; legacy /api compatibility plus preferred /v1 daemon/platform routes"
     referenced_by:
       - docs/architecture/adr-0008-web-architecture.md
       - docs/architecture/adr-0024-single-stack-runtime-direction.md

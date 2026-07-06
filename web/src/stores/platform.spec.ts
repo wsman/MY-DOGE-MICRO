@@ -11,6 +11,7 @@ import {
   fetchCapabilities,
   fetchHomeQueue,
   fetchRunSummaryResources,
+  getCaseProgress,
   getCaseReview,
   getProject,
   getResearchCase,
@@ -33,6 +34,7 @@ vi.mock('../api/platform', () => ({
   fetchCapabilities: vi.fn(),
   fetchHomeQueue: vi.fn(),
   fetchRunSummaryResources: vi.fn(),
+  getCaseProgress: vi.fn(),
   getCaseReview: vi.fn(),
   listWorkspaces: vi.fn(),
   listProjects: vi.fn(),
@@ -81,6 +83,7 @@ describe('platform store', () => {
     vi.mocked(listWorkflowTemplates).mockResolvedValue([workflowTemplate('tpl-1')])
     vi.mocked(listCaseAssets).mockResolvedValue([caseAsset('asset-1', 'case-1')])
     vi.mocked(listCaseExecutions).mockResolvedValue([workflowExecution('exec-1', 'case-1')])
+    vi.mocked(getCaseProgress).mockResolvedValue([caseProgressStep('cps-1', 'case-1')])
     vi.mocked(listCaseDecisions).mockResolvedValue([caseDecision('dec-1', 'case-1')])
     vi.mocked(getWorkspace).mockResolvedValue(workspace('wsp-1', 'Desk'))
     vi.mocked(getProject).mockResolvedValue(project('prj-1', 'wsp-1', 'Research'))
@@ -274,6 +277,7 @@ describe('platform store', () => {
     expect(store.researchCasesById['case-1'].title).toBe('Case')
     expect(store.caseAssetsByCaseId['case-1'][0].asset_link_id).toBe('asset-1')
     expect(store.workflowExecutionsByCaseId['case-1'][0].execution_id).toBe('exec-1')
+    expect(store.caseProgressByCaseId['case-1'][0].step_key).toBe('workflow')
     expect(store.caseDecisionsByCaseId['case-1'][0].decision_id).toBe('dec-1')
     expect(store.caseReviewByCaseId['case-1'].case.case_id).toBe('case-1')
     expect(store.caseReviewByCaseId['case-1'].approvals[0].approval_id).toBe('appr-1')
@@ -390,6 +394,24 @@ function workflowExecution(executionId: string, caseId: string) {
     tenant_id: null,
     created_at: '2026-06-22T00:00:00Z',
     updated_at: '2026-06-22T00:00:00Z',
+  }
+}
+
+function caseProgressStep(progressId: string, caseId: string) {
+  return {
+    progress_id: progressId,
+    case_id: caseId,
+    step_key: 'workflow',
+    label: 'Workflow',
+    status: 'in_progress',
+    owner: 'research-agent',
+    timestamp: '2026-07-05T00:00:00Z',
+    blocking_issue: '',
+    next_action: 'Monitor execution.',
+    source_type: 'execution',
+    source_id: 'exec-1',
+    tenant_id: null,
+    metadata: {},
   }
 }
 

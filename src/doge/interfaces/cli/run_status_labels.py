@@ -31,8 +31,25 @@ RUN_STATUS_LABELS: Mapping[str, str] = {
     RunStatus.FAILED.value: "Failed",
 }
 
+#: ``RunStatus`` value -> operator-facing next-action hints. This is kept
+#: parallel to ``RUN_STATUS_LABELS`` and pinned by the same enum coverage test.
+RUN_STATUS_NEXT_ACTIONS: Mapping[str, tuple[str, ...]] = {
+    RunStatus.CREATED.value: ("Wait for worker",),
+    RunStatus.QUEUED.value: ("Wait for worker",),
+    RunStatus.RUNNING.value: ("Watch live",),
+    RunStatus.AWAITING_APPROVAL.value: ("Approve or deny",),
+    RunStatus.CANCELLING.value: ("Wait for cancel",),
+    RunStatus.CANCELLED.value: ("Re-queue or discard",),
+    RunStatus.COMPLETED.value: ("Open artifacts",),
+    RunStatus.FAILED.value: ("Inspect error", "Re-run"),
+}
+
 #: Pseudo-label used when no run exists yet (mirrors the Web "Idle" label).
 IDLE_LABEL = "Idle"
+
+#: Safe hints for statuses that are not real ``RunStatus`` members.
+IDLE_NEXT_ACTIONS = ("Start a run",)
+UNKNOWN_STATUS_NEXT_ACTIONS = ("Check run details",)
 
 
 def label_for_run_status(status: str | None) -> str:
@@ -48,3 +65,17 @@ def label_for_run_status(status: str | None) -> str:
     if label is not None:
         return label
     return f"Status: {status}"
+
+
+def next_actions_for_run_status(status: str | None) -> tuple[str, ...]:
+    """Return operator-facing next actions for a run status.
+
+    Idle and unknown values use safe fallbacks so non-enum statuses such as
+    ``data_unavailable`` do not appear to be supported backend states.
+    """
+    if not status:
+        return IDLE_NEXT_ACTIONS
+    actions = RUN_STATUS_NEXT_ACTIONS.get(status)
+    if actions is not None:
+        return actions
+    return UNKNOWN_STATUS_NEXT_ACTIONS

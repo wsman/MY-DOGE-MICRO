@@ -203,13 +203,14 @@ def test_doc_cites_cli_source_anchors():
     # The doc references these line anchors for the canonical CLI parser.
     # These ranges must stay in sync with ``src/doge/interfaces/cli/main.py``.
     required_refs = [
-        "src/doge/interfaces/cli/main.py:70-73",   # stock parser
-        "src/doge/interfaces/cli/main.py:76-78",   # rsrs parser
-        "src/doge/interfaces/cli/main.py:81-83",   # breadth parser
-        "src/doge/interfaces/cli/main.py:86-88",   # brief parser
-        "src/doge/interfaces/cli/main.py:91-93",   # anomaly parser
-        "src/doge/interfaces/cli/main.py:96-98",   # demo parser
-        "src/doge/interfaces/cli/main.py:231-247",  # dispatch
+        "src/doge/interfaces/cli/main.py:71-75",   # stock parser
+        "src/doge/interfaces/cli/main.py:77-80",   # rsrs parser
+        "src/doge/interfaces/cli/main.py:82-85",   # breadth parser
+        "src/doge/interfaces/cli/main.py:87-90",   # brief parser
+        "src/doge/interfaces/cli/main.py:92-95",   # anomaly parser
+        "src/doge/interfaces/cli/main.py:97-100",  # demo parser
+        "src/doge/interfaces/cli/main.py:102-106",  # demo-pack parser
+        "src/doge/interfaces/cli/main.py:239-255",  # dispatch
     ]
     for ref in required_refs:
         assert ref in text, f"docs/CLI.md missing required source anchor {ref}"

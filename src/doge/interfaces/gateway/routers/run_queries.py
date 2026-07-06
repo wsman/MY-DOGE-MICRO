@@ -21,6 +21,7 @@ from doge.interfaces.gateway.routers._response_models import (
     RunCitationsEnvelopeResponse,
     RunClaimsEnvelopeResponse,
     RunEvalEnvelopeResponse,
+    RunListResponse,
     RunSummaryEnvelopeResponse,
 )
 from doge.interfaces.gateway.routers._runs_common import (
@@ -29,6 +30,18 @@ from doge.interfaces.gateway.routers._runs_common import (
 )
 
 router = APIRouter(dependencies=[Depends(deps.require_api_token)])
+
+
+@router.get("/runs", response_model=RunListResponse)
+async def list_runs(
+    request: Request,
+    session_id: str | None = None,
+    limit: int = 20,
+    runtime: IResearchAgentRuntime = Depends(deps.get_persisted_research_agent_runtime),
+):
+    access = request_run_access(request)
+    runs = runtime.list_runs(access.scope, session_id=session_id, limit=limit)
+    return {"runs": [_run_list_item(run) for run in runs]}
 
 
 @router.get("/runs/{run_id}")
@@ -198,3 +211,21 @@ async def get_approvals(
     except RunNotFound:
         raise HTTPException(404, "run not found")
     return {"approvals": serialize(run.approvals)}
+
+
+def _run_list_item(run) -> dict:
+    return {
+        "run_id": run.run_id,
+        "workflow": run.workflow,
+        "question": run.question,
+        "session_id": run.session_id,
+        "market": run.market,
+        "language": run.language,
+        "portfolio_id": run.portfolio_id,
+        "status": getattr(run.status, "value", run.status),
+        "event_count": len(getattr(run, "events", []) or []),
+        "artifact_count": len(getattr(run, "artifacts", []) or []),
+        "approval_count": len(getattr(run, "approvals", []) or []),
+        "created_at": run.created_at,
+        "updated_at": run.updated_at,
+    }

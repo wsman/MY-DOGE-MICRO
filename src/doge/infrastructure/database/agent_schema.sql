@@ -419,6 +419,23 @@ CREATE TABLE IF NOT EXISTS case_decisions (
     created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS case_progress_steps (
+    progress_id TEXT PRIMARY KEY,
+    case_id TEXT NOT NULL,
+    tenant_id TEXT,
+    step_key TEXT NOT NULL,
+    label TEXT NOT NULL,
+    status TEXT NOT NULL,
+    owner TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    blocking_issue TEXT NOT NULL DEFAULT '',
+    next_action TEXT NOT NULL DEFAULT '',
+    source_type TEXT NOT NULL DEFAULT 'system',
+    source_id TEXT,
+    metadata TEXT,
+    UNIQUE(case_id, step_key)
+);
+
 CREATE INDEX IF NOT EXISTS idx_projects_workspace ON projects(workspace_id, status);
 CREATE INDEX IF NOT EXISTS idx_research_cases_project ON research_cases(project_id, status);
 CREATE INDEX IF NOT EXISTS idx_research_case_runs_run ON research_case_runs(run_id);
@@ -428,3 +445,4 @@ CREATE INDEX IF NOT EXISTS idx_case_assets_case ON case_assets(case_id, deleted_
 CREATE INDEX IF NOT EXISTS idx_workflow_executions_case ON workflow_executions(case_id, updated_at);
 CREATE INDEX IF NOT EXISTS idx_workflow_executions_run ON workflow_executions(run_id);
 CREATE INDEX IF NOT EXISTS idx_case_decisions_case ON case_decisions(case_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_case_progress_steps_case ON case_progress_steps(case_id, timestamp);

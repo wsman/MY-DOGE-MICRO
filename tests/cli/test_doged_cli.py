@@ -5,6 +5,7 @@ import os
 
 import pytest
 
+from doge.core.domain.agent_models import AgentRun, RunStatus
 from doge.config import reset_settings
 from doge.interfaces.daemon import main as doged_main
 
@@ -115,6 +116,90 @@ def test_doged_doctor_text_reports_checks(monkeypatch, capsys):
     assert "status=ready" in out
     assert "database=ok" in out
     assert "document_storage=ok" in out
+
+
+def test_doged_doctor_verbose_reports_nested_check_details(monkeypatch, capsys):
+    payload = {
+        "status": "ready",
+        "checks": {
+            "worker_heartbeat": {
+                "ok": True,
+                "mode": "in_process",
+                "worker_metrics": {"processed": 2, "failed": 0},
+            },
+        },
+    }
+
+    monkeypatch.setattr("httpx.get", lambda _url, *, timeout: _ReadinessResponse(payload))
+
+    doged_main.main(["doctor", "--verbose"])
+
+    out = capsys.readouterr().out
+    assert "worker_heartbeat=ok" in out
+    assert "  mode=in_process" in out
+    assert '  worker_metrics={"failed": 0, "processed": 2}' in out
+
+
+def test_doged_runs_recent_prints_persisted_runs(monkeypatch, capsys):
+    run = AgentRun.create(
+        run_id="run-recent",
+        workflow="investment_research",
+        question="Analyze recent run",
+    )
+    run.status = RunStatus.COMPLETED
+    run.updated_at = "2026-07-05T00:00:00+00:00"
+    monkeypatch.setattr(doged_main, "_recent_runs", lambda *, limit: [run])
+
+    doged_main.main(["runs", "--recent", "--limit", "5"])
+
+    out = capsys.readouterr().out
+    assert "run_id=run-recent" in out
+    assert "status=completed" in out
+    assert "workflow=investment_research" in out
+    assert "question=Analyze recent run" in out
+
+
+def test_doged_runs_recent_json(monkeypatch, capsys):
+    run = AgentRun.create(run_id="run-json", workflow="earnings_review", question="json")
+    monkeypatch.setattr(doged_main, "_recent_runs", lambda *, limit: [run])
+
+    doged_main.main(["runs", "--recent", "--json"])
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["runs"][0]["run_id"] == "run-json"
+    assert payload["runs"][0]["workflow"] == "earnings_review"
+
+
+def test_doged_queue_status_prints_counts(monkeypatch, capsys):
+    monkeypatch.setattr(doged_main, "_queue_status", lambda: {"queued": 2, "running": 1})
+
+    doged_main.main(["queue", "--status"])
+
+    out = capsys.readouterr().out.splitlines()
+    assert out == ["queued=2", "running=1"]
+
+
+def test_doged_features_prints_feature_flags(capsys):
+    reset_settings()
+
+    doged_main.main(["features"])
+
+    out = capsys.readouterr().out
+    assert "run_summary_api=off env=DOGE_FEATURE_RUN_SUMMARY_API" in out
+    assert "python_analysis_executor=disabled" in out
+
+
+def test_doged_routes_prints_registered_routes(monkeypatch, capsys):
+    rows = [
+        {"methods": ["GET"], "path": "/health/ready", "name": "ready"},
+        {"methods": ["POST"], "path": "/v1/sessions", "name": "create_session"},
+    ]
+    monkeypatch.setattr(doged_main, "_route_rows", lambda: rows)
+
+    doged_main.main(["routes"])
+
+    out = capsys.readouterr().out.splitlines()
+    assert out == ["GET /health/ready ready", "POST /v1/sessions create_session"]
 
 
 def test_doged_serve_api_role_starts_uvicorn(monkeypatch):

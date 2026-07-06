@@ -61,6 +61,9 @@ class PlatformResource:
     def get_research_case(self, case_id: str) -> dict[str, Any]:
         return self._root._request("GET", f"/v1/research-cases/{case_id}")
 
+    def get_case_progress(self, case_id: str) -> list[dict[str, Any]]:
+        return self._root._request("GET", f"/v1/research-cases/{case_id}/progress")["steps"]
+
     def home_queue(self, limit: int = 20) -> dict[str, Any]:
         return self._root._request("GET", "/v1/home-queue", params={"limit": limit})
 
@@ -290,6 +293,9 @@ class AsyncPlatformResource:
 
     async def get_research_case(self, case_id: str) -> dict[str, Any]:
         return await self._root._request("GET", f"/v1/research-cases/{case_id}")
+
+    async def get_case_progress(self, case_id: str) -> list[dict[str, Any]]:
+        return (await self._root._request("GET", f"/v1/research-cases/{case_id}/progress"))["steps"]
 
     async def home_queue(self, limit: int = 20) -> dict[str, Any]:
         return await self._root._request("GET", "/v1/home-queue", params={"limit": limit})

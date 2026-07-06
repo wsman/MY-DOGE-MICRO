@@ -56,6 +56,7 @@ const runId = await session.run('Analyze NVDA earnings risk')
 
 const run = await client.runs.get(runId)
 const events = await client.runs.events(runId)
+const recentRuns = await client.runs.list({ limit: 5 })
 ```
 
 Upload a document:
@@ -76,6 +77,22 @@ await client.runs.resume(runId, { approvalId, approved: true })
 Approval objects may include optional explanation metadata:
 `why_needed`, `impact`, `deny_consequence`, and `publish_target`. Older daemon
 snapshots may omit these fields.
+
+`client.runs.list({ limit, sessionId })` returns compact run rows for history
+and comparison views. Rows include counts and status metadata, not full events
+or artifacts; use `client.runs.get(runId)` for the full run.
+
+## Cookbook Files
+
+Standalone examples live in `examples/typescript/`:
+
+- `01_create_session.ts`
+- `02_upload_and_run.ts`
+- `03_stream_and_approve.ts`
+- `04_error_handling.ts`
+
+They mirror the quick-start flows without adding SDK resources or changing the
+package surface.
 
 ## Feature Flags
 

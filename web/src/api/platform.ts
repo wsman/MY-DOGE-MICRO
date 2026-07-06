@@ -5,6 +5,7 @@ import type {
   CaseAssetLink,
   CaseDecision,
   CaseExecutionPayload,
+  CaseProgressStep,
   CaseReview,
   CaseRunLink,
   CreateProjectPayload,
@@ -88,6 +89,10 @@ export async function createResearchCase(payload: CreateResearchCasePayload): Pr
 
 export async function getResearchCase(caseId: string): Promise<ResearchCase> {
   return await dogeClient.platform.getResearchCase(caseId)
+}
+
+export async function getCaseProgress(caseId: string): Promise<CaseProgressStep[]> {
+  return await dogeClient.platform.getCaseProgress(caseId)
 }
 
 export async function listCaseAssets(caseId: string): Promise<CaseAssetLink[]> {

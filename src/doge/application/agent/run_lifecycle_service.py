@@ -175,7 +175,7 @@ class RunLifecycleService:
         limit: int = 20,
     ) -> list:
         if session_id:
-            return self._runs.list_by_session(session_id, tenant_id=scope.tenant_id)
+            return self._runs.list_by_session(session_id, limit=limit, tenant_id=scope.tenant_id)
         return self._runs.list_recent(limit, tenant_id=scope.tenant_id)
 
     def list_artifacts(

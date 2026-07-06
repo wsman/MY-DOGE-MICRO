@@ -303,14 +303,15 @@ class SQLiteRunRepository(_BaseAgentRepository, IRunRepository):
         self,
         session_id: str,
         scope: TenantScope | str | None = None,
+        limit: int = 20,
         *,
         tenant_id: str | None = None,
     ) -> list[AgentRun]:
         sql = "SELECT * FROM runs WHERE session_id = ?"
         tenant_sql, tenant_params = _tenant_filter("tenant_id", _tenant_id_from_scope(scope, tenant_id))
         sql += tenant_sql
-        params: tuple[Any, ...] = (session_id, *tenant_params)
-        sql += " ORDER BY created_at ASC"
+        params: tuple[Any, ...] = (session_id, *tenant_params, limit)
+        sql += " ORDER BY created_at ASC LIMIT ?"
         with self._connect() as conn:
             rows = conn.execute(sql, params).fetchall()
             return [_row_to_run(conn, row) for row in rows]
@@ -811,6 +812,23 @@ class SQLiteRunQueue(_BaseAgentRepository, IRunQueue):
                 """
             ).fetchall()
             return [row["run_id"] for row in rows]
+
+    def status_summary(self) -> dict[str, int]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT q.status, COUNT(*) AS count
+                FROM run_queue q
+                JOIN (
+                    SELECT run_id, MAX(queue_id) AS max_queue_id
+                    FROM run_queue
+                    GROUP BY run_id
+                ) latest
+                ON q.run_id = latest.run_id AND q.queue_id = latest.max_queue_id
+                GROUP BY q.status
+                """
+            ).fetchall()
+            return {str(row["status"]): int(row["count"]) for row in rows}
 
     def append_status(self, run_id: str, status: str) -> None:
         now = utc_now()

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Uplo
 from doge.products.portfolio import (
     PortfolioImportError,
     PortfolioImportService,
+    PortfolioSummaryService,
 )
 from doge.core.ports.enterprise_governance import IEnterpriseGovernanceRepository
 from doge.interfaces.api import deps
@@ -23,6 +24,7 @@ async def import_portfolio_csv(
     name: str | None = Form(default=None),
     portfolio_id: str | None = Form(default=None),
     service: PortfolioImportService = Depends(deps.get_portfolio_import_service),
+    summary_service: PortfolioSummaryService = Depends(deps.get_portfolio_summary_service),
     governance: IEnterpriseGovernanceRepository = Depends(deps.get_enterprise_governance_repository),
 ):
     if not (file.filename or "").lower().endswith(".csv"):
@@ -30,7 +32,9 @@ async def import_portfolio_csv(
     try:
         payload = await file.read()
         content = payload.decode("utf-8-sig")
-        portfolio = service.import_csv(content, name=name, portfolio_id=portfolio_id, scope=_portfolio_scope(request))
+        scope = _portfolio_scope(request)
+        portfolio = service.import_csv(content, name=name, portfolio_id=portfolio_id, scope=scope)
+        portfolio["summary"] = summary_service.build_summary(portfolio["portfolio_id"], scope=scope)
         grant_creator_access(
             request,
             governance,

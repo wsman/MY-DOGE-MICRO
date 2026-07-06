@@ -152,7 +152,7 @@ local_quality_gate_closure_2026_07_01:
 local_structure_convergence_2026_07_02:
   status: local_structure_convergence_closed_external_gates_open
   scope:
-    - "Active route terminology converged on 88 HTTP routes outside archive/import snapshots."
+    - "Active route terminology now tracks 90 HTTP routes outside archive/import snapshots."
     - "API app factory extraction, tool-service split, TS SDK runtime types, and Web SDK type reuse are retained as local Structure Convergence evidence."
     - "Source layout map added as a thin placement guide that links the existing file-structure, module-boundary, and module-ownership authorities."
     - "Five user paths are documented: Local Analyst, Daemon Operator, SDK Integrator, Research Workspace, and Eval/Demo Owner."
@@ -1327,7 +1327,7 @@ local_verification:
       plan_closure_input_template_tests: "6 passed; generated non-closing evidence from copied operator templates now fails strict validation when unresolved placeholder issue ids or template sentinels remain"
       governance_yaml_shape_check: "scripts/validate_governance_yaml_shape.py passed for docs/progress/runtime-maturity.yaml, production/sprint-status.yaml, docs/registry/architecture.yaml, docs/registry/entities.yaml, and docs/architecture/tr-registry.yaml; validates UTF-8, no tab indentation, no CR-only line endings, even two-space indentation, unique top-level keys, and required top-level sections without claiming full YAML parsing"
       governance_yaml_shape_tests: "tests/unit/qa/test_validate_governance_yaml_shape.py: 6 passed"
-      fastapi_route_governance_sync: "docs/API.md, design/cdd/fastapi-service.md, docs/registry/architecture.yaml, docs/registry/entities.yaml, docs/architecture/tr-registry.yaml, docs/architecture/architecture-traceability.md, docs/architecture/adr-0007-api-surface-and-cors.md, and docs/imports/my-doge-micro/current-state-2026-06-21.md now agree on 88 HTTP routes; tests/contract/test_api_doc_route_coverage.py proves docs/API.md matches the live FastAPI app, and tests/unit/governance/test_s017_planning_docs.py proves docs/registry/entities.yaml has the same (method, path) route set"
+      fastapi_route_governance_sync: "docs/API.md, design/cdd/fastapi-service.md, docs/registry/architecture.yaml, docs/registry/entities.yaml, docs/architecture/tr-registry.yaml, docs/architecture/architecture-traceability.md, and docs/architecture/adr-0007-api-surface-and-cors.md now agree on 90 HTTP routes; docs/imports/my-doge-micro/current-state-2026-06-21.md remains a historical 88-route snapshot; tests/contract/test_api_doc_route_coverage.py proves docs/API.md matches the live FastAPI app, and tests/unit/governance/test_s017_planning_docs.py proves docs/registry/entities.yaml has the same (method, path) route set"
       external_evidence_validator_suite: "focused plan-closure repair set: 57 passed in 9.14s"
       targeted_cross_wave_regression: "full python regression continuation check: 1297 passed, 9 skipped, 11 warnings in 107.94s; eval smoke: 7 passed in 0.82s; contract/integration: 115 passed, 1 skipped in 32.70s"
       prepared_external_handoff_workspace: "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30; validation passed; includes operator-checklist.md and operator-commands.ps1; it stages operator inputs only, does not create completed evidence, and does not close gates; S017-003, W3-live, AUTH-prod, and S017-007 still require real operator input before their builders can close gates"

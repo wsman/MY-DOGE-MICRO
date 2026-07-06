@@ -43,12 +43,8 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { computed, ref } from 'vue'
-import { NDrawer, NDrawerContent, NTag } from 'naive-ui'
-import type { AgentArtifact, AgentEvent } from '../../api/agent'
-
-interface CitationCandidate {
+<script lang="ts">
+export interface CitationRecord {
   key: string
   label: string
   source: string
@@ -57,19 +53,50 @@ interface CitationCandidate {
   page_number?: number
   chunk_id?: string
   evidence_id?: string
+  citation_id?: string
   score?: number
 }
+</script>
 
-const props = defineProps<{
-  memo: string
-  artifacts: AgentArtifact[]
-  events: AgentEvent[]
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import { NDrawer, NDrawerContent, NTag } from 'naive-ui'
+import type { AgentArtifact, AgentEvent } from '../../api/agent'
+
+const props = withDefaults(defineProps<{
+  memo?: string
+  artifacts?: AgentArtifact[]
+  events?: AgentEvent[]
+  records?: CitationRecord[]
+  modelValue?: CitationRecord | null
+}>(), {
+  memo: '',
+  artifacts: () => [],
+  events: () => [],
+})
+
+const emit = defineEmits<{
+  'update:modelValue': [record: CitationRecord | null]
 }>()
 
-const active = ref<CitationCandidate | null>(null)
+const internalActive = ref<CitationRecord | null>(null)
+
+const active = computed({
+  get() {
+    return props.modelValue !== undefined ? props.modelValue : internalActive.value
+  },
+  set(record: CitationRecord | null) {
+    if (props.modelValue === undefined) {
+      internalActive.value = record
+    }
+    emit('update:modelValue', record)
+  },
+})
 
 const candidates = computed(() => {
-  const rows: CitationCandidate[] = []
+  if (props.records !== undefined) return dedupe(props.records)
+
+  const rows: CitationRecord[] = []
   for (const artifact of props.artifacts) {
     rows.push(...recordsFromContainer(artifact.data))
   }
@@ -81,38 +108,40 @@ const candidates = computed(() => {
   return dedupe(rows).slice(0, 12)
 })
 
-function recordsFromContainer(container: unknown): CitationCandidate[] {
+function recordsFromContainer(container: unknown): CitationRecord[] {
   if (!isRecord(container)) return []
   const records = [
     ...arrayField(container, 'citations'),
     ...arrayField(container, 'evidence'),
     ...arrayField(container, 'results'),
   ]
-  return records.map(candidateFromRecord).filter(Boolean) as CitationCandidate[]
+  return records.map(candidateFromRecord).filter(Boolean) as CitationRecord[]
 }
 
-function candidateFromRecord(record: unknown, index: number): CitationCandidate | null {
+function candidateFromRecord(record: unknown, index: number): CitationRecord | null {
   if (!isRecord(record)) return null
   const snippet = textField(record, 'snippet', 'text', 'support_snippet', 'content')
   const evidenceId = textField(record, 'evidence_id')
+  const citationId = textField(record, 'citation_id')
   const chunkId = textField(record, 'chunk_id')
   const source = textField(record, 'source') || sourceLabel(record)
-  if (!snippet && !evidenceId && !chunkId) return null
-  const key = evidenceId || chunkId || textField(record, 'citation_id') || `${source}-${index}`
+  if (!snippet && !evidenceId && !citationId && !chunkId) return null
+  const key = textField(record, 'key') || evidenceId || citationId || chunkId || `${source}-${index}`
   return {
     key,
-    label: evidenceId || chunkId || `Citation ${index + 1}`,
+    label: textField(record, 'label') || evidenceId || citationId || chunkId || `Citation ${index + 1}`,
     source,
     snippet: snippet || key,
     document_id: textField(record, 'document_id') || undefined,
     page_number: numberField(record, 'page_number'),
     chunk_id: chunkId || undefined,
     evidence_id: evidenceId || undefined,
+    citation_id: citationId || undefined,
     score: numberField(record, 'score', 'retrieval_score'),
   }
 }
 
-function recordsFromMemo(memo: string): CitationCandidate[] {
+function recordsFromMemo(memo: string): CitationRecord[] {
   const ids = new Set(memo.match(/\b(?:evd|chk|page)-[A-Za-z0-9_-]+\b/g) ?? [])
   return Array.from(ids).map(id => ({
     key: `memo-${id}`,
@@ -124,7 +153,7 @@ function recordsFromMemo(memo: string): CitationCandidate[] {
   }))
 }
 
-function dedupe(rows: CitationCandidate[]) {
+function dedupe(rows: CitationRecord[]) {
   const seen = new Set<string>()
   return rows.filter(row => {
     if (seen.has(row.key)) return false

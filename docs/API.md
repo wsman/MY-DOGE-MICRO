@@ -2,7 +2,7 @@
 
 The local-first HTTP backend of MY-DOGE-MICRO. A single FastAPI application
 (`doge.interfaces.api.main`) binds to `127.0.0.1:8901` by default and exposes
-**88 HTTP routes**: 34 legacy `/api/*` compatibility routes plus 54 daemon/v1
+**90 HTTP routes**: 34 legacy `/api/*` compatibility routes plus 56 daemon/v1
 and health routes.
 Per ADR-0024, new platform work should target `/v1/*` through SDK clients.
 Legacy `/api/*` remains for local compatibility and emits deprecation metadata
@@ -36,7 +36,7 @@ not part of the main user workflow.
 | Bind port | `8901` | `src/doge/interfaces/api/main.py` |
 | Auth | Mode-driven: `local_demo` no bearer token; `enterprise` bearer provider fail-closed | see [Authentication](#authentication) |
 | Routers | legacy `/api/*` routers + v1 daemon routers | `src/doge/interfaces/api/main.py` |
-| HTTP routes | 88 (34 legacy `/api/*` routes + 54 daemon/v1 and health routes) | `src/doge/interfaces/api/main.py` |
+| HTTP routes | 90 (34 legacy `/api/*` routes + 56 daemon/v1 and health routes) | `src/doge/interfaces/api/main.py` |
 | Framework | FastAPI 0.123.8 + uvicorn 0.38.0 | `pyproject.toml:19-20` |
 | Streaming | sse-starlette 3.0.3 (`EventSourceResponse`) | `pyproject.toml:21` |
 
@@ -59,6 +59,9 @@ Primary user and SDK flows should stay on this sequence:
 4. `GET /v1/runs/{run_id}/stream` or `GET /v1/runs/{run_id}/events`
 5. `POST /v1/runs/{run_id}/approvals/{approval_id}` or `/resume` when needed
 6. `GET /v1/runs/{run_id}/artifacts` and optional summary/citation/eval reads
+7. `GET /v1/runs` when the UI or SDK needs compact run history for comparison
+8. `GET /v1/research-cases/{case_id}/progress` when a case view needs
+   per-step governance progress
 
 `GET /v1/tools` and `GET /v1/capabilities` support capability discovery. Audit,
 enterprise ACL, health/readiness, and portfolio import endpoints remain
@@ -116,7 +119,7 @@ Authentication is mode-driven (`DOGE_AUTH_MODE`, `AuthConfig` in
 
 ## Full Reference
 
-- Route table and per-route reference (all 88 HTTP routes; primary v1
+- Route table and per-route reference (all 90 HTTP routes; primary v1
   families `sessions`, `runs`, `documents`, `tools`, `platform`; legacy
   `/api/*`; operator appendix):
   [reference/http-api.md](reference/http-api.md)

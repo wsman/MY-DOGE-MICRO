@@ -6,6 +6,7 @@ from doge.interfaces.cli.commands.brief import cmd_brief
 from doge.interfaces.cli.commands.breadth import cmd_breadth
 from doge.interfaces.cli.commands.case import cmd_case
 from doge.interfaces.cli.commands.demo import cmd_demo
+from doge.interfaces.cli.commands.demo_pack import cmd_demo_pack
 from doge.interfaces.cli.commands.doctor import cmd_doctor
 from doge.interfaces.cli.commands.macro import cmd_macro
 from doge.interfaces.cli.commands.run import cmd_run
@@ -24,6 +25,7 @@ __all__ = [
     "cmd_brief",
     "cmd_case",
     "cmd_demo",
+    "cmd_demo_pack",
     "cmd_doctor",
     "cmd_macro",
     "cmd_run",

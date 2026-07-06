@@ -11,6 +11,7 @@ export {
   type AgentArtifact,
   type AgentEvent,
   type AgentRun,
+  type RunListItem,
   DogeApiError,
   type DogeEvent,
   type RunEventType,

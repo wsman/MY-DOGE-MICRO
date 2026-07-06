@@ -38,7 +38,7 @@ class FakeRunRepository(IRunRepository):
     def get_run_header(self, run_id, *, tenant_id=None):
         return self.runs.get(run_id)
 
-    def list_by_session(self, session_id, scope=None):
+    def list_by_session(self, session_id, scope=None, limit=20):
         return []
 
     def list_recent(self, scope=None, limit=20):

@@ -35,6 +35,8 @@
         </main>
 
         <aside class="right-column">
+          <CaseProgressPanel class="panel-frame" :steps="progressSteps" />
+
           <PreflightResult class="panel-frame" :result="preflightResult" />
 
           <section class="panel-frame" aria-labelledby="claims-title">
@@ -84,6 +86,7 @@ import { NAlert, NButton, NSpace, NSpin, NTag } from 'naive-ui'
 import CaseApprovalPanel from '../components/case/CaseApprovalPanel.vue'
 import CaseAssetPanel from '../components/case/CaseAssetPanel.vue'
 import CaseDecisionPanel from '../components/case/CaseDecisionPanel.vue'
+import CaseProgressPanel from '../components/case/CaseProgressPanel.vue'
 import ExecutionMonitor from '../components/case/ExecutionMonitor.vue'
 import PreflightResult from '../components/case/PreflightResult.vue'
 import TemplateConfigurator from '../components/case/TemplateConfigurator.vue'
@@ -99,6 +102,7 @@ const researchCase = computed(() => store.researchCasesById[caseId.value])
 const templates = computed(() => store.workflowTemplates)
 const assets = computed(() => store.caseAssetsByCaseId[caseId.value] ?? [])
 const executions = computed(() => store.workflowExecutionsByCaseId[caseId.value] ?? [])
+const progressSteps = computed(() => store.caseProgressByCaseId[caseId.value] ?? [])
 const decisions = computed(() => store.caseDecisionsByCaseId[caseId.value] ?? [])
 const review = computed(() => store.caseReviewByCaseId[caseId.value])
 const preflightResult = computed(() => store.preflightByCaseId[caseId.value])

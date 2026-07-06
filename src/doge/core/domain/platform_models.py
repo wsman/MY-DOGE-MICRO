@@ -388,6 +388,74 @@ class CaseDecision:
 
 
 @dataclass(frozen=True)
+class CaseProgressStep:
+    progress_id: str
+    case_id: str
+    step_key: str
+    label: str
+    status: str = "todo"
+    owner: str = "analyst"
+    timestamp: str = field(default_factory=utc_now)
+    blocking_issue: str = ""
+    next_action: str = ""
+    source_type: str = "system"
+    source_id: str | None = None
+    tenant_id: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        case_id: str,
+        step_key: str,
+        label: str,
+        status: str = "todo",
+        owner: str = "analyst",
+        timestamp: str | None = None,
+        blocking_issue: str = "",
+        next_action: str = "",
+        source_type: str = "system",
+        source_id: str | None = None,
+        tenant_id: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> "CaseProgressStep":
+        return cls(
+            progress_id=f"cps-{uuid4().hex[:12]}",
+            case_id=case_id,
+            step_key=step_key,
+            label=label,
+            status=status,
+            owner=owner,
+            timestamp=timestamp or utc_now(),
+            blocking_issue=blocking_issue,
+            next_action=next_action,
+            source_type=source_type,
+            source_id=source_id,
+            tenant_id=tenant_id,
+            metadata=metadata or {},
+        )
+
+    @classmethod
+    def from_mapping(cls, data: dict[str, Any]) -> "CaseProgressStep":
+        return cls(
+            progress_id=data["progress_id"],
+            case_id=data["case_id"],
+            tenant_id=data.get("tenant_id"),
+            step_key=data["step_key"],
+            label=data["label"],
+            status=data.get("status") or "todo",
+            owner=data.get("owner") or "analyst",
+            timestamp=data.get("timestamp") or utc_now(),
+            blocking_issue=data.get("blocking_issue") or "",
+            next_action=data.get("next_action") or "",
+            source_type=data.get("source_type") or "system",
+            source_id=data.get("source_id"),
+            metadata=_json_obj(data.get("metadata")),
+        )
+
+
+@dataclass(frozen=True)
 class TemplatePreflightResult:
     valid: bool
     input_errors: list[dict[str, Any]] = field(default_factory=list)

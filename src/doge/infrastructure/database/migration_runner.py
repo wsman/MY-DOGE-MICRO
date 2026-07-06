@@ -64,6 +64,7 @@ def _migrations() -> tuple[Migration, ...]:
         Migration("runtime", "local_tenant_backfill", _migrate_runtime_local_tenant_backfill),
         Migration("evidence", "local_tenant_backfill", _migrate_evidence_local_tenant_backfill),
         Migration("portfolio", "local_tenant_backfill", _migrate_portfolio_local_tenant_backfill),
+        Migration("workspace", "case_progress_steps", _migrate_case_progress_steps),
         Migration("workspace", "local_tenant_backfill", _migrate_workspace_local_tenant_backfill),
         Migration("runtime", "run_identity_snapshot", _migrate_run_identity_snapshot),
         Migration("runtime", "run_workflow_context", _migrate_run_workflow_context),
@@ -205,7 +206,34 @@ def _migrate_workspace_local_tenant_backfill(conn: sqlite3.Connection) -> None:
             "case_assets",
             "workflow_executions",
             "case_decisions",
+            "case_progress_steps",
         ),
+    )
+
+
+def _migrate_case_progress_steps(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS case_progress_steps (
+            progress_id TEXT PRIMARY KEY,
+            case_id TEXT NOT NULL,
+            tenant_id TEXT,
+            step_key TEXT NOT NULL,
+            label TEXT NOT NULL,
+            status TEXT NOT NULL,
+            owner TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            blocking_issue TEXT NOT NULL DEFAULT '',
+            next_action TEXT NOT NULL DEFAULT '',
+            source_type TEXT NOT NULL DEFAULT 'system',
+            source_id TEXT,
+            metadata TEXT,
+            UNIQUE(case_id, step_key)
+        )
+        """
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_case_progress_steps_case ON case_progress_steps(case_id, timestamp)"
     )
 
 

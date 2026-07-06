@@ -144,6 +144,29 @@ class CaseDecisionListResponse(_AllowedExtra):
     decisions: list[CaseDecisionResponse] = Field(default_factory=list)
 
 
+class CaseProgressStepResponse(_AllowedExtra):
+    progress_id: str
+    case_id: str
+    step_key: str
+    label: str
+    status: str
+    owner: str
+    timestamp: str = ""
+    blocking_issue: str = ""
+    next_action: str = ""
+    source_type: str = "system"
+    source_id: str | None = None
+    tenant_id: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class CaseProgressEnvelopeResponse(_AllowedExtra):
+    case_id: str
+    steps: list[CaseProgressStepResponse] = Field(default_factory=list)
+    source: str = "derived"
+    warnings: list[str] = Field(default_factory=list)
+
+
 class ApprovalResponse(_AllowedExtra):
     approval_id: str
     action: str
@@ -190,6 +213,26 @@ class RunSummaryResponse(_AllowedExtra):
     source_event_high_watermark: int = 0
     created_at: str = ""
     updated_at: str = ""
+
+
+class RunListItemResponse(_AllowedExtra):
+    run_id: str
+    workflow: str
+    question: str
+    session_id: str | None = None
+    market: str = "us"
+    language: str = "en"
+    portfolio_id: str | None = None
+    status: str
+    event_count: int = 0
+    artifact_count: int = 0
+    approval_count: int = 0
+    created_at: str = ""
+    updated_at: str = ""
+
+
+class RunListResponse(_AllowedExtra):
+    runs: list[RunListItemResponse] = Field(default_factory=list)
 
 
 class RunClaimResponse(_AllowedExtra):

@@ -146,7 +146,7 @@ handler.
 
 ## Decision
 
-1. **API surface** — the 88 HTTP routes enumerated in `docs/API.md` and
+1. **API surface** — the 90 HTTP routes enumerated in `docs/API.md` and
    summarized in fastapi-service CDD §4.1 are the canonical contract. Any new
    route requires a docs/CDD update and a contract test. The OpenAPI
    auto-generated routes (`/openapi.json`, `/docs`, `/redoc`) are
@@ -342,7 +342,7 @@ returned to `["*"]`; repository routing is backward-compatible by definition.
 ## Validation Criteria
 
 - [x] The fastapi-service CDD §4.1 route table matches the routes FastAPI
-  reports at startup (`[r.path for r in app.routes]`) for the 88 product
+  reports at startup (`[r.path for r in app.routes]`) for the 90 HTTP
   routes, guarded by `tests/contract/test_api_doc_route_coverage.py`.
 - [ ] `tests/test_api_routers.py` is green and covers every endpoint
   (success + validation failure + edge case); the no-auth case is documented

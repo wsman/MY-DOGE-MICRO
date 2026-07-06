@@ -108,6 +108,7 @@ python -m macro.cli --verbose
 | [`brief`](#doge-brief) | 控制台市场日报 | `--market`、`--top` | `src/doge/interfaces/cli/commands/brief.py` |
 | [`anomaly`](#doge-anomaly) | 成交量异动检测 | `--min-ratio`、`--top` | `src/doge/interfaces/cli/commands/anomaly.py` |
 | [`demo`](#doge-demo) | 5 分钟无配置演示 | `--market`、`--top` | `src/doge/interfaces/cli/commands/demo.py` |
+| [`demo-pack`](#doge-demo-pack) | 导出本地 run 演示包 | `--run-id`、`--case`、`--output` | `src/doge/interfaces/cli/commands/demo_pack.py` |
 | [`start`](#doge-start) | 首次运行启动器：5 选 1 路径分发 | `--path` | `src/doge/interfaces/cli/commands/start.py` |
 | [`macro`](#宏观-clidoge-macro) | 宏观策略报告 | `--verbose` | `src/doge/interfaces/cli/commands/macro.py` |
 | [`doctor`](#doge-doctor) | 本地配置、数据库、文档存储、模型配置诊断 | `--json` | `src/doge/interfaces/cli/commands/doctor.py` |
@@ -118,13 +119,14 @@ python -m macro.cli --verbose
 
 argparse 子解析器定义与命令分发源码锚点：
 
-- `stock` 子命令：`src/doge/interfaces/cli/main.py:70-73`
-- `rsrs` 子命令：`src/doge/interfaces/cli/main.py:76-78`
-- `breadth` 子命令：`src/doge/interfaces/cli/main.py:81-83`
-- `brief` 子命令：`src/doge/interfaces/cli/main.py:86-88`
-- `anomaly` 子命令：`src/doge/interfaces/cli/main.py:91-93`
-- `demo` 子命令：`src/doge/interfaces/cli/main.py:96-98`
-- 命令分发（`main()`）：`src/doge/interfaces/cli/main.py:231-247`
+- `stock` 子命令：`src/doge/interfaces/cli/main.py:71-75`
+- `rsrs` 子命令：`src/doge/interfaces/cli/main.py:77-80`
+- `breadth` 子命令：`src/doge/interfaces/cli/main.py:82-85`
+- `brief` 子命令：`src/doge/interfaces/cli/main.py:87-90`
+- `anomaly` 子命令：`src/doge/interfaces/cli/main.py:92-95`
+- `demo` 子命令：`src/doge/interfaces/cli/main.py:97-100`
+- `demo-pack` 子命令：`src/doge/interfaces/cli/main.py:102-106`
+- 命令分发（`main()`）：`src/doge/interfaces/cli/main.py:239-255`
 
 ### doge stock
 
@@ -487,6 +489,26 @@ daemon SSE。`--jsonl` 输出稳定的 JSON Lines（`run_summary` / `run_accepte
 和逐条 `event` 记录），适合管道、CI 或外部日志采集。需要高风险发布审批时，run
 会停在 `awaiting_approval`。`doge run --resume` 是显式继续执行命令；当 run
 停在审批点时必须同时传入 `--approval`，否则保持暂停并返回错误。
+
+### doge demo-pack
+
+`doge demo-pack` 从本地持久化 runtime 读取一个 run，导出面试/演示用的
+本地证据包。它不截图、不调用浏览器、不关闭任何外部门禁。
+
+```bash
+doge demo-pack --run-id run-xxxx --output demo_packet/
+doge demo-pack --case run-xxxx --output demo_packet/
+```
+
+`--case` 当前是 `--run-id` 的同义输入，用来保留路线图里的命令形态；它不会解析
+Research Case 到 run 的映射。输出目录包含：
+
+- `run_summary.md`
+- `investment_memo.md`
+- `trace.jsonl`
+- `citations.json`
+- `metrics.json`
+- `speaker_notes.md`
 
 交互式 `doge session --resume ses-xxxx --interactive` 支持真实文件附件：
 

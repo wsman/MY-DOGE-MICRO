@@ -80,6 +80,9 @@ class ResearchCaseHandler:
     def get(self, *, context, case_id: str):
         return self._service.get(context, case_id)
 
+    def progress(self, *, context, case_id: str):
+        return self._service.build_case_progress(context, case_id)
+
     def list_assets(self, *, context, case_id: str):
         return self._service.list_case_assets(context, case_id)
 

@@ -42,6 +42,11 @@ class IRunQueue(ABC):
         ...
 
     @abstractmethod
+    def status_summary(self) -> dict[str, int]:
+        """Return counts by latest queue status."""
+        ...
+
+    @abstractmethod
     def append_status(self, run_id: str, status: str) -> None:
         """Append a status entry to the queue log."""
         ...

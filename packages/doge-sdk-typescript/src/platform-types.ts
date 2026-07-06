@@ -121,6 +121,22 @@ export interface CaseDecision {
   created_at: string
 }
 
+export interface CaseProgressStep {
+  progress_id: string
+  case_id: string
+  step_key: string
+  label: string
+  status: string
+  owner: string
+  timestamp: string
+  blocking_issue: string
+  next_action: string
+  source_type: string
+  source_id?: string | null
+  tenant_id?: string | null
+  metadata: JsonObject
+}
+
 export interface TemplatePreflightResult {
   valid: boolean
   input_errors: JsonObject[]

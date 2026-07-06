@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import ResearchAgentView from './ResearchAgentView.vue'
 import { useAgentStore } from '../stores/agent'
@@ -9,6 +9,7 @@ import { useAgentStore } from '../stores/agent'
 vi.mock('../api/agent', () => ({
   createAgentRun: vi.fn(),
   approveAgentRun: vi.fn(),
+  listAgentRuns: vi.fn(async () => []),
 }))
 
 vi.mock('../api/documents', () => ({
@@ -34,7 +35,12 @@ describe('ResearchAgentView accessibility', () => {
     setActivePinia(createPinia())
   })
 
-  it('announces run status, approval groups, and timeline semantics', async () => {
+  afterEach(() => {
+    document.body.innerHTML = ''
+    vi.restoreAllMocks()
+  })
+
+  it('keeps diagnostics hidden in Analyst mode and reveals them in Developer mode', async () => {
     const store = useAgentStore()
     store.run = {
       run_id: 'run-1',
@@ -160,9 +166,13 @@ describe('ResearchAgentView accessibility', () => {
     const status = wrapper.find('[role="status"]')
     expect(status.exists()).toBe(true)
     expect(status.attributes('aria-live')).toBe('polite')
-    expect(status.attributes('aria-label')).toBe('Agent status Waiting on your approval; tokens 42')
+    expect(status.attributes('aria-label')).toBe(
+      'Agent status Waiting on your approval; next Approve or deny',
+    )
+    expect(status.text()).toContain('Next: Approve or deny')
+    expect(status.text()).not.toContain('tokens 42')
 
-    const approvals = wrapper.findAll('[role="group"]')
+    const approvals = wrapper.findAll('.approval-item[role="group"]')
     const approval = approvals[0]
     expect(approval.attributes('aria-label')).toBe(
       'high risk approval pending: publish memo; why needed: External publishing requires review.',
@@ -176,21 +186,44 @@ describe('ResearchAgentView accessibility', () => {
     expect(approvals[1].attributes('aria-label')).toBe('low risk approval pending: archive memo')
     expect(approvals[1].findAll('.detail-row')).toHaveLength(0)
 
-    const timeline = wrapper.find('[role="list"][aria-label="Agent event timeline"]')
-    expect(timeline.exists()).toBe(true)
-    expect(wrapper.findAll('.timeline-item[role="listitem"]').length).toBe(3)
+    expect(wrapper.find('[role="list"][aria-label="Agent event timeline"]').exists()).toBe(false)
+    expect(wrapper.findAll('.timeline-item[role="listitem"]').length).toBe(0)
+    expect(wrapper.text()).not.toContain('Agent Timeline')
+    expect(wrapper.text()).not.toContain('Cost / Eval')
+    expect(wrapper.text()).not.toContain('Total Tokens')
+    expect(wrapper.text()).not.toContain('Cost USD')
+    expect(wrapper.text()).not.toContain('direct_kimi_api')
+    expect(wrapper.text()).not.toContain('kimi-k2.6')
     expect(wrapper.find('#research-agent-quality-title').text()).toBe('Quality')
+    expect(wrapper.text()).toContain('doc-1 p.3')
+    const matrix = wrapper.find('[aria-label="Conclusion evidence matrix"]')
+    expect(matrix.exists()).toBe(true)
+    expect(matrix.text()).toContain('Revenue growth was supported by accelerator demand.')
+    expect(matrix.text()).toContain('supported')
+    expect(matrix.text()).toContain('not_applicable')
+    expect(matrix.text()).toContain('low')
+    expect(matrix.find('.evidence-chip').text()).toBe('evd-abc')
+    expect(wrapper.text()).not.toContain('annual report')
+
+    const developerButton = wrapper.findAll('button').find(button => button.text().includes('Developer'))
+    expect(developerButton).toBeTruthy()
+    await developerButton?.trigger('click')
+    await nextTick()
+
+    const developerStatus = wrapper.find('[role="status"]')
+    expect(developerStatus.attributes('aria-label')).toBe(
+      'Agent status Waiting on your approval; tokens 42; next Approve or deny',
+    )
+    expect(developerStatus.text()).toContain('tokens 42')
+    expect(wrapper.find('[role="list"][aria-label="Agent event timeline"]').exists()).toBe(true)
+    expect(wrapper.findAll('.timeline-item[role="listitem"]').length).toBe(3)
+    expect(wrapper.text()).toContain('Cost / Eval')
+    expect(wrapper.text()).toContain('Total Tokens')
+    expect(wrapper.text()).toContain('Cost USD')
     expect(wrapper.text()).toContain('Citation Precision')
     expect(wrapper.text()).toContain('100%')
-    expect(wrapper.text()).toContain('doc-1 p.3')
-    const claims = wrapper.find('[aria-label="Structured claims"]')
-    expect(claims.exists()).toBe(true)
-    expect(claims.text()).toContain('Revenue growth was supported by accelerator demand.')
-    expect(claims.text()).toContain('supported')
-    expect(claims.text()).toContain('not_applicable')
-    expect(claims.text()).toContain('low')
-    expect(claims.text()).toContain('1 evidence')
-    expect(wrapper.text()).not.toContain('annual report')
+    expect(wrapper.text()).toContain('direct_kimi_api')
+    expect(wrapper.text()).toContain('kimi-k2.6')
 
     wrapper.unmount()
   })
@@ -252,4 +285,265 @@ describe('ResearchAgentView accessibility', () => {
 
     wrapper.unmount()
   })
+
+  it('opens claim-scoped citation details from the conclusion matrix', async () => {
+    const store = useAgentStore()
+    store.run = {
+      run_id: 'run-3',
+      workflow: 'investment_research',
+      question: 'Analyze',
+      session_id: null,
+      market: 'us',
+      language: 'en',
+      document_ids: [],
+      portfolio_id: null,
+      model_policy: {},
+      workflow_context: null,
+      identity_snapshot: null,
+      status: 'completed',
+      events: [],
+      artifacts: [
+        {
+          artifact_id: 'art-3',
+          kind: 'investment_memo',
+          title: 'Memo',
+          content: '# Memo',
+          run_id: 'run-3',
+          data: {
+            usage: { total_tokens: 15 },
+            structured_claims: [
+              {
+                claim_id: 'claim-cash',
+                claim_text: 'Operating cash flow covered net income.',
+                status: 'supported',
+                evidence_refs: [
+                  {
+                    evidence_id: 'evd-cash',
+                    source: 'cash-flow-report p.8',
+                    document_id: 'cash-flow-report',
+                    page_number: 8,
+                    snippet: 'Operating cash flow covered net income by 1.4x.',
+                    score: 0.93,
+                  },
+                ],
+                numeric_check_status: 'checked',
+                risk_level: 'low',
+              },
+            ],
+          },
+          created_at: 'now',
+        },
+      ],
+      approvals: [],
+      cancel_requested_at: null,
+      schema_version: '1.0',
+      created_at: 'now',
+      updated_at: 'now',
+    }
+
+    const wrapper = mount(ResearchAgentView, { attachTo: document.body })
+
+    expect(wrapper.find('[aria-label="Conclusion evidence matrix"]').text()).toContain('cash-flow-report p.8')
+    await wrapper.find('.evidence-chip').trigger('click')
+    await nextTick()
+
+    expect(document.body.textContent).toContain('Source')
+    expect(document.body.textContent).toContain('cash-flow-report p.8')
+    expect(document.body.textContent).toContain('Page')
+    expect(document.body.textContent).toContain('8')
+    expect(document.body.textContent).toContain('Operating cash flow covered net income by 1.4x.')
+
+    wrapper.unmount()
+  })
+
+  it('exports memo artifacts and copies analyst handoff text', async () => {
+    const store = useAgentStore()
+    store.run = {
+      run_id: 'run-export',
+      workflow: 'investment_research',
+      question: 'Analyze export',
+      session_id: null,
+      market: 'us',
+      language: 'en',
+      document_ids: ['doc-export'],
+      portfolio_id: null,
+      model_policy: {},
+      workflow_context: null,
+      identity_snapshot: null,
+      status: 'completed',
+      events: [
+        {
+          event_id: 'evt-export',
+          run_id: 'run-export',
+          event_type: 'tool_result',
+          payload: {
+            result: {
+              data: {
+                results: [{
+                  evidence_id: 'evd-event-export',
+                  document_id: 'doc-event',
+                  page_number: 9,
+                  text: 'Event citation text.',
+                }],
+              },
+            },
+          },
+          sequence: 1,
+          schema_version: '1.0',
+          created_at: 'now',
+        },
+      ],
+      artifacts: [
+        {
+          artifact_id: 'art-export',
+          kind: 'investment_memo',
+          title: 'Export Memo',
+          content: `# Memo
+
+## Findings
+- Revenue growth was supported by source evidence.
+
+## IC Questions
+1. Which reported figures require source-page confirmation?
+2. What unresolved data gaps remain?
+
+## Sources
+- evd-export`,
+          run_id: 'run-export',
+          data: {
+            usage: { total_tokens: 84 },
+            citation_precision: 1,
+            numerical_consistency: 1,
+            tool_execution_success: 1,
+            citations: [
+              {
+                evidence_id: 'evd-export',
+                document_id: 'doc-export',
+                page_number: 4,
+                snippet: 'Revenue growth was supported by source evidence.',
+              },
+            ],
+            structured_claims: [
+              {
+                claim_id: 'claim-export',
+                claim_text: 'Revenue growth was supported by source evidence.',
+                status: 'supported',
+                evidence_refs: [
+                  {
+                    evidence_id: 'evd-export',
+                    source: 'doc-export p.4',
+                    document_id: 'doc-export',
+                    page_number: 4,
+                    snippet: 'Revenue growth was supported by source evidence.',
+                  },
+                ],
+                numeric_check_status: 'checked',
+                risk_level: 'low',
+              },
+            ],
+          },
+          created_at: 'now',
+        },
+      ],
+      approvals: [],
+      cancel_requested_at: null,
+      schema_version: '1.0',
+      created_at: 'now',
+      updated_at: 'now',
+    }
+
+    const originalCreateObjectUrl = URL.createObjectURL
+    const originalRevokeObjectUrl = URL.revokeObjectURL
+    const createObjectURL = vi.fn((_blob: Blob | MediaSource) => 'blob:memo-export')
+    const revokeObjectURL = vi.fn((_url: string) => undefined)
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectURL })
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: revokeObjectURL })
+    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const writeText = vi.fn(async (_text: string) => undefined)
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+    const print = vi.spyOn(window, 'print').mockImplementation(() => {})
+
+    const wrapper = mount(ResearchAgentView, { attachTo: document.body })
+
+    await wrapper.find('button[aria-label="Export memo as Markdown"]').trigger('click')
+    await wrapper.find('button[aria-label="Export memo as JSON"]').trigger('click')
+
+    expect(anchorClick).toHaveBeenCalledTimes(2)
+    expect(revokeObjectURL).toHaveBeenCalledTimes(2)
+    const markdownBlob = createObjectURL.mock.calls[0][0] as Blob
+    const jsonBlob = createObjectURL.mock.calls[1][0] as Blob
+    await expect(readBlobText(markdownBlob)).resolves.toContain('## IC Questions')
+    const payload = JSON.parse(await readBlobText(jsonBlob))
+    expect(payload).toMatchObject({
+      schema_version: 'doge.web.memo_export.v1',
+      export_kind: 'investment_memo',
+      run: {
+        run_id: 'run-export',
+        workflow: 'investment_research',
+        question: 'Analyze export',
+      },
+      artifact: {
+        artifact_id: 'art-export',
+        content_markdown: expect.stringContaining('Revenue growth'),
+      },
+      ic_questions: [
+        '1. Which reported figures require source-page confirmation?',
+        '2. What unresolved data gaps remain?',
+      ],
+      metrics: {
+        usage: { total_tokens: 84 },
+        citation_precision: 1,
+      },
+    })
+    expect(JSON.stringify(payload)).not.toContain('tool_result')
+    expect(payload.citations).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        evidence_id: 'evd-export',
+        source: 'doc-export p.4',
+        snippet: 'Revenue growth was supported by source evidence.',
+      }),
+      expect.objectContaining({
+        evidence_id: 'evd-event-export',
+        source: 'doc-event p.9',
+        snippet: 'Event citation text.',
+      }),
+    ]))
+
+    await wrapper.find('button[aria-label="Copy IC questions"]').trigger('click')
+    await wrapper.find('button[aria-label="Copy citations"]').trigger('click')
+    expect(writeText).toHaveBeenNthCalledWith(
+      1,
+      '1. Which reported figures require source-page confirmation?\n2. What unresolved data gaps remain?',
+    )
+    expect(writeText.mock.calls[1][0]).toContain('doc-export p.4 | evd-export')
+    expect(writeText.mock.calls[1][0]).toContain('Revenue growth was supported by source evidence.')
+
+    await wrapper.find('button[aria-label="Print memo"]').trigger('click')
+    expect(print).toHaveBeenCalledTimes(1)
+
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: originalCreateObjectUrl })
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: originalRevokeObjectUrl })
+    wrapper.unmount()
+  })
+
+  it('disables export actions when no memo is available', () => {
+    const wrapper = mount(ResearchAgentView)
+
+    expect(wrapper.find('button[aria-label="Export memo as Markdown"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('button[aria-label="Export memo as JSON"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('button[aria-label="Copy IC questions"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('button[aria-label="Copy citations"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('button[aria-label="Print memo"]').attributes('disabled')).toBeDefined()
+
+    wrapper.unmount()
+  })
 })
+
+function readBlobText(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result ?? ''))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsText(blob)
+  })
+}

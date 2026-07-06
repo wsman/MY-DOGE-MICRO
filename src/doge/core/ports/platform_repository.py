@@ -7,6 +7,7 @@ from typing import Protocol
 from doge.core.domain.platform_models import (
     CaseAssetLink,
     CaseDecision,
+    CaseProgressStep,
     CaseRunLink,
     Project,
     ResearchCase,
@@ -138,4 +139,15 @@ class IPlatformRepository(Protocol):
         case_id: str,
         limit: int = 100,
     ) -> list[CaseDecision]:
+        ...
+
+    def save_case_progress_step(self, step: CaseProgressStep, scope: TenantScope) -> None:
+        ...
+
+    def list_case_progress_steps(
+        self,
+        scope: TenantScope,
+        case_id: str,
+        limit: int = 100,
+    ) -> list[CaseProgressStep]:
         ...

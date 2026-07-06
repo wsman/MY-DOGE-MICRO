@@ -42,7 +42,7 @@ class IRunRepository(ABC):
         ...
 
     @abstractmethod
-    def list_by_session(self, session_id: str, scope: TenantScope) -> list[AgentRun]:
+    def list_by_session(self, session_id: str, scope: TenantScope, limit: int = 20) -> list[AgentRun]:
         ...
 
     @abstractmethod

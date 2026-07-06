@@ -11,6 +11,7 @@ import {
   fetchCapabilities,
   fetchHomeQueue,
   fetchRunSummaryResources,
+  getCaseProgress,
   getCaseReview,
   getProject,
   getResearchCase,
@@ -33,6 +34,7 @@ import type {
   CaseAssetLink,
   CaseDecision,
   CaseExecutionPayload,
+  CaseProgressStep,
   CaseReview,
   CaseRunLink,
   CreateProjectPayload,
@@ -64,6 +66,7 @@ export const usePlatformStore = defineStore('platform', () => {
   const caseRunLinks = ref<CaseRunLink[]>([])
   const caseAssetsByCaseId = ref<Record<string, CaseAssetLink[]>>({})
   const workflowExecutionsByCaseId = ref<Record<string, WorkflowExecution[]>>({})
+  const caseProgressByCaseId = ref<Record<string, CaseProgressStep[]>>({})
   const caseDecisionsByCaseId = ref<Record<string, CaseDecision[]>>({})
   const caseReviewByCaseId = ref<Record<string, CaseReview>>({})
   const preflightByCaseId = ref<Record<string, TemplatePreflightResult>>({})
@@ -149,11 +152,12 @@ export const usePlatformStore = defineStore('platform', () => {
 
   async function loadCaseWorkspace(caseId: string) {
     return await runTracked(async () => {
-      const [researchCase, templates, assets, executions, decisions, review] = await Promise.all([
+      const [researchCase, templates, assets, executions, progress, decisions, review] = await Promise.all([
         getResearchCase(caseId),
         listWorkflowTemplates(100),
         listCaseAssets(caseId),
         listCaseExecutions(caseId),
+        getCaseProgress(caseId),
         listCaseDecisions(caseId),
         getCaseReview(caseId),
       ])
@@ -161,6 +165,7 @@ export const usePlatformStore = defineStore('platform', () => {
       workflowTemplates.value = templates
       caseAssetsByCaseId.value = { ...caseAssetsByCaseId.value, [caseId]: assets }
       workflowExecutionsByCaseId.value = { ...workflowExecutionsByCaseId.value, [caseId]: executions }
+      caseProgressByCaseId.value = { ...caseProgressByCaseId.value, [caseId]: progress }
       caseDecisionsByCaseId.value = { ...caseDecisionsByCaseId.value, [caseId]: decisions }
       caseReviewByCaseId.value = { ...caseReviewByCaseId.value, [caseId]: review }
       return review
@@ -313,6 +318,7 @@ export const usePlatformStore = defineStore('platform', () => {
     caseRunLinks,
     caseAssetsByCaseId,
     workflowExecutionsByCaseId,
+    caseProgressByCaseId,
     caseDecisionsByCaseId,
     caseReviewByCaseId,
     preflightByCaseId,

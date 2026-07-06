@@ -393,7 +393,7 @@ requirements:
     system: fastapi-service
     cdd: design/cdd/fastapi-service.md
     section: "1 / 4.1"
-    requirement: "The canonical FastAPI app (doge.interfaces.api.main) binds to 127.0.0.1:8901 and exposes exactly 88 HTTP routes: 34 legacy /api routes plus 54 daemon/v1/platform routes, including explicit run resume, run summary, platform objects, case assets, workflow executions, decisions, case review, workflow templates, capability discovery, portfolio import, audit, and enterprise ACL administration; docs/API.md route table is the auditable contract."
+    requirement: "The canonical FastAPI app (doge.interfaces.api.main) binds to 127.0.0.1:8901 and exposes exactly 90 HTTP routes: 34 legacy /api routes plus 56 daemon/v1/platform routes, including compact run list, explicit run resume, run summary, platform objects, case assets, workflow executions, decisions, case review, case progress, workflow templates, capability discovery, portfolio import, audit, and enterprise ACL administration; docs/API.md route table is the auditable contract."
     adr: docs/architecture/adr-0007-api-surface-and-cors.md
     test: tests/contract/test_api_doc_route_coverage.py
     created: 2026-06-12

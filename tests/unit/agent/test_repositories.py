@@ -188,6 +188,20 @@ def test_sqlite_run_repository_accepts_tenant_scope(tmp_path):
     assert repo.get(run.run_id, TenantScope.enterprise("tenant-b", "user-b")) is None
 
 
+def test_sqlite_run_repository_limits_session_runs(tmp_path):
+    db = tmp_path / "agent_state.db"
+    repo = SQLiteRunRepository(db)
+    scope = TenantScope.local()
+    runs = [
+        AgentRun.create(workflow="investment_research", question=f"q{index}", session_id="ses-a")
+        for index in range(3)
+    ]
+    for run in runs:
+        repo.save(run, scope)
+
+    assert [item.run_id for item in repo.list_by_session("ses-a", scope, limit=1)] == [runs[0].run_id]
+
+
 def test_sqlite_runtime_repositories_filter_by_tenant(tmp_path):
     db = tmp_path / "agent_state.db"
     sessions = SQLiteSessionRepository(db)

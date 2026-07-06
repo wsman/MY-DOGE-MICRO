@@ -27,7 +27,7 @@ governance evidence
 **Test file path**: `tests/contract/test_api_doc_route_coverage.py`
 **Framework**: pytest
 **What to test**:
-- `docs/API.md` still enumerates exactly 88 live product routes.
+- At Sprint I review time, `docs/API.md` enumerated exactly 88 HTTP routes; current route authority lives in `docs/reference/http-api.md`.
 - Every documented route still exists in the FastAPI app.
 - Every live product route remains documented.
 - Error-contract prose still includes the shipped error envelope and status-code mapping.

@@ -7,6 +7,7 @@ Usage:
     doge brief [--market cn] [--top 20]
     doge anomaly [--min-ratio 3.0] [--top 20]
     doge demo [--market cn] [--top 5]
+    doge demo-pack --run-id <run_id> --output demo_packet/
     doge macro [--verbose]
     doge doctor [--json]
     doge session [--title "..."]
@@ -47,6 +48,7 @@ from doge.interfaces.cli.commands import (
     cmd_breadth,
     cmd_case,
     cmd_demo,
+    cmd_demo_pack,
     cmd_doctor,
     cmd_macro,
     cmd_run,
@@ -96,6 +98,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_demo = sub.add_parser("demo", help="5-minute demo using bundled sample data")
     p_demo.add_argument("--market", default="cn", choices=["cn", "us"])
     p_demo.add_argument("--top", type=int, default=5)
+
+    # demo-pack
+    p_demo_pack = sub.add_parser("demo-pack", help="export a local demo packet for a persisted run")
+    p_demo_pack.add_argument("--run-id", help="persisted run id to export")
+    p_demo_pack.add_argument("--case", help="alias for --run-id; retained for roadmap wording")
+    p_demo_pack.add_argument("--output", required=True, help="output directory for packet files")
 
     # macro
     p_macro = sub.add_parser("macro", help="macro strategy report via configured text LLM")
@@ -243,6 +251,7 @@ def main(argv: list[str] | None = None) -> None:
         "run": cmd_run,
         "template": cmd_template,
         "case": cmd_case,
+        "demo-pack": cmd_demo_pack,
     }
     dispatch[args.cmd](args)
 

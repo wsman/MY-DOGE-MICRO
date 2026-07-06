@@ -33,6 +33,51 @@ class PortfolioService:
         return portfolio
 
 
+class PortfolioSummaryService:
+    """Build operator-facing summaries for newly imported portfolios."""
+
+    def __init__(self, repository: IPortfolioRepository) -> None:
+        self._repository = repository
+
+    def build_summary(self, portfolio_id: str, scope: Any = None) -> dict[str, Any]:
+        portfolio = self._repository.get(portfolio_id, scope)
+        if portfolio is None:
+            raise KeyError(f"portfolio not found: {portfolio_id}")
+        total = portfolio.total_market_value
+        weight_denominator = total if total > 0 else 1.0
+        top_concentration = [
+            {
+                "symbol": holding.symbol,
+                "asset_class": holding.asset_class,
+                "sector": holding.sector,
+                "market_value": holding.market_value,
+                "weight": round(holding.market_value / weight_denominator, 6),
+            }
+            for holding in sorted(portfolio.holdings, key=lambda item: item.market_value, reverse=True)[:5]
+        ]
+        missing_prices = [
+            {
+                "symbol": holding.symbol,
+                "reason": "quantity missing; unit price unavailable",
+            }
+            for holding in portfolio.holdings
+            if holding.quantity <= 0
+        ]
+        return {
+            "portfolio_id": portfolio.portfolio_id,
+            "name": portfolio.name,
+            "total_market_value": portfolio.total_market_value,
+            "holdings_count": len(portfolio.holdings),
+            "top_concentration": top_concentration,
+            "by_sector": _group_exposure(portfolio, "sector"),
+            "missing_prices": missing_prices,
+            "suggested_run": {
+                "workflow": "portfolio_risk_review",
+                "question": f"Analyze concentration and rate-shock risk for portfolio {portfolio.portfolio_id}.",
+            },
+        }
+
+
 class _DefaultRiskFactorSource:
     def asset_volatility(self, asset_class: str) -> float:
         return {"equity": 0.22, "bond": 0.08, "cash": 0.01}.get(asset_class, 0.15)

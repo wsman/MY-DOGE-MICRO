@@ -10,7 +10,7 @@ or any legacy connection helper directly; they request a port/use case via
 import logging
 import os
 
-from fastapi import Header, HTTPException, Request
+from fastapi import Depends, Header, HTTPException, Request
 
 from doge.config import Settings, get_settings
 from doge.interfaces.api import factories
@@ -186,9 +186,14 @@ def get_platform_repository():
     return _container.workspace.build_platform_repository()
 
 
-def get_portfolio_import_service():
+def get_portfolio_import_service(portfolio_repository=Depends(get_portfolio_repository)):
     """Provide the CSV portfolio import service."""
-    return factories.build_portfolio_import_service(get_portfolio_repository())
+    return factories.build_portfolio_import_service(portfolio_repository)
+
+
+def get_portfolio_summary_service(portfolio_repository=Depends(get_portfolio_repository)):
+    """Provide the portfolio import summary service."""
+    return factories.build_portfolio_summary_service(portfolio_repository)
 
 
 def get_enterprise_governance_repository():

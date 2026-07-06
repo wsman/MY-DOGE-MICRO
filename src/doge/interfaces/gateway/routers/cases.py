@@ -12,6 +12,7 @@ from doge.interfaces.api.handlers import ResearchCaseHandler
 from doge.interfaces.gateway.routers._common import serialize
 from doge.interfaces.gateway.routers._response_models import (
     CaseDecisionListResponse,
+    CaseProgressEnvelopeResponse,
     ResearchCaseListResponse,
     ResearchCaseResponse,
 )
@@ -127,6 +128,27 @@ async def get_research_case(
             case_id=case_id,
         )
         return serialize(research_case)
+    except PlatformServiceError as exc:
+        raise_platform_error(exc)
+
+
+@router.get(
+    "/research-cases/{case_id}/progress",
+    response_model=CaseProgressEnvelopeResponse,
+    dependencies=[Depends(require_platform_objects)],
+)
+async def get_research_case_progress(
+    request: Request,
+    case_id: str,
+    service: ResearchCaseService = Depends(build_research_case_execution_service),
+):
+    try:
+        return serialize(
+            ResearchCaseHandler(service=service).progress(
+                context=platform_context(request),
+                case_id=case_id,
+            )
+        )
     except PlatformServiceError as exc:
         raise_platform_error(exc)
 

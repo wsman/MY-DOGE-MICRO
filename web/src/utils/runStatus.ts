@@ -35,17 +35,18 @@ export type RunStatusTone = 'default' | 'info' | 'success' | 'warning' | 'error'
 interface RunStatusDescriptor {
   label: string
   tone: RunStatusTone
+  nextActions?: string[]
 }
 
 const RUN_STATUS: Record<RunStatusValue, RunStatusDescriptor> = {
-  created: { label: 'Preparing', tone: 'default' },
-  queued: { label: 'Queued', tone: 'warning' },
-  running: { label: 'Running', tone: 'info' },
-  awaiting_approval: { label: 'Waiting on your approval', tone: 'warning' },
-  cancelling: { label: 'Cancelling', tone: 'warning' },
-  cancelled: { label: 'Cancelled', tone: 'default' },
-  completed: { label: 'Completed', tone: 'success' },
-  failed: { label: 'Failed', tone: 'error' },
+  created: { label: 'Preparing', tone: 'default', nextActions: ['Wait for worker'] },
+  queued: { label: 'Queued', tone: 'warning', nextActions: ['Wait for worker'] },
+  running: { label: 'Running', tone: 'info', nextActions: ['Watch live'] },
+  awaiting_approval: { label: 'Waiting on your approval', tone: 'warning', nextActions: ['Approve or deny'] },
+  cancelling: { label: 'Cancelling', tone: 'warning', nextActions: ['Wait for cancel'] },
+  cancelled: { label: 'Cancelled', tone: 'default', nextActions: ['Re-queue or discard'] },
+  completed: { label: 'Completed', tone: 'success', nextActions: ['Open artifacts'] },
+  failed: { label: 'Failed', tone: 'error', nextActions: ['Inspect error', 'Re-run'] },
 }
 
 const IDLE_LABEL = 'Idle'
@@ -79,4 +80,15 @@ export function toneFor(status: string | null | undefined): RunStatusTone {
  */
 export function sentenceFor(status: string | null | undefined): string {
   return labelFor(status)
+}
+
+/**
+ * Operator-facing next actions for a run status. Unknown / idle values return
+ * an empty list so callers can omit the hint without inventing guidance for
+ * statuses this UI does not know yet.
+ */
+export function nextActionsFor(status: string | null | undefined): string[] {
+  if (status === null || status === undefined || status === '') return []
+  const descriptor = RUN_STATUS[status as RunStatusValue]
+  return descriptor?.nextActions ? [...descriptor.nextActions] : []
 }

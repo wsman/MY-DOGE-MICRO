@@ -38,8 +38,8 @@ class FakeRunRepository(IRunRepository):
     def get_run_header(self, run_id, *, tenant_id=None):
         return self.runs.get(run_id)
 
-    def list_by_session(self, session_id, *, tenant_id=None):
-        return self._session_runs.get(session_id, [])
+    def list_by_session(self, session_id, limit=20, *, tenant_id=None):
+        return self._session_runs.get(session_id, [])[:limit]
 
     def list_recent(self, limit=20, *, tenant_id=None):
         return list(self.runs.values())[:limit]
@@ -553,6 +553,20 @@ def test_lifecycle_service_list_runs_by_session(lifecycle_service, run_repositor
 
     assert len(result) == 1
     assert result[0].session_id == "ses-1"
+
+
+def test_lifecycle_service_list_runs_by_session_honors_limit(lifecycle_service, run_repository):
+    runs = [
+        AgentRun.create(workflow="test", question=f"Q{index}", session_id="ses-1")
+        for index in range(3)
+    ]
+    for run in runs:
+        run_repository.save(run, TenantScope.local())
+    run_repository._session_runs["ses-1"] = runs
+
+    result = lifecycle_service.list_runs(TenantScope.local(), session_id="ses-1", limit=1)
+
+    assert [item.run_id for item in result] == [runs[0].run_id]
 
 
 def test_lifecycle_service_list_artifacts_returns_artifacts(lifecycle_service, artifact_repository):

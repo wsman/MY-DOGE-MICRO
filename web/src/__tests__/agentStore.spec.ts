@@ -31,6 +31,21 @@ vi.mock('../api/agent', () => ({
 describe('agent store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    vi.clearAllMocks()
+  })
+
+  it('defaults to analyst mode and keeps mode state local to the Web store', async () => {
+    const store = useAgentStore()
+
+    expect(store.analystMode).toBe(true)
+    store.setAnalystMode(false)
+    expect(store.analystMode).toBe(false)
+
+    await store.startDemoRun()
+
+    expect(createAgentRun).toHaveBeenCalledWith(expect.not.objectContaining({
+      analystMode: expect.anything(),
+    }))
   })
 
   it('starts a demo run and exposes approvals', async () => {

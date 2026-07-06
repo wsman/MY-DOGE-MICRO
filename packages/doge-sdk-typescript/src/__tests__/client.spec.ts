@@ -59,6 +59,23 @@ describe('DogeClient', () => {
     )
   })
 
+  it('lists compact run rows from v1 API', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ runs: [{ run_id: 'run-test', status: 'completed' }] }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const client = new DogeClient()
+
+    const runs = await client.runs.list({ limit: 3, sessionId: 'ses-1' })
+
+    expect(runs[0].run_id).toBe('run-test')
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/v1/runs?limit=3&session_id=ses-1',
+      expect.objectContaining({ method: 'GET' }),
+    )
+  })
+
   it('streams post-approval resume events from v1 API', async () => {
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
@@ -294,6 +311,10 @@ describe('DogeClient', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
+        json: async () => ({ steps: [{ progress_id: 'cps-1', step_key: 'workflow' }] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
         json: async () => ({ asset_link_id: 'asset-link-1' }),
       })
       .mockResolvedValueOnce({
@@ -327,6 +348,7 @@ describe('DogeClient', () => {
     })
     const executions = await client.platform.listCaseExecutions('case-1', 5)
     const review = await client.platform.getCaseReview('case-1')
+    const progress = await client.platform.getCaseProgress('case-1')
     const asset = await client.platform.addCaseAsset('case-1', 'document', 'doc-1', { assetName: '10-K' })
     const decisions = await client.platform.listCaseDecisions('case-1')
     const template = await client.platform.createWorkflowTemplate('stock', 'Stock', {
@@ -345,6 +367,7 @@ describe('DogeClient', () => {
     expect(execution.run_id).toBe('run-from-execution')
     expect(executions[0].execution_id).toBe('exec-1')
     expect(review.case).toEqual({ case_id: 'case-1' })
+    expect(progress[0].step_key).toBe('workflow')
     expect(asset.asset_link_id).toBe('asset-link-1')
     expect(decisions[0].decision_id).toBe('decision-1')
     expect(template.template_id).toBe('tpl-1')
@@ -418,6 +441,11 @@ describe('DogeClient', () => {
     )
     expect(fetchMock).toHaveBeenNthCalledWith(
       9,
+      '/v1/research-cases/case-1/progress',
+      expect.objectContaining({ method: 'GET' }),
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      10,
       '/v1/research-cases/case-1/assets',
       expect.objectContaining({
         method: 'POST',
@@ -432,12 +460,12 @@ describe('DogeClient', () => {
       }),
     )
     expect(fetchMock).toHaveBeenNthCalledWith(
-      10,
+      11,
       '/v1/research-cases/case-1/decisions',
       expect.objectContaining({ method: 'GET' }),
     )
     expect(fetchMock).toHaveBeenNthCalledWith(
-      11,
+      12,
       '/v1/workflow-templates',
       expect.objectContaining({
         method: 'POST',
@@ -459,7 +487,7 @@ describe('DogeClient', () => {
         }),
       }),
     )
-    expect(fetchMock).toHaveBeenNthCalledWith(12, '/v1/capabilities', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(13, '/v1/capabilities', expect.objectContaining({ method: 'GET' }))
   })
 
   it('uploads documents as multipart form data without forcing json headers', async () => {

@@ -44,7 +44,7 @@ Result:
 38 passed, 2 warnings in 12.58s
 ```
 
-The API doc route-coverage gate still asserts exactly 88 product routes.
+At Sprint I review time, the API doc route-coverage gate asserted exactly 88 HTTP routes. Current route authority lives in `docs/reference/http-api.md`.
 
 ### Python SDK contract suite
 

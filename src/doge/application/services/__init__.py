@@ -7,7 +7,7 @@ from doge.application.services.page_extraction_service import (
     PageExtractionService,
 )
 from doge.application.services.rag_service import RAGService
-from doge.application.services.portfolio_service import PortfolioService, RiskService, ScenarioService
+from doge.application.services.portfolio_service import PortfolioService, PortfolioSummaryService, RiskService, ScenarioService
 
 __all__ = [
     "ChunkingService",
@@ -17,6 +17,7 @@ __all__ = [
     "PageExtractionService",
     "RAGService",
     "PortfolioService",
+    "PortfolioSummaryService",
     "RiskService",
     "ScenarioService",
 ]

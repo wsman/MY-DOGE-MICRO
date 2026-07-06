@@ -11,6 +11,7 @@ export const useAgentStore = defineStore('agent', () => {
   const selectedScenarioSlug = ref('investment_committee_memo')
   const documentIds = ref<string[]>([])
   const portfolioId = ref<string | null>(null)
+  const analystMode = ref(true)
   const run = ref<AgentRun | null>(null)
   const loading = ref(false)
   const error = ref<FetchError | null>(null)
@@ -66,6 +67,10 @@ export const useAgentStore = defineStore('agent', () => {
     portfolioId.value = id
   }
 
+  function setAnalystMode(enabled: boolean) {
+    analystMode.value = enabled
+  }
+
   return {
     question,
     market,
@@ -73,6 +78,7 @@ export const useAgentStore = defineStore('agent', () => {
     selectedScenarioSlug,
     documentIds,
     portfolioId,
+    analystMode,
     run,
     loading,
     error,
@@ -84,5 +90,6 @@ export const useAgentStore = defineStore('agent', () => {
     resolveApproval,
     setDocumentIds,
     setPortfolioId,
+    setAnalystMode,
   }
 })

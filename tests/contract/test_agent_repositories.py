@@ -47,12 +47,15 @@ def test_run_queue_latest_status_drives_pending_list(tmp_path):
 
     queue.enqueue("run-1")
     assert queue.list_pending() == ["run-1"]
+    assert queue.status_summary() == {"queued": 1}
 
     assert queue.claim_atomic("worker-a", lease_seconds=30) == "run-1"
     assert queue.list_pending() == []
+    assert queue.status_summary() == {"running": 1}
 
     queue.release_claim("run-1", "worker-a", "done")
     assert queue.list_pending() == []
+    assert queue.status_summary() == {"done": 1}
 
 
 def test_idempotency_store_scopes_keys(tmp_path):

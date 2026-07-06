@@ -4,6 +4,7 @@ from doge.application.use_cases.capability_registry import BuildCapabilityRegist
 from doge.core.domain.platform_models import (
     CaseAssetLink,
     CaseDecision,
+    CaseProgressStep,
     CaseRunLink,
     Project,
     ResearchCase,
@@ -49,6 +50,7 @@ __all__ = [
     "CaseDecision",
     "CaseDecisionCreate",
     "CaseDecisionService",
+    "CaseProgressStep",
     "CaseExecutionCreate",
     "CaseExecutionCreateResult",
     "CaseExecutionService",

@@ -176,6 +176,7 @@ def test_research_case_execution_preflight_and_execute_records_execution(tmp_pat
         ).json()
         executions = client.get(f"/v1/research-cases/{case['case_id']}/executions").json()["executions"]
         review = client.get(f"/v1/research-cases/{case['case_id']}/review").json()
+        progress = client.get(f"/v1/research-cases/{case['case_id']}/progress").json()
 
     assert invalid["valid"] is False
     assert invalid["input_errors"][0]["code"] == "required"
@@ -192,6 +193,14 @@ def test_research_case_execution_preflight_and_execute_records_execution(tmp_pat
     assert review["approvals"][0]["impact"] == "Memo can be distributed."
     assert review["approvals"][0]["deny_consequence"] == "Run stops before publishing."
     assert review["approvals"][0]["publish_target"] == "ic@example.com"
+    assert progress["case_id"] == case["case_id"]
+    assert [step["step_key"] for step in progress["steps"]] == ["intake", "evidence", "workflow", "decision"]
+    assert progress["steps"][0]["status"] == "done"
+    assert progress["steps"][1]["status"] == "blocked"
+    assert progress["steps"][2]["status"] == "in_progress"
+    assert progress["steps"][2]["owner"] == "operator"
+    assert progress["steps"][2]["source_id"] == executed["execution_id"]
+    assert progress["steps"][3]["next_action"] == "Record approve, reject, hold, or escalate"
 
 
 def test_research_case_assets_decisions_and_review(tmp_path):

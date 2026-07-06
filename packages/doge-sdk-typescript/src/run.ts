@@ -84,6 +84,22 @@ export interface AgentRun {
   updated_at: string
 }
 
+export interface RunListItem {
+  run_id: string
+  workflow: string
+  question: string
+  session_id: string | null
+  market: string
+  language: string
+  portfolio_id: string | null
+  status: RunStatus | string
+  event_count: number
+  artifact_count: number
+  approval_count: number
+  created_at: string
+  updated_at: string
+}
+
 export interface RunStreamOptions {
   lastEventId?: string
   reconnect?: boolean
@@ -112,6 +128,14 @@ export class RunsResource {
 
   constructor(root: DogeClient) {
     this.root = root
+  }
+
+  async list(options: { limit?: number; sessionId?: string } = {}): Promise<RunListItem[]> {
+    const params = new URLSearchParams()
+    params.set('limit', String(options.limit ?? 20))
+    if (options.sessionId) params.set('session_id', options.sessionId)
+    const payload = await this.root.request<{ runs: RunListItem[] }>('GET', `/v1/runs?${params.toString()}`)
+    return payload.runs
   }
 
   get(runId: string): Promise<AgentRun> {
