@@ -15,6 +15,7 @@ singleton before constructing a registry.
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -30,10 +31,12 @@ from doge.platform.slots import (
     SlotContext,
     SlotHealth,
     SlotManifest,
+    SlotPermissions,
     SlotProvides,
     SlotRegistry,
     SlotType,
 )
+from doge.products.market.slot import MarketCoreSlot
 
 _BASELINE = (
     Path(__file__).resolve().parents[1]
@@ -50,6 +53,12 @@ _ALL_FEATURE_VARS = [
     "DOGE_FEATURE_RUNTIME_OUTBOX_PUBLISHER",
     "DOGE_FEATURE_PYTHON_ANALYSIS_ENABLED",
     "DOGE_FEATURE_SLOT_PLATFORM",
+    "DOGE_FEATURE_SLOT_GOVERNANCE",
+    "DOGE_FEATURE_SLOT_WATCHER",
+    "DOGE_FEATURE_SLOT_UI",
+    "DOGE_FEATURE_SLOT_ENFORCEMENT",
+    "DOGE_FEATURE_SLOT_LOADER",
+    "DOGE_FEATURE_SLOT_INSTALL",
 ]
 
 
@@ -84,6 +93,14 @@ class _BadToolSlot(ISlot):
         service = context.tool_application_service
         descriptor = service.tool_descriptors()[0]
         return SlotContribution(slot_id="tool.bad", tools=(descriptor,))
+
+
+class _ShellMarketSlot(MarketCoreSlot):
+    def manifest(self) -> SlotManifest:
+        return replace(
+            super().manifest(),
+            permissions=SlotPermissions(shell="allow", risk_level="low"),
+        )
 
 
 @pytest.fixture
@@ -185,3 +202,25 @@ def test_tool_contribution_without_executor_fails_fast(monkeypatch, service) -> 
 
     with pytest.raises(SlotConfigurationError, match="executor"):
         slots_module.build_slot_aware_tool_registry(lambda: _FakeGatewayContainer(service))
+
+
+def test_enforcement_blocked_tool_slot_does_not_fallback_to_legacy_registration(
+    monkeypatch,
+    service,
+) -> None:
+    registry = SlotRegistry()
+    registry.register(_ShellMarketSlot())
+    monkeypatch.setattr(slots_module, "build_builtin_slot_registry", lambda: registry)
+    _strip_feature_env(
+        monkeypatch,
+        keep={"DOGE_FEATURE_SLOT_PLATFORM", "DOGE_FEATURE_SLOT_ENFORCEMENT"},
+    )
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "1")
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_ENFORCEMENT", "1")
+
+    tool_registry = _flag_on_registry(service)
+
+    assert tool_registry.descriptor_for("query_stock") is None
+    result = tool_registry.execute("query_stock", {})
+    assert result.ok is False
+    assert result.error == "unknown tool"
