@@ -96,6 +96,7 @@ def build_agent_runtime_kernel(
     transition_recorder = TransitionRecorder(
         transaction_factory=repositories.build_runtime_transaction_factory(db_path),
         event_publisher=event_publisher,
+        event_watcher=_build_event_watcher(),
     )
     artifact_finalizer = ArtifactFinalizer(evaluation_service=ArtifactEvaluationService())
     citation_assembler = ArtifactCitationAssembler(
@@ -195,3 +196,12 @@ def build_persisted_research_agent_runtime(
             event_publisher=event_publisher,
         )
     )
+
+
+def _build_event_watcher():
+    settings = get_settings()
+    if not settings.features.slot_platform:
+        return None
+    from doge.bootstrap.runtime_factories.slots import build_slot_aware_runtime_event_watcher
+
+    return build_slot_aware_runtime_event_watcher(settings=settings)

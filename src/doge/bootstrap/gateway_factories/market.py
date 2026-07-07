@@ -1,5 +1,6 @@
 """Gateway factory helpers for market-data services and TDX sources."""
 from __future__ import annotations
+from doge.config import get_settings
 from doge.core.services.anomaly_service import AnomalyService
 from doge.core.services.breadth_service import BreadthService
 from doge.core.services.ranking_service import RankingService
@@ -44,6 +45,15 @@ def build_tdx_server_list():
 
 def build_tdx_data_source(preferred_server: str | None = None):
     from doge.infrastructure.data_source.tdx import TDXDataSource
+
+    if preferred_server is None:
+        settings = get_settings()
+        if settings.features.slot_platform:
+            from doge.bootstrap.runtime_factories.slots import build_slot_aware_data_source
+
+            data_source = build_slot_aware_data_source(settings=settings)
+            if data_source is not None:
+                return data_source
 
     return TDXDataSource(preferred_server=preferred_server)
 

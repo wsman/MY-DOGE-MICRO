@@ -45,6 +45,20 @@ def run(cases_path: Path, runtime_factory: RuntimeFactory | None = None) -> dict
     return asyncio.run(_run_cases(cases, runtime_factory or RuntimeContainer().build_research_agent_runtime))
 
 
+def run_suite(
+    suite_id: str,
+    runtime_factory: RuntimeFactory | None = None,
+) -> dict:
+    """Run a slot-contributed eval suite by id."""
+
+    from doge.bootstrap.runtime_factories.slots import build_slot_aware_eval_suites
+
+    registry = build_slot_aware_eval_suites()
+    if registry is None:
+        raise ValueError("slot eval suites are disabled or unavailable")
+    return run(registry.cases_path(suite_id), runtime_factory=runtime_factory)
+
+
 async def _run_cases(cases: list[dict], runtime_factory: RuntimeFactory) -> dict:
     results = []
     tool_success_values: list[float] = []
@@ -258,13 +272,16 @@ def _evidence_records(results: list[dict]) -> list[dict]:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--cases", required=True)
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--cases")
+    group.add_argument("--suite")
     args = parser.parse_args()
-    print(json.dumps(run(Path(args.cases)), indent=2, ensure_ascii=False))
+    result = run_suite(args.suite) if args.suite else run(Path(args.cases))
+    print(json.dumps(result, indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":
     main()
 
 
-__all__ = ["ObservationRunner", "run", "run_cases"]
+__all__ = ["ObservationRunner", "run", "run_cases", "run_suite"]

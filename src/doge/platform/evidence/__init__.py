@@ -33,6 +33,7 @@ from doge.core.ports.document_repository import IDocumentRepository
 from doge.core.ports.embedding import IEmbeddingCache, IEmbeddingProvider
 from doge.core.ports.evidence_repository import IEvidenceRepository
 from doge.core.ports.vector_store import IVectorStore, VectorRecord, VectorSearchResult
+from doge.platform.evidence.document_parsers import ParserDispatcher
 
 __all__ = [
     "BuildRunSummary",
@@ -65,6 +66,7 @@ __all__ = [
     "MultimodalEvidenceService",
     "NumericalConsistencyService",
     "PageExtractionService",
+    "ParserDispatcher",
     "RAGService",
     "VectorRecord",
     "VectorSearchResult",

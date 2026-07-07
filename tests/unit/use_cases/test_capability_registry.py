@@ -65,6 +65,13 @@ def test_feature_capabilities_include_lifecycle_metadata():
         "feature.workflow_templates": "workflow_templates",
         "feature.capability_registry": "capability_registry",
         "feature.python_analysis_enabled": "python_analysis_enabled",
+        "feature.slot_platform": "slot_platform",
+        "feature.slot_governance": "slot_governance",
+        "feature.slot_watcher": "slot_watcher",
+        "feature.slot_ui": "slot_ui",
+        "feature.slot_enforcement": "slot_enforcement",
+        "feature.slot_loader": "slot_loader",
+        "feature.slot_install": "slot_install",
     }
     for capability_id, feature_name in expected.items():
         lifecycle = capabilities[capability_id]["metadata"]["lifecycle"]

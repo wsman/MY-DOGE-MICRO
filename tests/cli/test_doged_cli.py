@@ -30,6 +30,16 @@ class _ReadinessResponse:
 def _clear_doged_cli_env() -> None:
     os.environ.pop("DOGE_PROCESS_ROLE", None)
     os.environ.pop("DOGE_BIND_HOST", None)
+    os.environ.pop("DOGE_FEATURE_SLOT_PLATFORM", None)
+    os.environ.pop("DOGE_FEATURE_SLOT_GOVERNANCE", None)
+    os.environ.pop("DOGE_FEATURE_SLOT_WATCHER", None)
+    os.environ.pop("DOGE_FEATURE_SLOT_UI", None)
+    os.environ.pop("DOGE_FEATURE_SLOT_ENFORCEMENT", None)
+    os.environ.pop("DOGE_FEATURE_SLOT_LOADER", None)
+    os.environ.pop("DOGE_FEATURE_SLOT_INSTALL", None)
+    os.environ.pop("DOGE_SLOT_MANIFEST_DIRS", None)
+    os.environ.pop("DOGE_SLOT_INSTALL_DIR", None)
+    os.environ.pop("DOGE_FEATURE_WORKFLOW_TEMPLATES", None)
     reset_settings()
 
 
@@ -215,6 +225,106 @@ def test_doged_routes_prints_registered_routes(monkeypatch, capsys):
 
     out = capsys.readouterr().out.splitlines()
     assert out == ["GET /health/ready ready", "POST /v1/sessions create_session"]
+
+
+def test_doged_slots_prints_builtin_slot_statuses(monkeypatch, capsys):
+    monkeypatch.delenv("DOGE_FEATURE_SLOT_PLATFORM", raising=False)
+    monkeypatch.delenv("DOGE_FEATURE_WORKFLOW_TEMPLATES", raising=False)
+    reset_settings()
+
+    try:
+        doged_main.main(["slots"])
+    finally:
+        _clear_doged_cli_env()
+
+    out = capsys.readouterr().out
+    assert "market.core status=disabled type=tool" in out
+    assert "workflow.templates status=disabled type=workflow" in out
+    assert "data.tdx status=disabled type=data" in out
+    assert "data.yfinance status=disabled type=data" in out
+    assert "gateway.slots status=disabled type=gateway" in out
+    assert "eval.local_cases status=disabled type=eval" in out
+    assert "ui.research_workspace status=disabled type=ui" in out
+    assert "governance.tool_policy status=disabled type=governance" in out
+    assert "watcher.runtime_events status=disabled type=watcher" in out
+    assert "document.local_parser status=disabled type=document" in out
+
+
+def test_doged_slots_json_marks_workflow_resolved_when_flags_on(monkeypatch, capsys):
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "1")
+    monkeypatch.setenv("DOGE_FEATURE_WORKFLOW_TEMPLATES", "1")
+    reset_settings()
+
+    try:
+        doged_main.main(["slots", "--json"])
+    finally:
+        _clear_doged_cli_env()
+
+    payload = json.loads(capsys.readouterr().out)
+    market = next(slot for slot in payload["slots"] if slot["id"] == "market.core")
+    workflow = next(slot for slot in payload["slots"] if slot["id"] == "workflow.templates")
+    governance = next(
+        slot for slot in payload["slots"] if slot["id"] == "governance.tool_policy"
+    )
+    watcher = next(slot for slot in payload["slots"] if slot["id"] == "watcher.runtime_events")
+    document = next(slot for slot in payload["slots"] if slot["id"] == "document.local_parser")
+    tdx = next(slot for slot in payload["slots"] if slot["id"] == "data.tdx")
+    yfinance = next(slot for slot in payload["slots"] if slot["id"] == "data.yfinance")
+    gateway = next(slot for slot in payload["slots"] if slot["id"] == "gateway.slots")
+    eval_slot = next(slot for slot in payload["slots"] if slot["id"] == "eval.local_cases")
+    ui_slot = next(slot for slot in payload["slots"] if slot["id"] == "ui.research_workspace")
+    assert market["status"] == "resolved"
+    assert market["counts"]["tools"] == 6
+    assert workflow["status"] == "resolved"
+    assert workflow["type"] == "workflow"
+    assert governance["status"] == "disabled"
+    assert watcher["status"] == "disabled"
+    assert document["status"] == "resolved"
+    assert document["type"] == "document"
+    assert tdx["status"] == "resolved"
+    assert tdx["type"] == "data"
+    assert yfinance["status"] == "resolved"
+    assert yfinance["type"] == "data"
+    assert gateway["status"] == "resolved"
+    assert gateway["type"] == "gateway"
+    assert eval_slot["status"] == "resolved"
+    assert eval_slot["type"] == "eval"
+    assert ui_slot["status"] == "disabled"
+    assert ui_slot["type"] == "ui"
+
+
+def test_doged_slots_json_marks_governance_resolved_when_flags_on(monkeypatch, capsys):
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "1")
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_GOVERNANCE", "1")
+    reset_settings()
+
+    try:
+        doged_main.main(["slots", "--json"])
+    finally:
+        _clear_doged_cli_env()
+
+    payload = json.loads(capsys.readouterr().out)
+    governance = next(
+        slot for slot in payload["slots"] if slot["id"] == "governance.tool_policy"
+    )
+    assert governance["status"] == "resolved"
+    assert governance["type"] == "governance"
+
+
+def test_doged_slots_json_marks_watcher_resolved_when_flags_on(monkeypatch, capsys):
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "1")
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_WATCHER", "1")
+    reset_settings()
+
+    try:
+        doged_main.main(["slots", "--json"])
+    finally:
+        _clear_doged_cli_env()
+
+    payload = json.loads(capsys.readouterr().out)
+    watcher = next(slot for slot in payload["slots"] if slot["id"] == "watcher.runtime_events")
+    assert watcher["status"] == "resolved"
+    assert watcher["type"] == "watcher"
 
 
 def test_doged_explain_prints_failure_point(monkeypatch, capsys):

@@ -18,6 +18,7 @@ from doge.interfaces.gateway.routers import platform as v1_platform
 from doge.interfaces.gateway.routers import portfolios as v1_portfolios
 from doge.interfaces.gateway.routers import runs as v1_runs
 from doge.interfaces.gateway.routers import sessions as v1_sessions
+from doge.interfaces.gateway.routers import slots as v1_slots
 from doge.interfaces.gateway.routers import tools as v1_tools
 
 logger = logging.getLogger("doge.api")
@@ -65,12 +66,22 @@ def _register_legacy_api_routes(target_app: FastAPI, settings) -> None:
     target_app.add_api_route("/api/stats", stats, methods=["GET"])
 
 
-def _register_v1_routes(target_app: FastAPI) -> None:
+def _register_v1_routes(target_app: FastAPI, settings=None) -> None:
     target_app.include_router(v1_sessions.router, prefix="/v1", tags=["v1-sessions"])
     target_app.include_router(v1_runs.router, prefix="/v1", tags=["v1-runs"])
     target_app.include_router(v1_documents.router, prefix="/v1", tags=["v1-documents"])
     target_app.include_router(v1_portfolios.router, prefix="/v1", tags=["v1-portfolios"])
     target_app.include_router(v1_platform.router, prefix="/v1", tags=["v1-platform"])
+    mounted_gateway_routes: tuple[str, ...] = ()
+    if settings is not None and settings.features.slot_platform:
+        from doge.bootstrap.runtime_factories.slots import build_slot_aware_gateway_routes
+
+        mounted_gateway_routes = build_slot_aware_gateway_routes(
+            target_app,
+            settings=settings,
+        )
+    if "gateway.slots" not in mounted_gateway_routes:
+        target_app.include_router(v1_slots.router, prefix="/v1", tags=["v1-slots"])
     target_app.include_router(v1_tools.router, prefix="/v1", tags=["v1-tools"])
     target_app.include_router(v1_audit.router, prefix="/v1", tags=["v1-audit"])
     target_app.include_router(v1_enterprise.router, prefix="/v1", tags=["v1-enterprise"])
@@ -80,4 +91,4 @@ def _register_v1_routes(target_app: FastAPI) -> None:
 def register_routes(app: FastAPI, settings) -> None:
     app.add_api_route("/api/health", health, methods=["GET"])
     _register_legacy_api_routes(app, settings)
-    _register_v1_routes(app)
+    _register_v1_routes(app, settings)

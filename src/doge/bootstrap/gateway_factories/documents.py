@@ -36,22 +36,34 @@ def build_file_upload_service(db_path, runtime_container_fn, *, kimi_files_clien
     if kimi_files_client is None and secret_provider.get_secret("kimi.api_key"):
         kimi_files_client = KimiFilesClient(secret_provider=secret_provider)
     runtime = runtime_container_fn()
+    parser = _build_document_parser(settings)
     return FileUploadService(
         runtime.build_agent_document_repository(),
         storage_dir=settings.documents.storage_dir,
         max_file_bytes=settings.documents.max_file_bytes,
-        parser=LocalDocumentParser(),
+        parser=parser,
         kimi_files_client=kimi_files_client,
         extraction_service=PageExtractionService(
             evidence_repository=runtime.build_agent_evidence_repository(),
-            parser=LocalDocumentParser(),
+            parser=parser,
         ),
     )
 
 
 def build_page_extraction_service(runtime_container_fn):
+    settings = get_settings()
     runtime = runtime_container_fn()
     return PageExtractionService(
         evidence_repository=runtime.build_agent_evidence_repository(),
-        parser=LocalDocumentParser(),
+        parser=_build_document_parser(settings),
     )
+
+
+def _build_document_parser(settings):
+    if settings.features.slot_platform:
+        from doge.bootstrap.runtime_factories.slots import build_slot_aware_document_parser
+
+        parser = build_slot_aware_document_parser(settings=settings)
+        if parser is not None:
+            return parser
+    return LocalDocumentParser()

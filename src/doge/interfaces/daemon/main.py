@@ -47,6 +47,8 @@ def build_parser() -> argparse.ArgumentParser:
     features.add_argument("--json", action="store_true")
     routes = sub.add_parser("routes", help="list registered API routes")
     routes.add_argument("--json", action="store_true")
+    slots = sub.add_parser("slots", help="list registered platform slots")
+    slots.add_argument("--json", action="store_true")
     explain = sub.add_parser("explain", help="explain a failed or terminal run")
     explain.add_argument("run_id")
     support = sub.add_parser("support-bundle", help="write a redacted operator support bundle")
@@ -129,6 +131,13 @@ def main(argv: list[str] | None = None) -> None:
             print(json.dumps({"routes": rows}, ensure_ascii=False, sort_keys=True))
         else:
             _print_routes(rows)
+        return
+    if args.cmd == "slots":
+        rows = _slot_rows()
+        if args.json:
+            print(json.dumps({"slots": rows}, ensure_ascii=False, sort_keys=True))
+        else:
+            _print_slots(rows)
         return
     if args.cmd == "explain":
         _explain_run(args.run_id)
@@ -247,6 +256,12 @@ def _route_rows() -> list[dict[str, object]]:
             "name": getattr(route, "name", ""),
         })
     return sorted(rows, key=lambda row: (str(row["path"]), ",".join(row["methods"])))
+
+
+def _slot_rows() -> list[dict[str, object]]:
+    from doge.bootstrap.runtime_factories.slots import build_slot_status_rows
+
+    return list(build_slot_status_rows())
 
 
 def _runtime():
@@ -419,6 +434,25 @@ def _print_features(rows: list[dict[str, object]]) -> None:
 def _print_routes(rows: list[dict[str, object]]) -> None:
     for row in rows:
         print(f"{','.join(row['methods'])} {row['path']} {row['name']}")
+
+
+def _print_slots(rows: list[dict[str, object]]) -> None:
+    for row in rows:
+        flags = ",".join(row["feature_flags"]) if row.get("feature_flags") else "-"
+        counts = row.get("counts", {})
+        tools = counts.get("tools", 0) if isinstance(counts, dict) else 0
+        health = row.get("health", {})
+        health_status = health.get("status", "unknown") if isinstance(health, dict) else "unknown"
+        print(
+            " ".join([
+                f"{row['id']}",
+                f"status={row['status']}",
+                f"type={row['type']}",
+                f"health={health_status}",
+                f"tools={tools}",
+                f"flags={flags}",
+            ])
+        )
 
 
 def _format_cli_value(value) -> str:

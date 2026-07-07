@@ -203,6 +203,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_slots_show = slots_sub.add_parser("show", help="show a slot manifest + health + declared tools")
     p_slots_show.add_argument("slot_id", help="slot id (e.g. market.core)")
     p_slots_show.add_argument("--json", action="store_true")
+    p_slots_bundle = slots_sub.add_parser("bundle", help="list or activate slot bundles")
+    slots_bundle_sub = p_slots_bundle.add_subparsers(dest="bundle_cmd", required=True)
+    p_slots_bundle_list = slots_bundle_sub.add_parser("list", help="list slot bundles")
+    p_slots_bundle_list.add_argument("--json", action="store_true")
+    p_slots_bundle_activate = slots_bundle_sub.add_parser("activate", help="activate a slot bundle")
+    p_slots_bundle_activate.add_argument("bundle_id", help="bundle id (e.g. bundle.local_analyst)")
+    p_slots_bundle_activate.add_argument("--json", action="store_true")
+    p_slots_install = slots_sub.add_parser("install", help="install a local slot manifest preview")
+    p_slots_install.add_argument("source", help="slot manifest JSON file or directory containing slot.json")
+    p_slots_install.add_argument("--json", action="store_true")
 
     # case
     p_case = sub.add_parser("case", help="operate a research case workspace")

@@ -16,28 +16,189 @@ contract lives in :mod:`doge.platform.slots` (see
 from __future__ import annotations
 
 from dataclasses import fields
+from inspect import signature
+from pathlib import Path
 from typing import Any
 
 from doge.application.tools.registry import ToolRegistry
 from doge.bootstrap.runtime_factories.builtin_model_slot import ModelKimiAgentSdkSlot
 from doge.config import get_settings
+from doge.eval.slot import LocalEvalCasesSlot
+from doge.eval.suites import EvalSuiteRegistry
+from doge.infrastructure.data_source.slot import TDXDataSourceSlot, YFinanceDataSourceSlot
+from doge.infrastructure.documents.slot import LocalDocumentParserSlot
+from doge.interfaces.gateway.slot import SlotDiscoveryGatewaySlot
+from doge.products.market.data_sources import DataSourceRegistry
+from doge.platform.governance.slot import (
+    CompositeToolEntitlementChecker,
+    ToolGovernancePolicySlot,
+)
+from doge.platform.evidence.document_parsers import ParserDispatcher
+from doge.platform.runtime.slot import RuntimeEventWatcherSlot
+from doge.platform.runtime.watchers import RuntimeEventWatcherMiddleware
 from doge.platform.slots import (
     SLOT_SERVICE_SECRET_PROVIDER,
+    SlotBundle,
+    SlotBundleActivationState,
     SlotConfigurationError,
     SlotContribution,
     SlotContext,
+    SlotEnforcementPolicy,
+    SlotInstallPolicy,
+    SlotInstaller,
+    SlotKernel,
+    SlotLoader,
+    SlotPolicy,
     SlotRegistry,
     SlotType,
+    UnknownSlotError,
+    policy_for_activation,
 )
+from doge.platform.workspace.slot import WorkflowTemplatesSlot
+from doge.platform.workspace.ui_panels import UIPanelRegistry
+from doge.platform.workspace.ui_slot import ResearchWorkspaceUISlot
 from doge.products.market.slot import MarketCoreSlot
 
 
-def build_builtin_slot_registry() -> SlotRegistry:
+_BUILTIN_SLOT_BUNDLES = (
+    SlotBundle(
+        id="bundle.local_analyst",
+        name="Local Analyst",
+        description="Local research bundle for market, document, workflow, eval, and model slots.",
+        slot_ids=(
+            "market.core",
+            "model.kimi_agent_sdk",
+            "data.tdx",
+            "data.yfinance",
+            "document.local_parser",
+            "workflow.templates",
+            "eval.local_cases",
+            "governance.tool_policy",
+            "watcher.runtime_events",
+        ),
+    ),
+    SlotBundle(
+        id="bundle.daemon_operator",
+        name="Daemon Operator",
+        description="Operator-facing daemon discovery and runtime watcher bundle.",
+        slot_ids=(
+            "gateway.slots",
+            "watcher.runtime_events",
+        ),
+    ),
+    SlotBundle(
+        id="bundle.research_workspace",
+        name="Research Workspace",
+        description="Research workspace bundle over documents, data, workflows, and eval.",
+        slot_ids=(
+            "market.core",
+            "data.tdx",
+            "data.yfinance",
+            "document.local_parser",
+            "workflow.templates",
+            "eval.local_cases",
+            "gateway.slots",
+            "ui.research_workspace",
+        ),
+    ),
+    SlotBundle(
+        id="bundle.enterprise_safe",
+        name="Enterprise Safe",
+        description="Enterprise governance/watchers bundle with local demo model disabled.",
+        slot_ids=(
+            "governance.tool_policy",
+            "watcher.runtime_events",
+            "gateway.slots",
+        ),
+        disabled_slot_ids=("model.kimi_agent_sdk",),
+    ),
+)
+
+_SLOT_BUNDLE_ACTIVATION = SlotBundleActivationState()
+
+
+def build_builtin_slot_registry(settings: Any | None = None) -> SlotRegistry:
     """Construct the registry of built-in slots."""
+    resolved_settings = settings if settings is not None else get_settings()
     registry = SlotRegistry()
     registry.register(MarketCoreSlot())
+    registry.register(TDXDataSourceSlot())
+    registry.register(YFinanceDataSourceSlot())
     registry.register(ModelKimiAgentSdkSlot())
+    registry.register(WorkflowTemplatesSlot())
+    registry.register(ToolGovernancePolicySlot())
+    registry.register(RuntimeEventWatcherSlot())
+    registry.register(LocalDocumentParserSlot())
+    registry.register(SlotDiscoveryGatewaySlot())
+    registry.register(LocalEvalCasesSlot())
+    registry.register(ResearchWorkspaceUISlot())
+    _register_manifest_only_slots(registry, resolved_settings)
     return registry
+
+
+def build_builtin_slot_kernel(
+    policy: SlotPolicy | None = None,
+    *,
+    enforcement: SlotEnforcementPolicy | None = None,
+    settings: Any | None = None,
+) -> SlotKernel:
+    """Construct the built-in slot kernel over the built-in registry and bundles."""
+
+    resolved_settings = settings if settings is not None else get_settings()
+    registry = _build_builtin_slot_registry_for_settings(resolved_settings)
+    bundles = _bundles_supported_by(registry)
+    effective_policy = policy
+    if effective_policy is None and resolved_settings.features.slot_loader:
+        effective_policy = policy_for_activation(_SLOT_BUNDLE_ACTIVATION.current(), bundles)
+    return SlotKernel(
+        registry,
+        policy=effective_policy,
+        enforcement=enforcement,
+        bundles=bundles,
+    )
+
+
+def activate_slot_bundle(bundle_id: str, settings: Any | None = None) -> dict[str, Any]:
+    """Activate a built-in bundle for this process and return its current row."""
+
+    resolved_settings = settings if settings is not None else get_settings()
+    if not resolved_settings.features.slot_platform:
+        raise SlotConfigurationError("slot platform is disabled")
+    if not resolved_settings.features.slot_loader:
+        raise SlotConfigurationError("slot loader and bundle activation are disabled")
+    registry = _build_builtin_slot_registry_for_settings(resolved_settings)
+    bundle = _find_bundle(bundle_id, _bundles_supported_by(registry))
+    activation = _SLOT_BUNDLE_ACTIVATION.activate(bundle)
+    row = _find_bundle_row(bundle.id, build_slot_bundle_rows(resolved_settings))
+    return {
+        "status": "activated",
+        "active_bundle_id": activation.bundle_id,
+        "bundle": row,
+    }
+
+
+def install_slot(source: str, settings: Any | None = None) -> dict[str, Any]:
+    """Install a third-party manifest as a local manifest-only slot preview."""
+
+    resolved_settings = settings if settings is not None else get_settings()
+    if not resolved_settings.features.slot_platform:
+        raise SlotConfigurationError("slot platform is disabled")
+    if not resolved_settings.features.slot_loader:
+        raise SlotConfigurationError("slot loader is disabled")
+    if not resolved_settings.features.slot_install:
+        raise SlotConfigurationError("slot install is disabled")
+    result = SlotInstaller().install(
+        source,
+        install_dir=resolved_settings.slots.install_dir,
+        policy=_slot_install_policy(resolved_settings),
+    )
+    return result.to_dict()
+
+
+def clear_slot_bundle_activation() -> None:
+    """Clear process-local bundle activation. Intended for tests and diagnostics."""
+
+    _SLOT_BUNDLE_ACTIVATION.clear()
 
 
 def build_slot_aware_tool_registry(
@@ -63,15 +224,15 @@ def build_slot_aware_tool_registry(
         tool_application_service=service,
     )
 
-    slot_registry = build_builtin_slot_registry()
-    contributions = _resolve_contributions_of_type(
-        slot_registry,
-        slot_context,
-        SlotType.TOOL,
-    )
+    slot_kernel = build_builtin_slot_kernel(enforcement=_slot_enforcement_policy(settings), settings=settings)
+    contributions = slot_kernel.resolve_contributions(slot_context, slot_type=SlotType.TOOL)
 
-    registry = ToolRegistry(entitlement_checker=entitlement_checker, context=context)
-    slot_owned: set[str] = set()
+    effective_entitlement = build_slot_aware_entitlement_checker(
+        entitlement_checker,
+        settings=settings,
+    )
+    registry = ToolRegistry(entitlement_checker=effective_entitlement, context=context)
+    slot_owned: set[str] = set(_slot_manifest_tool_names(slot_kernel))
     for contribution in contributions:
         if not contribution.tools:
             continue
@@ -80,7 +241,6 @@ def build_slot_aware_tool_registry(
                 f"slot {contribution.slot_id} contributed tools without an executor"
             )
         registry.include_descriptors(contribution.tools, contribution.executor)
-        slot_owned.update(descriptor.name for descriptor in contribution.tools)
 
     remaining = tuple(
         descriptor
@@ -107,12 +267,8 @@ def build_slot_aware_agent_backends(
             secret_provider if service_id == SLOT_SERVICE_SECRET_PROVIDER else None
         ),
     )
-    slot_registry = build_builtin_slot_registry()
-    contributions = _resolve_contributions_of_type(
-        slot_registry,
-        slot_context,
-        SlotType.MODEL,
-    )
+    slot_kernel = build_builtin_slot_kernel(enforcement=_slot_enforcement_policy(settings), settings=settings)
+    contributions = slot_kernel.resolve_contributions(slot_context, slot_type=SlotType.MODEL)
 
     backends: dict[str, Any] = {}
     for contribution in contributions:
@@ -120,9 +276,364 @@ def build_slot_aware_agent_backends(
             if backend.backend_id in backends:
                 raise SlotConfigurationError(
                     f"duplicate model backend contribution: {backend.backend_id}"
-                )
+            )
             backends[backend.backend_id] = backend.factory(slot_context)
     return backends
+
+
+def build_slot_aware_workflow_templates() -> tuple[dict[str, Any], ...]:
+    """Assemble built-in workflow template definitions from workflow slots."""
+
+    settings = get_settings()
+    slot_context = SlotContext(
+        settings=settings,
+        feature_flags=_feature_flags(settings),
+    )
+    slot_kernel = build_builtin_slot_kernel(enforcement=_slot_enforcement_policy(settings), settings=settings)
+    contributions = slot_kernel.resolve_contributions(
+        slot_context,
+        slot_type=SlotType.WORKFLOW,
+    )
+
+    templates: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for contribution in contributions:
+        for workflow in contribution.workflows:
+            if workflow.slug in seen:
+                raise SlotConfigurationError(
+                    f"duplicate workflow template contribution: {workflow.slug}"
+                )
+            template = dict(workflow.template_factory(slot_context))
+            if template.get("slug") != workflow.slug:
+                raise SlotConfigurationError(
+                    f"workflow contribution {workflow.slug} returned mismatched "
+                    "template slug "
+                    f"{template.get('slug')!r}"
+                )
+            templates.append(template)
+            seen.add(workflow.slug)
+    return tuple(templates)
+
+
+def build_slot_aware_entitlement_checker(
+    entitlement_checker: Any = None,
+    *,
+    settings: Any | None = None,
+) -> Any:
+    """Compose explicit and governance-slot entitlement checkers.
+
+    When no governance slot is enabled, returns the caller-supplied checker
+    unchanged. This keeps the flag-on tool registry path equivalent unless
+    ``DOGE_FEATURE_SLOT_GOVERNANCE`` is explicitly enabled.
+    """
+
+    resolved_settings = settings if settings is not None else get_settings()
+    slot_context = SlotContext(
+        settings=resolved_settings,
+        feature_flags=_feature_flags(resolved_settings),
+    )
+    slot_kernel = build_builtin_slot_kernel(enforcement=_slot_enforcement_policy(resolved_settings), settings=resolved_settings)
+    contributions = slot_kernel.resolve_contributions(
+        slot_context,
+        slot_type=SlotType.GOVERNANCE,
+    )
+
+    checkers: list[Any] = []
+    if entitlement_checker is not None:
+        checkers.append(entitlement_checker)
+
+    seen_policy_ids: set[str] = set()
+    for contribution in contributions:
+        for policy in contribution.governance_policies:
+            if policy.policy_id in seen_policy_ids:
+                raise SlotConfigurationError(
+                    f"duplicate governance policy contribution: {policy.policy_id}"
+                )
+            seen_policy_ids.add(policy.policy_id)
+            if policy.entitlement_checker_factory is None:
+                continue
+            checker = policy.entitlement_checker_factory(slot_context)
+            if checker is None:
+                raise SlotConfigurationError(
+                    f"governance policy {policy.policy_id} returned no entitlement checker"
+                )
+            checkers.append(checker)
+
+    if not checkers:
+        return entitlement_checker
+    if len(checkers) == 1:
+        return checkers[0]
+    return CompositeToolEntitlementChecker(checkers)
+
+
+def build_slot_aware_runtime_event_watcher(
+    *,
+    settings: Any | None = None,
+) -> Any:
+    """Assemble runtime event watcher middleware from watcher slots."""
+
+    resolved_settings = settings if settings is not None else get_settings()
+    slot_context = SlotContext(
+        settings=resolved_settings,
+        feature_flags=_feature_flags(resolved_settings),
+    )
+    slot_kernel = build_builtin_slot_kernel(enforcement=_slot_enforcement_policy(resolved_settings), settings=resolved_settings)
+    contributions = slot_kernel.resolve_contributions(
+        slot_context,
+        slot_type=SlotType.WATCHER,
+    )
+
+    watchers: list[Any] = []
+    seen_watcher_ids: set[str] = set()
+    for contribution in contributions:
+        for watcher in contribution.watchers:
+            if watcher.watcher_id in seen_watcher_ids:
+                raise SlotConfigurationError(
+                    f"duplicate watcher contribution: {watcher.watcher_id}"
+                )
+            seen_watcher_ids.add(watcher.watcher_id)
+            watchers.append(watcher)
+
+    if not watchers:
+        return None
+    return RuntimeEventWatcherMiddleware(watchers, slot_context)
+
+
+def build_slot_aware_document_parser(
+    *,
+    settings: Any | None = None,
+) -> Any:
+    """Assemble a document parser dispatcher from document slot contributions."""
+
+    resolved_settings = settings if settings is not None else get_settings()
+    slot_context = SlotContext(
+        settings=resolved_settings,
+        feature_flags=_feature_flags(resolved_settings),
+    )
+    slot_kernel = build_builtin_slot_kernel(enforcement=_slot_enforcement_policy(resolved_settings), settings=resolved_settings)
+    contributions = slot_kernel.resolve_contributions(
+        slot_context,
+        slot_type=SlotType.DOCUMENT,
+    )
+
+    parsers: list[Any] = []
+    seen_parser_ids: set[str] = set()
+    for contribution in contributions:
+        for parser in contribution.document_parsers:
+            if parser.parser_id in seen_parser_ids:
+                raise SlotConfigurationError(
+                    f"duplicate document parser contribution: {parser.parser_id}"
+                )
+            seen_parser_ids.add(parser.parser_id)
+            parsers.append(parser)
+
+    if not parsers:
+        return None
+    return ParserDispatcher(parsers, slot_context)
+
+
+def build_slot_aware_data_source(
+    *,
+    settings: Any | None = None,
+    preferred_source_id: str | None = None,
+) -> Any:
+    """Assemble a market data source registry from data slot contributions."""
+
+    resolved_settings = settings if settings is not None else get_settings()
+    slot_context = SlotContext(
+        settings=resolved_settings,
+        feature_flags=_feature_flags(resolved_settings),
+    )
+    slot_kernel = build_builtin_slot_kernel(enforcement=_slot_enforcement_policy(resolved_settings), settings=resolved_settings)
+    contributions = slot_kernel.resolve_contributions(slot_context, slot_type=SlotType.DATA)
+
+    data_sources: list[Any] = []
+    seen_source_ids: set[str] = set()
+    for contribution in contributions:
+        for data_source in contribution.data_sources:
+            if data_source.source_id in seen_source_ids:
+                raise SlotConfigurationError(
+                    f"duplicate data source contribution: {data_source.source_id}"
+                )
+            seen_source_ids.add(data_source.source_id)
+            data_sources.append(data_source)
+
+    if not data_sources:
+        return None
+    return DataSourceRegistry(
+        data_sources,
+        slot_context,
+        preferred_source_id=preferred_source_id,
+    )
+
+
+def build_slot_aware_gateway_routes(
+    target_app: Any,
+    *,
+    settings: Any | None = None,
+) -> tuple[str, ...]:
+    """Mount gateway routers contributed by enabled gateway slots."""
+
+    resolved_settings = settings if settings is not None else get_settings()
+    slot_context = SlotContext(
+        settings=resolved_settings,
+        feature_flags=_feature_flags(resolved_settings),
+    )
+    slot_kernel = build_builtin_slot_kernel(enforcement=_slot_enforcement_policy(resolved_settings), settings=resolved_settings)
+    contributions = slot_kernel.resolve_contributions(
+        slot_context,
+        slot_type=SlotType.GATEWAY,
+    )
+
+    mounted: list[str] = []
+    seen_router_ids: set[str] = set()
+    for contribution in contributions:
+        for route in contribution.routes:
+            if route.router_id in seen_router_ids:
+                raise SlotConfigurationError(
+                    f"duplicate gateway route contribution: {route.router_id}"
+                )
+            seen_router_ids.add(route.router_id)
+            router = route.router_factory(slot_context)
+            if router is None:
+                raise SlotConfigurationError(
+                    f"gateway route {route.router_id} returned no router"
+                )
+            target_app.include_router(
+                router,
+                prefix=route.prefix,
+                tags=list(route.tags),
+            )
+            mounted.append(route.router_id)
+    return tuple(mounted)
+
+
+def build_slot_aware_eval_suites(
+    *,
+    settings: Any | None = None,
+    root: Any | None = None,
+) -> Any:
+    """Assemble an eval suite registry from eval slot contributions."""
+
+    resolved_settings = settings if settings is not None else get_settings()
+    slot_context = SlotContext(
+        settings=resolved_settings,
+        feature_flags=_feature_flags(resolved_settings),
+    )
+    slot_kernel = build_builtin_slot_kernel(enforcement=_slot_enforcement_policy(resolved_settings), settings=resolved_settings)
+    contributions = slot_kernel.resolve_contributions(slot_context, slot_type=SlotType.EVAL)
+
+    eval_suites: list[Any] = []
+    seen_suite_ids: set[str] = set()
+    for contribution in contributions:
+        for suite in contribution.eval_suites:
+            if suite.suite_id in seen_suite_ids:
+                raise SlotConfigurationError(
+                    f"duplicate eval suite contribution: {suite.suite_id}"
+                )
+            seen_suite_ids.add(suite.suite_id)
+            eval_suites.append(suite)
+
+    if not eval_suites:
+        return None
+    return EvalSuiteRegistry(eval_suites, slot_context, root=root)
+
+
+def build_slot_aware_ui_panels(
+    *,
+    settings: Any | None = None,
+) -> Any:
+    """Assemble a UI panel registry from UI slot contributions."""
+
+    resolved_settings = settings if settings is not None else get_settings()
+    slot_context = SlotContext(
+        settings=resolved_settings,
+        feature_flags=_feature_flags(resolved_settings),
+    )
+    slot_kernel = build_builtin_slot_kernel(enforcement=_slot_enforcement_policy(resolved_settings), settings=resolved_settings)
+    contributions = slot_kernel.resolve_contributions(slot_context, slot_type=SlotType.UI)
+
+    ui_panels: list[Any] = []
+    seen_panel_ids: set[tuple[str, str]] = set()
+    for contribution in contributions:
+        for panel in contribution.ui_panels:
+            key = (panel.workspace, panel.panel_id)
+            if key in seen_panel_ids:
+                raise SlotConfigurationError(
+                    f"duplicate UI panel contribution: {panel.workspace}.{panel.panel_id}"
+                )
+            seen_panel_ids.add(key)
+            ui_panels.append(panel)
+
+    if not ui_panels:
+        return None
+    return UIPanelRegistry(ui_panels)
+
+
+def build_slot_status_rows(settings: Any | None = None) -> tuple[dict[str, Any], ...]:
+    """Return read-only built-in slot status rows for CLI/API/operator surfaces.
+
+    This intentionally reads manifests and feature flags only; it does not call
+    ``slot.resolve`` and therefore does not construct tool services, models, DB
+    adapters, or network clients.
+    """
+
+    resolved_settings = settings if settings is not None else get_settings()
+    slot_context = SlotContext(
+        settings=resolved_settings,
+        feature_flags=_feature_flags(resolved_settings),
+    )
+    slot_kernel = build_builtin_slot_kernel(enforcement=_slot_enforcement_policy(resolved_settings), settings=resolved_settings)
+    status_by_id = {
+        record.id: record
+        for record in slot_kernel.status(slot_context)
+    }
+    return tuple(
+        _slot_status_row(
+            slot.manifest(),
+            status_by_id[slot.manifest().id].status,
+            health_status=status_by_id[slot.manifest().id].health,
+        )
+        for slot in slot_kernel.registry.all()
+    )
+
+
+def build_slot_bundle_rows(settings: Any | None = None) -> tuple[dict[str, Any], ...]:
+    """Return read-only built-in slot bundle rows for discovery surfaces."""
+
+    resolved_settings = settings if settings is not None else get_settings()
+    slot_context = SlotContext(
+        settings=resolved_settings,
+        feature_flags=_feature_flags(resolved_settings),
+    )
+    slot_kernel = build_builtin_slot_kernel(
+        enforcement=_slot_enforcement_policy(resolved_settings),
+        settings=resolved_settings,
+    )
+    active_bundle_id = (
+        _SLOT_BUNDLE_ACTIVATION.current().bundle_id
+        if resolved_settings.features.slot_loader
+        else None
+    )
+    return tuple(
+        _slot_bundle_row(record, active_bundle_id=active_bundle_id)
+        for record in slot_kernel.bundle_status(slot_context)
+    )
+
+
+def build_slot_ui_panel_rows(
+    settings: Any | None = None,
+    *,
+    workspace: str | None = None,
+    zone: str | None = None,
+    mode: str | None = None,
+) -> tuple[dict[str, object], ...]:
+    """Return read-only UI panel rows for Web/workspace discovery surfaces."""
+
+    registry = build_slot_aware_ui_panels(settings=settings)
+    if registry is None:
+        return ()
+    return registry.rows(workspace=workspace, zone=zone, mode=mode)
 
 
 def _feature_flags(settings: Any) -> dict[str, bool]:
@@ -133,20 +644,83 @@ def _feature_flags(settings: Any) -> dict[str, bool]:
     }
 
 
+def _slot_enforcement_policy(settings: Any) -> SlotEnforcementPolicy:
+    enabled = bool(getattr(settings.features, "slot_enforcement", False))
+    return SlotEnforcementPolicy(
+        enforce_permissions=enabled,
+        enforce_health=enabled,
+    )
+
+
+def _slot_install_policy(settings: Any) -> SlotInstallPolicy:
+    return SlotInstallPolicy(
+        auth_mode=settings.auth.mode,
+        allow_unsigned_local=settings.slots.allow_unsigned_local,
+        enterprise_allowlist=settings.slots.enterprise_allowlist,
+        trusted_signers=settings.slots.trusted_signers,
+    )
+
+
+def _build_builtin_slot_registry_for_settings(settings: Any) -> SlotRegistry:
+    if signature(build_builtin_slot_registry).parameters:
+        return build_builtin_slot_registry(settings)
+    return build_builtin_slot_registry()
+
+
+def _slot_manifest_tool_names(slot_kernel: SlotKernel) -> tuple[str, ...]:
+    return tuple(
+        tool_name
+        for slot in slot_kernel.registry.all()
+        if slot.manifest().type is SlotType.TOOL
+        for tool_name in slot.manifest().provides.tools
+    )
+
+
+def _bundles_supported_by(registry: SlotRegistry) -> tuple[SlotBundle, ...]:
+    known = {manifest.id for manifest in registry.manifests()}
+    supported: list[SlotBundle] = []
+    for bundle in _BUILTIN_SLOT_BUNDLES:
+        required = set(bundle.slot_ids) | set(bundle.disabled_slot_ids)
+        if required <= known:
+            supported.append(bundle)
+    return tuple(supported)
+
+
+def _register_manifest_only_slots(registry: SlotRegistry, settings: Any) -> None:
+    if not getattr(settings.features, "slot_loader", False):
+        return
+    manifest_dirs = list(getattr(settings.slots, "manifest_dirs", ()))
+    install_dir = getattr(settings.slots, "install_dir", None)
+    if getattr(settings.features, "slot_install", False) and install_dir is not None:
+        install_path = Path(install_dir)
+        if install_path.exists():
+            manifest_dirs.append(install_path)
+    if not manifest_dirs:
+        return
+    for slot in SlotLoader().load(manifest_dirs):
+        registry.register(slot)
+
+
+def _find_bundle(bundle_id: str, bundles: tuple[SlotBundle, ...]) -> SlotBundle:
+    for bundle in bundles:
+        if bundle.id == bundle_id:
+            return bundle
+    raise UnknownSlotError(f"unknown slot bundle: {bundle_id}")
+
+
+def _find_bundle_row(bundle_id: str, rows: tuple[dict[str, Any], ...]) -> dict[str, Any]:
+    for row in rows:
+        if row["id"] == bundle_id:
+            return row
+    raise UnknownSlotError(f"unknown slot bundle: {bundle_id}")
+
+
 def _resolve_contributions_of_type(
     registry: SlotRegistry,
     context: SlotContext,
     slot_type: SlotType,
 ) -> tuple[SlotContribution, ...]:
-    contributions: list[SlotContribution] = []
-    for slot in registry.all():
-        manifest = slot.manifest()
-        if manifest.type is not slot_type:
-            continue
-        if not _flags_satisfied(manifest.feature_flags, context):
-            continue
-        contributions.append(slot.resolve(context))
-    return tuple(contributions)
+    return SlotKernel(registry).resolve_contributions(context, slot_type=slot_type)
 
 
 def _flags_satisfied(feature_flags: tuple[str, ...], context: SlotContext) -> bool:
@@ -154,3 +728,78 @@ def _flags_satisfied(feature_flags: tuple[str, ...], context: SlotContext) -> bo
         if not context.feature_flags.get(flag, False):
             return False
     return True
+
+
+def _slot_status_row(
+    manifest: Any,
+    status: str,
+    *,
+    health_status: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "id": manifest.id,
+        "name": manifest.name,
+        "version": manifest.version,
+        "type": manifest.type.value,
+        "owner": manifest.owner,
+        "maturity": manifest.maturity,
+        "description": manifest.description,
+        "entrypoint": manifest.entrypoint,
+        "status": status,
+        "feature_flags": list(manifest.feature_flags),
+        "provides": {
+            "tools": list(manifest.provides.tools),
+            "capabilities": list(manifest.provides.capabilities),
+            "metadata": dict(manifest.provides.metadata),
+        },
+        "requires": [
+            {
+                "kind": requirement.kind,
+                "id": requirement.id,
+                "optional": requirement.optional,
+            }
+            for requirement in manifest.requires
+        ],
+        "permissions": {
+            "filesystem": manifest.permissions.filesystem,
+            "network": manifest.permissions.network,
+            "shell": manifest.permissions.shell,
+            "database": manifest.permissions.database,
+            "secrets": list(manifest.permissions.secrets),
+            "risk_level": manifest.permissions.risk_level,
+        },
+        "health": {
+            "status": health_status or manifest.health.status,
+            "notes": manifest.health.notes,
+        },
+        "compatibility": {
+            "runtime_min": manifest.compatibility.runtime_min,
+            "replaces": list(manifest.compatibility.replaces),
+            "breaking": manifest.compatibility.breaking,
+        },
+        "counts": {
+            "tools": len(manifest.provides.tools),
+            "capabilities": len(manifest.provides.capabilities),
+        },
+    }
+
+
+def _slot_bundle_row(record: Any, *, active_bundle_id: str | None = None) -> dict[str, Any]:
+    return {
+        "id": record.id,
+        "name": record.name,
+        "description": record.description,
+        "active": record.id == active_bundle_id,
+        "status": record.status,
+        "slot_ids": list(record.slot_ids),
+        "enabled_slot_ids": list(record.enabled_slot_ids),
+        "disabled_slot_ids": list(record.disabled_slot_ids),
+        "missing_slot_ids": list(record.missing_slot_ids),
+        "maturity": record.maturity,
+        "counts": {
+            "slots": len(record.slot_ids),
+            "enabled": len(record.enabled_slot_ids),
+            "disabled": len(record.disabled_slot_ids),
+            "missing": len(record.missing_slot_ids),
+        },
+    }

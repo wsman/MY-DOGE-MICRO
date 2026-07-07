@@ -6,7 +6,7 @@ from doge.eval.metrics import (
     binary_precision,
     score_observations,
 )
-from doge.eval.runner import ObservationRunner, run, run_cases
+from doge.eval.runner import ObservationRunner, run, run_cases, run_suite
 
 __all__ = [
     "EvaluationScore",
@@ -15,5 +15,6 @@ __all__ = [
     "binary_precision",
     "run",
     "run_cases",
+    "run_suite",
     "score_observations",
 ]

@@ -34,12 +34,22 @@ from doge.platform.slots.contracts import (
     SlotStatus,
     ToolServiceProtocol,
 )
+from doge.platform.slots.activation import (
+    SlotBundleActivation,
+    SlotBundleActivationState,
+    policy_for_activation,
+)
+from doge.platform.slots.bundles import SlotBundle, SlotBundleStatus
 from doge.platform.slots.errors import (
     SlotAlreadyRegisteredError,
     SlotConfigurationError,
     SlotError,
     SlotManifestValidationError,
     UnknownSlotError,
+)
+from doge.platform.slots.enforcement import (
+    SlotEnforcementDecision,
+    SlotEnforcementPolicy,
 )
 from doge.platform.slots.facets import (
     DataSourceContribution,
@@ -64,6 +74,21 @@ from doge.platform.slots.manifest import (
     SlotType,
     load_slot_manifest,
 )
+from doge.platform.slots.kernel import SlotKernel
+from doge.platform.slots.lifecycle import (
+    SlotLifecycle,
+    SlotLifecycleRecord,
+    SlotLifecycleState,
+)
+from doge.platform.slots.loader import ManifestOnlySlot, SlotLoader
+from doge.platform.slots.install import (
+    SlotInstaller,
+    SlotInstallPolicy,
+    SlotInstallResult,
+    SlotSignatureVerification,
+    verify_slot_signature,
+)
+from doge.platform.slots.policy import SlotPolicy
 from doge.platform.slots.registry import SlotRegistry, SlotStatusRecord
 
 __all__ = [
@@ -83,22 +108,39 @@ __all__ = [
     "GatewayRouteContribution",
     "GovernancePolicyContribution",
     "ModelBackendContribution",
+    "ManifestOnlySlot",
     "SlotAlreadyRegisteredError",
+    "SlotBundle",
+    "SlotBundleActivation",
+    "SlotBundleActivationState",
+    "SlotBundleStatus",
     "SlotCompatibility",
     "SlotConfigurationError",
     "SlotContribution",
     "SlotContext",
     "SlotError",
+    "SlotEnforcementDecision",
+    "SlotEnforcementPolicy",
     "SlotHealth",
+    "SlotInstaller",
+    "SlotInstallPolicy",
+    "SlotInstallResult",
+    "SlotKernel",
+    "SlotLifecycle",
+    "SlotLifecycleRecord",
+    "SlotLifecycleState",
+    "SlotLoader",
     "SlotManifest",
     "SlotManifestValidationError",
     "SlotPermissions",
     "SlotProvides",
+    "SlotPolicy",
     "SlotRegistry",
     "SlotRequirement",
     "SlotStatus",
     "SlotStatusRecord",
     "SlotType",
+    "SlotSignatureVerification",
     "ToolServiceProtocol",
     "UIPanelContribution",
     "UnknownSlotError",
@@ -106,4 +148,6 @@ __all__ = [
     "WatcherDecision",
     "WorkflowTemplateContribution",
     "load_slot_manifest",
+    "policy_for_activation",
+    "verify_slot_signature",
 ]

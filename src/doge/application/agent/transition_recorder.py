@@ -8,11 +8,17 @@ from doge.application.agent.state_machine import ensure_transition
 from doge.core.domain.agent_models import AgentEvent, AgentRun, EventType, RunStatus, utc_now
 from doge.core.ports.event_publisher import IEventPublisher
 from doge.core.ports.runtime_transaction import IRuntimeTransactionFactory
+from doge.core.ports.runtime_services import IRuntimeEventWatcher
 from doge.shared.scope import TenantScope
 
 
 class _NoopEventPublisher:
     async def publish(self, event: AgentEvent) -> None:
+        return None
+
+
+class _NoopRuntimeEventWatcher:
+    def enforce(self, event: AgentEvent) -> None:
         return None
 
 
@@ -24,9 +30,11 @@ class TransitionRecorder:
         *,
         transaction_factory: IRuntimeTransactionFactory,
         event_publisher: IEventPublisher | None = None,
+        event_watcher: IRuntimeEventWatcher | None = None,
     ) -> None:
         self._transactions = transaction_factory
         self._publisher = event_publisher or _NoopEventPublisher()
+        self._event_watcher = event_watcher or _NoopRuntimeEventWatcher()
 
     async def record(
         self,
@@ -55,6 +63,7 @@ class TransitionRecorder:
                 tx.save_run(run)
             for event in staged_events:
                 persisted_event = tx.append_event(event)
+                self._event_watcher.enforce(persisted_event)
                 tx.stage_outbox(persisted_event)
                 persisted_events.append(persisted_event)
             for approval in approvals or []:

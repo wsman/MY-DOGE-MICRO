@@ -21,6 +21,11 @@ from doge.core.ports.enterprise_governance import (
 from doge.core.ports.model_gateway import IEnterpriseModelGateway
 from doge.core.ports.secrets import ISecretProvider
 from doge.core.ports.tool_entitlement import IToolEntitlementChecker
+from doge.platform.governance.slot import (
+    CompositeToolEntitlementChecker,
+    DefaultToolGovernanceChecker,
+    ToolGovernancePolicySlot,
+)
 from doge.platform.governance.tools import ComplianceToolProvider, PublishingToolProvider
 
 __all__ = [
@@ -30,6 +35,8 @@ __all__ = [
     "AuditExportManifest",
     "AuthenticatedPrincipal",
     "ComplianceToolProvider",
+    "CompositeToolEntitlementChecker",
+    "DefaultToolGovernanceChecker",
     "EnterpriseAclGrant",
     "EnterpriseAuditEvent",
     "EnterpriseAuthError",
@@ -41,5 +48,6 @@ __all__ = [
     "ISecretProvider",
     "IToolEntitlementChecker",
     "PublishingToolProvider",
+    "ToolGovernancePolicySlot",
     "build_audit_export_manifest",
 ]

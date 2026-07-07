@@ -176,6 +176,49 @@ def get_capability_registry_use_case():
     return _container.runtime.build_capability_registry_use_case()
 
 
+def get_slot_status_rows(settings: Settings | None = None):
+    """Return read-only built-in slot status rows for API/operator diagnostics."""
+
+    from doge.bootstrap.runtime_factories.slots import build_slot_status_rows
+
+    return build_slot_status_rows(settings if settings is not None else get_settings())
+
+
+def get_slot_bundle_rows(settings: Settings | None = None):
+    """Return read-only built-in slot bundle rows for API/operator diagnostics."""
+
+    from doge.bootstrap.runtime_factories.slots import build_slot_bundle_rows
+
+    return build_slot_bundle_rows(settings if settings is not None else get_settings())
+
+
+def activate_slot_bundle(bundle_id: str, settings: Settings | None = None):
+    """Activate a slot bundle for the current API process."""
+
+    from doge.bootstrap.runtime_factories.slots import activate_slot_bundle
+
+    return activate_slot_bundle(bundle_id, settings if settings is not None else get_settings())
+
+
+def get_slot_ui_panel_rows(
+    settings: Settings | None = None,
+    *,
+    workspace: str | None = None,
+    zone: str | None = None,
+    mode: str | None = None,
+):
+    """Return read-only UI panel rows for Web/workspace discovery."""
+
+    from doge.bootstrap.runtime_factories.slots import build_slot_ui_panel_rows
+
+    return build_slot_ui_panel_rows(
+        settings if settings is not None else get_settings(),
+        workspace=workspace,
+        zone=zone,
+        mode=mode,
+    )
+
+
 def get_portfolio_repository():
     """Provide the persisted portfolio repository."""
     return _container.workspace.build_portfolio_repository()

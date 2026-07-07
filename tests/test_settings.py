@@ -28,6 +28,7 @@ from doge.config.settings import (
     MCPConfig,
     MarketConfig,
     Settings,
+    SlotConfig,
     TDXConfig,
     reset_settings,
 )
@@ -51,7 +52,21 @@ DOGE_FEATURE_VARS = [
     "DOGE_FEATURE_RUNTIME_OUTBOX_PUBLISHER",
     "DOGE_FEATURE_PYTHON_ANALYSIS_ENABLED",
     "DOGE_FEATURE_SLOT_PLATFORM",
+    "DOGE_FEATURE_SLOT_GOVERNANCE",
+    "DOGE_FEATURE_SLOT_WATCHER",
+    "DOGE_FEATURE_SLOT_UI",
+    "DOGE_FEATURE_SLOT_ENFORCEMENT",
+    "DOGE_FEATURE_SLOT_LOADER",
+    "DOGE_FEATURE_SLOT_INSTALL",
     "DOGE_PYTHON_ANALYSIS_EXECUTOR",
+]
+
+DOGE_SLOT_VARS = [
+    "DOGE_SLOT_MANIFEST_DIRS",
+    "DOGE_SLOT_INSTALL_DIR",
+    "DOGE_SLOT_ENTERPRISE_ALLOWLIST",
+    "DOGE_SLOT_TRUSTED_SIGNERS",
+    "DOGE_SLOT_ALLOW_UNSIGNED_LOCAL",
 ]
 
 DOGE_DAEMON_VARS = [
@@ -63,7 +78,7 @@ DOGE_DAEMON_VARS = [
 @pytest.fixture(autouse=True)
 def _clean_env_and_cache(monkeypatch):
     """Strip DOGE_* path vars and reset the singleton before every test."""
-    for var in DOGE_PATH_VARS + DOGE_FEATURE_VARS + DOGE_DAEMON_VARS:
+    for var in DOGE_PATH_VARS + DOGE_FEATURE_VARS + DOGE_SLOT_VARS + DOGE_DAEMON_VARS:
         monkeypatch.delenv(var, raising=False)
     reset_settings()
     yield
@@ -139,11 +154,45 @@ class TestEnvOverrides:
         # Assert
         assert settings.db.us_db == settings.db.dir / "market_data_us.db"
 
+    def test_slot_manifest_dirs_env_is_csv_paths(self, monkeypatch, tmp_path):
+        # Arrange
+        first = tmp_path / "slots-a"
+        second = tmp_path / "slots-b"
+        monkeypatch.setenv("DOGE_SLOT_MANIFEST_DIRS", f"{first},{second}")
+        # Act
+        settings = get_settings()
+        # Assert
+        assert settings.slots.manifest_dirs == (first, second)
+
+    def test_slot_install_env_controls_are_parsed(self, monkeypatch, tmp_path):
+        # Arrange
+        install_dir = tmp_path / "installed"
+        monkeypatch.setenv("DOGE_SLOT_INSTALL_DIR", str(install_dir))
+        monkeypatch.setenv("DOGE_SLOT_ENTERPRISE_ALLOWLIST", "local.a,local.b")
+        monkeypatch.setenv("DOGE_SLOT_TRUSTED_SIGNERS", "ops,sec")
+        monkeypatch.setenv("DOGE_SLOT_ALLOW_UNSIGNED_LOCAL", "0")
+        # Act
+        settings = get_settings()
+        # Assert
+        assert settings.slots.install_dir == install_dir
+        assert settings.slots.enterprise_allowlist == ("local.a", "local.b")
+        assert settings.slots.trusted_signers == ("ops", "sec")
+        assert settings.slots.allow_unsigned_local is False
+
 
 class TestImmutability:
     def test_all_configs_are_frozen(self):
         # Arrange / Act / Assert
-        for cls in (Settings, DBConfig, TDXConfig, MarketConfig, MCPConfig, FeatureConfig, FeatureLifecycle):
+        for cls in (
+            Settings,
+            DBConfig,
+            TDXConfig,
+            MarketConfig,
+            MCPConfig,
+            FeatureConfig,
+            FeatureLifecycle,
+            SlotConfig,
+        ):
             assert getattr(cls, "__dataclass_params__").frozen is True, f"{cls.__name__} must be frozen"
 
     def test_setting_a_db_field_raises(self):
@@ -292,6 +341,16 @@ class TestFeatureLifecycle:
         assert features.runtime_outbox_publisher is False
         assert features.python_analysis_enabled is False
         assert features.slot_platform is False
+        assert features.slot_governance is False
+        assert features.slot_watcher is False
+        assert features.slot_ui is False
+        assert features.slot_enforcement is False
+        assert features.slot_loader is False
+        assert features.slot_install is False
+        assert get_settings().slots.manifest_dirs == ()
+        assert get_settings().slots.enterprise_allowlist == ()
+        assert get_settings().slots.trusted_signers == ()
+        assert get_settings().slots.allow_unsigned_local is True
         assert features.python_analysis_executor == "disabled"
 
     def test_feature_lifecycle_metadata_covers_all_python_flags(self):
@@ -303,6 +362,12 @@ class TestFeatureLifecycle:
             "runtime_outbox_publisher",
             "python_analysis_enabled",
             "slot_platform",
+            "slot_governance",
+            "slot_watcher",
+            "slot_ui",
+            "slot_enforcement",
+            "slot_loader",
+            "slot_install",
         }
         assert {
             lifecycle.env_var for lifecycle in FEATURE_LIFECYCLES.values()

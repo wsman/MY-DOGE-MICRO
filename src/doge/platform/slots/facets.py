@@ -77,6 +77,7 @@ class UIPanelContribution:
     modes: tuple[str, ...] = ()
     required_artifact_fields: tuple[str, ...] = ()
     label: str | None = None
+    workspace: str = "research_workspace"
 
 
 @dataclass(frozen=True)

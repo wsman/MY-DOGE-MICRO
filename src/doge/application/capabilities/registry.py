@@ -94,6 +94,66 @@ class FeatureCapabilityProvider:
                     "executor": self._settings.features.python_analysis_executor,
                 },
             ),
+            capability(
+                "feature.slot_platform",
+                "platform",
+                "Slot Platform",
+                _feature_status(self._settings.features.slot_platform),
+                metadata=_feature_metadata("slot_platform"),
+            ),
+            capability(
+                "feature.slot_governance",
+                "governance",
+                "Slot Governance",
+                _feature_status(self._settings.features.slot_governance),
+                metadata=_feature_metadata("slot_governance"),
+            ),
+            capability(
+                "feature.slot_watcher",
+                "runtime",
+                "Slot Watcher",
+                _feature_status(self._settings.features.slot_watcher),
+                metadata=_feature_metadata("slot_watcher"),
+            ),
+            capability(
+                "feature.slot_ui",
+                "ui",
+                "Slot UI",
+                _feature_status(self._settings.features.slot_ui),
+                metadata=_feature_metadata("slot_ui"),
+            ),
+            capability(
+                "feature.slot_enforcement",
+                "governance",
+                "Slot Enforcement",
+                _feature_status(self._settings.features.slot_enforcement),
+                risk_level="medium",
+                metadata=_feature_metadata("slot_enforcement"),
+            ),
+            capability(
+                "feature.slot_loader",
+                "platform",
+                "Slot Loader",
+                _feature_status(self._settings.features.slot_loader),
+                risk_level="medium",
+                metadata={
+                    **_feature_metadata("slot_loader"),
+                    "manifest_dirs": [str(path) for path in self._settings.slots.manifest_dirs],
+                },
+            ),
+            capability(
+                "feature.slot_install",
+                "platform",
+                "Slot Install",
+                _feature_status(self._settings.features.slot_install),
+                risk_level="high",
+                metadata={
+                    **_feature_metadata("slot_install"),
+                    "install_dir": str(self._settings.slots.install_dir),
+                    "trusted_signers": list(self._settings.slots.trusted_signers),
+                    "enterprise_allowlist": list(self._settings.slots.enterprise_allowlist),
+                },
+            ),
         ]
 
 

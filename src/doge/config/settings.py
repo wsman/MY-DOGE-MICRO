@@ -601,6 +601,79 @@ FEATURE_LIFECYCLES: dict[str, FeatureLifecycle] = {
         ),
         rollback_criterion="restore default False if /v1/tools payload or tool execution differs from the flag-off baseline",
     ),
+    "slot_governance": FeatureLifecycle(
+        env_var="DOGE_FEATURE_SLOT_GOVERNANCE",
+        introduced="Sprint 037 Governance Slot Consumer; docs/architecture/adr-0046-governance-slot-consumer.md",
+        current_default=False,
+        target_default_on="after governance-slot entitlement parity and enterprise tool-governance regressions are green",
+        target_removal="one release cycle after governance slot policy composition is always-on with an approved removal story",
+        replacement_behavior="tool entitlement and approval policies are always composed through governance slots",
+        regression_commands=(
+            "python -m pytest tests/unit/platform/slots/test_builtin_governance_slot.py tests/contract/test_governance_slot_parity.py tests/contract/test_tool_registry_slot_parity.py -q",
+        ),
+        rollback_criterion="restore default False if tool schema redaction, approval metadata, or execution permissions differ unexpectedly",
+    ),
+    "slot_watcher": FeatureLifecycle(
+        env_var="DOGE_FEATURE_SLOT_WATCHER",
+        introduced="Sprint 038 Watcher Slot Consumer; docs/architecture/adr-0047-watcher-slot-consumer.md",
+        current_default=False,
+        target_default_on="after watcher-slot event parity and runtime rollback regressions are green",
+        target_removal="one release cycle after watcher middleware is always-on with an approved removal story",
+        replacement_behavior="runtime events are always observed by slot-contributed watcher middleware",
+        regression_commands=(
+            "python -m pytest tests/unit/platform/slots/test_builtin_watcher_slot.py tests/contract/test_watcher_slot_parity.py tests/unit/agent/test_transition_recorder.py -q",
+        ),
+        rollback_criterion="restore default False if runtime event persistence, outbox staging, or publishing differs unexpectedly",
+    ),
+    "slot_ui": FeatureLifecycle(
+        env_var="DOGE_FEATURE_SLOT_UI",
+        introduced="Sprint 044 UI Slot Consumer; docs/architecture/adr-0053-ui-slot-consumer.md",
+        current_default=False,
+        target_default_on="after ResearchAgentView panel-registry parity and web regressions are green",
+        target_removal="one release cycle after UI panel slot metadata is always-on with an approved static-layout removal story",
+        replacement_behavior="Research workspace panels are always described by UI slot contributions",
+        regression_commands=(
+            "python -m pytest tests/unit/platform/slots/test_builtin_ui_slot.py tests/contract/test_slot_ui_registry.py tests/contract/test_slot_api.py -q",
+            "cd web && npm run test -- src/views/panelRegistry.spec.ts src/views/ResearchAgentView.spec.ts src/stores/platform.spec.ts",
+        ),
+        rollback_criterion="restore default False if ResearchAgentView panel visibility, ordering, accessibility, or build output regresses",
+    ),
+    "slot_enforcement": FeatureLifecycle(
+        env_var="DOGE_FEATURE_SLOT_ENFORCEMENT",
+        introduced="Sprint 045 Runtime Permission and Health Enforcement; docs/architecture/adr-0055-slot-enforcement.md",
+        current_default=False,
+        target_default_on="after slot permission/health enforcement parity and denied-slot regressions are green",
+        target_removal="one release cycle after slot permission and health enforcement is always-on with an approved removal story",
+        replacement_behavior="slot permissions and active health probes are always enforced by SlotKernel before contribution resolve/start",
+        regression_commands=(
+            "python -m pytest tests/unit/platform/slots/test_slot_enforcement.py tests/unit/platform/slots/test_slot_kernel.py tests/contract/test_tool_registry_slot_parity.py -q",
+        ),
+        rollback_criterion="restore default False if slot resolution, tool registration, or health diagnostics differ unexpectedly",
+    ),
+    "slot_loader": FeatureLifecycle(
+        env_var="DOGE_FEATURE_SLOT_LOADER",
+        introduced="Sprint 046 SlotLoader and Bundle Activation; docs/architecture/adr-0056-slot-loader-bundle-activation.md",
+        current_default=False,
+        target_default_on="after disk manifest loading and bundle activation parity regressions are green",
+        target_removal="one release cycle after JSON slot manifest loading and bundle activation are always-on with an approved removal story",
+        replacement_behavior="validated JSON slot manifests and active bundle policy overlays are always available through SlotKernel",
+        regression_commands=(
+            "python -m pytest tests/unit/platform/slots/test_slot_loader.py tests/unit/platform/slots/test_slot_activation.py tests/contract/test_slot_kernel_bundle_rows.py tests/contract/test_slot_api.py tests/cli/test_cli_slots.py -q",
+        ),
+        rollback_criterion="restore default False if slot discovery, bundle activation, or built-in slot parity differs unexpectedly",
+    ),
+    "slot_install": FeatureLifecycle(
+        env_var="DOGE_FEATURE_SLOT_INSTALL",
+        introduced="Sprint 047 Third-party Slot Install Preview; docs/architecture/adr-0057-third-party-slot-install-preview.md",
+        current_default=False,
+        target_default_on="after manifest install, signature metadata, and enterprise allowlist regressions are green",
+        target_removal="one release cycle after local slot install preview is always-on with an approved removal story",
+        replacement_behavior="validated third-party slot manifests can be installed as manifest-only local slots",
+        regression_commands=(
+            "python -m pytest tests/unit/platform/slots/test_slot_install.py tests/cli/test_cli_slots.py -q",
+        ),
+        rollback_criterion="restore default False if local install writes, signature checks, or enterprise allowlist behavior differ unexpectedly",
+    ),
 }
 
 
@@ -629,8 +702,47 @@ class FeatureConfig:
     slot_platform: bool = field(
         default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_PLATFORM", False)
     )
+    slot_governance: bool = field(
+        default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_GOVERNANCE", False)
+    )
+    slot_watcher: bool = field(
+        default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_WATCHER", False)
+    )
+    slot_ui: bool = field(
+        default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_UI", False)
+    )
+    slot_enforcement: bool = field(
+        default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_ENFORCEMENT", False)
+    )
+    slot_loader: bool = field(
+        default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_LOADER", False)
+    )
+    slot_install: bool = field(
+        default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_INSTALL", False)
+    )
     python_analysis_executor: str = field(
         default_factory=lambda: (os.environ.get("DOGE_PYTHON_ANALYSIS_EXECUTOR") or "disabled").strip().lower()
+    )
+
+
+@dataclass(frozen=True)
+class SlotConfig:
+    """Slot Platform local manifest configuration."""
+
+    manifest_dirs: tuple[Path, ...] = field(
+        default_factory=lambda: tuple(Path(item) for item in _env_csv("DOGE_SLOT_MANIFEST_DIRS"))
+    )
+    install_dir: Path = field(
+        default_factory=lambda: _env_path("DOGE_SLOT_INSTALL_DIR", _PROJECT_ROOT / "data" / "slots")
+    )
+    enterprise_allowlist: tuple[str, ...] = field(
+        default_factory=lambda: _env_csv("DOGE_SLOT_ENTERPRISE_ALLOWLIST")
+    )
+    trusted_signers: tuple[str, ...] = field(
+        default_factory=lambda: _env_csv("DOGE_SLOT_TRUSTED_SIGNERS")
+    )
+    allow_unsigned_local: bool = field(
+        default_factory=lambda: _env_bool("DOGE_SLOT_ALLOW_UNSIGNED_LOCAL", True)
     )
 
 
@@ -654,6 +766,7 @@ class Settings:
     audit: AuditConfig = field(default_factory=AuditConfig)
     secrets: SecretConfig = field(default_factory=SecretConfig)
     features: FeatureConfig = field(default_factory=FeatureConfig)
+    slots: SlotConfig = field(default_factory=SlotConfig)
 
     # Derived paths
     @property

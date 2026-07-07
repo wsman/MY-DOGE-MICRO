@@ -112,6 +112,11 @@ class IArtifactEvaluationService(Protocol):
         ...
 
 
+class IRuntimeEventWatcher(Protocol):
+    def enforce(self, event: AgentEvent) -> None:
+        ...
+
+
 class ITransitionRecorder(Protocol):
     async def record(
         self,
