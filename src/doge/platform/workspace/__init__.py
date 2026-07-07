@@ -40,6 +40,7 @@ from doge.platform.workspace.application import (
     WorkspaceService,
 )
 from doge.platform.workspace.template_seed import BUILTIN_TEMPLATES, TemplateSeedResult, seed_workflow_templates
+from doge.platform.workspace.ui_panels import UIPanelRegistry
 
 __all__ = [
     "BuildCapabilityRegistry",
@@ -72,6 +73,7 @@ __all__ = [
     "TemplateRunInput",
     "TemplatePreflightResult",
     "TemplateSeedResult",
+    "UIPanelRegistry",
     "WorkflowExecution",
     "WorkflowTemplate",
     "WorkflowTemplateRunLink",

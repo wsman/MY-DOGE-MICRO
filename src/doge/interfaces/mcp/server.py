@@ -651,7 +651,12 @@ def create_mcp_server():
         """写入内置金融 Workflow Template，供 Case 工作流复用。"""
         from doge.platform.workspace import seed_workflow_templates
 
-        result = seed_workflow_templates(_workspace_container().build_platform_repository(), dry_run=dry_run)
+        workspace = _workspace_container()
+        result = seed_workflow_templates(
+            workspace.build_platform_repository(),
+            dry_run=dry_run,
+            templates=workspace.build_workflow_template_definitions(),
+        )
         return _json_result(result.to_dict())
 
     @mcp.tool(name="list_workflow_templates")

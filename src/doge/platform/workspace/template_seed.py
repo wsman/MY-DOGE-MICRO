@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -213,10 +214,13 @@ def seed_workflow_templates(
     scope: TenantScope | None = None,
     tenant_id: str | None = None,
     dry_run: bool = False,
+    templates: Iterable[Mapping[str, Any]] | None = None,
 ) -> TemplateSeedResult:
+    source = templates if templates is not None else BUILTIN_TEMPLATES
+    template_definitions = tuple(source)
     inserted: list[str] = []
     existing: list[str] = []
-    for item in BUILTIN_TEMPLATES:
+    for item in template_definitions:
         current = repo.get_workflow_template(item["slug"], scope, tenant_id=tenant_id)
         if current is not None:
             existing.append(item["slug"])

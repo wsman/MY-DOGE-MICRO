@@ -18,7 +18,11 @@ def cmd_template(args) -> None:
     repo = workspace.build_platform_repository()
     context = PlatformRequestContext()
     if args.template_cmd == "seed":
-        result = seed_workflow_templates(repo, dry_run=args.dry_run)
+        result = seed_workflow_templates(
+            repo,
+            dry_run=args.dry_run,
+            templates=workspace.build_workflow_template_definitions(),
+        )
         _emit(result.to_dict(), json_only=args.json)
         return
 
