@@ -31,12 +31,113 @@ import type {
   Workspace,
 } from 'doge-sdk'
 
+export interface UiPanel {
+  panel_id: string
+  workspace: string
+  zone: string
+  component_module: string
+  order: number
+  modes: string[]
+  required_artifact_fields: string[]
+  label: string | null
+}
+
+export interface UiPanelListResponse {
+  panels: UiPanel[]
+}
+
+export interface SlotStatusRow {
+  id: string
+  name: string
+  version: string
+  type: string
+  owner: string
+  maturity: string
+  description: string
+  entrypoint: string
+  status: string
+  feature_flags: string[]
+  provides: {
+    tools: string[]
+    capabilities: string[]
+    metadata: Record<string, unknown>
+  }
+  requires: Array<{
+    kind: string
+    id: string
+    optional: boolean
+  }>
+  permissions: {
+    filesystem: string
+    network: string
+    shell: string
+    database: string
+    secrets: string[]
+    risk_level: string
+  }
+  health: {
+    status: string
+    notes: string
+  }
+  compatibility: {
+    runtime_min: string
+    replaces: string[]
+    breaking: boolean
+  }
+  counts: {
+    tools: number
+    capabilities: number
+  }
+}
+
+export interface SlotListResponse {
+  slots: SlotStatusRow[]
+}
+
+export interface SlotBundleRow {
+  id: string
+  name: string
+  description: string
+  status: string
+  slot_ids: string[]
+  enabled_slot_ids: string[]
+  disabled_slot_ids: string[]
+  missing_slot_ids: string[]
+  maturity: string
+  counts: {
+    slots: number
+    enabled: number
+    disabled: number
+    missing: number
+  }
+}
+
+export interface SlotBundleListResponse {
+  bundles: SlotBundleRow[]
+}
+
 export async function fetchCapabilities(): Promise<CapabilitySnapshot> {
   return await dogeClient.capabilities.get()
 }
 
 export async function fetchHomeQueue(limit = 20): Promise<HomeQueue> {
   return await dogeClient.request<HomeQueue>('GET', `/v1/home-queue?limit=${limit}`)
+}
+
+export async function listUiPanels(workspace = 'research_workspace'): Promise<UiPanel[]> {
+  const params = new URLSearchParams({ workspace })
+  const payload = await dogeClient.request<UiPanelListResponse>('GET', `/v1/ui-panels?${params.toString()}`)
+  return payload.panels
+}
+
+export async function listSlots(): Promise<SlotStatusRow[]> {
+  const payload = await dogeClient.request<SlotListResponse>('GET', '/v1/slots')
+  return payload.slots
+}
+
+export async function listSlotBundles(): Promise<SlotBundleRow[]> {
+  const payload = await dogeClient.request<SlotBundleListResponse>('GET', '/v1/slot-bundles')
+  return payload.bundles
 }
 
 export async function listWorkspaces(limit = 100): Promise<Workspace[]> {

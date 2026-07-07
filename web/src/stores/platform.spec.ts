@@ -23,6 +23,9 @@ import {
   listCaseExecutions,
   listProjects,
   listResearchCases,
+  listSlotBundles,
+  listSlots,
+  listUiPanels,
   listWorkflowTemplates,
   listWorkspaces,
   preflightCaseExecution,
@@ -39,6 +42,9 @@ vi.mock('../api/platform', () => ({
   listWorkspaces: vi.fn(),
   listProjects: vi.fn(),
   listResearchCases: vi.fn(),
+  listSlots: vi.fn(),
+  listSlotBundles: vi.fn(),
+  listUiPanels: vi.fn(),
   listWorkflowTemplates: vi.fn(),
   listCaseAssets: vi.fn(),
   listCaseExecutions: vi.fn(),
@@ -80,6 +86,9 @@ describe('platform store', () => {
     vi.mocked(listWorkspaces).mockResolvedValue([workspace('wsp-1', 'Desk')])
     vi.mocked(listProjects).mockResolvedValue([project('prj-1', 'wsp-1', 'Research')])
     vi.mocked(listResearchCases).mockResolvedValue([researchCase('case-1', 'prj-1')])
+    vi.mocked(listSlots).mockResolvedValue([slotRow('market.core')])
+    vi.mocked(listSlotBundles).mockResolvedValue([slotBundle('bundle.research_workspace')])
+    vi.mocked(listUiPanels).mockResolvedValue([uiPanel('guided_flow')])
     vi.mocked(listWorkflowTemplates).mockResolvedValue([workflowTemplate('tpl-1')])
     vi.mocked(listCaseAssets).mockResolvedValue([caseAsset('asset-1', 'case-1')])
     vi.mocked(listCaseExecutions).mockResolvedValue([workflowExecution('exec-1', 'case-1')])
@@ -198,6 +207,9 @@ describe('platform store', () => {
     await store.loadProject('prj-1')
     await store.loadResearchCases({ project_id: 'prj-1' })
     await store.loadResearchCase('case-1')
+    await store.loadSlots()
+    await store.loadSlotBundles()
+    await store.loadUiPanels()
     await store.loadWorkflowTemplates()
     await store.loadHomeQueue()
 
@@ -206,6 +218,9 @@ describe('platform store', () => {
     expect(store.workspaces[0].workspace_id).toBe('wsp-1')
     expect(store.projectsById['prj-1'].name).toBe('Research')
     expect(store.researchCasesById['case-1'].title).toBe('Case')
+    expect(store.slotRowsById['market.core'].status).toBe('resolved')
+    expect(store.slotBundlesById['bundle.research_workspace'].status).toBe('partial')
+    expect(store.uiPanels[0].panel_id).toBe('guided_flow')
     expect(store.projectsByWorkspaceId['wsp-1'][0].project_id).toBe('prj-1')
     expect(store.casesByProjectId['prj-1'][0].case_id).toBe('case-1')
     expect(store.workflowTemplates[0].template_id).toBe('tpl-1')
@@ -361,6 +376,81 @@ function workflowTemplate(templateId: string) {
     metadata: {},
     created_at: '2026-06-22T00:00:00Z',
     updated_at: '2026-06-22T00:00:00Z',
+  }
+}
+
+function uiPanel(panelId: string) {
+  return {
+    panel_id: panelId,
+    workspace: 'research_workspace',
+    zone: 'research.input',
+    component_module: 'components/agent/GuidedFlow.vue',
+    order: 10,
+    modes: ['analyst', 'developer'],
+    required_artifact_fields: [],
+    label: 'Guided Flow',
+  }
+}
+
+function slotRow(slotId: string) {
+  return {
+    id: slotId,
+    name: 'Market Core',
+    version: '0.1.0',
+    type: 'tool',
+    owner: 'market',
+    maturity: 'alpha',
+    description: 'Market tools',
+    entrypoint: 'doge.products.market.slot.MarketCoreSlot',
+    status: 'resolved',
+    feature_flags: ['slot_platform'],
+    provides: {
+      tools: ['query_stock'],
+      capabilities: ['market.read'],
+      metadata: {},
+    },
+    requires: [],
+    permissions: {
+      filesystem: 'none',
+      network: 'none',
+      shell: 'none',
+      database: 'none',
+      secrets: [],
+      risk_level: 'low',
+    },
+    health: {
+      status: 'experimental',
+      notes: '',
+    },
+    compatibility: {
+      runtime_min: '1',
+      replaces: [],
+      breaking: false,
+    },
+    counts: {
+      tools: 1,
+      capabilities: 1,
+    },
+  }
+}
+
+function slotBundle(bundleId: string) {
+  return {
+    id: bundleId,
+    name: 'Research Workspace',
+    description: 'Research workspace bundle',
+    status: 'partial',
+    slot_ids: ['market.core', 'ui.research_workspace'],
+    enabled_slot_ids: ['market.core'],
+    disabled_slot_ids: ['ui.research_workspace'],
+    missing_slot_ids: [],
+    maturity: 'experimental',
+    counts: {
+      slots: 2,
+      enabled: 1,
+      disabled: 1,
+      missing: 0,
+    },
   }
 }
 

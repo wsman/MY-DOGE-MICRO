@@ -23,10 +23,16 @@ import {
   listCaseExecutions,
   listProjects,
   listResearchCases,
+  listSlotBundles,
+  listSlots,
+  listUiPanels,
   listWorkflowTemplates,
   listWorkspaces,
   preflightCaseExecution as preflightCaseExecutionApi,
   recordCaseDecision as recordCaseDecisionApi,
+  type SlotBundleRow,
+  type SlotStatusRow,
+  type UiPanel,
 } from '../api/platform'
 import type {
   AddCaseAssetPayload,
@@ -72,6 +78,9 @@ export const usePlatformStore = defineStore('platform', () => {
   const preflightByCaseId = ref<Record<string, TemplatePreflightResult>>({})
   const homeQueue = ref<HomeQueue | null>(null)
   const runResourcesById = ref<Record<string, RunSummaryResources>>({})
+  const uiPanels = ref<UiPanel[]>([])
+  const slotRows = ref<SlotStatusRow[]>([])
+  const slotBundles = ref<SlotBundleRow[]>([])
   const pendingCount = ref(0)
   const error = ref<FetchError | null>(null)
 
@@ -89,6 +98,8 @@ export const usePlatformStore = defineStore('platform', () => {
   const workflowTemplatesBySlug = computed(() => (
     Object.fromEntries(workflowTemplates.value.map(item => [item.slug, item]))
   ))
+  const slotRowsById = computed(() => Object.fromEntries(slotRows.value.map(item => [item.id, item])))
+  const slotBundlesById = computed(() => Object.fromEntries(slotBundles.value.map(item => [item.id, item])))
   const projectsByWorkspaceId = computed(() => groupBy(projects.value, 'workspace_id'))
   const casesByProjectId = computed(() => groupBy(researchCases.value, 'project_id'))
 
@@ -103,6 +114,27 @@ export const usePlatformStore = defineStore('platform', () => {
     return await runTracked(async () => {
       homeQueue.value = await fetchHomeQueue(limit)
       return homeQueue.value
+    })
+  }
+
+  async function loadUiPanels(workspace = 'research_workspace') {
+    return await runTracked(async () => {
+      uiPanels.value = await listUiPanels(workspace)
+      return uiPanels.value
+    })
+  }
+
+  async function loadSlots() {
+    return await runTracked(async () => {
+      slotRows.value = await listSlots()
+      return slotRows.value
+    })
+  }
+
+  async function loadSlotBundles() {
+    return await runTracked(async () => {
+      slotBundles.value = await listSlotBundles()
+      return slotBundles.value
     })
   }
 
@@ -327,6 +359,9 @@ export const usePlatformStore = defineStore('platform', () => {
     preflightByCaseId,
     homeQueue,
     runResourcesById,
+    uiPanels,
+    slotRows,
+    slotBundles,
     loading,
     error,
     capabilitiesById,
@@ -335,10 +370,15 @@ export const usePlatformStore = defineStore('platform', () => {
     researchCasesById,
     workflowTemplatesById,
     workflowTemplatesBySlug,
+    slotRowsById,
+    slotBundlesById,
     projectsByWorkspaceId,
     casesByProjectId,
     loadCapabilities,
     loadHomeQueue,
+    loadUiPanels,
+    loadSlots,
+    loadSlotBundles,
     loadWorkspaces,
     loadWorkspace,
     loadProjects,
