@@ -707,7 +707,7 @@ entities:
       source: "src/doge/interfaces/mcp/server.py:529-536"
       notes: "MCP intentionally exposes only curated data tools; run_sql, run_sql_query, and run_python_analysis are absent from the MCP surface."
 
-  # --- FastAPI routes (90 canonical HTTP routes) owned by Module #9 ---
+  # --- FastAPI routes (96 canonical HTTP routes) owned by Module #9 ---
   api_routes:
     # main router
     - {num: 1, method: GET, path: "/api/health", router: main, source: "src/doge/interfaces/api/main.py"}
@@ -752,7 +752,7 @@ entities:
     - {num: 33, method: POST, path: "/api/agent/runs/{run_id}/approvals/{approval_id}", router: agent, source: "src/doge/interfaces/api_legacy/routers/agent.py"}
     # documents compatibility router
     - {num: 34, method: POST, path: "/api/documents", router: documents, source: "src/doge/interfaces/api_legacy/routers/documents.py"}
-    # v1 health/session/run/document/tool routes
+    # v1 health/session/run/document/platform/slot/tool routes
     - {num: 35, method: GET, path: "/health", router: v1_health, source: "src/doge/interfaces/gateway/routers/health.py"}
     - {num: 36, method: GET, path: "/health/ready", router: v1_health, source: "src/doge/interfaces/gateway/routers/health.py"}
     - {num: 37, method: POST, path: "/v1/sessions", router: v1_sessions, source: "src/doge/interfaces/gateway/routers/sessions.py"}
@@ -801,14 +801,20 @@ entities:
     - {num: 80, method: POST, path: "/v1/workflow-templates", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged workflow templates API"}
     - {num: 81, method: GET, path: "/v1/workflow-templates/{template_id}", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged workflow templates API"}
     - {num: 82, method: GET, path: "/v1/capabilities", router: v1_platform, source: "src/doge/interfaces/gateway/routers/platform.py", notes: "feature-flagged capability registry API"}
-    - {num: 83, method: GET, path: "/v1/tools", router: v1_tools, source: "src/doge/interfaces/gateway/routers/tools.py"}
-    - {num: 84, method: POST, path: "/v1/portfolios/import", router: v1_portfolios, source: "src/doge/interfaces/gateway/routers/portfolios.py"}
-    - {num: 85, method: GET, path: "/v1/audit/events", router: v1_audit, source: "src/doge/interfaces/gateway/routers/audit.py"}
-    - {num: 86, method: GET, path: "/v1/audit/events/export", router: v1_audit, source: "src/doge/interfaces/gateway/routers/audit.py"}
-    - {num: 87, method: POST, path: "/v1/audit/events/retention", router: v1_audit, source: "src/doge/interfaces/gateway/routers/audit.py"}
-    - {num: 88, method: GET, path: "/v1/enterprise/acl/grants", router: v1_enterprise, source: "src/doge/interfaces/gateway/routers/enterprise.py"}
-    - {num: 89, method: POST, path: "/v1/enterprise/acl/grants", router: v1_enterprise, source: "src/doge/interfaces/gateway/routers/enterprise.py"}
-    - {num: 90, method: DELETE, path: "/v1/enterprise/acl/grants", router: v1_enterprise, source: "src/doge/interfaces/gateway/routers/enterprise.py"}
+    - {num: 83, method: GET, path: "/v1/slots", router: v1_slots, source: "src/doge/interfaces/gateway/routers/slots.py", notes: "feature-flagged read-only slot discovery API"}
+    - {num: 84, method: GET, path: "/v1/slot-bundles", router: v1_slots, source: "src/doge/interfaces/gateway/routers/slots.py", notes: "feature-flagged read-only slot bundle discovery API"}
+    - {num: 85, method: POST, path: "/v1/slot-bundles/{bundle_id}/activate", router: v1_slots, source: "src/doge/interfaces/gateway/routers/slots.py", notes: "feature-flagged process-local slot bundle activation API"}
+    - {num: 86, method: GET, path: "/v1/ui-panels", router: v1_slots, source: "src/doge/interfaces/gateway/routers/slots.py", notes: "feature-flagged read-only UI panel discovery API"}
+    - {num: 87, method: GET, path: "/v1/slots/{slot_id}", router: v1_slots, source: "src/doge/interfaces/gateway/routers/slots.py", notes: "feature-flagged read-only slot discovery API"}
+    - {num: 88, method: GET, path: "/v1/slots/{slot_id}/health", router: v1_slots, source: "src/doge/interfaces/gateway/routers/slots.py", notes: "feature-flagged read-only slot health API"}
+    - {num: 89, method: GET, path: "/v1/tools", router: v1_tools, source: "src/doge/interfaces/gateway/routers/tools.py"}
+    - {num: 90, method: POST, path: "/v1/portfolios/import", router: v1_portfolios, source: "src/doge/interfaces/gateway/routers/portfolios.py"}
+    - {num: 91, method: GET, path: "/v1/audit/events", router: v1_audit, source: "src/doge/interfaces/gateway/routers/audit.py"}
+    - {num: 92, method: GET, path: "/v1/audit/events/export", router: v1_audit, source: "src/doge/interfaces/gateway/routers/audit.py"}
+    - {num: 93, method: POST, path: "/v1/audit/events/retention", router: v1_audit, source: "src/doge/interfaces/gateway/routers/audit.py"}
+    - {num: 94, method: GET, path: "/v1/enterprise/acl/grants", router: v1_enterprise, source: "src/doge/interfaces/gateway/routers/enterprise.py"}
+    - {num: 95, method: POST, path: "/v1/enterprise/acl/grants", router: v1_enterprise, source: "src/doge/interfaces/gateway/routers/enterprise.py"}
+    - {num: 96, method: DELETE, path: "/v1/enterprise/acl/grants", router: v1_enterprise, source: "src/doge/interfaces/gateway/routers/enterprise.py"}
   api_router_prefixes:
     scan: "/api/scan"
     data: "/api/data"

@@ -13,7 +13,7 @@ Current contract highlights:
 
 - FastAPI app: `doge.interfaces.api.main:app`
 - Default bind: `127.0.0.1:8901`
-- Canonical route count: 90 HTTP routes
+- Canonical route count: 96 HTTP routes
 - Contract test: `tests/contract/test_api_doc_route_coverage.py`
 - Error envelope: `{"error": {"code", "message"}}`
 

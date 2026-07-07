@@ -212,7 +212,7 @@ GET /v1/research-cases/{case_id}/progress
 
 | CDD Document | Requirement | How This ADR Addresses It |
 |--------------|-------------|----------------------------|
-| `design/cdd/fastapi-service.md` | `/v1/*` daemon routes must stay documented and route-covered. | Adds `GET /v1/research-cases/{case_id}/progress`, updates the 90-route authority, and keeps route coverage tests aligned. |
+| `design/cdd/fastapi-service.md` | `/v1/*` daemon routes must stay documented and route-covered. | Adds `GET /v1/research-cases/{case_id}/progress`, keeps the current route authority aligned, and keeps route coverage tests aligned. |
 | `design/cdd/sprint-028-governance-progress.md` | Case progress needs a status/owner/timestamp/blocking/next-action contract. | Defines and implements `CaseProgressStep`. |
 | `design/cdd/sprint-027-run-comparison.md` | Run history should support analyst review workflows. | Progress uses workflow executions and run links as part of the case-level governance view. |
 
@@ -245,7 +245,7 @@ GET /v1/research-cases/{case_id}/progress
 - Web store loads progress as part of a case workspace snapshot.
 - Web progress panel renders step label, owner, status, and blocking context.
 - SDK contract check passes with 15 surfaces and 15 parity checks.
-- API doc route coverage and S017 planning docs tests pass at 90 routes.
+- API doc route coverage and S017 planning docs tests pass against the current route authority.
 
 ## Related Decisions
 

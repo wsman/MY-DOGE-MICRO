@@ -111,6 +111,383 @@ slot_contribution_facets_2026_07_07:
     - "Sprint 034 completes contribution facets plus the model-backend slot proof; it does NOT complete the full OpenClaw-like Slot Platform."
     - "Slot Platform remains experimental and feature-flagged off; do not cite it as Stable or production-ready."
 
+workflow_slot_consumer_2026_07_07:
+  status: local_experimental_external_gates_open
+  scope:
+    - "Workflow Slot Consumer (ADR-0044): workflow.templates contributes the existing built-in workflow template definitions through WorkflowTemplateContribution."
+    - "CLI and MCP workflow-template seeding route through WorkspaceContainer.build_workflow_template_definitions; flag-off seeding remains backed by BUILTIN_TEMPLATES."
+    - "Slot-aware workflow template output is parity-tested against BUILTIN_TEMPLATES when DOGE_FEATURE_SLOT_PLATFORM and DOGE_FEATURE_WORKFLOW_TEMPLATES are both enabled."
+    - "No /v1 route, OpenAPI, SDK, Web, daemon-command, ModelRouter/ProfileRegistry/runtime-dispatch, persistence schema, SlotKernel, SlotBundle, SlotLoader, lifecycle-invocation, permission/health enforcement, external-gate, or production-readiness change."
+  evidence:
+    - docs/architecture/adr-0044-workflow-slot-consumer.md
+    - design/cdd/sprint-035-workflow-slot-consumer.md
+    - production/sprints/sprint-035-workflow-slot-consumer.md
+    - production/qa/evidence/sprint-035-workflow-slot-consumer-manifest.md
+    - src/doge/platform/workspace/slot.py
+    - src/doge/platform/workspace/template_seed.py
+    - src/doge/bootstrap/workspace.py
+    - src/doge/bootstrap/runtime_factories/slots.py
+    - src/doge/interfaces/cli/commands/template.py
+    - src/doge/interfaces/mcp/server.py
+    - tests/unit/platform/slots/test_builtin_workflow_slot.py
+    - tests/contract/test_workflow_slot_parity.py
+    - tests/unit/workspace_workflow/test_template_seed.py
+    - tests/cli/test_cli_slots.py
+  focused_tests:
+    - "py -3 -m pytest tests/unit/platform/slots tests/unit/workspace_workflow/test_template_seed.py tests/cli/test_cli_slots.py tests/contract/test_workflow_slot_parity.py tests/contract/test_agent_backends_slot_parity.py tests/contract/test_tool_registry_slot_parity.py -q"
+  validators:
+    - "py -3 scripts/validate_import_boundaries.py"
+    - "py -3 scripts/validate_alpha_maturity_honesty.py --file docs/architecture/adr-0044-workflow-slot-consumer.md"
+    - "py -3 scripts/validate_alpha_maturity_honesty.py --file design/cdd/sprint-035-workflow-slot-consumer.md"
+    - "py -3 scripts/validate_plan_closure_gate.py --allow-open --source-plan C:/Users/WSMAN/.claude/plans/openclaw-like-magical-barto.md"
+    - "git diff --check"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+  notes:
+    - "Sprint 035 completes the workflow-facet consumer proof only; it does NOT complete the full OpenClaw-like Slot Platform."
+    - "Slot Platform remains experimental and feature-flagged off; do not cite it as Stable or production-ready."
+
+slot_discovery_surfaces_2026_07_07:
+  status: local_experimental_external_gates_open
+  scope:
+    - "Slot Discovery Surfaces (ADR-0045): built-in slot manifests/status are visible through /v1/slots and doged slots."
+    - "Shared build_slot_status_rows reads manifests and feature flags only; it does not resolve slot contributions or construct tool/model/DB/network services."
+    - "Sprint 036 route authority predates the later slot-bundle read surface."
+    - "No /v1/slot-bundles, bundle activation, SDK slot client, Web Slot Center, third-party install, permission enforcement, lifecycle invocation, external-gate, or production-readiness change."
+  evidence:
+    - docs/architecture/adr-0045-slot-discovery-surfaces.md
+    - design/cdd/sprint-036-slot-discovery-surfaces.md
+    - production/sprints/sprint-036-slot-discovery-surfaces.md
+    - production/qa/evidence/sprint-036-slot-discovery-surfaces-manifest.md
+    - src/doge/bootstrap/runtime_factories/slots.py
+    - src/doge/interfaces/gateway/routers/slots.py
+    - src/doge/interfaces/api/routes.py
+    - src/doge/interfaces/daemon/main.py
+    - tests/contract/test_slot_api.py
+    - tests/cli/test_doged_cli.py
+    - tests/contract/test_api_doc_route_coverage.py
+    - tests/unit/governance/test_s017_planning_docs.py
+  focused_tests:
+    - "py -3 -m pytest tests/contract/test_slot_api.py tests/cli/test_doged_cli.py tests/cli/test_cli_slots.py -q"
+    - "py -3 -m pytest tests/contract/test_api_doc_route_coverage.py tests/unit/governance/test_s017_planning_docs.py -q"
+  validators:
+    - "py -3 scripts/validate_import_boundaries.py"
+    - "py -3 scripts/validate_alpha_maturity_honesty.py --file docs/architecture/adr-0045-slot-discovery-surfaces.md"
+    - "py -3 scripts/validate_alpha_maturity_honesty.py --file design/cdd/sprint-036-slot-discovery-surfaces.md"
+    - "py -3 scripts/validate_plan_closure_gate.py --allow-open --source-plan C:/Users/WSMAN/.claude/plans/openclaw-like-magical-barto.md"
+    - "git diff --check"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+  notes:
+    - "Sprint 036 completes read-only built-in slot discovery only; it does NOT complete the full OpenClaw-like Slot Platform."
+    - "Slot Platform remains experimental and feature-flagged off by default."
+
+governance_slot_consumer_2026_07_07:
+  status: local_experimental_external_gates_open
+  scope:
+    - "Governance Slot Consumer (ADR-0046): governance.tool_policy contributes the default tool entitlement and approval policy through GovernancePolicyContribution."
+    - "build_slot_aware_entitlement_checker composes explicit and slot-contributed entitlement checkers when DOGE_FEATURE_SLOT_PLATFORM and DOGE_FEATURE_SLOT_GOVERNANCE are both enabled."
+    - "The built-in governance policy is parity-equivalent with the legacy ToolRegistry default: forbidden tools are hidden/blocked and high-risk tools require approval."
+    - "No SlotKernel, SlotPolicy persistence, watcher middleware, permission/health enforcement, third-party install/signing, external-gate, or production-readiness change."
+  evidence:
+    - docs/architecture/adr-0046-governance-slot-consumer.md
+    - design/cdd/sprint-037-governance-slot-consumer.md
+    - production/sprints/sprint-037-governance-slot-consumer.md
+    - production/qa/evidence/sprint-037-governance-slot-consumer-manifest.md
+    - src/doge/platform/governance/slot.py
+    - src/doge/bootstrap/runtime_factories/slots.py
+    - src/doge/config/settings.py
+    - src/doge/application/capabilities/registry.py
+    - tests/unit/platform/slots/test_builtin_governance_slot.py
+    - tests/contract/test_governance_slot_parity.py
+    - tests/contract/test_tool_registry_slot_parity.py
+    - tests/cli/test_cli_slots.py
+    - tests/cli/test_doged_cli.py
+    - tests/contract/test_slot_api.py
+  focused_tests:
+    - "py -3 -m pytest tests/unit/platform/slots/test_builtin_governance_slot.py tests/contract/test_governance_slot_parity.py tests/contract/test_tool_registry_slot_parity.py tests/cli/test_cli_slots.py tests/contract/test_slot_api.py tests/cli/test_doged_cli.py tests/test_settings.py tests/unit/use_cases/test_capability_registry.py -q"
+  validators:
+    - "py -3 scripts/validate_import_boundaries.py"
+    - "py -3 scripts/validate_alpha_maturity_honesty.py --file docs/architecture/adr-0046-governance-slot-consumer.md"
+    - "py -3 scripts/validate_alpha_maturity_honesty.py --file design/cdd/sprint-037-governance-slot-consumer.md"
+    - "py -3 scripts/validate_plan_closure_gate.py --allow-open --source-plan C:/Users/WSMAN/.claude/plans/openclaw-like-magical-barto.md"
+    - "git diff --check"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+  notes:
+    - "Sprint 037 completes the governance-facet consumer proof only; it does NOT complete the full OpenClaw-like Slot Platform."
+    - "Slot Platform and slot governance remain experimental and feature-flagged off by default."
+
+watcher_slot_consumer_2026_07_07:
+  status: local_experimental_external_gates_open
+  scope:
+    - "Watcher Slot Consumer (ADR-0047): watcher.runtime_events contributes the default allow-only runtime event watcher through WatcherContribution."
+    - "TransitionRecorder invokes an optional IRuntimeEventWatcher after event append and before outbox staging/commit; blocking watcher decisions roll back the transaction and prevent publish side effects."
+    - "build_slot_aware_runtime_event_watcher composes watcher slots when DOGE_FEATURE_SLOT_PLATFORM and DOGE_FEATURE_SLOT_WATCHER are both enabled."
+    - "No concrete cost/secret/citation/tenant/Python-executor watcher policy, SlotKernel, permission/health enforcement, third-party install/signing, external-gate, or production-readiness change."
+  evidence:
+    - docs/architecture/adr-0047-watcher-slot-consumer.md
+    - design/cdd/sprint-038-watcher-slot-consumer.md
+    - production/sprints/sprint-038-watcher-slot-consumer.md
+    - production/qa/evidence/sprint-038-watcher-slot-consumer-manifest.md
+    - src/doge/core/ports/runtime_services.py
+    - src/doge/application/agent/transition_recorder.py
+    - src/doge/platform/runtime/watchers.py
+    - src/doge/platform/runtime/slot.py
+    - src/doge/bootstrap/runtime_factories/slots.py
+    - src/doge/bootstrap/runtime_factories/runtime_kernel.py
+    - src/doge/config/settings.py
+    - tests/unit/platform/slots/test_builtin_watcher_slot.py
+    - tests/contract/test_watcher_slot_parity.py
+    - tests/unit/agent/test_transition_recorder.py
+  focused_tests:
+    - "py -3 -m pytest tests/unit/platform/slots/test_builtin_watcher_slot.py tests/contract/test_watcher_slot_parity.py tests/unit/agent/test_transition_recorder.py tests/cli/test_cli_slots.py tests/contract/test_slot_api.py tests/cli/test_doged_cli.py tests/test_settings.py tests/unit/use_cases/test_capability_registry.py -q"
+  validators:
+    - "py -3 scripts/validate_import_boundaries.py"
+    - "py -3 scripts/validate_alpha_maturity_honesty.py --file docs/architecture/adr-0047-watcher-slot-consumer.md"
+    - "py -3 scripts/validate_alpha_maturity_honesty.py --file design/cdd/sprint-038-watcher-slot-consumer.md"
+    - "py -3 scripts/validate_plan_closure_gate.py --allow-open --source-plan C:/Users/WSMAN/.claude/plans/openclaw-like-magical-barto.md"
+    - "git diff --check"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+  notes:
+    - "Sprint 038 completes the watcher-facet consumer proof only; it does NOT complete the full OpenClaw-like Slot Platform."
+    - "Slot Platform and slot watcher remain experimental and feature-flagged off by default."
+
+document_slot_consumer_2026_07_07:
+  status: local_experimental_external_gates_open
+  scope:
+    - "Document Slot Consumer (ADR-0048): document.local_parser contributes the existing deterministic LocalDocumentParser through DocumentParserContribution."
+    - "ParserDispatcher consumes document parser contributions and preserves the existing parse(path, max_chars=...) port for FileUploadService and PageExtractionService."
+    - "build_slot_aware_document_parser composes document parser slots when DOGE_FEATURE_SLOT_PLATFORM is enabled; the default parser output is equivalent to the legacy local parser."
+    - "No Kimi parser, OCR, vision chart parser, SlotKernel, permission/health enforcement, third-party install/signing, external-gate, or production-readiness change."
+  evidence:
+    - docs/architecture/adr-0048-document-slot-consumer.md
+    - design/cdd/sprint-039-document-slot-consumer.md
+    - production/sprints/sprint-039-document-slot-consumer.md
+    - production/qa/evidence/sprint-039-document-slot-consumer-manifest.md
+    - src/doge/platform/evidence/document_parsers.py
+    - src/doge/infrastructure/documents/slot.py
+    - src/doge/bootstrap/runtime_factories/slots.py
+    - src/doge/bootstrap/gateway_factories/documents.py
+    - tests/unit/platform/slots/test_builtin_document_slot.py
+    - tests/unit/platform/evidence/test_document_parser_dispatcher.py
+    - tests/contract/test_document_slot_parity.py
+    - tests/unit/test_page_extraction.py
+    - tests/unit/test_file_upload_service.py
+  focused_tests:
+    - "py -3 -m pytest tests/unit/platform/slots/test_builtin_document_slot.py tests/unit/platform/evidence/test_document_parser_dispatcher.py tests/contract/test_document_slot_parity.py tests/unit/test_page_extraction.py tests/unit/test_file_upload_service.py tests/cli/test_cli_slots.py tests/contract/test_slot_api.py tests/cli/test_doged_cli.py -q"
+  validators:
+    - "py -3 scripts/validate_import_boundaries.py"
+    - "py -3 scripts/validate_alpha_maturity_honesty.py --file docs/architecture/adr-0048-document-slot-consumer.md"
+    - "py -3 scripts/validate_alpha_maturity_honesty.py --file design/cdd/sprint-039-document-slot-consumer.md"
+    - "py -3 scripts/validate_plan_closure_gate.py --allow-open --source-plan C:/Users/WSMAN/.claude/plans/openclaw-like-magical-barto.md"
+    - "git diff --check"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+  notes:
+    - "Sprint 039 completes the document-facet consumer proof only; it does NOT complete the full OpenClaw-like Slot Platform."
+    - "Slot Platform remains experimental and feature-flagged off by default."
+
+data_slot_consumer_2026_07_07:
+  status: local_experimental_external_gates_open
+  scope:
+    - "Data Slot Consumer (ADR-0049): data.tdx and data.yfinance contribute existing market data-source adapters through DataSourceContribution."
+    - "DataSourceRegistry consumes data source contributions and preserves the existing connect/download_kline/get_latest_market_date data-source shape for ScanMarketUseCase wiring."
+    - "build_slot_aware_data_source composes data slots when DOGE_FEATURE_SLOT_PLATFORM is enabled; build_tdx_data_source keeps direct TDX construction when the flag is off or a preferred server is supplied."
+    - "No active health probes, failover policy, SlotKernel, permission/health enforcement, third-party install/signing, external-gate, or production-readiness change."
+  evidence:
+    - docs/architecture/adr-0049-data-slot-consumer.md
+    - design/cdd/sprint-040-data-slot-consumer.md
+    - production/sprints/sprint-040-data-slot-consumer.md
+    - production/qa/evidence/sprint-040-data-slot-consumer-manifest.md
+    - src/doge/products/market/data_sources.py
+    - src/doge/infrastructure/data_source/slot.py
+    - src/doge/bootstrap/runtime_factories/slots.py
+    - src/doge/bootstrap/gateway_factories/market.py
+    - tests/unit/platform/slots/test_builtin_data_slot.py
+    - tests/unit/products/market/test_data_source_registry.py
+    - tests/contract/test_data_source_slot_parity.py
+  focused_tests:
+    - "py -3 -m pytest tests/unit/platform/slots/test_builtin_data_slot.py tests/unit/products/market/test_data_source_registry.py tests/contract/test_data_source_slot_parity.py tests/cli/test_cli_slots.py tests/contract/test_slot_api.py tests/cli/test_doged_cli.py -q"
+  validators:
+    - "py -3 scripts/validate_import_boundaries.py"
+    - "py -3 scripts/validate_alpha_maturity_honesty.py --file docs/architecture/adr-0049-data-slot-consumer.md"
+    - "py -3 scripts/validate_alpha_maturity_honesty.py --file design/cdd/sprint-040-data-slot-consumer.md"
+    - "py -3 scripts/validate_plan_closure_gate.py --allow-open --source-plan C:/Users/WSMAN/.claude/plans/openclaw-like-magical-barto.md"
+    - "git diff --check"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+  notes:
+    - "Sprint 040 completes the data-facet consumer proof only; it does NOT complete the full OpenClaw-like Slot Platform."
+    - "Slot Platform remains experimental and feature-flagged off by default."
+
+gateway_slot_consumer_2026_07_07:
+  status: local_experimental_external_gates_open
+  scope:
+    - "Gateway Slot Consumer (ADR-0050): gateway.slots contributes the existing read-only /v1 slot discovery router through GatewayRouteContribution."
+    - "build_slot_aware_gateway_routes consumes gateway route contributions and _register_v1_routes mounts gateway.slots when DOGE_FEATURE_SLOT_PLATFORM is enabled."
+    - "Flag-off route registration keeps the direct slots-router include; flag-on and flag-off /v1 route rows remain equivalent."
+    - "No full /v1 router migration, route policy/health enforcement, SlotKernel, third-party install/signing, external-gate, or production-readiness change."
+  evidence:
+    - docs/architecture/adr-0050-gateway-slot-consumer.md
+    - design/cdd/sprint-041-gateway-slot-consumer.md
+    - production/sprints/sprint-041-gateway-slot-consumer.md
+    - production/qa/evidence/sprint-041-gateway-slot-consumer-manifest.md
+    - src/doge/interfaces/gateway/slot.py
+    - src/doge/bootstrap/runtime_factories/slots.py
+    - src/doge/interfaces/api/routes.py
+    - tests/unit/platform/slots/test_builtin_gateway_slot.py
+    - tests/contract/test_gateway_slot_parity.py
+  focused_tests:
+    - "py -3 -m pytest tests/unit/platform/slots/test_builtin_gateway_slot.py tests/contract/test_gateway_slot_parity.py tests/cli/test_cli_slots.py tests/contract/test_slot_api.py tests/cli/test_doged_cli.py -q"
+  validators:
+    - "py -3 scripts/validate_import_boundaries.py"
+    - "py -3 scripts/validate_alpha_maturity_honesty.py --file docs/architecture/adr-0050-gateway-slot-consumer.md"
+    - "py -3 scripts/validate_alpha_maturity_honesty.py --file design/cdd/sprint-041-gateway-slot-consumer.md"
+    - "py -3 scripts/validate_plan_closure_gate.py --allow-open --source-plan C:/Users/WSMAN/.claude/plans/openclaw-like-magical-barto.md"
+    - "git diff --check"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+  notes:
+    - "Sprint 041 completes the gateway-facet consumer proof only; it does NOT complete the full OpenClaw-like Slot Platform."
+    - "Slot Platform remains experimental and feature-flagged off by default."
+
+eval_slot_consumer_2026_07_07:
+  status: local_experimental_external_gates_open
+  scope:
+    - "Eval Slot Consumer (ADR-0051): eval.local_cases contributes the existing deterministic tests/eval/cases.json through EvalSuiteContribution."
+    - "EvalSuiteRegistry consumes eval suite contributions and run_suite delegates to the existing run(cases_path) path."
+    - "Explicit run(cases_path) behavior remains unchanged; no new gold cases, W3-live evidence, or external eval closure is added."
+    - "No suite policy/health enforcement, SlotKernel, third-party install/signing, external-gate, or production-readiness change."
+  evidence:
+    - docs/architecture/adr-0051-eval-slot-consumer.md
+    - design/cdd/sprint-042-eval-slot-consumer.md
+    - production/sprints/sprint-042-eval-slot-consumer.md
+    - production/qa/evidence/sprint-042-eval-slot-consumer-manifest.md
+    - src/doge/eval/suites.py
+    - src/doge/eval/slot.py
+    - src/doge/eval/runner.py
+    - src/doge/bootstrap/runtime_factories/slots.py
+    - tests/unit/platform/slots/test_builtin_eval_slot.py
+    - tests/unit/eval/test_eval_suite_registry.py
+    - tests/contract/test_eval_slot_parity.py
+  focused_tests:
+    - "py -3 -m pytest tests/unit/platform/slots/test_builtin_eval_slot.py tests/unit/eval/test_eval_suite_registry.py tests/contract/test_eval_slot_parity.py tests/cli/test_cli_slots.py tests/contract/test_slot_api.py tests/cli/test_doged_cli.py -q"
+  validators:
+    - "py -3 scripts/validate_import_boundaries.py"
+    - "py -3 scripts/validate_alpha_maturity_honesty.py --file docs/architecture/adr-0051-eval-slot-consumer.md"
+    - "py -3 scripts/validate_alpha_maturity_honesty.py --file design/cdd/sprint-042-eval-slot-consumer.md"
+    - "py -3 scripts/validate_plan_closure_gate.py --allow-open --source-plan C:/Users/WSMAN/.claude/plans/openclaw-like-magical-barto.md"
+    - "git diff --check"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+  notes:
+    - "Sprint 042 completes the eval-facet consumer proof only; it does NOT complete the full OpenClaw-like Slot Platform."
+    - "Slot Platform remains experimental and feature-flagged off by default."
+
+slot_kernel_bundles_policy_2026_07_07:
+  status: local_experimental_external_gates_open
+  scope:
+    - "Slot Kernel, Bundles, Policy, and Lifecycle (ADR-0052): SlotKernel now owns registry/policy/lifecycle/bundle orchestration for built-in slot contributions."
+    - "Existing slot-aware tool/model/workflow/governance/watcher/document/data/gateway/eval consumers resolve through SlotKernel.resolve_contributions()."
+    - "GET /v1/slot-bundles exposes read-only built-in bundle status behind DOGE_FEATURE_SLOT_PLATFORM; bundle activation remains out of scope."
+    - "API route authority now tracks 94 HTTP routes: 34 legacy /api compatibility routes plus 60 daemon/v1 and health routes."
+    - "No SlotLoader, third-party install/signing, SDK slot client, Web Slot Center, runtime permission/health enforcement, external-gate, or production-readiness change."
+  evidence:
+    - docs/architecture/adr-0052-slot-kernel-bundles-policy.md
+    - design/cdd/sprint-043-slot-kernel-bundles-policy.md
+    - production/sprints/sprint-043-slot-kernel-bundles-policy.md
+    - production/qa/evidence/sprint-043-slot-kernel-bundles-policy-manifest.md
+    - src/doge/platform/slots/kernel.py
+    - src/doge/platform/slots/policy.py
+    - src/doge/platform/slots/bundles.py
+    - src/doge/platform/slots/lifecycle.py
+    - src/doge/bootstrap/runtime_factories/slots.py
+    - src/doge/interfaces/gateway/routers/slots.py
+    - tests/unit/platform/slots/test_slot_kernel.py
+    - tests/unit/platform/slots/test_slot_policy.py
+    - tests/unit/platform/slots/test_slot_bundle.py
+    - tests/contract/test_slot_kernel_bundle_rows.py
+  focused_tests:
+    - "py -3 -m pytest tests/unit/platform/slots/test_slot_policy.py tests/unit/platform/slots/test_slot_bundle.py tests/unit/platform/slots/test_slot_kernel.py tests/contract/test_slot_kernel_bundle_rows.py tests/contract/test_slot_api.py -q"
+    - "py -3 -m pytest tests/unit/platform/slots tests/unit/eval tests/contract/test_tool_registry_slot_parity.py tests/contract/test_agent_backends_slot_parity.py tests/contract/test_workflow_slot_parity.py tests/contract/test_governance_slot_parity.py tests/contract/test_watcher_slot_parity.py tests/contract/test_document_slot_parity.py tests/contract/test_data_source_slot_parity.py tests/contract/test_gateway_slot_parity.py tests/contract/test_eval_slot_parity.py tests/contract/test_slot_kernel_bundle_rows.py tests/contract/test_slot_api.py tests/cli/test_cli_slots.py tests/cli/test_doged_cli.py -q"
+    - "py -3 -m pytest tests/contract/test_api_doc_route_coverage.py tests/unit/governance/test_s017_planning_docs.py -q"
+  validators:
+    - "py -3 scripts/validate_import_boundaries.py"
+    - "py -3 scripts/validate_alpha_maturity_honesty.py --file docs/architecture/adr-0052-slot-kernel-bundles-policy.md"
+    - "py -3 scripts/validate_alpha_maturity_honesty.py --file design/cdd/sprint-043-slot-kernel-bundles-policy.md"
+    - "py -3 scripts/validate_plan_closure_gate.py --allow-open --source-plan C:/Users/WSMAN/.claude/plans/openclaw-like-magical-barto.md"
+    - "git diff --check"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+  notes:
+    - "Sprint 043 completes the first-class kernel/bundle/policy proof only; it does NOT complete the full OpenClaw-like Slot Platform."
+    - "Slot Platform remains experimental and feature-flagged off by default."
+
 single_stack_direction:
   status: local_convergence_complete_external_gates_open
   authority: docs/architecture/adr-0024-single-stack-runtime-direction.md
@@ -229,10 +606,155 @@ local_quality_gate_closure_2026_07_01:
     stable_declaration: forbidden
     level_3_sdk_platform: experimental
 
+ui_slot_consumer_2026_07_07:
+  status: local_experimental_external_gates_open
+  scope:
+    - "UI Slot Consumer (ADR-0053): ui.research_workspace contributes Research workspace panel metadata through UIPanelContribution."
+    - "UIPanelRegistry and build_slot_aware_ui_panels consume UI panel slot contributions through SlotKernel.resolve_contributions()."
+    - "GET /v1/ui-panels exposes read-only Research workspace panel metadata behind DOGE_FEATURE_SLOT_PLATFORM and DOGE_FEATURE_SLOT_UI."
+    - "ResearchAgentView renders existing panels through the frontend panelRegistry while preserving Analyst/Developer parity."
+    - "Sprint 044 moved API route authority to 95 HTTP routes; Sprint 046 later moved current route authority to 96 HTTP routes."
+    - "No Web Slot Center, dynamic component loading, SlotLoader, third-party install/signing, SDK slot client, runtime permission/health enforcement, external-gate, or production-readiness change."
+  evidence:
+    - docs/architecture/adr-0053-ui-slot-consumer.md
+    - design/cdd/sprint-044-ui-slot-consumer.md
+    - production/sprints/sprint-044-ui-slot-consumer.md
+    - production/qa/evidence/sprint-044-ui-slot-consumer-manifest.md
+    - src/doge/platform/workspace/ui_slot.py
+    - src/doge/platform/workspace/ui_panels.py
+    - web/src/views/panelRegistry.ts
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+
+web_slot_center_2026_07_07:
+  status: local_experimental_external_gates_open
+  scope:
+    - "Web Slot Center (ADR-0054): AdminCenterView consumes existing /v1/slots and /v1/slot-bundles read surfaces through the Web platform API/store."
+    - "The platform store now caches slotRows and slotBundles with id indexes for operator-facing read models."
+    - "The Admin center renders installed, enabled, disabled, degraded, high-risk, health, risk, feature flag, and bundle count state beside the capability registry."
+    - "No backend route count, SDK slot client, bundle activation, persistent enable/disable state, SlotLoader, third-party install/signing, runtime permission/health enforcement, external-gate, or production-readiness change."
+  evidence:
+    - docs/architecture/adr-0054-web-slot-center.md
+    - design/cdd/sprint-048-web-slot-center.md
+    - production/sprints/sprint-048-web-slot-center.md
+    - production/qa/evidence/sprint-048-web-slot-center-manifest.md
+    - web/src/api/platform.ts
+    - web/src/stores/platform.ts
+    - web/src/views/AdminCenterView.vue
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+
+slot_enforcement_2026_07_07:
+  status: local_experimental_external_gates_open
+  scope:
+    - "Slot Permission and Health Enforcement (ADR-0055): SlotEnforcementPolicy gates SlotKernel status, bundle status, contribution resolve, and lifecycle start when DOGE_FEATURE_SLOT_ENFORCEMENT is enabled."
+    - "Active health probes call ISlot.health(context); disabled health blocks slot resolution/start, while degraded health is reported and allowed by default."
+    - "Permission enforcement blocks forbidden-risk and shell-permission slots by default under enforcement."
+    - "Tool slot manifests reserve owned tool names before contribution resolution so enforcement-blocked tool slots cannot fall back to legacy ToolApplicationService registration."
+    - "No OS sandboxing, network interception, filesystem mediation, SlotLoader, third-party install/signing, bundle activation, SDK slot client, backend route count, external-gate, or production-readiness change."
+  evidence:
+    - docs/architecture/adr-0055-slot-enforcement.md
+    - design/cdd/sprint-045-slot-enforcement.md
+    - production/sprints/sprint-045-slot-enforcement.md
+    - production/qa/evidence/sprint-045-slot-enforcement-manifest.md
+    - src/doge/platform/slots/enforcement.py
+    - src/doge/platform/slots/kernel.py
+    - src/doge/bootstrap/runtime_factories/slots.py
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+
+slot_loader_bundle_activation_2026_07_07:
+  status: local_experimental_external_gates_open
+  scope:
+    - "Slot Loader and Bundle Activation (ADR-0056): SlotLoader validates JSON manifests from DOGE_SLOT_MANIFEST_DIRS and registers them as manifest-only slots when DOGE_FEATURE_SLOT_LOADER is enabled."
+    - "Manifest-only slots are discovery/policy records only; provider entrypoints are not imported and third-party code is not executed."
+    - "Process-local bundle activation constrains SlotKernel resolution through SlotPolicy and is exposed through doge slots bundle activate and POST /v1/slot-bundles/{bundle_id}/activate."
+    - "API route authority now tracks 96 HTTP routes: 34 legacy /api compatibility routes plus 62 daemon/v1 and health routes."
+    - "No YAML parsing, third-party install/signing, enterprise allowlist, persistent activation state, SDK slot client, OS sandboxing, external-gate, or production-readiness change."
+  evidence:
+    - docs/architecture/adr-0056-slot-loader-bundle-activation.md
+    - design/cdd/sprint-046-slot-loader-bundle-activation.md
+    - production/sprints/sprint-046-slot-loader-bundle-activation.md
+    - production/qa/evidence/sprint-046-slot-loader-bundle-activation-manifest.md
+    - src/doge/platform/slots/loader.py
+    - src/doge/platform/slots/activation.py
+    - src/doge/bootstrap/runtime_factories/slots.py
+    - src/doge/interfaces/gateway/routers/slots.py
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+
+third_party_slot_install_preview_2026_07_07:
+  status: local_experimental_external_gates_open
+  scope:
+    - "Third-party Slot Install Preview (ADR-0057): doge slots install validates one JSON SlotManifest and copies it into DOGE_SLOT_INSTALL_DIR as a manifest-only local slot."
+    - "Sidecar signature metadata validates slot id, manifest SHA-256, and trusted signer names; it is not a cryptographic signature format."
+    - "Enterprise mode requires DOGE_SLOT_ENTERPRISE_ALLOWLIST, DOGE_SLOT_TRUSTED_SIGNERS, and verified sidecar metadata before install."
+    - "Installed slots remain manifest-only; provider entrypoints are not imported and third-party code is not executed."
+    - "No marketplace, HTTP install route, SDK install method, YAML parser, OS sandboxing, external-gate, or production-readiness change."
+  evidence:
+    - docs/architecture/adr-0057-third-party-slot-install-preview.md
+    - design/cdd/sprint-047-third-party-slot-install-preview.md
+    - production/sprints/sprint-047-third-party-slot-install-preview.md
+    - production/qa/evidence/sprint-047-third-party-slot-install-preview-manifest.md
+    - src/doge/platform/slots/install.py
+    - src/doge/bootstrap/runtime_factories/slots.py
+    - src/doge/interfaces/cli/commands/slots.py
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+
+slot_platform_sprints_035_048_local_acceptance_2026_07_07:
+  status: local_to_push_ready_remote_ci_not_run
+  scope:
+    - "Local closeout review and full-regression evidence for Slot Platform Sprints 035-048."
+    - "Slot Platform runtime consumers now exist for workflow, discovery, governance, watcher, document, data, gateway, eval, kernel/bundle/policy/lifecycle, UI, Web Slot Center, enforcement, loader/activation, and manifest-only install preview surfaces."
+    - "Review repairs fixed active health reporting in slot status rows and explicit-settings propagation for manifest-only loading."
+    - "No push, remote CI assertion, latest_remotely_verified_sha promotion, provider execution, OS/container/WASM sandboxing, cryptographic signing format, YAML manifest parser, HTTP install API, SDK install API, marketplace, external-gate closure, or production-ready declaration is part of this evidence."
+  evidence:
+    - production/qa/evidence/slot-platform-sprints-035-048-local-acceptance-2026-07-07.md
+    - docs/architecture/adr-0044-workflow-slot-consumer.md
+    - docs/architecture/adr-0045-slot-discovery-surfaces.md
+    - docs/architecture/adr-0046-governance-slot-consumer.md
+    - docs/architecture/adr-0047-watcher-slot-consumer.md
+    - docs/architecture/adr-0048-document-slot-consumer.md
+    - docs/architecture/adr-0049-data-slot-consumer.md
+    - docs/architecture/adr-0050-gateway-slot-consumer.md
+    - docs/architecture/adr-0051-eval-slot-consumer.md
+    - docs/architecture/adr-0052-slot-kernel-bundles-policy.md
+    - docs/architecture/adr-0053-ui-slot-consumer.md
+    - docs/architecture/adr-0054-web-slot-center.md
+    - docs/architecture/adr-0055-slot-enforcement.md
+    - docs/architecture/adr-0056-slot-loader-bundle-activation.md
+    - docs/architecture/adr-0057-third-party-slot-install-preview.md
+  verification:
+    python_full: "2108 passed, 8 skipped, 128 warnings"
+    web: "164 passed; build passed"
+    typescript_sdk: "17 passed; build passed"
+    sdk_contract: "15 surfaces, 15 entity parity checks"
+    plan_closure: "acceptable-open: 2 passed, 4 open, 0 failed, 0 invalid"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+
 local_structure_convergence_2026_07_02:
   status: local_structure_convergence_closed_external_gates_open
   scope:
-    - "Active route terminology now tracks 90 HTTP routes outside archive/import snapshots."
+    - "Active route terminology now tracks 96 HTTP routes outside archive/import snapshots."
     - "API app factory extraction, tool-service split, TS SDK runtime types, and Web SDK type reuse are retained as local Structure Convergence evidence."
     - "Source layout map added as a thin placement guide that links the existing file-structure, module-boundary, and module-ownership authorities."
     - "Five user paths are documented: Local Analyst, Daemon Operator, SDK Integrator, Research Workspace, and Eval/Demo Owner."
@@ -1407,7 +1929,7 @@ local_verification:
       plan_closure_input_template_tests: "6 passed; generated non-closing evidence from copied operator templates now fails strict validation when unresolved placeholder issue ids or template sentinels remain"
       governance_yaml_shape_check: "scripts/validate_governance_yaml_shape.py passed for docs/progress/runtime-maturity.yaml, production/sprint-status.yaml, docs/registry/architecture.yaml, docs/registry/entities.yaml, and docs/architecture/tr-registry.yaml; validates UTF-8, no tab indentation, no CR-only line endings, even two-space indentation, unique top-level keys, and required top-level sections without claiming full YAML parsing"
       governance_yaml_shape_tests: "tests/unit/qa/test_validate_governance_yaml_shape.py: 6 passed"
-      fastapi_route_governance_sync: "docs/API.md, design/cdd/fastapi-service.md, docs/registry/architecture.yaml, docs/registry/entities.yaml, docs/architecture/tr-registry.yaml, docs/architecture/architecture-traceability.md, and docs/architecture/adr-0007-api-surface-and-cors.md now agree on 90 HTTP routes; docs/imports/my-doge-micro/current-state-2026-06-21.md remains a historical 88-route snapshot; tests/contract/test_api_doc_route_coverage.py proves docs/API.md matches the live FastAPI app, and tests/unit/governance/test_s017_planning_docs.py proves docs/registry/entities.yaml has the same (method, path) route set"
+      fastapi_route_governance_sync: "docs/API.md, design/cdd/fastapi-service.md, docs/registry/architecture.yaml, docs/registry/entities.yaml, docs/architecture/tr-registry.yaml, docs/architecture/architecture-traceability.md, and docs/architecture/adr-0007-api-surface-and-cors.md now agree on 96 HTTP routes; docs/imports/my-doge-micro/current-state-2026-06-21.md remains a historical 88-route snapshot; tests/contract/test_api_doc_route_coverage.py proves docs/API.md matches the live FastAPI app, and tests/unit/governance/test_s017_planning_docs.py proves docs/registry/entities.yaml has the same (method, path) route set"
       external_evidence_validator_suite: "focused plan-closure repair set: 57 passed in 9.14s"
       targeted_cross_wave_regression: "full python regression continuation check: 1297 passed, 9 skipped, 11 warnings in 107.94s; eval smoke: 7 passed in 0.82s; contract/integration: 115 passed, 1 skipped in 32.70s"
       prepared_external_handoff_workspace: "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30; validation passed; includes operator-checklist.md and operator-commands.ps1; it stages operator inputs only, does not create completed evidence, and does not close gates; S017-003, W3-live, AUTH-prod, and S017-007 still require real operator input before their builders can close gates"

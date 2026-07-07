@@ -29,11 +29,41 @@
   `Any` rather than framework/runtime concrete types. Built-in slot providers
   live beside their product code when there is a product owner (e.g.
   `doge.products.market.slot.MarketCoreSlot` groups the market-facing tool
-  descriptors) or in bootstrap when they wrap runtime/infrastructure wiring
-  without a product owner (e.g.
+  descriptors), beside platform code when the platform context owns the
+  behavior (e.g. `doge.platform.workspace.slot.WorkflowTemplatesSlot` wraps the
+  built-in workflow-template seed definitions, and
+  `doge.platform.governance.slot.ToolGovernancePolicySlot` wraps tool
+  entitlement/approval policy, and
+  `doge.platform.runtime.slot.RuntimeEventWatcherSlot` wraps runtime event
+  watcher behavior), beside infrastructure code when the provider wraps a
+  concrete infrastructure implementation (e.g.
+  `doge.infrastructure.documents.slot.LocalDocumentParserSlot` wraps the local
+  document parser, and
+  `doge.infrastructure.data_source.slot.TDXDataSourceSlot` /
+  `YFinanceDataSourceSlot` wrap market data-source adapters), beside interface
+  code when the provider wraps a concrete route surface (e.g.
+  `doge.interfaces.gateway.slot.SlotDiscoveryGatewaySlot` wraps the read-only
+  `/v1/slots` router), beside eval code when the provider wraps deterministic
+  local evaluation assets (e.g. `doge.eval.slot.LocalEvalCasesSlot` wraps the
+  offline local cases file), beside workspace platform code when the provider
+  wraps UI/workflow metadata (e.g.
+  `doge.platform.workspace.ui_slot.ResearchWorkspaceUISlot` wraps Research
+  workspace panel metadata), or in bootstrap when they wrap runtime/infrastructure
+  wiring without a product owner (e.g.
   `doge.bootstrap.runtime_factories.builtin_model_slot.ModelKimiAgentSdkSlot`).
   Slot-aware wiring lives in `doge.bootstrap.runtime_factories.slots` behind
-  `DOGE_FEATURE_SLOT_PLATFORM`. See ADR-0042 and ADR-0043.
+  `DOGE_FEATURE_SLOT_PLATFORM`, with `SlotKernel`/`SlotPolicy`/`SlotBundle`/
+  `SlotLifecycle` and `SlotEnforcementPolicy` contracts in
+  `doge.platform.slots`. `SlotLoader` loads JSON manifests as manifest-only
+  slots for discovery/policy diagnostics; it must not import provider
+  entrypoints until a separate third-party install/signing decision exists.
+  Bundle activation is process-local and remains in bootstrap/API/CLI wiring,
+  not product modules. Third-party slot install preview may copy validated JSON
+  manifests into the configured install directory, but those slots stay
+  manifest-only; provider entrypoint execution remains blocked until a separate
+  sandbox/signing decision exists. See ADR-0042, ADR-0043,
+  ADR-0044, ADR-0046, ADR-0047, ADR-0048, ADR-0049, ADR-0050, ADR-0051,
+  ADR-0052, ADR-0053, ADR-0054, ADR-0055, ADR-0056, and ADR-0057.
 - ADR-0027 is the controlling sunset policy for compatibility shims. Shim files
   may re-export, delegate, warn, and preserve documented compatibility symbols
   only; they must not gain new behavior ownership.

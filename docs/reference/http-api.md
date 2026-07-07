@@ -1,7 +1,7 @@
 # HTTP API Reference
 
 Full route table and per-route reference for the MY-DOGE-MICRO FastAPI backend
-(90 HTTP routes: 34 legacy `/api/*` + 56 daemon/v1). The quick-start
+(96 HTTP routes: 34 legacy `/api/*` + 62 daemon/v1). The quick-start
 narrative lives in [../API.md](../API.md); transport, SSE, CORS, error,
 concurrency, and OpenAPI contracts live in
 [http-api-contracts.md](http-api-contracts.md).
@@ -148,18 +148,24 @@ code cannot drift.
 | 80 | POST | `/v1/workflow-templates` | Create a workflow template definition (feature-flagged) | `v1/platform.py` |
 | 81 | GET | `/v1/workflow-templates/{template_id}` | Read a workflow template by ID or slug (feature-flagged) | `v1/platform.py` |
 | 82 | GET | `/v1/capabilities` | Read redacted provider, feature, maturity, and tool capability status (feature-flagged) | `v1/platform.py` |
-| 83 | GET | `/v1/tools` | List function-tool schemas | `v1/tools.py` |
-| 84 | POST | `/v1/portfolios/import` | Import a UTF-8 portfolio CSV and persist holdings | `v1/portfolios.py` |
-| 85 | GET | `/v1/audit/events` | List tenant-scoped audit events | `v1/audit.py` |
-| 86 | GET | `/v1/audit/events/export` | Export tenant audit events as redacted JSONL | `v1/audit.py` |
-| 87 | POST | `/v1/audit/events/retention` | Purge expired tenant audit events by retention policy | `v1/audit.py` |
-| 88 | GET | `/v1/enterprise/acl/grants` | List tenant ACL grants for enterprise admins | `v1/enterprise.py` |
-| 89 | POST | `/v1/enterprise/acl/grants` | Create a tenant ACL grant | `v1/enterprise.py` |
-| 90 | DELETE | `/v1/enterprise/acl/grants` | Revoke a tenant ACL grant | `v1/enterprise.py` |
+| 83 | GET | `/v1/slots` | List built-in slot manifests, status, health, and capability summaries (feature-flagged) | `v1/slots.py` |
+| 84 | GET | `/v1/slot-bundles` | List built-in slot bundles and their read-only status (feature-flagged) | `v1/slots.py` |
+| 85 | POST | `/v1/slot-bundles/{bundle_id}/activate` | Activate a slot bundle for the current process (feature-flagged) | `v1/slots.py` |
+| 86 | GET | `/v1/ui-panels` | List Research workspace UI panel metadata (feature-flagged) | `v1/slots.py` |
+| 87 | GET | `/v1/slots/{slot_id}` | Read one built-in slot manifest/status summary (feature-flagged) | `v1/slots.py` |
+| 88 | GET | `/v1/slots/{slot_id}/health` | Read one built-in slot health summary (feature-flagged) | `v1/slots.py` |
+| 89 | GET | `/v1/tools` | List function-tool schemas | `v1/tools.py` |
+| 90 | POST | `/v1/portfolios/import` | Import a UTF-8 portfolio CSV and persist holdings | `v1/portfolios.py` |
+| 91 | GET | `/v1/audit/events` | List tenant-scoped audit events | `v1/audit.py` |
+| 92 | GET | `/v1/audit/events/export` | Export tenant audit events as redacted JSONL | `v1/audit.py` |
+| 93 | POST | `/v1/audit/events/retention` | Purge expired tenant audit events by retention policy | `v1/audit.py` |
+| 94 | GET | `/v1/enterprise/acl/grants` | List tenant ACL grants for enterprise admins | `v1/enterprise.py` |
+| 95 | POST | `/v1/enterprise/acl/grants` | Create a tenant ACL grant | `v1/enterprise.py` |
+| 96 | DELETE | `/v1/enterprise/acl/grants` | Revoke a tenant ACL grant | `v1/enterprise.py` |
 
 > The OpenAPI surface also exposes `/openapi.json`, `/docs`,
 > `/docs/oauth2-redirect`, `/redoc` (FastAPI defaults) — infrastructure, not
-> product endpoints, so not counted in the 90 HTTP routes above.
+> product endpoints, so not counted in the 96 HTTP routes above.
 
 ### Feature-Flagged Platform Surfaces
 
@@ -173,6 +179,16 @@ The backend platformization routes above are additive and default off:
 - `DOGE_FEATURE_WORKFLOW_TEMPLATES=1` enables workflow-template routes.
   `POST /v1/research-cases/{case_id}/runs` also accepts `template_id` under
   this flag to create and link a run from a workflow template.
+- `DOGE_FEATURE_SLOT_PLATFORM=1` enables read-only `/v1/slots` discovery for
+  built-in slot manifests, status, and health, plus read-only
+  `/v1/slot-bundles` discovery for built-in scenario bundles.
+- `DOGE_FEATURE_SLOT_LOADER=1` enables JSON disk manifest loading from
+  `DOGE_SLOT_MANIFEST_DIRS` and process-local slot bundle activation through
+  `POST /v1/slot-bundles/{bundle_id}/activate`.
+- `DOGE_FEATURE_SLOT_UI=1` enables read-only `/v1/ui-panels` discovery for
+  Research workspace panel metadata contributed by UI slots.
+- `DOGE_FEATURE_SLOT_ENFORCEMENT=1` enables SlotKernel permission and
+  active-health enforcement for slot-aware runtime assembly and status rows.
 - `DOGE_FEATURE_CAPABILITY_REGISTRY=1` enables `/v1/capabilities`, including
   provider-split feature/provider/maturity records and default tool capability
   metadata sourced from `ToolRegistry` without executing tools.

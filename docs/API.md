@@ -2,7 +2,7 @@
 
 The local-first HTTP backend of MY-DOGE-MICRO. A single FastAPI application
 (`doge.interfaces.api.main`) binds to `127.0.0.1:8901` by default and exposes
-**90 HTTP routes**: 34 legacy `/api/*` compatibility routes plus 56 daemon/v1
+**96 HTTP routes**: 34 legacy `/api/*` compatibility routes plus 62 daemon/v1
 and health routes.
 Per ADR-0024, new platform work should target `/v1/*` through SDK clients.
 Legacy `/api/*` remains for local compatibility and emits deprecation metadata
@@ -10,7 +10,7 @@ headers.
 
 The recommended Platform Alpha path only needs five `/v1` families:
 `sessions`, `runs`, `documents`, `tools`, and `platform`. `audit`,
-`enterprise`, `health`, and `portfolios` are operator/reference APIs and are
+`enterprise`, `health`, `portfolios`, and `slots` are operator/reference APIs and are
 not part of the main user workflow.
 
 > **Stack**: FastAPI 0.123.8, Uvicorn 0.38.0, Pydantic 2.12.4, sse-starlette
@@ -36,7 +36,7 @@ not part of the main user workflow.
 | Bind port | `8901` | `src/doge/interfaces/api/main.py` |
 | Auth | Mode-driven: `local_demo` no bearer token; `enterprise` bearer provider fail-closed | see [Authentication](#authentication) |
 | Routers | legacy `/api/*` routers + v1 daemon routers | `src/doge/interfaces/api/main.py` |
-| HTTP routes | 90 (34 legacy `/api/*` routes + 56 daemon/v1 and health routes) | `src/doge/interfaces/api/main.py` |
+| HTTP routes | 96 (34 legacy `/api/*` routes + 62 daemon/v1 and health routes) | `src/doge/interfaces/api/main.py` |
 | Framework | FastAPI 0.123.8 + uvicorn 0.38.0 | `pyproject.toml:19-20` |
 | Streaming | sse-starlette 3.0.3 (`EventSourceResponse`) | `pyproject.toml:21` |
 
@@ -63,9 +63,14 @@ Primary user and SDK flows should stay on this sequence:
 8. `GET /v1/research-cases/{case_id}/progress` when a case view needs
    per-step governance progress
 
-`GET /v1/tools` and `GET /v1/capabilities` support capability discovery. Audit,
-enterprise ACL, health/readiness, and portfolio import endpoints remain
-documented below as operator/reference APIs, not the default product path.
+`GET /v1/tools`, `GET /v1/capabilities`, read-only `GET /v1/slots`, and
+read-only `GET /v1/slot-bundles` support capability discovery. `GET /v1/ui-panels`
+is a feature-gated UI-slot metadata surface for the Research workspace.
+`DOGE_FEATURE_SLOT_ENFORCEMENT` affects slot status/runtime assembly but does
+not add routes. `DOGE_FEATURE_SLOT_LOADER` enables process-local
+`POST /v1/slot-bundles/{bundle_id}/activate`. Audit, enterprise ACL, health/readiness, and portfolio import
+endpoints remain documented below as operator/reference APIs, not the default
+product path.
 
 Legacy `/api/*` responses include:
 
@@ -119,7 +124,7 @@ Authentication is mode-driven (`DOGE_AUTH_MODE`, `AuthConfig` in
 
 ## Full Reference
 
-- Route table and per-route reference (all 90 HTTP routes; primary v1
+- Route table and per-route reference (all 96 HTTP routes; primary v1
   families `sessions`, `runs`, `documents`, `tools`, `platform`; legacy
   `/api/*`; operator appendix):
   [reference/http-api.md](reference/http-api.md)

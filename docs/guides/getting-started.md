@@ -97,6 +97,12 @@ is read via the `_env_path` / `_env_int` helpers (`settings.py:18-49`).
 |----------|---------|-------------|
 | `DOGE_RETENTION_DAYS` | `730` | Per-ticker destructive prune ceiling applied on every OHLCV write. **Must be `>= 730`** to satisfy the widest analytical-view window (`vw_market_breadth_cn` uses `INTERVAL 730 DAYS`). This knob is **DESTRUCTIVE** — every write deletes rows older than N days per ticker. |
 
+### Slot Platform paths (`SlotConfig`, `settings.py:729-745`)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DOGE_SLOT_INSTALL_DIR` | `<project_root>/data/slots` | Local manifest-only install directory for the experimental third-party slot install preview. Installed slots remain discovery/policy records only; provider entrypoints are not imported. |
+
 ### MCP server (`MCPConfig`, `settings.py:128-134`)
 
 The SSE start scripts honor `MCP_HOST` / `MCP_PORT` shell variables (see

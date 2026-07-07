@@ -20,7 +20,7 @@
 # STATUS VALUES: active | superseded_by: ADR-NNNN
 
 version: 1
-last_updated: "2026-06-25"
+last_updated: "2026-07-07"
 
 # ============================================================================
 # SYSTEMS — canonical eight bounded contexts (ADR-0021)
@@ -47,7 +47,7 @@ superseded_systems:
   - {num: 6, slug: market-reporting, name: "Market Reporting", category: Feature, layer: Feature, cdd: design/cdd/market-reporting.md, status: "superseded_by: ADR-0021", target: "Market Intelligence", notes: "Pure-SQL reports; NO LLM"}
   - {num: 7, slug: research-insight-knowledge-base, name: "Research Insight Knowledge Base", category: Core, layer: Core, cdd: design/cdd/research-insight-knowledge-base.md, status: "superseded_by: ADR-0021", target: "Research / Knowledge & Evidence", notes: "Owns stock_notes + stock_names historical store"}
   - {num: 8, slug: mcp-server, name: "MCP Server", category: Interface, layer: Interface, cdd: design/cdd/mcp-server.md, status: "superseded_by: ADR-0021", target: "entrypoints/mcp"}
-  - {num: 9, slug: fastapi-service, name: "FastAPI Service", category: Interface, layer: Interface, cdd: design/cdd/fastapi-service.md, status: "superseded_by: ADR-0021", target: "entrypoints/api", notes: "90 HTTP routes; 127.0.0.1:8901; legacy /api plus daemon /v1/platform"}
+  - {num: 9, slug: fastapi-service, name: "FastAPI Service", category: Interface, layer: Interface, cdd: design/cdd/fastapi-service.md, status: "superseded_by: ADR-0021", target: "entrypoints/api", notes: "96 HTTP routes; 127.0.0.1:8901; legacy /api plus daemon /v1/platform"}
   - {num: 10, slug: pyqt-desktop-dashboard, name: "PyQt Desktop Dashboard", category: Presentation, layer: Presentation, cdd: design/cdd/pyqt-desktop-dashboard.md, status: "superseded_by: ADR-0021", target: "entrypoints/pyqt"}
   - {num: 11, slug: vue-web-console, name: "Vue Web Console", category: Presentation, layer: Presentation, cdd: design/cdd/vue-web-console.md, status: "superseded_by: ADR-0021", target: "web"}
   - {num: 12, slug: clean-architecture-migration, name: "Clean Architecture Migration", category: Operations, layer: Operations, cdd: design/cdd/clean-architecture-migration.md, status: "superseded_by: ADR-0021", target: "architecture governance"}
@@ -189,7 +189,7 @@ interfaces:
     consumers: [vue-web-console, pyqt-desktop-dashboard]
     transports: [http]
     adr: docs/architecture/adr-0007-api-surface-and-cors.md
-    signature: "90 HTTP routes; JSON + SSE; bind 127.0.0.1:8901; legacy /api compatibility plus preferred /v1 daemon/platform routes"
+    signature: "96 HTTP routes; JSON + SSE; bind 127.0.0.1:8901; legacy /api compatibility plus preferred /v1 daemon/platform routes"
     referenced_by:
       - docs/architecture/adr-0008-web-architecture.md
       - docs/architecture/adr-0024-single-stack-runtime-direction.md
@@ -622,7 +622,7 @@ adr_index:
     status: Accepted
     date: "2026-06-12"
     path: docs/architecture/adr-0007-api-surface-and-cors.md
-    governs: "87-route canonical table; 127.0.0.1:8901 bind; allow_origins=['*'] loopback-first; shipped non-leaking error envelope"
+    governs: "94-route canonical table; 127.0.0.1:8901 bind; allow_origins=['*'] loopback-first; shipped non-leaking error envelope"
     depends_on: [ADR-0001]
 
   - id: ADR-0008
@@ -912,3 +912,115 @@ adr_index:
     path: docs/architecture/adr-0043-slot-contribution-facets.md
     governs: "typed slot contribution facets and feature-flagged model-backend slot proof"
     depends_on: [ADR-0013, ADR-0019, ADR-0021, ADR-0027, ADR-0042]
+
+  - id: ADR-0044
+    title: "Workflow Slot Consumer"
+    status: Accepted
+    date: "2026-07-07"
+    path: docs/architecture/adr-0044-workflow-slot-consumer.md
+    governs: "feature-flagged workflow-template slot contribution consumer and seeder parity"
+    depends_on: [ADR-0018, ADR-0021, ADR-0027, ADR-0042, ADR-0043]
+
+  - id: ADR-0045
+    title: "Slot Discovery Surfaces"
+    status: Accepted
+    date: "2026-07-07"
+    path: docs/architecture/adr-0045-slot-discovery-surfaces.md
+    governs: "read-only /v1 and doged built-in slot discovery without resolution or bundle activation"
+    depends_on: [ADR-0007, ADR-0033, ADR-0042, ADR-0043, ADR-0044]
+
+  - id: ADR-0046
+    title: "Governance Slot Consumer"
+    status: Accepted
+    date: "2026-07-07"
+    path: docs/architecture/adr-0046-governance-slot-consumer.md
+    governs: "feature-flagged governance slot entitlement-policy composition for the slot-aware tool registry"
+    depends_on: [ADR-0013, ADR-0015, ADR-0019, ADR-0042, ADR-0043, ADR-0045]
+
+  - id: ADR-0047
+    title: "Watcher Slot Consumer"
+    status: Accepted
+    date: "2026-07-07"
+    path: docs/architecture/adr-0047-watcher-slot-consumer.md
+    governs: "feature-flagged watcher slot runtime event middleware before outbox staging and commit"
+    depends_on: [ADR-0011, ADR-0025, ADR-0042, ADR-0043, ADR-0046]
+
+  - id: ADR-0048
+    title: "Document Slot Consumer"
+    status: Accepted
+    date: "2026-07-07"
+    path: docs/architecture/adr-0048-document-slot-consumer.md
+    governs: "feature-flagged document parser slot dispatch for file upload and page extraction parser seams"
+    depends_on: [ADR-0042, ADR-0043, ADR-0045, ADR-0047]
+
+  - id: ADR-0049
+    title: "Data Slot Consumer"
+    status: Accepted
+    date: "2026-07-07"
+    path: docs/architecture/adr-0049-data-slot-consumer.md
+    governs: "feature-flagged data source slot registry for market scan data-source selection"
+    depends_on: [ADR-0004, ADR-0042, ADR-0043, ADR-0045, ADR-0048]
+
+  - id: ADR-0050
+    title: "Gateway Slot Consumer"
+    status: Accepted
+    date: "2026-07-07"
+    path: docs/architecture/adr-0050-gateway-slot-consumer.md
+    governs: "feature-flagged gateway route slot contribution for the read-only /v1 slot discovery router"
+    depends_on: [ADR-0007, ADR-0042, ADR-0043, ADR-0045, ADR-0049]
+
+  - id: ADR-0051
+    title: "Eval Slot Consumer"
+    status: Accepted
+    date: "2026-07-07"
+    path: docs/architecture/adr-0051-eval-slot-consumer.md
+    governs: "feature-flagged eval suite slot registry for offline eval runner suite selection"
+    depends_on: [ADR-0042, ADR-0043, ADR-0045, ADR-0050]
+
+  - id: ADR-0052
+    title: "Slot Kernel, Bundles, Policy, and Lifecycle"
+    status: Accepted
+    date: "2026-07-07"
+    path: docs/architecture/adr-0052-slot-kernel-bundles-policy.md
+    governs: "first-class SlotKernel orchestration with policy, bundle discovery, lifecycle hooks, and read-only /v1/slot-bundles"
+    depends_on: [ADR-0042, ADR-0043, ADR-0045, ADR-0051]
+
+  - id: ADR-0053
+    title: "UI Slot Consumer"
+    status: Accepted
+    date: "2026-07-07"
+    path: docs/architecture/adr-0053-ui-slot-consumer.md
+    governs: "feature-flagged UI panel slot registry for Research workspace panel metadata and read-only /v1/ui-panels"
+    depends_on: [ADR-0042, ADR-0043, ADR-0045, ADR-0052]
+
+  - id: ADR-0054
+    title: "Web Slot Center"
+    status: Accepted
+    date: "2026-07-07"
+    path: docs/architecture/adr-0054-web-slot-center.md
+    governs: "read-only Web Admin Slot Center over /v1/slots and /v1/slot-bundles"
+    depends_on: [ADR-0045, ADR-0052, ADR-0053]
+
+  - id: ADR-0055
+    title: "Slot Permission and Health Enforcement"
+    status: Accepted
+    date: "2026-07-07"
+    path: docs/architecture/adr-0055-slot-enforcement.md
+    governs: "feature-flagged SlotKernel permission and active-health enforcement before contribution resolve/start"
+    depends_on: [ADR-0042, ADR-0052, ADR-0054]
+
+  - id: ADR-0056
+    title: "Slot Loader and Bundle Activation"
+    status: Accepted
+    date: "2026-07-07"
+    path: docs/architecture/adr-0056-slot-loader-bundle-activation.md
+    governs: "feature-flagged JSON manifest-only SlotLoader and process-local built-in bundle activation"
+    depends_on: [ADR-0042, ADR-0052, ADR-0055]
+
+  - id: ADR-0057
+    title: "Third-party Slot Install Preview"
+    status: Accepted
+    date: "2026-07-07"
+    path: docs/architecture/adr-0057-third-party-slot-install-preview.md
+    governs: "feature-flagged manifest-only third-party local slot install preview with signature metadata and enterprise allowlist checks"
+    depends_on: [ADR-0042, ADR-0055, ADR-0056]

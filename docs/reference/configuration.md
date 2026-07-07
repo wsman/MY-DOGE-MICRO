@@ -24,6 +24,33 @@ operator overrides supplied by environment variables.
 | `MCP_PORT` | MCP SSE port |
 | `MCP_TOOL_TIMEOUT` | MCP tool timeout seconds |
 
+## Experimental Feature Flags
+
+All migration flags default to off unless an operator explicitly enables them.
+
+| Variable | Meaning |
+|----------|---------|
+| `DOGE_FEATURE_SLOT_PLATFORM` | Enables experimental built-in slot registration and slot discovery surfaces. |
+| `DOGE_FEATURE_SLOT_GOVERNANCE` | Enables experimental governance slot contribution resolution for slot-aware tool-registry entitlement composition. Requires `DOGE_FEATURE_SLOT_PLATFORM=1` for live slot resolution. |
+| `DOGE_FEATURE_SLOT_WATCHER` | Enables experimental watcher slot contribution resolution for runtime event middleware. Requires `DOGE_FEATURE_SLOT_PLATFORM=1` for live slot resolution. |
+| `DOGE_FEATURE_SLOT_UI` | Enables experimental UI panel slot contribution resolution and read-only `/v1/ui-panels` discovery. Requires `DOGE_FEATURE_SLOT_PLATFORM=1` for live slot resolution. |
+| `DOGE_FEATURE_SLOT_ENFORCEMENT` | Enables experimental SlotKernel permission and active-health enforcement. Requires `DOGE_FEATURE_SLOT_PLATFORM=1` for live slot resolution. |
+| `DOGE_FEATURE_SLOT_LOADER` | Enables experimental JSON disk manifest loading from `DOGE_SLOT_MANIFEST_DIRS` and process-local slot bundle activation. Requires `DOGE_FEATURE_SLOT_PLATFORM=1` for live activation. |
+| `DOGE_FEATURE_SLOT_INSTALL` | Enables experimental manifest-only local third-party slot install preview. Requires `DOGE_FEATURE_SLOT_PLATFORM=1` and `DOGE_FEATURE_SLOT_LOADER=1`. |
+| `DOGE_FEATURE_WORKFLOW_TEMPLATES` | Enables experimental workflow-template platform APIs and, with slot platform enabled, the workflow template slot consumer. |
+| `DOGE_FEATURE_CAPABILITY_REGISTRY` | Enables experimental capability discovery APIs. |
+| `DOGE_FEATURE_PYTHON_ANALYSIS_ENABLED` | Enables the high-risk Python analysis feature only when paired with a non-disabled executor. |
+
+## Slot Platform Install Preview
+
+| Variable | Meaning |
+|----------|---------|
+| `DOGE_SLOT_MANIFEST_DIRS` | CSV list of JSON manifest files or directories loaded as manifest-only slots when `DOGE_FEATURE_SLOT_LOADER=1`. |
+| `DOGE_SLOT_INSTALL_DIR` | Local directory where `doge slots install` copies validated manifest-only slot previews. |
+| `DOGE_SLOT_ENTERPRISE_ALLOWLIST` | CSV slot-id allowlist required for install preview in `DOGE_AUTH_MODE=enterprise`. |
+| `DOGE_SLOT_TRUSTED_SIGNERS` | CSV signer names accepted by sidecar signature metadata verification. |
+| `DOGE_SLOT_ALLOW_UNSIGNED_LOCAL` | Allows unsigned local-demo manifest installs when true; enterprise mode still requires allowlist and trusted signature metadata. |
+
 ## Secrets
 
 | Variable | Meaning |
