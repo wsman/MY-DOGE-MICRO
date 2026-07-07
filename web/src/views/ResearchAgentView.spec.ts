@@ -11,6 +11,7 @@ const platformStoreMock = vi.hoisted(() => ({
   capabilitiesById: {} as Record<string, unknown>,
   workflowTemplates: [] as unknown[],
   workflowTemplatesBySlug: {} as Record<string, unknown>,
+  uiPanels: [] as unknown[],
   loadCapabilities: vi.fn(async () => null),
   loadWorkflowTemplates: vi.fn(async () => []),
 }))
@@ -41,6 +42,7 @@ describe('ResearchAgentView accessibility', () => {
     platformStoreMock.capabilitiesById = {}
     platformStoreMock.workflowTemplates = []
     platformStoreMock.workflowTemplatesBySlug = {}
+    platformStoreMock.uiPanels = []
     platformStoreMock.loadCapabilities = vi.fn(async () => null)
     platformStoreMock.loadWorkflowTemplates = vi.fn(async () => [])
   })

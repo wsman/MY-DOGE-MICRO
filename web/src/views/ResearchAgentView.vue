@@ -74,23 +74,30 @@
     <section ref="inputPaneRef" class="input-pane" aria-labelledby="research-agent-input-title">
       <div id="research-agent-input-title" class="pane-header">Input</div>
       <n-space vertical size="small">
-        <GuidedFlow @select="onStepSelect" />
-        <ScenarioPicker />
-        <n-select v-model:value="store.market" :options="marketOptions" size="small" aria-label="Market" />
-        <ExecutionProfileSelector v-model="store.executionProfile" />
+        <GuidedFlow v-if="showPanel('guided_flow')" @select="onStepSelect" />
+        <ScenarioPicker v-if="showPanel('scenario_picker')" />
+        <n-select
+          v-if="showPanel('market_selector')"
+          v-model:value="store.market"
+          :options="marketOptions"
+          size="small"
+          aria-label="Market"
+        />
+        <ExecutionProfileSelector v-if="showPanel('execution_profile_selector')" v-model="store.executionProfile" />
         <n-input
+          v-if="showPanel('research_question')"
           v-model:value="store.question"
           type="textarea"
           :autosize="{ minRows: 5, maxRows: 8 }"
           aria-label="Research question"
         />
-        <RunPreflightChecklist />
-        <n-button type="primary" size="small" :loading="store.loading" @click="startRun">
+        <RunPreflightChecklist v-if="showPanel('run_preflight_checklist')" />
+        <n-button v-if="showPanel('run_action')" type="primary" size="small" :loading="store.loading" @click="startRun">
           Run
         </n-button>
-        <DocumentUploader />
-        <DocumentSelector />
-        <PortfolioImporter @imported="onPortfolioImported" />
+        <DocumentUploader v-if="showPanel('document_uploader')" />
+        <DocumentSelector v-if="showPanel('document_selector')" />
+        <PortfolioImporter v-if="showPanel('portfolio_importer')" @imported="onPortfolioImported" />
       </n-space>
     </section>
 
@@ -99,9 +106,14 @@
       <n-alert v-if="store.error" type="error" :show-icon="false" role="alert" aria-live="assertive">
         {{ store.error.message }}
       </n-alert>
-      <div v-if="store.latestMemo" class="memo-body" aria-live="polite" v-html="renderedMemo" />
+      <div
+        v-if="showPanel('memo_body') && store.latestMemo"
+        class="memo-body"
+        aria-live="polite"
+        v-html="renderedMemo"
+      />
       <EmptyStateCtas
-        v-else
+        v-else-if="showPanel('empty_state_ctas')"
         @run-demo="store.startDemoRun"
         @load-sample="loadSampleCase"
         @upload="scrollToInput"
@@ -111,7 +123,13 @@
 
     <section class="evidence-pane" aria-labelledby="research-agent-evidence-title">
       <div id="research-agent-evidence-title" class="pane-header">Evidence</div>
-      <div class="status-row" role="status" aria-live="polite" :aria-label="statusAnnouncement">
+      <div
+        v-if="showPanel('status_row')"
+        class="status-row"
+        role="status"
+        aria-live="polite"
+        :aria-label="statusAnnouncement"
+      >
         <n-tag :type="toneFor(store.run?.status)" size="small">{{ labelFor(store.run?.status) }}</n-tag>
         <n-tag v-if="isDeveloperMode" size="small">tokens {{ usage.total_tokens ?? 0 }}</n-tag>
         <n-tag v-for="action in statusNextActions" :key="action" size="small" class="next-action-tag">
@@ -119,18 +137,19 @@
         </n-tag>
       </div>
       <ConclusionEvidenceMatrix
-        v-if="structuredClaims.length"
+        v-if="showPanel('conclusion_evidence_matrix') && structuredClaims.length"
         :claims="structuredClaims"
         @select-evidence="selectEvidence"
       />
       <CitationDrilldown
+        v-if="showPanel('citation_drilldown')"
         v-model="selectedEvidence"
         :memo="store.latestMemo"
         :artifacts="store.artifacts"
         :events="store.events"
         :records="activeClaimEvidenceRefs"
       />
-      <div class="approval-list" aria-label="Approval requests">
+      <div v-if="showPanel('approval_list')" class="approval-list" aria-label="Approval requests">
         <div
           v-for="approval in store.approvals"
           :key="approval.approval_id"
@@ -152,12 +171,12 @@
 
     <section class="quality-pane" aria-labelledby="research-agent-quality-title">
       <div id="research-agent-quality-title" class="pane-header">Quality</div>
-      <MaturityPanel />
-      <RunComparisonPanel :current-run-id="store.run?.run_id" />
-      <CostEvalPanel v-if="isDeveloperMode" :artifacts="store.artifacts" :events="store.events" />
+      <MaturityPanel v-if="showPanel('maturity_panel')" />
+      <RunComparisonPanel v-if="showPanel('run_comparison_panel')" :current-run-id="store.run?.run_id" />
+      <CostEvalPanel v-if="showPanel('cost_eval_panel')" :artifacts="store.artifacts" :events="store.events" />
     </section>
 
-    <section v-if="isDeveloperMode" class="timeline-pane" aria-labelledby="research-agent-timeline-title">
+    <section v-if="showPanel('agent_timeline')" class="timeline-pane" aria-labelledby="research-agent-timeline-title">
       <div id="research-agent-timeline-title" class="pane-header">Agent Timeline</div>
       <div class="timeline" role="list" aria-label="Agent event timeline">
         <div v-for="event in store.events" :key="event.event_id" class="timeline-item" role="listitem">
@@ -196,6 +215,7 @@ import { useAgentStore } from '../stores/agent'
 import { useDocumentStore } from '../stores/documents'
 import { usePlatformStore } from '../stores/platform'
 import { readTemplatePolicy } from '../utils/approvalPolicy'
+import { visiblePanelIds, type ResearchPanelId, type WorkspaceMode } from './panelRegistry'
 import {
   buildMemoExportPayload,
   collectCitationRecords,
@@ -215,6 +235,15 @@ const platformStore = usePlatformStore()
 const md = new MarkdownIt()
 const inputPaneRef = ref<HTMLElement | null>(null)
 const isDeveloperMode = computed(() => !store.analystMode)
+const workspaceMode = computed<WorkspaceMode>(() => (isDeveloperMode.value ? 'developer' : 'analyst'))
+const visibleResearchPanels = computed(() => visiblePanelIds({
+  mode: workspaceMode.value,
+  panels: platformStore.uiPanels,
+}))
+
+function showPanel(panelId: ResearchPanelId) {
+  return visibleResearchPanels.value.has(panelId)
+}
 
 function scrollToInput() {
   inputPaneRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
