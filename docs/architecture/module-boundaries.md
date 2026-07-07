@@ -24,10 +24,16 @@
   `doge.core.*`, `doge.shared.*`, and the standard library, and must not import
   `doge.config`, `doge.infrastructure`, `doge.adapters`, `doge.products`,
   `doge.application.tools`, `doge.application.agent`, `doge.bootstrap`, or
-  `doge.interfaces`. Built-in slot providers live beside their product code
-  (e.g. `doge.products.market.slot.MarketCoreSlot` groups the market-facing tool
-  descriptors); slot-aware wiring lives in `doge.bootstrap.runtime_factories.slots`
-  behind `DOGE_FEATURE_SLOT_PLATFORM`. See ADR-0042.
+  `doge.interfaces`. Slot facet dataclasses in
+  `doge.platform.slots.facets` therefore carry strings, mappings, callables, and
+  `Any` rather than framework/runtime concrete types. Built-in slot providers
+  live beside their product code when there is a product owner (e.g.
+  `doge.products.market.slot.MarketCoreSlot` groups the market-facing tool
+  descriptors) or in bootstrap when they wrap runtime/infrastructure wiring
+  without a product owner (e.g.
+  `doge.bootstrap.runtime_factories.builtin_model_slot.ModelKimiAgentSdkSlot`).
+  Slot-aware wiring lives in `doge.bootstrap.runtime_factories.slots` behind
+  `DOGE_FEATURE_SLOT_PLATFORM`. See ADR-0042 and ADR-0043.
 - ADR-0027 is the controlling sunset policy for compatibility shims. Shim files
   may re-export, delegate, warn, and preserve documented compatibility symbols
   only; they must not gain new behavior ownership.

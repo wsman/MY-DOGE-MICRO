@@ -73,6 +73,8 @@ class MarketCoreSlot(ISlot):
 
     def resolve(self, context: SlotContext) -> SlotContribution:
         service = context.tool_application_service
+        if service is None:
+            raise SlotConfigurationError("market.core requires tool_application_service")
         by_name = {
             descriptor.name: descriptor for descriptor in service.tool_descriptors()
         }

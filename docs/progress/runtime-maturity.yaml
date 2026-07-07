@@ -69,6 +69,48 @@ slot_platform_foundation_2026_07_06:
     - "Sprint 033 does NOT close any external/operator gate; posture remains 4 open / 2 passed."
     - "Slot Platform is experimental and feature-flagged off; do not cite it as Stable or production-ready."
 
+slot_contribution_facets_2026_07_07:
+  status: local_experimental_external_gates_open
+  scope:
+    - "Slot Contribution Facets (ADR-0043): SlotContribution can carry model, workflow, data, document, gateway, ui, watcher, eval, and governance facets."
+    - "Exactly one runtime proof is migrated: model.kimi_agent_sdk contributes the existing kimi_agent_sdk backend through build_agent_backends when DOGE_FEATURE_SLOT_PLATFORM is enabled."
+    - "Workflow/data/document/gateway/ui/watcher/eval/governance facets are representable only in Sprint 034; runtime consumers are deferred to later ADRs and sprints."
+    - "No /v1 route, OpenAPI, SDK, Web, daemon-command, ModelRouter/ProfileRegistry/runtime-dispatch, persistence, lifecycle-invocation, external-gate, or production-readiness change."
+  evidence:
+    - docs/architecture/adr-0043-slot-contribution-facets.md
+    - design/cdd/sprint-034-slot-contribution-facets.md
+    - production/sprints/sprint-034-slot-contribution-facets.md
+    - production/qa/evidence/sprint-034-slot-contribution-facets-manifest.md
+    - src/doge/platform/slots/facets.py
+    - src/doge/platform/slots/contracts.py
+    - src/doge/bootstrap/runtime_factories/builtin_model_slot.py
+    - src/doge/bootstrap/runtime_factories/slots.py
+    - src/doge/bootstrap/runtime_factories/runtime_kernel.py
+    - tests/unit/platform/slots/test_slot_facets.py
+    - tests/unit/platform/slots/test_builtin_model_slot.py
+    - tests/contract/test_agent_backends_slot_parity.py
+    - tests/contract/test_tool_registry_slot_parity.py
+  focused_tests:
+    - "py -3 -m pytest tests/unit/platform/slots tests/unit/architecture/test_slot_boundary.py tests/contract/test_agent_backends_slot_parity.py tests/contract/test_tool_registry_slot_parity.py -q"
+  validators:
+    - "py -3 scripts/validate_import_boundaries.py"
+    - "py -3 scripts/validate_alpha_maturity_honesty.py --file docs/architecture/adr-0043-slot-contribution-facets.md"
+    - "py -3 scripts/validate_alpha_maturity_honesty.py --file design/cdd/sprint-034-slot-contribution-facets.md"
+    - "py -3 scripts/validate_plan_closure_gate.py --allow-open --source-plan C:/Users/WSMAN/.claude/plans/openclaw-like-magical-barto.md"
+    - "git diff --check"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+  notes:
+    - "Sprint 034 completes contribution facets plus the model-backend slot proof; it does NOT complete the full OpenClaw-like Slot Platform."
+    - "Slot Platform remains experimental and feature-flagged off; do not cite it as Stable or production-ready."
+
 single_stack_direction:
   status: local_convergence_complete_external_gates_open
   authority: docs/architecture/adr-0024-single-stack-runtime-direction.md

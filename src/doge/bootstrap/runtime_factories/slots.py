@@ -1,4 +1,4 @@
-"""Slot-aware tool registry wiring (ADR-0042, Sprint 033).
+"""Slot-aware runtime factory wiring (ADR-0042/0043).
 
 When ``DOGE_FEATURE_SLOT_PLATFORM`` is on, the default tool registry is assembled
 from slot contributions plus the remaining (non-slot-owned) descriptors,
@@ -19,15 +19,24 @@ from dataclasses import fields
 from typing import Any
 
 from doge.application.tools.registry import ToolRegistry
+from doge.bootstrap.runtime_factories.builtin_model_slot import ModelKimiAgentSdkSlot
 from doge.config import get_settings
-from doge.platform.slots import SlotContext, SlotRegistry
+from doge.platform.slots import (
+    SLOT_SERVICE_SECRET_PROVIDER,
+    SlotConfigurationError,
+    SlotContribution,
+    SlotContext,
+    SlotRegistry,
+    SlotType,
+)
 from doge.products.market.slot import MarketCoreSlot
 
 
 def build_builtin_slot_registry() -> SlotRegistry:
-    """Construct the registry of built-in slots for Sprint 033."""
+    """Construct the registry of built-in slots."""
     registry = SlotRegistry()
     registry.register(MarketCoreSlot())
+    registry.register(ModelKimiAgentSdkSlot())
     return registry
 
 
@@ -48,23 +57,28 @@ def build_slot_aware_tool_registry(
     service = gateway_container_fn().build_tool_application_service()
     settings = get_settings()
 
-    feature_flags = {
-        feature_name: getattr(settings.features, feature_name)
-        for feature_name in (f.name for f in fields(settings.features))
-        if isinstance(getattr(settings.features, feature_name), bool)
-    }
     slot_context = SlotContext(
         settings=settings,
-        feature_flags=feature_flags,
+        feature_flags=_feature_flags(settings),
         tool_application_service=service,
     )
 
     slot_registry = build_builtin_slot_registry()
-    contributions = slot_registry.resolve_contributions(slot_context)
+    contributions = _resolve_contributions_of_type(
+        slot_registry,
+        slot_context,
+        SlotType.TOOL,
+    )
 
     registry = ToolRegistry(entitlement_checker=entitlement_checker, context=context)
     slot_owned: set[str] = set()
     for contribution in contributions:
+        if not contribution.tools:
+            continue
+        if contribution.executor is None:
+            raise SlotConfigurationError(
+                f"slot {contribution.slot_id} contributed tools without an executor"
+            )
         registry.include_descriptors(contribution.tools, contribution.executor)
         slot_owned.update(descriptor.name for descriptor in contribution.tools)
 
@@ -75,3 +89,68 @@ def build_slot_aware_tool_registry(
     )
     registry.include_descriptors(remaining, service)
     return registry
+
+
+def build_slot_aware_agent_backends(
+    gateway_container_fn: Any,
+    secret_provider: Any = None,
+) -> dict[str, Any]:
+    """Assemble agent backends from model slot contributions."""
+
+    if secret_provider is None:
+        secret_provider = gateway_container_fn().build_secret_provider()
+    settings = get_settings()
+    slot_context = SlotContext(
+        settings=settings,
+        feature_flags=_feature_flags(settings),
+        service_locator=lambda service_id: (
+            secret_provider if service_id == SLOT_SERVICE_SECRET_PROVIDER else None
+        ),
+    )
+    slot_registry = build_builtin_slot_registry()
+    contributions = _resolve_contributions_of_type(
+        slot_registry,
+        slot_context,
+        SlotType.MODEL,
+    )
+
+    backends: dict[str, Any] = {}
+    for contribution in contributions:
+        for backend in contribution.model_backends:
+            if backend.backend_id in backends:
+                raise SlotConfigurationError(
+                    f"duplicate model backend contribution: {backend.backend_id}"
+                )
+            backends[backend.backend_id] = backend.factory(slot_context)
+    return backends
+
+
+def _feature_flags(settings: Any) -> dict[str, bool]:
+    return {
+        feature_name: getattr(settings.features, feature_name)
+        for feature_name in (f.name for f in fields(settings.features))
+        if isinstance(getattr(settings.features, feature_name), bool)
+    }
+
+
+def _resolve_contributions_of_type(
+    registry: SlotRegistry,
+    context: SlotContext,
+    slot_type: SlotType,
+) -> tuple[SlotContribution, ...]:
+    contributions: list[SlotContribution] = []
+    for slot in registry.all():
+        manifest = slot.manifest()
+        if manifest.type is not slot_type:
+            continue
+        if not _flags_satisfied(manifest.feature_flags, context):
+            continue
+        contributions.append(slot.resolve(context))
+    return tuple(contributions)
+
+
+def _flags_satisfied(feature_flags: tuple[str, ...], context: SlotContext) -> bool:
+    for flag in feature_flags:
+        if not context.feature_flags.get(flag, False):
+            return False
+    return True

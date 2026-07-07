@@ -21,8 +21,19 @@ import pytest
 
 from doge.application.agent.tool_service import ToolApplicationService
 from doge.application.tools import factory as tool_factory
-from doge.bootstrap.runtime_factories.slots import build_slot_aware_tool_registry
+from doge.bootstrap.runtime_factories import slots as slots_module
 from doge.config import reset_settings
+from doge.platform.slots import (
+    ISlot,
+    SlotConfigurationError,
+    SlotContribution,
+    SlotContext,
+    SlotHealth,
+    SlotManifest,
+    SlotProvides,
+    SlotRegistry,
+    SlotType,
+)
 
 _BASELINE = (
     Path(__file__).resolve().parents[1]
@@ -52,6 +63,29 @@ class _FakeGatewayContainer:
         return self._service
 
 
+class _BadToolSlot(ISlot):
+    def manifest(self) -> SlotManifest:
+        return SlotManifest(
+            schema_version=1,
+            id="tool.bad",
+            name="Bad Tool Slot",
+            version="1.0.0",
+            type=SlotType.TOOL,
+            owner="slot-tests",
+            maturity="experimental",
+            description="Stub tool slot missing an executor.",
+            entrypoint="tests.contract.test_tool_registry_slot_parity.BadToolSlot",
+            provides=SlotProvides(tools=("query_stock",)),
+            health=SlotHealth(status="experimental"),
+            feature_flags=("slot_platform",),
+        )
+
+    def resolve(self, context: SlotContext) -> SlotContribution:
+        service = context.tool_application_service
+        descriptor = service.tool_descriptors()[0]
+        return SlotContribution(slot_id="tool.bad", tools=(descriptor,))
+
+
 @pytest.fixture
 def service() -> ToolApplicationService:
     return ToolApplicationService()
@@ -71,7 +105,7 @@ def _flag_off_registry(service: ToolApplicationService) -> "object":
 
 def _flag_on_registry(service: ToolApplicationService) -> "object":
     reset_settings()
-    return build_slot_aware_tool_registry(lambda: _FakeGatewayContainer(service))
+    return slots_module.build_slot_aware_tool_registry(lambda: _FakeGatewayContainer(service))
 
 
 def _schemas(registry) -> list[dict]:
@@ -139,3 +173,15 @@ def test_unknown_tool_error_is_equivalent(monkeypatch, service) -> None:
     # Assert — both surface a safe unknown-tool failure
     assert off.ok is False and on.ok is False
     assert off.error == on.error
+
+
+def test_tool_contribution_without_executor_fails_fast(monkeypatch, service) -> None:
+    registry = SlotRegistry()
+    registry.register(_BadToolSlot())
+    monkeypatch.setattr(slots_module, "build_builtin_slot_registry", lambda: registry)
+    _strip_feature_env(monkeypatch, keep={"DOGE_FEATURE_SLOT_PLATFORM"})
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "1")
+    reset_settings()
+
+    with pytest.raises(SlotConfigurationError, match="executor"):
+        slots_module.build_slot_aware_tool_registry(lambda: _FakeGatewayContainer(service))

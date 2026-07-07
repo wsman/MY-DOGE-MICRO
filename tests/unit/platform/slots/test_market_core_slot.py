@@ -60,3 +60,11 @@ def test_resolve_fails_when_declared_tools_are_missing(stub_service) -> None:
     )
     with pytest.raises(SlotConfigurationError, match="market_breadth"):
         slot.resolve(context)
+
+
+def test_resolve_fails_without_tool_application_service() -> None:
+    slot = MarketCoreSlot()
+    context = SlotContext(settings=object(), feature_flags={"slot_platform": True})
+
+    with pytest.raises(SlotConfigurationError, match="tool_application_service"):
+        slot.resolve(context)

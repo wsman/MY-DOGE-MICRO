@@ -8,7 +8,11 @@ from __future__ import annotations
 
 import pytest
 
-from doge.platform.slots import SlotConfigurationError, SlotContext
+from doge.platform.slots import (
+    SLOT_SERVICE_SECRET_PROVIDER,
+    SlotConfigurationError,
+    SlotContext,
+)
 
 _FORBIDDEN_ATTRS = (
     "app_container",
@@ -29,6 +33,13 @@ def test_context_exposes_only_controlled_services(slot_context_factory, stub_ser
     assert ctx.audit is None
     assert ctx.permission_checker is None
     _ = ctx.settings  # accessible
+
+
+def test_context_allows_non_tool_slots_without_tool_service() -> None:
+    ctx = SlotContext(settings=object(), feature_flags={"slot_platform": True})
+
+    assert ctx.tool_application_service is None
+    assert ctx.feature_flags == {"slot_platform": True}
 
 
 @pytest.mark.parametrize("attr", _FORBIDDEN_ATTRS)
@@ -72,3 +83,17 @@ def test_locate_wraps_locator_exceptions(slot_context_factory) -> None:
     )
     with pytest.raises(SlotConfigurationError):
         ctx.locate("x")
+
+
+def test_locate_secret_provider_constant_resolves(slot_context_factory) -> None:
+    secret_provider = object()
+    base = slot_context_factory()
+    ctx = SlotContext(
+        settings=base.settings,
+        feature_flags=base.feature_flags,
+        service_locator=lambda service_id: (
+            secret_provider if service_id == SLOT_SERVICE_SECRET_PROVIDER else None
+        ),
+    )
+
+    assert ctx.locate(SLOT_SERVICE_SECRET_PROVIDER) is secret_provider

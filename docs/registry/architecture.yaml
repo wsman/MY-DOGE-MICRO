@@ -904,3 +904,11 @@ adr_index:
     path: docs/architecture/adr-0042-slot-platform.md
     governs: "declarative slot contract and additive feature-flagged tool-slot registration"
     depends_on: [ADR-0013, ADR-0019, ADR-0021, ADR-0027]
+
+  - id: ADR-0043
+    title: "Slot Contribution Facets"
+    status: Accepted
+    date: "2026-07-07"
+    path: docs/architecture/adr-0043-slot-contribution-facets.md
+    governs: "typed slot contribution facets and feature-flagged model-backend slot proof"
+    depends_on: [ADR-0013, ADR-0019, ADR-0021, ADR-0027, ADR-0042]

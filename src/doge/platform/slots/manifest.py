@@ -58,7 +58,11 @@ _ALLOWED_TOP_KEYS = frozenset(
 
 
 class SlotType(str, Enum):
-    """Slot contribution type. Only ``tool`` is exercised in Sprint 033."""
+    """Slot contribution type.
+
+    ``tool`` is exercised in Sprint 033; ``model`` has one backend proof in
+    Sprint 034. Other types remain representability-only until later sprints.
+    """
 
     TOOL = "tool"
     MODEL = "model"
