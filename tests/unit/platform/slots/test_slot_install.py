@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from doge.platform.slots import (
     SlotConfigurationError,
     SlotInstallPolicy,
     SlotInstaller,
+    sign_slot_manifest,
     verify_slot_signature,
 )
 
@@ -56,13 +60,16 @@ def test_enterprise_install_requires_allowlist_and_trusted_signature(tmp_path) -
     source_dir.mkdir()
     manifest_path = source_dir / "slot.json"
     manifest_path.write_text(json.dumps(_manifest("local.signed")), encoding="utf-8")
-    _write_signature(manifest_path, "local.signed", signer="ops")
+    key = _write_signature(manifest_path, key_id="ops-key")
 
     with pytest.raises(SlotConfigurationError, match="not enterprise allowlisted"):
         SlotInstaller().install(
             source_dir,
             install_dir=tmp_path / "installed",
-            policy=SlotInstallPolicy(auth_mode="enterprise", trusted_signers=("ops",)),
+            policy=SlotInstallPolicy(
+                auth_mode="enterprise",
+                trusted_publisher_keys={"ops-key": key["public_key"]},
+            ),
         )
 
     result = SlotInstaller().install(
@@ -71,12 +78,14 @@ def test_enterprise_install_requires_allowlist_and_trusted_signature(tmp_path) -
         policy=SlotInstallPolicy(
             auth_mode="enterprise",
             enterprise_allowlist=("local.signed",),
-            trusted_signers=("ops",),
+            trusted_publisher_keys={"ops-key": key["public_key"]},
         ),
     )
 
     assert result.status == "installed"
     assert result.signature.status == "verified"
+    assert result.signature.key_id == "ops-key"
+    assert result.signature.algorithm == "ed25519"
     assert (tmp_path / "installed" / "local_signed" / "slot.signature.json").exists()
 
 
@@ -101,19 +110,122 @@ def test_invalid_signature_hash_is_rejected(tmp_path) -> None:
         SlotInstaller().install(manifest_path, install_dir=tmp_path / "installed")
 
 
-def test_untrusted_signature_reports_untrusted_status(tmp_path) -> None:
+def test_valid_ed25519_signature_reports_verified_status(tmp_path) -> None:
+    manifest_path = tmp_path / "slot.json"
+    manifest_path.write_text(json.dumps(_manifest("local.verified")), encoding="utf-8")
+    key = _write_signature(manifest_path, key_id="ops-key")
+
+    signature = verify_slot_signature(
+        manifest_path,
+        slot_id="local.verified",
+        trusted_publisher_keys={"ops-key": key["public_key"]},
+    )
+
+    assert signature.status == "verified"
+    assert signature.verified is True
+    assert signature.signer == "ops-key"
+    assert signature.key_id == "ops-key"
+    assert signature.algorithm == "ed25519"
+    assert signature.manifest_sha256
+
+
+def test_untrusted_ed25519_signature_reports_untrusted_status(tmp_path) -> None:
     manifest_path = tmp_path / "slot.json"
     manifest_path.write_text(json.dumps(_manifest("local.untrusted")), encoding="utf-8")
-    _write_signature(manifest_path, "local.untrusted", signer="someone")
+    _write_signature(manifest_path, key_id="someone")
 
     signature = verify_slot_signature(
         manifest_path,
         slot_id="local.untrusted",
-        trusted_signers=("ops",),
+        trusted_publisher_keys={},
     )
 
     assert signature.status == "untrusted"
     assert signature.signer == "someone"
+    assert signature.key_id == "someone"
+
+
+def test_tampered_manifest_rejects_ed25519_signature(tmp_path) -> None:
+    manifest_path = tmp_path / "slot.json"
+    manifest_path.write_text(json.dumps(_manifest("local.tampered")), encoding="utf-8")
+    key = _write_signature(manifest_path, key_id="ops-key")
+    payload = _manifest("local.tampered")
+    payload["version"] = "0.2.0"
+    manifest_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    signature = verify_slot_signature(
+        manifest_path,
+        slot_id="local.tampered",
+        trusted_publisher_keys={"ops-key": key["public_key"]},
+    )
+
+    assert signature.status == "invalid"
+    assert "manifest hash mismatch" in signature.reason
+
+
+def test_tampered_ed25519_signature_is_invalid(tmp_path) -> None:
+    manifest_path = tmp_path / "slot.json"
+    manifest_path.write_text(json.dumps(_manifest("local.bad_sig")), encoding="utf-8")
+    key = _write_signature(manifest_path, key_id="ops-key")
+    signature_path = manifest_path.parent / "slot.signature.json"
+    sidecar = json.loads(signature_path.read_text(encoding="utf-8"))
+    sidecar["signature"] = base64.b64encode(b"x" * 64).decode("ascii")
+    signature_path.write_text(json.dumps(sidecar), encoding="utf-8")
+
+    signature = verify_slot_signature(
+        manifest_path,
+        slot_id="local.bad_sig",
+        trusted_publisher_keys={"ops-key": key["public_key"]},
+    )
+
+    assert signature.status == "invalid"
+    assert "signature verification failed" in signature.reason
+
+
+def test_revoked_ed25519_key_is_rejected(tmp_path) -> None:
+    manifest_path = tmp_path / "slot.json"
+    manifest_path.write_text(json.dumps(_manifest("local.revoked")), encoding="utf-8")
+    key = _write_signature(manifest_path, key_id="ops-key")
+
+    signature = verify_slot_signature(
+        manifest_path,
+        slot_id="local.revoked",
+        trusted_publisher_keys={"ops-key": key["public_key"]},
+        signing_repository=_RevokedSigningRepository(),
+    )
+
+    assert signature.status == "revoked"
+    assert signature.revocation_checked is True
+    with pytest.raises(SlotConfigurationError, match="signing key is revoked"):
+        SlotInstaller().install(
+            manifest_path,
+            install_dir=tmp_path / "installed",
+            policy=SlotInstallPolicy(
+                trusted_publisher_keys={"ops-key": key["public_key"]},
+                signing_repository=_RevokedSigningRepository(),
+            ),
+        )
+
+
+def test_legacy_v1_signature_reports_legacy_status(tmp_path) -> None:
+    manifest_path = tmp_path / "slot.json"
+    manifest_path.write_text(json.dumps(_manifest("local.legacy")), encoding="utf-8")
+    _write_legacy_signature(manifest_path, "local.legacy", signer="ops")
+
+    result = SlotInstaller().install(
+        manifest_path,
+        install_dir=tmp_path / "installed",
+        policy=SlotInstallPolicy(trusted_signers=("ops",)),
+    )
+
+    assert result.signature.status == "legacy"
+    assert result.signature.verified is False
+    assert result.warnings == ("legacy metadata signature, not cryptographic",)
+
+
+class _RevokedSigningRepository:
+    def is_revoked(self, key_id: str) -> bool:
+        return True
 
 
 def _manifest(slot_id: str, *, permissions: dict | None = None) -> dict:
@@ -133,7 +245,25 @@ def _manifest(slot_id: str, *, permissions: dict | None = None) -> dict:
     }
 
 
-def _write_signature(manifest_path, slot_id: str, *, signer: str) -> None:
+def _write_signature(manifest_path, *, key_id: str) -> dict[str, str]:
+    private_key = Ed25519PrivateKey.generate()
+    private_key_path = manifest_path.parent / f"{key_id}.pem"
+    private_key_path.write_bytes(
+        private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+    )
+    sign_slot_manifest(manifest_path, private_key_path=private_key_path, key_id=key_id)
+    public_key = private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
+    return {"public_key": base64.b64encode(public_key).decode("ascii")}
+
+
+def _write_legacy_signature(manifest_path, slot_id: str, *, signer: str) -> None:
     digest = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
     (manifest_path.parent / "slot.signature.json").write_text(
         json.dumps(

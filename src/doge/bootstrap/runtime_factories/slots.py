@@ -23,6 +23,7 @@ from typing import Any
 from doge.application.tools.registry import ToolRegistry
 from doge.bootstrap.runtime_factories.builtin_model_slot import ModelKimiAgentSdkSlot
 from doge.config import get_settings
+from doge.config.settings import parse_slot_trusted_publisher_keys
 from doge.core.ports.enterprise_governance import EnterpriseAuditEvent
 from doge.eval.slot import LocalEvalCasesSlot
 from doge.eval.suites import EvalSuiteRegistry
@@ -56,6 +57,7 @@ from doge.platform.slots import (
     SlotType,
     UnknownSlotError,
     policy_for_activation,
+    sign_slot_manifest,
 )
 from doge.platform.workspace.slot import WorkflowTemplatesSlot
 from doge.platform.workspace.ui_panels import UIPanelRegistry
@@ -259,7 +261,13 @@ def deactivate_slot_bundle(
     return {"status": "deactivated", "active_bundle_id": None}
 
 
-def install_slot(source: str, settings: Any | None = None) -> dict[str, Any]:
+def install_slot(
+    source: str,
+    settings: Any | None = None,
+    *,
+    secret_provider: Any | None = None,
+    signing_repo: Any | None = None,
+) -> dict[str, Any]:
     """Install a third-party manifest as a local manifest-only slot preview."""
 
     resolved_settings = settings if settings is not None else get_settings()
@@ -272,9 +280,63 @@ def install_slot(source: str, settings: Any | None = None) -> dict[str, Any]:
     result = SlotInstaller().install(
         source,
         install_dir=resolved_settings.slots.install_dir,
-        policy=_slot_install_policy(resolved_settings),
+        policy=_slot_install_policy(
+            resolved_settings,
+            secret_provider=secret_provider,
+            signing_repo=signing_repo,
+        ),
     )
     return result.to_dict()
+
+
+def sign_slot(
+    manifest: str,
+    *,
+    private_key_path: str,
+    key_id: str,
+    settings: Any | None = None,
+) -> dict[str, Any]:
+    """Sign a slot manifest with an Ed25519 private key."""
+
+    resolved_settings = settings if settings is not None else get_settings()
+    if not resolved_settings.features.slot_platform:
+        raise SlotConfigurationError("slot platform is disabled")
+    if not resolved_settings.features.slot_install:
+        raise SlotConfigurationError("slot install is disabled")
+    return sign_slot_manifest(
+        manifest,
+        private_key_path=private_key_path,
+        key_id=key_id,
+    )
+
+
+def revoke_slot_signing_key(
+    key_id: str,
+    *,
+    reason: str | None = None,
+    actor_hash: str = "local-cli",
+    settings: Any | None = None,
+    signing_repo: Any | None = None,
+) -> dict[str, Any]:
+    """Revoke a trusted slot publisher key for future install verification."""
+
+    resolved_settings = settings if settings is not None else get_settings()
+    if not resolved_settings.features.slot_platform:
+        raise SlotConfigurationError("slot platform is disabled")
+    if not resolved_settings.features.slot_install:
+        raise SlotConfigurationError("slot install is disabled")
+    record = _slot_signing_repo_for_settings(resolved_settings, signing_repo).revoke(
+        key_id,
+        reason=reason,
+        actor_hash=actor_hash,
+    )
+    return {
+        "status": "revoked",
+        "key_id": record.key_id,
+        "revoked_at": record.revoked_at,
+        "reason": record.reason,
+        "actor_hash": record.actor_hash,
+    }
 
 
 def clear_slot_bundle_activation(
@@ -745,13 +807,58 @@ def _slot_enforcement_policy(settings: Any) -> SlotEnforcementPolicy:
     )
 
 
-def _slot_install_policy(settings: Any) -> SlotInstallPolicy:
+def _slot_install_policy(
+    settings: Any,
+    *,
+    secret_provider: Any | None = None,
+    signing_repo: Any | None = None,
+) -> SlotInstallPolicy:
+    trusted_publisher_keys = _slot_trusted_publisher_keys(
+        settings,
+        secret_provider=secret_provider,
+    )
     return SlotInstallPolicy(
         auth_mode=settings.auth.mode,
         allow_unsigned_local=settings.slots.allow_unsigned_local,
         enterprise_allowlist=settings.slots.enterprise_allowlist,
+        trusted_publisher_keys=trusted_publisher_keys,
+        signing_repository=(
+            _slot_signing_repo_for_settings(settings, signing_repo)
+            if signing_repo is not None or trusted_publisher_keys
+            else None
+        ),
         trusted_signers=settings.slots.trusted_signers,
     )
+
+
+def _slot_trusted_publisher_keys(
+    settings: Any,
+    *,
+    secret_provider: Any | None = None,
+) -> dict[str, str]:
+    keys = dict(settings.slots.trusted_publisher_keys)
+    provider = secret_provider
+    if provider is None:
+        try:
+            from doge.bootstrap.gateway_factories.secrets import build_secret_provider
+
+            provider = build_secret_provider()
+        except Exception:  # noqa: BLE001 - optional trust-source bridge only
+            provider = None
+    if provider is not None:
+        secret_value = provider.get_secret("slot.trusted_publisher_keys")
+        keys.update(parse_slot_trusted_publisher_keys(secret_value))
+    return keys
+
+
+def _slot_signing_repo_for_settings(settings: Any, signing_repo: Any | None = None) -> Any:
+    if signing_repo is not None:
+        return signing_repo
+    from doge.infrastructure.database.slot_signing_repository import (
+        SQLiteSlotSigningRepository,
+    )
+
+    return SQLiteSlotSigningRepository(settings.db.agent_db)
 
 
 def _activation_repo_for_settings(settings: Any, activation_repo: Any | None = None) -> Any:

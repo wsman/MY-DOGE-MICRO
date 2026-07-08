@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import base64
 import json
 
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from doge.config import reset_settings
 from doge.bootstrap.runtime_factories.slots import clear_slot_bundle_activation
@@ -28,6 +31,7 @@ _FEATURE_VARS = [
     "DOGE_SLOT_INSTALL_DIR",
     "DOGE_SLOT_ENTERPRISE_ALLOWLIST",
     "DOGE_SLOT_TRUSTED_SIGNERS",
+    "DOGE_SLOT_TRUSTED_PUBLISHER_KEYS",
     "DOGE_SLOT_ALLOW_UNSIGNED_LOCAL",
 ]
 
@@ -64,6 +68,23 @@ def test_parser_accepts_slots_list_and_show() -> None:
     assert install_args.slots_cmd == "install"
     assert install_args.source == "slot.json"
     assert install_args.json is True
+
+    sign_args = parser.parse_args(
+        ["slots", "sign", "slot.json", "--key", "ops.pem", "--key-id", "ops-key", "--json"]
+    )
+    assert sign_args.slots_cmd == "sign"
+    assert sign_args.manifest == "slot.json"
+    assert sign_args.key == "ops.pem"
+    assert sign_args.key_id == "ops-key"
+    assert sign_args.json is True
+
+    revoke_args = parser.parse_args(
+        ["slots", "revoke-key", "ops-key", "--reason", "compromised", "--json"]
+    )
+    assert revoke_args.slots_cmd == "revoke-key"
+    assert revoke_args.key_id == "ops-key"
+    assert revoke_args.reason == "compromised"
+    assert revoke_args.json is True
 
 
 def test_parser_requires_slots_subcommand() -> None:
@@ -358,6 +379,35 @@ def test_install_requires_slot_install(monkeypatch, capsys, tmp_path) -> None:
     assert payload == {"status": "disabled", "feature_flag": "DOGE_FEATURE_SLOT_INSTALL"}
 
 
+def test_sign_requires_slot_install(monkeypatch, capsys, tmp_path) -> None:
+    _strip_feature_env(monkeypatch)
+    manifest = tmp_path / "slot.json"
+    manifest.write_text(json.dumps(_manifest("local.cli")), encoding="utf-8")
+    key_path, _ = _write_private_key(tmp_path, "ops-key")
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "1")
+    reset_settings()
+
+    with pytest.raises(SystemExit) as exc:
+        main(["slots", "sign", str(manifest), "--key", str(key_path), "--json"])
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exc.value.code == 1
+    assert payload == {"status": "disabled", "feature_flag": "DOGE_FEATURE_SLOT_INSTALL"}
+
+
+def test_revoke_key_requires_slot_install(monkeypatch, capsys) -> None:
+    _strip_feature_env(monkeypatch)
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "1")
+    reset_settings()
+
+    with pytest.raises(SystemExit) as exc:
+        main(["slots", "revoke-key", "ops-key", "--json"])
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exc.value.code == 1
+    assert payload == {"status": "disabled", "feature_flag": "DOGE_FEATURE_SLOT_INSTALL"}
+
+
 def test_install_json_payload(monkeypatch, capsys, tmp_path) -> None:
     _strip_feature_env(monkeypatch)
     manifest = tmp_path / "slot.json"
@@ -382,6 +432,60 @@ def test_install_json_payload(monkeypatch, capsys, tmp_path) -> None:
     assert (install_dir / "local_cli" / "slot.json").exists()
 
 
+def test_sign_json_payload(monkeypatch, capsys, tmp_path) -> None:
+    _strip_feature_env(monkeypatch)
+    manifest = tmp_path / "slot.json"
+    manifest.write_text(json.dumps(_manifest("local.cli_sign")), encoding="utf-8")
+    key_path, public_key = _write_private_key(tmp_path, "ops-key")
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "1")
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_INSTALL", "1")
+    reset_settings()
+
+    try:
+        main(
+            [
+                "slots",
+                "sign",
+                str(manifest),
+                "--key",
+                str(key_path),
+                "--key-id",
+                "ops-key",
+                "--json",
+            ]
+        )
+    finally:
+        reset_settings()
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "signed"
+    assert payload["slot_id"] == "local.cli_sign"
+    assert payload["key_id"] == "ops-key"
+    assert payload["algorithm"] == "ed25519"
+    assert (tmp_path / "slot.signature.json").exists()
+    assert public_key
+
+
+def test_revoke_key_json_payload(monkeypatch, capsys, tmp_path) -> None:
+    _strip_feature_env(monkeypatch)
+    monkeypatch.setenv("DOGE_DB_DIR", str(tmp_path / "db"))
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "1")
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_INSTALL", "1")
+    reset_settings()
+
+    try:
+        main(["slots", "revoke-key", "ops-key", "--reason", "compromised", "--json"])
+    finally:
+        reset_settings()
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "revoked"
+    assert payload["key_id"] == "ops-key"
+    assert payload["reason"] == "compromised"
+    assert payload["actor_hash"] == "local-cli"
+    assert payload["revoked_at"]
+
+
 def _manifest(slot_id: str) -> dict:
     return {
         "schema_version": 1,
@@ -396,3 +500,20 @@ def _manifest(slot_id: str) -> dict:
         "provides": {"capabilities": ["local_preview"]},
         "feature_flags": ["slot_platform"],
     }
+
+
+def _write_private_key(tmp_path, key_id: str):
+    private_key = Ed25519PrivateKey.generate()
+    key_path = tmp_path / f"{key_id}.pem"
+    key_path.write_bytes(
+        private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+    )
+    public_key = private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
+    return key_path, base64.b64encode(public_key).decode("ascii")

@@ -82,6 +82,8 @@ from doge.platform.slots.lifecycle import (
 )
 from doge.platform.slots.loader import ManifestOnlySlot, SlotLoader
 from doge.platform.slots.install import (
+    canonical_manifest_bytes,
+    sign_slot_manifest,
     SlotInstaller,
     SlotInstallPolicy,
     SlotInstallResult,
@@ -150,4 +152,6 @@ __all__ = [
     "load_slot_manifest",
     "policy_for_activation",
     "verify_slot_signature",
+    "canonical_manifest_bytes",
 ]
+    "sign_slot_manifest",

@@ -12,6 +12,7 @@ import json
 import sys
 from dataclasses import asdict, is_dataclass
 from enum import Enum
+from pathlib import Path
 from typing import Any
 
 from doge.bootstrap.runtime_factories.slots import (
@@ -21,6 +22,8 @@ from doge.bootstrap.runtime_factories.slots import (
     build_slot_status_rows,
     deactivate_slot_bundle,
     install_slot,
+    revoke_slot_signing_key,
+    sign_slot,
 )
 from doge.config import get_settings
 
@@ -102,6 +105,42 @@ def cmd_slots(args) -> None:
         _emit_install(payload, args.json)
         return
 
+    if args.slots_cmd == "sign":
+        if not settings.features.slot_install:
+            _emit_install_disabled(args.json)
+            sys.exit(1)
+        try:
+            payload = sign_slot(
+                args.manifest,
+                private_key_path=args.key,
+                key_id=args.key_id or Path(args.key).stem,
+                settings=settings,
+            )
+        except Exception as exc:  # noqa: BLE001 - concise operator message
+            print(f"slots failed: {exc}", file=sys.stderr)
+            sys.exit(1)
+            return
+        _emit_signed(payload, args.json)
+        return
+
+    if args.slots_cmd == "revoke-key":
+        if not settings.features.slot_install:
+            _emit_install_disabled(args.json)
+            sys.exit(1)
+        try:
+            payload = revoke_slot_signing_key(
+                args.key_id,
+                reason=args.reason or None,
+                actor_hash="local-cli",
+                settings=settings,
+            )
+        except Exception as exc:  # noqa: BLE001 - concise operator message
+            print(f"slots failed: {exc}", file=sys.stderr)
+            sys.exit(1)
+            return
+        _emit_revoked(payload, args.json)
+        return
+
     print("slots subcommand required", file=sys.stderr)
     sys.exit(2)
 
@@ -175,6 +214,26 @@ def _emit_install(payload: dict[str, Any], json_only: bool) -> None:
     print(f"status={payload['status']}")
     print(f"installed_path={payload['installed_path']}")
     print(f"signature.status={payload['signature']['status']}")
+
+
+def _emit_signed(payload: dict[str, Any], json_only: bool) -> None:
+    if json_only:
+        print(json.dumps(payload, ensure_ascii=False))
+        return
+    print(f"slot_id={payload['slot_id']}")
+    print(f"status={payload['status']}")
+    print(f"key_id={payload['key_id']}")
+    print(f"algorithm={payload['algorithm']}")
+    print(f"signature_path={payload['signature_path']}")
+
+
+def _emit_revoked(payload: dict[str, Any], json_only: bool) -> None:
+    if json_only:
+        print(json.dumps(payload, ensure_ascii=False))
+        return
+    print(f"key_id={payload['key_id']}")
+    print(f"status={payload['status']}")
+    print(f"revoked_at={payload['revoked_at']}")
 
 
 def _emit_show(manifest: Any, json_only: bool) -> None:

@@ -12,6 +12,7 @@ _DEFAULT_ENV_NAMES = {
     "kimi.api_key": "MOONSHOT_API_KEY",
     "deepseek.api_key": "DEEPSEEK_API_KEY",
     "auth.static_bearer_token": "DOGE_AUTH_STATIC_BEARER_TOKEN",
+    "slot.trusted_publisher_keys": "DOGE_SLOT_TRUSTED_PUBLISHER_KEYS",
 }
 
 

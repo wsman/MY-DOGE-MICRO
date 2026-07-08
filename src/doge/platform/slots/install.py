@@ -6,12 +6,21 @@ slot provider entrypoint or executes third-party Python code.
 
 from __future__ import annotations
 
+import base64
+import binascii
 import hashlib
 import json
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
+
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+    Ed25519PrivateKey,
+    Ed25519PublicKey,
+)
 
 from doge.platform.slots.errors import SlotConfigurationError
 from doge.platform.slots.loader import SlotLoader
@@ -26,6 +35,8 @@ class SlotInstallPolicy:
     allow_unsigned_local: bool = True
     enterprise_allowlist: tuple[str, ...] = ()
     trusted_signers: tuple[str, ...] = ()
+    trusted_publisher_keys: Mapping[str, str] = field(default_factory=dict)
+    signing_repository: Any | None = None
     allow_high_risk: bool = False
     allow_shell: bool = False
 
@@ -36,12 +47,16 @@ class SlotInstallPolicy:
 
 @dataclass(frozen=True)
 class SlotSignatureVerification:
-    """Result of sidecar signature metadata validation."""
+    """Result of sidecar signature validation."""
 
     status: str
     signer: str = ""
+    key_id: str = ""
+    algorithm: str = ""
+    manifest_sha256: str = ""
     signature_path: Path | None = None
     reason: str = ""
+    revocation_checked: bool = False
 
     @property
     def verified(self) -> bool:
@@ -68,10 +83,14 @@ class SlotInstallResult:
             "signature": {
                 "status": self.signature.status,
                 "signer": self.signature.signer,
+                "key_id": self.signature.key_id,
+                "algorithm": self.signature.algorithm,
+                "manifest_sha256": self.signature.manifest_sha256,
                 "signature_path": str(self.signature.signature_path)
                 if self.signature.signature_path is not None
                 else "",
                 "reason": self.signature.reason,
+                "revocation_checked": self.signature.revocation_checked,
             },
             "warnings": list(self.warnings),
         }
@@ -95,15 +114,17 @@ class SlotInstaller:
             manifest_path,
             slot_id=manifest.id,
             trusted_signers=resolved_policy.trusted_signers,
+            trusted_publisher_keys=resolved_policy.trusted_publisher_keys,
+            signing_repository=resolved_policy.signing_repository,
         )
         warnings = _validate_install_policy(manifest, signature, resolved_policy)
 
         destination_dir = Path(install_dir) / _slot_dir_name(manifest.id)
         destination_path = destination_dir / "slot.json"
         status = "installed"
-        source_digest = _sha256_file(manifest_path)
+        source_digest = _manifest_sha256(manifest_path)
         if destination_path.exists():
-            if _sha256_file(destination_path) != source_digest:
+            if _manifest_sha256(destination_path) != source_digest:
                 raise SlotConfigurationError(
                     f"installed slot manifest already exists with different content: {manifest.id}"
                 )
@@ -112,7 +133,7 @@ class SlotInstaller:
             destination_dir.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(manifest_path, destination_path)
 
-        if signature.signature_path is not None and signature.status in {"verified", "untrusted"}:
+        if signature.signature_path is not None and signature.status in {"verified", "untrusted", "legacy"}:
             shutil.copyfile(signature.signature_path, destination_dir / "slot.signature.json")
 
         return SlotInstallResult(
@@ -130,13 +151,10 @@ def verify_slot_signature(
     *,
     slot_id: str,
     trusted_signers: tuple[str, ...] = (),
+    trusted_publisher_keys: Mapping[str, str] | None = None,
+    signing_repository: Any | None = None,
 ) -> SlotSignatureVerification:
-    """Validate optional sidecar signature metadata.
-
-    The sidecar is a local-alpha metadata proof:
-    ``{"schema_version": 1, "slot_id": "...", "manifest_sha256": "...", "signer": "..."}``.
-    It is not a cryptographic signature format.
-    """
+    """Validate optional sidecar signature metadata or Ed25519 signatures."""
 
     path = _signature_path_for(Path(manifest_path))
     if not path.exists():
@@ -151,37 +169,164 @@ def verify_slot_signature(
             signature_path=path,
             reason="signature must be a JSON object",
         )
-    if raw.get("schema_version") != 1:
+    schema_version = raw.get("schema_version")
+    if schema_version == 1:
+        return _verify_legacy_signature_metadata(
+            Path(manifest_path),
+            slot_id=slot_id,
+            raw=raw,
+            path=path,
+            trusted_signers=trusted_signers,
+        )
+    if schema_version != 2:
         return SlotSignatureVerification(
             "invalid",
             signature_path=path,
-            reason="schema_version must be 1",
+            reason="schema_version must be 1 or 2",
         )
-    signer = raw.get("signer")
-    if not isinstance(signer, str) or not signer.strip():
-        return SlotSignatureVerification("invalid", signature_path=path, reason="signer is required")
+
+    key_id = raw.get("key_id")
+    algorithm = raw.get("algorithm")
+    signature = raw.get("signature")
+    manifest_sha256 = raw.get("manifest_sha256")
     if raw.get("slot_id") != slot_id:
         return SlotSignatureVerification(
             "invalid",
-            signer=signer,
+            key_id=str(key_id or ""),
+            algorithm=str(algorithm or ""),
             signature_path=path,
             reason="slot_id mismatch",
         )
-    if raw.get("manifest_sha256") != _sha256_file(Path(manifest_path)):
+    if not isinstance(key_id, str) or not key_id.strip():
+        return SlotSignatureVerification("invalid", signature_path=path, reason="key_id is required")
+    key_id = key_id.strip()
+    if algorithm != "ed25519":
         return SlotSignatureVerification(
             "invalid",
-            signer=signer,
+            key_id=key_id,
+            algorithm=str(algorithm or ""),
+            signature_path=path,
+            reason="algorithm must be ed25519",
+        )
+    if not isinstance(signature, str) or not signature.strip():
+        return SlotSignatureVerification(
+            "invalid",
+            key_id=key_id,
+            algorithm=algorithm,
+            signature_path=path,
+            reason="signature is required",
+        )
+    try:
+        canonical_bytes = canonical_manifest_bytes(manifest_path)
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        return SlotSignatureVerification(
+            "invalid",
+            key_id=key_id,
+            algorithm=algorithm,
+            signature_path=path,
+            reason=f"manifest canonicalization failed: {exc}",
+        )
+    expected_sha256 = hashlib.sha256(canonical_bytes).hexdigest()
+    if manifest_sha256 != expected_sha256:
+        return SlotSignatureVerification(
+            "invalid",
+            key_id=key_id,
+            algorithm=algorithm,
+            manifest_sha256=str(manifest_sha256 or ""),
             signature_path=path,
             reason="manifest hash mismatch",
         )
-    if signer not in trusted_signers:
+    keys = trusted_publisher_keys or {}
+    encoded_public_key = keys.get(key_id)
+    if not encoded_public_key:
         return SlotSignatureVerification(
             "untrusted",
-            signer=signer,
+            key_id=key_id,
+            signer=key_id,
+            algorithm=algorithm,
+            manifest_sha256=expected_sha256,
             signature_path=path,
-            reason="signer is not trusted",
+            reason="key_id is not trusted",
         )
-    return SlotSignatureVerification("verified", signer=signer, signature_path=path)
+    revocation_checked = signing_repository is not None
+    if signing_repository is not None and signing_repository.is_revoked(key_id):
+        return SlotSignatureVerification(
+            "revoked",
+            key_id=key_id,
+            signer=key_id,
+            algorithm=algorithm,
+            manifest_sha256=expected_sha256,
+            signature_path=path,
+            reason="key_id is revoked",
+            revocation_checked=True,
+        )
+    try:
+        public_key = Ed25519PublicKey.from_public_bytes(_b64decode(encoded_public_key))
+        public_key.verify(_b64decode(signature), canonical_bytes)
+    except (ValueError, binascii.Error, InvalidSignature) as exc:
+        return SlotSignatureVerification(
+            "invalid",
+            key_id=key_id,
+            signer=key_id,
+            algorithm=algorithm,
+            manifest_sha256=expected_sha256,
+            signature_path=path,
+            reason=f"signature verification failed: {exc}",
+            revocation_checked=revocation_checked,
+        )
+    return SlotSignatureVerification(
+        "verified",
+        key_id=key_id,
+        signer=key_id,
+        algorithm=algorithm,
+        manifest_sha256=expected_sha256,
+        signature_path=path,
+        revocation_checked=revocation_checked,
+    )
+
+
+def sign_slot_manifest(
+    manifest_path: str | Path,
+    *,
+    private_key_path: str | Path,
+    key_id: str,
+    password: bytes | None = None,
+) -> dict[str, Any]:
+    """Write a v2 Ed25519 slot signature sidecar for ``manifest_path``."""
+
+    key_id = key_id.strip()
+    if not key_id:
+        raise SlotConfigurationError("key_id is required")
+    manifest = _manifest_json(Path(manifest_path))
+    slot_id = manifest.get("id")
+    if not isinstance(slot_id, str) or not slot_id:
+        raise SlotConfigurationError("slot manifest id is required")
+    key = serialization.load_pem_private_key(Path(private_key_path).read_bytes(), password=password)
+    if not isinstance(key, Ed25519PrivateKey):
+        raise SlotConfigurationError("slot signing key must be an Ed25519 private key")
+    canonical_bytes = _canonical_manifest_bytes_from_obj(manifest)
+    signature = key.sign(canonical_bytes)
+    payload = {
+        "schema_version": 2,
+        "slot_id": slot_id,
+        "key_id": key_id,
+        "algorithm": "ed25519",
+        "signature": base64.b64encode(signature).decode("ascii"),
+        "manifest_sha256": hashlib.sha256(canonical_bytes).hexdigest(),
+    }
+    signature_path = _signature_path_for(Path(manifest_path))
+    signature_path.write_text(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return {
+        "status": "signed",
+        "slot_id": slot_id,
+        "key_id": key_id,
+        "algorithm": "ed25519",
+        "signature_path": str(signature_path),
+        "manifest_sha256": payload["manifest_sha256"],
+    }
 
 
 def _validate_install_policy(
@@ -199,16 +344,18 @@ def _validate_install_policy(
         raise SlotConfigurationError(f"slot {manifest.id} declares shell permission")
     if signature.status == "invalid":
         raise SlotConfigurationError(
-            f"slot {manifest.id} has invalid signature metadata: {signature.reason}"
+            f"slot {manifest.id} has invalid signature: {signature.reason}"
         )
+    if signature.status == "revoked":
+        raise SlotConfigurationError(f"slot {manifest.id} signing key is revoked")
     if policy.enterprise:
         if manifest.id not in policy.enterprise_allowlist:
             raise SlotConfigurationError(f"slot {manifest.id} is not enterprise allowlisted")
-        if not policy.trusted_signers:
-            raise SlotConfigurationError("enterprise slot install requires trusted signers")
+        if not policy.trusted_publisher_keys:
+            raise SlotConfigurationError("enterprise slot install requires trusted publisher keys")
         if not signature.verified:
             raise SlotConfigurationError(
-                f"slot {manifest.id} requires verified signature in enterprise mode"
+                f"slot {manifest.id} requires verified cryptographic signature in enterprise mode"
             )
         return warnings
     if signature.status == "missing":
@@ -216,7 +363,9 @@ def _validate_install_policy(
             raise SlotConfigurationError(f"slot {manifest.id} is unsigned")
         warnings.append("unsigned local slot manifest")
     elif signature.status == "untrusted":
-        warnings.append("slot signature signer is not trusted")
+        warnings.append("slot signature key_id is not trusted")
+    elif signature.status == "legacy":
+        warnings.append("legacy metadata signature, not cryptographic")
     return warnings
 
 
@@ -240,8 +389,81 @@ def _signature_path_for(manifest_path: Path) -> Path:
     return manifest_path.with_suffix(".signature.json")
 
 
-def _sha256_file(path: Path) -> str:
+def _verify_legacy_signature_metadata(
+    manifest_path: Path,
+    *,
+    slot_id: str,
+    raw: dict[str, Any],
+    path: Path,
+    trusted_signers: tuple[str, ...],
+) -> SlotSignatureVerification:
+    signer = raw.get("signer")
+    if not isinstance(signer, str) or not signer.strip():
+        return SlotSignatureVerification("invalid", signature_path=path, reason="signer is required")
+    if raw.get("slot_id") != slot_id:
+        return SlotSignatureVerification(
+            "invalid",
+            signer=signer,
+            signature_path=path,
+            reason="slot_id mismatch",
+        )
+    manifest_sha256 = _raw_sha256_file(manifest_path)
+    if raw.get("manifest_sha256") != manifest_sha256:
+        return SlotSignatureVerification(
+            "invalid",
+            signer=signer,
+            manifest_sha256=str(raw.get("manifest_sha256") or ""),
+            signature_path=path,
+            reason="manifest hash mismatch",
+        )
+    if trusted_signers and signer not in trusted_signers:
+        return SlotSignatureVerification(
+            "untrusted",
+            signer=signer,
+            signature_path=path,
+            reason="legacy signer is not trusted",
+        )
+    return SlotSignatureVerification(
+        "legacy",
+        signer=signer,
+        signature_path=path,
+        manifest_sha256=manifest_sha256,
+        reason="legacy metadata signature is not cryptographic",
+    )
+
+
+def canonical_manifest_bytes(path: str | Path) -> bytes:
+    """Return canonical JSON bytes for a slot manifest file."""
+
+    return _canonical_manifest_bytes_from_obj(_manifest_json(Path(path)))
+
+
+def _manifest_json(path: Path) -> dict[str, Any]:
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise ValueError("slot manifest must be a JSON object")
+    return raw
+
+
+def _canonical_manifest_bytes_from_obj(manifest: dict[str, Any]) -> bytes:
+    return json.dumps(
+        manifest,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+
+
+def _manifest_sha256(path: Path) -> str:
+    return hashlib.sha256(canonical_manifest_bytes(path)).hexdigest()
+
+
+def _raw_sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _b64decode(value: str) -> bytes:
+    return base64.b64decode(value.encode("ascii"), validate=True)
 
 
 def _slot_dir_name(slot_id: str) -> str:

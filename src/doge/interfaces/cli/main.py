@@ -215,6 +215,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_slots_install = slots_sub.add_parser("install", help="install a local slot manifest preview")
     p_slots_install.add_argument("source", help="slot manifest JSON file or directory containing slot.json")
     p_slots_install.add_argument("--json", action="store_true")
+    p_slots_sign = slots_sub.add_parser("sign", help="write an Ed25519 v2 slot signature sidecar")
+    p_slots_sign.add_argument("manifest", help="slot manifest JSON file")
+    p_slots_sign.add_argument("--key", required=True, help="Ed25519 private key PEM path")
+    p_slots_sign.add_argument("--key-id", help="trusted publisher key id")
+    p_slots_sign.add_argument("--json", action="store_true")
+    p_slots_revoke = slots_sub.add_parser("revoke-key", help="revoke a slot publisher signing key")
+    p_slots_revoke.add_argument("key_id", help="publisher signing key id")
+    p_slots_revoke.add_argument("--reason", default="", help="operator-visible revocation reason")
+    p_slots_revoke.add_argument("--json", action="store_true")
 
     # case
     p_case = sub.add_parser("case", help="operate a research case workspace")
