@@ -1,7 +1,7 @@
 # Architecture Index
 
-This is the architecture entry point for MY-DOGE-MICRO. It points readers to
-the current prose authorities and keeps ADRs, registries, and generated status
+This is the architecture entry point for OpenDoge. It points readers to the
+current prose authorities and keeps ADRs, registries, and generated status
 files in supporting roles.
 
 ## Start Here

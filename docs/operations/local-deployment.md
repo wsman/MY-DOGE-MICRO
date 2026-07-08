@@ -1,6 +1,6 @@
 # Local Deployment
 
-MY-DOGE-MICRO is designed for local workstation operation. The canonical
+OpenDoge is designed for local workstation operation. The canonical
 operator runbook remains [runbook.md](runbook.md);
 this page is the concise deployment entry.
 

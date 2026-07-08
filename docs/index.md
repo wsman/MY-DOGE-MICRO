@@ -1,8 +1,8 @@
-# MY-DOGE-MICRO Documentation Index
+# OpenDoge Documentation Index
 
-This is the product documentation entrance for MY-DOGE-MICRO. It separates
-reader paths, product references, architecture governance, and CDD framework
-docs.
+This is the product documentation entrance for OpenDoge, formerly developed as
+MY-DOGE-MICRO. It separates reader paths, product references, architecture
+governance, and CDD framework docs.
 
 ## Choose Your Path
 
@@ -113,4 +113,4 @@ changes `production_ready: false` and `stable_declaration: forbidden`.
 `docs/governance/cdd/QUICK-START.md`, `docs/governance/cdd/START-HERE.md`, and
 `docs/governance/cdd/USER-MANUAL.md` describe the CDD governance and agent
 workflow. Use them when operating the agent studio, not when starting the
-MY-DOGE-MICRO product.
+OpenDoge product.

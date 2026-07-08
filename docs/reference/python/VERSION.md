@@ -2,7 +2,7 @@
 
 > **Generated**: 2026-06-11
 > **Source**: Imported from `D:\Users\WSMAN\Desktop\Coding Task\MY-DOGE-MICRO\pyproject.toml` and `requirements.txt`
-> **Scope**: Local-first MY-DOGE-MICRO product stack
+> **Scope**: Local-first OpenDoge product stack
 > **Latest-version claim**: None. This file records the source repository's pinned/imported versions, not the latest upstream releases.
 
 ## Runtime

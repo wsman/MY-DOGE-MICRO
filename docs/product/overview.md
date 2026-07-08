@@ -1,9 +1,9 @@
 # Product Overview
 
-MY-DOGE-MICRO is a local-first quantitative investment decision-support
-platform. It helps an operator inspect market conditions, run scans, organize
-research, review portfolio/risk context, and preserve evidence for AI-assisted
-research workflows.
+OpenDoge (formerly MY-DOGE-MICRO) is a local-first, slot-based financial
+research agent runtime. It helps an operator inspect market conditions, run
+scans, organize research, review portfolio/risk context, and preserve evidence
+for AI-assisted research workflows.
 
 ## Primary Users
 

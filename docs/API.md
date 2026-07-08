@@ -1,6 +1,6 @@
 # HTTP API Reference (FastAPI)
 
-The local-first HTTP backend of MY-DOGE-MICRO. A single FastAPI application
+The local-first HTTP backend of OpenDoge. A single FastAPI application
 (`doge.interfaces.api.main`) binds to `127.0.0.1:8901` by default and exposes
 **97 HTTP routes**: 34 legacy `/api/*` compatibility routes plus 63 daemon/v1
 and health routes.

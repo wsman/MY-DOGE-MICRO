@@ -1,6 +1,6 @@
 # Product Modules
 
-MY-DOGE-MICRO has four product modules — one per `doge.products.*` package:
+OpenDoge has four product modules — one per `doge.products.*` package:
 
 | Module | Package |
 |---|---|

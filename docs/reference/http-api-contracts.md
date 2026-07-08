@@ -1,7 +1,7 @@
 # HTTP API Contracts
 
 Transport, streaming (SSE), CORS, error-envelope, concurrency, and OpenAPI
-contracts for the MY-DOGE-MICRO FastAPI backend. The route table and per-route
+contracts for the OpenDoge FastAPI backend. The route table and per-route
 reference live in [http-api.md](http-api.md); the quick-start narrative lives
 in [../API.md](../API.md).
 

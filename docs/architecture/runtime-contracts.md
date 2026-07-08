@@ -1,7 +1,7 @@
 # Runtime Contracts
 
 Status: Alpha contract freeze. This file freezes the current local runtime
-contract shape; it does not promote MY-DOGE-MICRO beyond its current Local
+contract shape; it does not promote OpenDoge beyond its current Local
 Alpha posture.
 
 Canonical execution path:

@@ -1,6 +1,6 @@
 # HTTP API Reference
 
-Full route table and per-route reference for the MY-DOGE-MICRO FastAPI backend
+Full route table and per-route reference for the OpenDoge FastAPI backend
 (97 HTTP routes: 34 legacy `/api/*` + 63 daemon/v1). The quick-start
 narrative lives in [../API.md](../API.md); transport, SSE, CORS, error,
 concurrency, and OpenAPI contracts live in

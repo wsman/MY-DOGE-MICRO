@@ -1,14 +1,14 @@
-# MY-DOGE-MICRO — Getting Started (Product Operator Guide)
+# OpenDoge — Getting Started (Product Operator Guide)
 
 > **Not the doc you think this is?** `docs/governance/cdd/QUICK-START.md` is the *CDD-framework*
 > onboarding guide for the Claude Code agent studio (53 agents, skills,
-> governance). **This file** is the getting-started guide for the **MY-DOGE-MICRO
-> product** — the local-first quantitative investment decision-support platform.
+> governance). **This file** is the getting-started guide for the **OpenDoge
+> product** — the local-first, slot-based financial research agent runtime.
 > The two share a name pattern but address completely different audiences.
 
 ## Overview
 
-MY-DOGE-MICRO is a local-first quantitative investment decision-support platform.
+OpenDoge is a local-first, slot-based financial research agent runtime.
 All data, computation, and state live on the operator's machine; no cloud
 account is required. ADR-0024 makes the preferred platform path explicit:
 process roots, persisted runtime state, `/v1` routes, and SDK clients. The

@@ -1,6 +1,6 @@
 # User Scenarios
 
-MY-DOGE-MICRO is organized around **five reader-facing user paths (4 product
+OpenDoge is organized around **five reader-facing user paths (4 product
 paths + 1 eval helper)**. These are scenario contracts along the **delivery
 axis** — who is operating the system; they are distinct from the **four primary
 user scenarios** in [overview.md](overview.md), which sit on the **value axis**

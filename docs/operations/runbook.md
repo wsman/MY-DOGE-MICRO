@@ -1,7 +1,7 @@
 # Operations Runbook
 
 Operator procedures for running, backing up, tuning, and troubleshooting the
-MY-DOGE-MICRO local-first quantitative decision-support platform. Every claim
+OpenDoge local-first, slot-based financial research agent runtime. Every claim
 cites a source file:line or CDD section the operator can open to confirm.
 
 ## Audience & posture
