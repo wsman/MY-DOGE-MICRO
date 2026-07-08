@@ -104,6 +104,11 @@ def market_service() -> StubToolService:
 
 
 @pytest.fixture
+def stub_tool_service_factory():
+    return StubToolService
+
+
+@pytest.fixture
 def stub_slot(valid_manifest_dict: dict[str, Any], stub_service: StubToolService) -> StubSlot:
     return StubSlot(load_slot_manifest(valid_manifest_dict), stub_service)
 

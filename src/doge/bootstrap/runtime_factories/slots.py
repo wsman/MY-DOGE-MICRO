@@ -33,6 +33,8 @@ from doge.platform.governance.slot import (
     CompositeToolEntitlementChecker,
     ToolGovernancePolicySlot,
 )
+from doge.platform.governance.actions_slot import GovernanceActionsSlot
+from doge.platform.governance.compliance_slot import ComplianceScreeningSlot
 from doge.platform.evidence.document_parsers import ParserDispatcher
 from doge.platform.runtime.slot import RuntimeEventWatcherSlot
 from doge.platform.runtime.watchers import RuntimeEventWatcherMiddleware
@@ -58,6 +60,9 @@ from doge.platform.workspace.slot import WorkflowTemplatesSlot
 from doge.platform.workspace.ui_panels import UIPanelRegistry
 from doge.platform.workspace.ui_slot import ResearchWorkspaceUISlot
 from doge.products.market.slot import MarketCoreSlot
+from doge.products.portfolio.slot import PortfolioCoreSlot
+from doge.products.quant.slot import QuantLabSlot
+from doge.products.research.slot import EvidenceCoreSlot
 
 
 _BUILTIN_SLOT_BUNDLES = (
@@ -67,6 +72,11 @@ _BUILTIN_SLOT_BUNDLES = (
         description="Local research bundle for market, document, workflow, eval, and model slots.",
         slot_ids=(
             "market.core",
+            "portfolio.core",
+            "evidence.core",
+            "quant.lab",
+            "governance.actions",
+            "compliance.screening",
             "model.kimi_agent_sdk",
             "data.tdx",
             "data.yfinance",
@@ -92,6 +102,9 @@ _BUILTIN_SLOT_BUNDLES = (
         description="Research workspace bundle over documents, data, workflows, and eval.",
         slot_ids=(
             "market.core",
+            "portfolio.core",
+            "evidence.core",
+            "quant.lab",
             "data.tdx",
             "data.yfinance",
             "document.local_parser",
@@ -122,6 +135,11 @@ def build_builtin_slot_registry(settings: Any | None = None) -> SlotRegistry:
     resolved_settings = settings if settings is not None else get_settings()
     registry = SlotRegistry()
     registry.register(MarketCoreSlot())
+    registry.register(PortfolioCoreSlot())
+    registry.register(EvidenceCoreSlot())
+    registry.register(QuantLabSlot())
+    registry.register(GovernanceActionsSlot())
+    registry.register(ComplianceScreeningSlot())
     registry.register(TDXDataSourceSlot())
     registry.register(YFinanceDataSourceSlot())
     registry.register(ModelKimiAgentSdkSlot())

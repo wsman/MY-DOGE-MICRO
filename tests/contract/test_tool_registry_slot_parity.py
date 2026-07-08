@@ -61,6 +61,31 @@ _ALL_FEATURE_VARS = [
     "DOGE_FEATURE_SLOT_INSTALL",
 ]
 
+_EXPECTED_SLOT_OWNED_TOOLS = {
+    "query_stock",
+    "stock_overview",
+    "rsrs_ranking",
+    "market_breadth",
+    "volume_anomalies",
+    "list_views",
+    "get_portfolio_exposure",
+    "portfolio_risk",
+    "scenario_analysis",
+    "propose_portfolio_rebalance",
+    "validate_financial_claims",
+    "generate_industry_report",
+    "lookup_evidence",
+    "get_financial_statements",
+    "get_company_announcements",
+    "calculate_financial_ratios",
+    "compare_consensus_estimates",
+    "get_industry_classification",
+    "run_sql_query",
+    "request_approval",
+    "publish_investment_memo",
+    "screen_compliance_risk",
+}
+
 
 class _FakeGatewayContainer:
     """Minimal gateway-container callable returning a fixed service."""
@@ -160,6 +185,24 @@ def test_v1_tools_payload_is_equivalent_with_slots_on(monkeypatch, service) -> N
     assert _schemas(registry_on) == _schemas(registry_off)
     assert _records(registry_on) == _records(registry_off)
     assert len(registry_on.schemas) == len(registry_off.schemas) == 23
+
+
+def test_tool_slot_ownership_leaves_only_python_analysis_on_facade(monkeypatch, service) -> None:
+    _strip_feature_env(monkeypatch)
+    reset_settings()
+
+    manifests = slots_module.build_builtin_slot_registry().manifests()
+    slot_owned = {
+        tool_name
+        for manifest in manifests
+        if manifest.type is SlotType.TOOL
+        for tool_name in manifest.provides.tools
+    }
+    service_tools = {descriptor.name for descriptor in service.tool_descriptors()}
+
+    assert slot_owned == _EXPECTED_SLOT_OWNED_TOOLS
+    assert len(slot_owned) == 22
+    assert service_tools - slot_owned == {"run_python_analysis"}
 
 
 def test_request_approval_execution_smoke_is_equivalent(monkeypatch, service) -> None:
