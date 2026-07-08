@@ -31,6 +31,7 @@ _agent_unit_of_work = None
 _runtime_outbox_publisher = None
 _file_upload_service = None
 _enterprise_governance_repository = None
+_slot_activation_repository = None
 _run_scope_resolver = None
 _research_agent_runtime_warning_emitted = False
 
@@ -184,20 +185,63 @@ def get_slot_status_rows(settings: Settings | None = None):
     return build_slot_status_rows(settings if settings is not None else get_settings())
 
 
-def get_slot_bundle_rows(settings: Settings | None = None):
+def get_slot_bundle_rows(settings: Settings | None = None, activation_repo=None):
     """Return read-only built-in slot bundle rows for API/operator diagnostics."""
 
     from doge.bootstrap.runtime_factories.slots import build_slot_bundle_rows
 
-    return build_slot_bundle_rows(settings if settings is not None else get_settings())
+    return build_slot_bundle_rows(
+        settings if settings is not None else get_settings(),
+        activation_repo=activation_repo or get_slot_activation_repository(),
+    )
 
 
-def activate_slot_bundle(bundle_id: str, settings: Settings | None = None):
-    """Activate a slot bundle for the current API process."""
+def activate_slot_bundle(
+    bundle_id: str,
+    settings: Settings | None = None,
+    *,
+    actor_hash: str = "local-api",
+    tenant_id: str = "local",
+    request_id: str | None = None,
+    activation_repo=None,
+    governance_repo=None,
+):
+    """Activate a slot bundle."""
 
     from doge.bootstrap.runtime_factories.slots import activate_slot_bundle
 
-    return activate_slot_bundle(bundle_id, settings if settings is not None else get_settings())
+    return activate_slot_bundle(
+        bundle_id,
+        settings if settings is not None else get_settings(),
+        activation_repo=activation_repo or get_slot_activation_repository(),
+        governance_repo=governance_repo or get_enterprise_governance_repository(),
+        actor_hash=actor_hash,
+        tenant_id=tenant_id,
+        request_id=request_id,
+    )
+
+
+def deactivate_slot_bundle(
+    settings: Settings | None = None,
+    *,
+    actor_hash: str = "local-api",
+    tenant_id: str = "local",
+    request_id: str | None = None,
+    activation_repo=None,
+    governance_repo=None,
+):
+    """Deactivate the current slot bundle."""
+
+    from doge.bootstrap.runtime_factories.slots import deactivate_slot_bundle
+
+    return deactivate_slot_bundle(
+        settings if settings is not None else get_settings(),
+        activation_repo=activation_repo or get_slot_activation_repository(),
+        governance_repo=governance_repo or get_enterprise_governance_repository(),
+        actor_hash=actor_hash,
+        tenant_id=tenant_id,
+        request_id=request_id,
+    )
 
 
 def get_slot_ui_panel_rows(
@@ -245,6 +289,14 @@ def get_enterprise_governance_repository():
     if _enterprise_governance_repository is None:
         _enterprise_governance_repository = _container.workspace.build_enterprise_governance_repository()
     return _enterprise_governance_repository
+
+
+def get_slot_activation_repository():
+    """Provide persisted slot bundle activation state."""
+    global _slot_activation_repository
+    if _slot_activation_repository is None:
+        _slot_activation_repository = _container.workspace.build_slot_activation_repository()
+    return _slot_activation_repository
 
 
 def get_agent_session_repository():

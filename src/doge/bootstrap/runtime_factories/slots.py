@@ -23,6 +23,7 @@ from typing import Any
 from doge.application.tools.registry import ToolRegistry
 from doge.bootstrap.runtime_factories.builtin_model_slot import ModelKimiAgentSdkSlot
 from doge.config import get_settings
+from doge.core.ports.enterprise_governance import EnterpriseAuditEvent
 from doge.eval.slot import LocalEvalCasesSlot
 from doge.eval.suites import EvalSuiteRegistry
 from doge.infrastructure.data_source.slot import TDXDataSourceSlot, YFinanceDataSourceSlot
@@ -157,6 +158,7 @@ def build_builtin_slot_registry(settings: Any | None = None) -> SlotRegistry:
 def build_builtin_slot_kernel(
     policy: SlotPolicy | None = None,
     *,
+    activation_repo: Any | None = None,
     enforcement: SlotEnforcementPolicy | None = None,
     settings: Any | None = None,
 ) -> SlotKernel:
@@ -167,7 +169,10 @@ def build_builtin_slot_kernel(
     bundles = _bundles_supported_by(registry)
     effective_policy = policy
     if effective_policy is None and resolved_settings.features.slot_loader:
-        effective_policy = policy_for_activation(_SLOT_BUNDLE_ACTIVATION.current(), bundles)
+        effective_policy = policy_for_activation(
+            _active_bundle_activation(resolved_settings, activation_repo),
+            bundles,
+        )
     return SlotKernel(
         registry,
         policy=effective_policy,
@@ -176,8 +181,17 @@ def build_builtin_slot_kernel(
     )
 
 
-def activate_slot_bundle(bundle_id: str, settings: Any | None = None) -> dict[str, Any]:
-    """Activate a built-in bundle for this process and return its current row."""
+def activate_slot_bundle(
+    bundle_id: str,
+    settings: Any | None = None,
+    *,
+    activation_repo: Any | None = None,
+    governance_repo: Any | None = None,
+    actor_hash: str = "local-operator",
+    tenant_id: str = "local",
+    request_id: str | None = None,
+) -> dict[str, Any]:
+    """Activate a built-in bundle and persist the active bundle pointer."""
 
     resolved_settings = settings if settings is not None else get_settings()
     if not resolved_settings.features.slot_platform:
@@ -186,13 +200,63 @@ def activate_slot_bundle(bundle_id: str, settings: Any | None = None) -> dict[st
         raise SlotConfigurationError("slot loader and bundle activation are disabled")
     registry = _build_builtin_slot_registry_for_settings(resolved_settings)
     bundle = _find_bundle(bundle_id, _bundles_supported_by(registry))
-    activation = _SLOT_BUNDLE_ACTIVATION.activate(bundle)
-    row = _find_bundle_row(bundle.id, build_slot_bundle_rows(resolved_settings))
+    repo = _activation_repo_for_settings(resolved_settings, activation_repo)
+    record = repo.set_active(bundle.id, actor_hash)
+    activation = _SLOT_BUNDLE_ACTIVATION.replace(
+        bundle_id=record.bundle_id,
+        activated_at=record.activated_at,
+        actor_hash=record.actor_hash,
+    )
+    row = _find_bundle_row(
+        bundle.id,
+        build_slot_bundle_rows(resolved_settings, activation_repo=repo),
+    )
+    _append_slot_bundle_audit(
+        "activate",
+        bundle.id,
+        settings=resolved_settings,
+        governance_repo=governance_repo,
+        actor_hash=actor_hash,
+        tenant_id=tenant_id,
+        request_id=request_id,
+    )
     return {
         "status": "activated",
         "active_bundle_id": activation.bundle_id,
         "bundle": row,
     }
+
+
+def deactivate_slot_bundle(
+    settings: Any | None = None,
+    *,
+    activation_repo: Any | None = None,
+    governance_repo: Any | None = None,
+    actor_hash: str = "local-operator",
+    tenant_id: str = "local",
+    request_id: str | None = None,
+) -> dict[str, Any]:
+    """Clear the persisted active bundle pointer."""
+
+    resolved_settings = settings if settings is not None else get_settings()
+    if not resolved_settings.features.slot_platform:
+        raise SlotConfigurationError("slot platform is disabled")
+    if not resolved_settings.features.slot_loader:
+        raise SlotConfigurationError("slot loader and bundle activation are disabled")
+    previous = _active_bundle_activation(resolved_settings, activation_repo)
+    repo = _activation_repo_for_settings(resolved_settings, activation_repo)
+    repo.clear()
+    _SLOT_BUNDLE_ACTIVATION.clear()
+    _append_slot_bundle_audit(
+        "deactivate",
+        previous.bundle_id or "*",
+        settings=resolved_settings,
+        governance_repo=governance_repo,
+        actor_hash=actor_hash,
+        tenant_id=tenant_id,
+        request_id=request_id,
+    )
+    return {"status": "deactivated", "active_bundle_id": None}
 
 
 def install_slot(source: str, settings: Any | None = None) -> dict[str, Any]:
@@ -213,10 +277,16 @@ def install_slot(source: str, settings: Any | None = None) -> dict[str, Any]:
     return result.to_dict()
 
 
-def clear_slot_bundle_activation() -> None:
-    """Clear process-local bundle activation. Intended for tests and diagnostics."""
+def clear_slot_bundle_activation(
+    settings: Any | None = None,
+    *,
+    activation_repo: Any | None = None,
+) -> None:
+    """Clear bundle activation. Intended for tests and diagnostics."""
 
     _SLOT_BUNDLE_ACTIVATION.clear()
+    resolved_settings = settings if settings is not None else get_settings()
+    _activation_repo_for_settings(resolved_settings, activation_repo).clear()
 
 
 def build_slot_aware_tool_registry(
@@ -616,7 +686,11 @@ def build_slot_status_rows(settings: Any | None = None) -> tuple[dict[str, Any],
     )
 
 
-def build_slot_bundle_rows(settings: Any | None = None) -> tuple[dict[str, Any], ...]:
+def build_slot_bundle_rows(
+    settings: Any | None = None,
+    *,
+    activation_repo: Any | None = None,
+) -> tuple[dict[str, Any], ...]:
     """Return read-only built-in slot bundle rows for discovery surfaces."""
 
     resolved_settings = settings if settings is not None else get_settings()
@@ -626,10 +700,11 @@ def build_slot_bundle_rows(settings: Any | None = None) -> tuple[dict[str, Any],
     )
     slot_kernel = build_builtin_slot_kernel(
         enforcement=_slot_enforcement_policy(resolved_settings),
+        activation_repo=activation_repo,
         settings=resolved_settings,
     )
     active_bundle_id = (
-        _SLOT_BUNDLE_ACTIVATION.current().bundle_id
+        _active_bundle_activation(resolved_settings, activation_repo).bundle_id
         if resolved_settings.features.slot_loader
         else None
     )
@@ -676,6 +751,61 @@ def _slot_install_policy(settings: Any) -> SlotInstallPolicy:
         allow_unsigned_local=settings.slots.allow_unsigned_local,
         enterprise_allowlist=settings.slots.enterprise_allowlist,
         trusted_signers=settings.slots.trusted_signers,
+    )
+
+
+def _activation_repo_for_settings(settings: Any, activation_repo: Any | None = None) -> Any:
+    if activation_repo is not None:
+        return activation_repo
+    from doge.infrastructure.database.slot_activation_repository import (
+        SQLiteSlotActivationRepository,
+    )
+
+    return SQLiteSlotActivationRepository(settings.db.agent_db)
+
+
+def _governance_repo_for_settings(settings: Any, governance_repo: Any | None = None) -> Any:
+    if governance_repo is not None:
+        return governance_repo
+    from doge.infrastructure.database.enterprise_governance import (
+        SQLiteEnterpriseGovernanceRepository,
+    )
+
+    return SQLiteEnterpriseGovernanceRepository(settings.db.agent_db)
+
+
+def _active_bundle_activation(settings: Any, activation_repo: Any | None = None):
+    if not settings.features.slot_loader:
+        return _SLOT_BUNDLE_ACTIVATION.replace(bundle_id=None)
+    record = _activation_repo_for_settings(settings, activation_repo).get_active()
+    return _SLOT_BUNDLE_ACTIVATION.replace(
+        bundle_id=record.bundle_id,
+        activated_at=record.activated_at,
+        actor_hash=record.actor_hash,
+    )
+
+
+def _append_slot_bundle_audit(
+    action: str,
+    bundle_id: str,
+    *,
+    settings: Any,
+    governance_repo: Any | None,
+    actor_hash: str,
+    tenant_id: str,
+    request_id: str | None,
+) -> None:
+    repo = _governance_repo_for_settings(settings, governance_repo)
+    repo.append_audit_event(
+        EnterpriseAuditEvent(
+            event_type=f"slot_bundle_{action}",
+            tenant_id=tenant_id,
+            actor_hash=actor_hash,
+            resource_type="slot_bundle",
+            resource_id=bundle_id,
+            request_id=request_id,
+            metadata={"action": action},
+        )
     )
 
 

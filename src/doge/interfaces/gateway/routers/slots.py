@@ -1,17 +1,17 @@
-"""v1 slot-platform discovery routes.
-
-These endpoints expose read-only status for built-in slots. They do not install,
-enable, disable, or resolve slots; runtime assembly remains owned by bootstrap
-factories.
-"""
+"""v1 slot-platform discovery and bundle activation routes."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from doge.interfaces.api import deps
+from doge.interfaces.api.enterprise_access import (
+    ensure_resource_access,
+    enterprise_context,
+    request_id,
+)
 from doge.platform.slots import SlotConfigurationError, UnknownSlotError
 
 router = APIRouter(dependencies=[Depends(deps.require_api_token)])
@@ -47,14 +47,69 @@ async def list_slots(settings=Depends(require_slot_platform)):
 
 
 @router.get("/slot-bundles")
-async def list_slot_bundles(settings=Depends(require_slot_platform)):
-    return {"bundles": list(deps.get_slot_bundle_rows(settings))}
+async def list_slot_bundles(
+    settings=Depends(require_slot_platform),
+    activation_repo=Depends(deps.get_slot_activation_repository),
+):
+    return {"bundles": list(deps.get_slot_bundle_rows(settings, activation_repo))}
 
 
 @router.post("/slot-bundles/{bundle_id}/activate")
-async def activate_slot_bundle(bundle_id: str, settings=Depends(require_slot_loader)):
+async def activate_slot_bundle(
+    bundle_id: str,
+    request: Request,
+    settings=Depends(require_slot_loader),
+    activation_repo=Depends(deps.get_slot_activation_repository),
+    governance_repo=Depends(deps.get_enterprise_governance_repository),
+):
     try:
-        return deps.activate_slot_bundle(bundle_id, settings)
+        context = enterprise_context(request)
+        ensure_resource_access(
+            request,
+            governance_repo,
+            "slot_bundle",
+            bundle_id,
+            "write",
+        )
+        return deps.activate_slot_bundle(
+            bundle_id,
+            settings,
+            actor_hash=context.user_hash,
+            tenant_id=context.tenant_id,
+            request_id=request_id(request),
+            activation_repo=activation_repo,
+            governance_repo=governance_repo,
+        )
+    except (SlotConfigurationError, UnknownSlotError) as exc:
+        raise HTTPException(404, str(exc)) from exc
+
+
+@router.post("/slot-bundles/active/deactivate")
+async def deactivate_active_slot_bundle(
+    request: Request,
+    settings=Depends(require_slot_loader),
+    activation_repo=Depends(deps.get_slot_activation_repository),
+    governance_repo=Depends(deps.get_enterprise_governance_repository),
+):
+    try:
+        context = enterprise_context(request)
+        active_id = activation_repo.get_active().bundle_id
+        if active_id:
+            ensure_resource_access(
+                request,
+                governance_repo,
+                "slot_bundle",
+                active_id,
+                "write",
+            )
+        return deps.deactivate_slot_bundle(
+            settings,
+            actor_hash=context.user_hash,
+            tenant_id=context.tenant_id,
+            request_id=request_id(request),
+            activation_repo=activation_repo,
+            governance_repo=governance_repo,
+        )
     except (SlotConfigurationError, UnknownSlotError) as exc:
         raise HTTPException(404, str(exc)) from exc
 

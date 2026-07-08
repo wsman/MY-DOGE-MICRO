@@ -19,21 +19,23 @@ from doge.platform.slots import (
 _SLOTS_ROUTE_MANIFEST = SlotManifest(
     schema_version=SCHEMA_VERSION,
     id="gateway.slots",
-    name="Slot Discovery Gateway Routes",
+    name="Slot Gateway Routes",
     version="1.0.0",
     type=SlotType.GATEWAY,
     owner="api-gateway",
     maturity="experimental",
-    description="Contributes the read-only v1 slot discovery routes.",
+    description="Contributes the v1 slot discovery and bundle activation routes.",
     entrypoint="doge.interfaces.gateway.slot.SlotDiscoveryGatewaySlot",
     provides=SlotProvides(
-        capabilities=("gateway.routes", "slot.discovery"),
+        capabilities=("gateway.routes", "slot.discovery", "slot.activation"),
         metadata={
             "router_id": "gateway.slots",
             "prefix": "/v1",
             "paths": (
                 "/v1/slots",
                 "/v1/slot-bundles",
+                "/v1/slot-bundles/{bundle_id}/activate",
+                "/v1/slot-bundles/active/deactivate",
                 "/v1/ui-panels",
                 "/v1/slots/{slot_id}",
                 "/v1/slots/{slot_id}/health",

@@ -27,6 +27,21 @@ def test_activation_state_tracks_active_bundle() -> None:
     assert state.clear().active is False
 
 
+def test_activation_state_can_load_persisted_record() -> None:
+    state = SlotBundleActivationState()
+
+    activation = state.replace(
+        bundle_id="bundle.local",
+        activated_at="2026-07-08T00:00:00Z",
+        actor_hash="actor-a",
+    )
+
+    assert activation.bundle_id == "bundle.local"
+    assert activation.activated_at == "2026-07-08T00:00:00Z"
+    assert activation.actor_hash == "actor-a"
+    assert state.current() == activation
+
+
 def test_policy_for_activation_uses_bundle_slot_sets() -> None:
     bundle = SlotBundle(
         id="bundle.local",

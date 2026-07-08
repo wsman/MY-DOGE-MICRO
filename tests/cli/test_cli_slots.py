@@ -55,6 +55,11 @@ def test_parser_accepts_slots_list_and_show() -> None:
     assert bundle_args.bundle_id == "bundle.local_analyst"
     assert bundle_args.json is True
 
+    deactivate_args = parser.parse_args(["slots", "bundle", "deactivate", "--json"])
+    assert deactivate_args.slots_cmd == "bundle"
+    assert deactivate_args.bundle_cmd == "deactivate"
+    assert deactivate_args.json is True
+
     install_args = parser.parse_args(["slots", "install", "slot.json", "--json"])
     assert install_args.slots_cmd == "install"
     assert install_args.source == "slot.json"
@@ -69,6 +74,7 @@ def test_parser_requires_slots_subcommand() -> None:
 
 def test_list_flag_off_prints_disabled_message(monkeypatch, capsys) -> None:
     _strip_feature_env(monkeypatch)
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "0")
     reset_settings()
     main(["slots", "list"])
     out = capsys.readouterr().out
@@ -78,6 +84,7 @@ def test_list_flag_off_prints_disabled_message(monkeypatch, capsys) -> None:
 
 def test_list_flag_off_json_payload(monkeypatch, capsys) -> None:
     _strip_feature_env(monkeypatch)
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "0")
     reset_settings()
     main(["slots", "list", "--json"])
     payload = json.loads(capsys.readouterr().out)
@@ -104,6 +111,15 @@ def test_list_flag_on_json_payload(monkeypatch, capsys) -> None:
     assert payload["slots"][0]["id"] == "market.core"
     assert payload["slots"][0]["type"] == "tool"
     assert payload["slots"][0]["tools"] == 6
+    portfolio = next(slot for slot in payload["slots"] if slot["id"] == "portfolio.core")
+    evidence = next(slot for slot in payload["slots"] if slot["id"] == "evidence.core")
+    quant = next(slot for slot in payload["slots"] if slot["id"] == "quant.lab")
+    governance_actions = next(
+        slot for slot in payload["slots"] if slot["id"] == "governance.actions"
+    )
+    compliance = next(
+        slot for slot in payload["slots"] if slot["id"] == "compliance.screening"
+    )
     workflow = next(
         slot for slot in payload["slots"] if slot["id"] == "workflow.templates"
     )
@@ -121,14 +137,29 @@ def test_list_flag_on_json_payload(monkeypatch, capsys) -> None:
     gateway = next(slot for slot in payload["slots"] if slot["id"] == "gateway.slots")
     eval_slot = next(slot for slot in payload["slots"] if slot["id"] == "eval.local_cases")
     ui_slot = next(slot for slot in payload["slots"] if slot["id"] == "ui.research_workspace")
+    assert portfolio["type"] == "tool"
+    assert portfolio["status"] == "resolved"
+    assert portfolio["tools"] == 4
+    assert evidence["type"] == "tool"
+    assert evidence["status"] == "resolved"
+    assert evidence["tools"] == 8
+    assert quant["type"] == "tool"
+    assert quant["status"] == "resolved"
+    assert quant["tools"] == 1
+    assert governance_actions["type"] == "tool"
+    assert governance_actions["status"] == "resolved"
+    assert governance_actions["tools"] == 2
+    assert compliance["type"] == "tool"
+    assert compliance["status"] == "resolved"
+    assert compliance["tools"] == 1
     assert workflow["type"] == "workflow"
-    assert workflow["status"] == "disabled"
+    assert workflow["status"] == "resolved"
     assert workflow["tools"] == 0
     assert governance["type"] == "governance"
-    assert governance["status"] == "disabled"
+    assert governance["status"] == "resolved"
     assert governance["tools"] == 0
     assert watcher["type"] == "watcher"
-    assert watcher["status"] == "disabled"
+    assert watcher["status"] == "resolved"
     assert watcher["tools"] == 0
     assert document["type"] == "document"
     assert document["status"] == "resolved"
@@ -219,6 +250,7 @@ def test_list_flag_on_json_marks_ui_resolved_when_ui_flag_on(
 
 def test_show_flag_off_disabled(monkeypatch, capsys) -> None:
     _strip_feature_env(monkeypatch)
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "0")
     reset_settings()
     main(["slots", "show", "market.core"])
     assert "disabled" in capsys.readouterr().out
@@ -259,6 +291,7 @@ def test_bundle_list_flag_on_json_payload(monkeypatch, capsys) -> None:
 def test_bundle_activate_requires_slot_loader(monkeypatch, capsys) -> None:
     _strip_feature_env(monkeypatch)
     monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "1")
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_LOADER", "0")
     reset_settings()
 
     with pytest.raises(SystemExit) as exc:
@@ -269,25 +302,46 @@ def test_bundle_activate_requires_slot_loader(monkeypatch, capsys) -> None:
     assert payload == {"status": "disabled", "feature_flag": "DOGE_FEATURE_SLOT_LOADER"}
 
 
-def test_bundle_activate_json_payload(monkeypatch, capsys) -> None:
+def test_bundle_activate_json_payload(monkeypatch, capsys, tmp_path) -> None:
     _strip_feature_env(monkeypatch)
-    clear_slot_bundle_activation()
+    monkeypatch.setenv("DOGE_DB_DIR", str(tmp_path))
     monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "1")
-    monkeypatch.setenv("DOGE_FEATURE_SLOT_LOADER", "1")
     reset_settings()
+    clear_slot_bundle_activation()
 
     try:
         main(["slots", "bundle", "activate", "bundle.daemon_operator", "--json"])
     finally:
         clear_slot_bundle_activation()
         monkeypatch.delenv("DOGE_FEATURE_SLOT_PLATFORM", raising=False)
-        monkeypatch.delenv("DOGE_FEATURE_SLOT_LOADER", raising=False)
+        monkeypatch.delenv("DOGE_DB_DIR", raising=False)
         reset_settings()
 
     payload = json.loads(capsys.readouterr().out)
     assert payload["status"] == "activated"
     assert payload["active_bundle_id"] == "bundle.daemon_operator"
     assert payload["bundle"]["active"] is True
+
+
+def test_bundle_deactivate_json_payload(monkeypatch, capsys, tmp_path) -> None:
+    _strip_feature_env(monkeypatch)
+    monkeypatch.setenv("DOGE_DB_DIR", str(tmp_path))
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "1")
+    reset_settings()
+    clear_slot_bundle_activation()
+
+    try:
+        main(["slots", "bundle", "activate", "bundle.daemon_operator", "--json"])
+        capsys.readouterr()
+        main(["slots", "bundle", "deactivate", "--json"])
+    finally:
+        clear_slot_bundle_activation()
+        monkeypatch.delenv("DOGE_FEATURE_SLOT_PLATFORM", raising=False)
+        monkeypatch.delenv("DOGE_DB_DIR", raising=False)
+        reset_settings()
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload == {"status": "deactivated", "active_bundle_id": None}
 
 
 def test_install_requires_slot_install(monkeypatch, capsys, tmp_path) -> None:

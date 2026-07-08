@@ -19,6 +19,7 @@ from doge.bootstrap.runtime_factories.slots import (
     build_builtin_slot_registry,
     build_slot_bundle_rows,
     build_slot_status_rows,
+    deactivate_slot_bundle,
     install_slot,
 )
 from doge.config import get_settings
@@ -72,6 +73,21 @@ def cmd_slots(args) -> None:
                 return
             _emit_activation(payload, args.json)
             return
+        if args.bundle_cmd == "deactivate":
+            if not settings.features.slot_loader:
+                _emit_loader_disabled(args.json)
+                sys.exit(1)
+            try:
+                payload = deactivate_slot_bundle(
+                    settings=settings,
+                    actor_hash="local-cli",
+                )
+            except Exception as exc:  # noqa: BLE001 - concise operator message
+                print(f"slots failed: {exc}", file=sys.stderr)
+                sys.exit(1)
+                return
+            _emit_activation(payload, args.json)
+            return
 
     if args.slots_cmd == "install":
         if not settings.features.slot_install:
@@ -112,8 +128,8 @@ def _emit_loader_disabled(json_only: bool) -> None:
     if json_only:
         print(json.dumps(payload, ensure_ascii=False))
         return
-    print("Slot loader and bundle activation are experimental and currently disabled.")
-    print("Set DOGE_FEATURE_SLOT_LOADER=1 to enable.")
+    print("Slot loader and bundle activation are experimental and explicitly disabled.")
+    print("Unset DOGE_FEATURE_SLOT_LOADER or set it to 1 to enable.")
 
 
 def _emit_install_disabled(json_only: bool) -> None:
@@ -140,6 +156,9 @@ def _emit_bundle_list(rows: list[dict[str, Any]], json_only: bool) -> None:
 def _emit_activation(payload: dict[str, Any], json_only: bool) -> None:
     if json_only:
         print(json.dumps(payload, ensure_ascii=False))
+        return
+    if payload["status"] == "deactivated":
+        print("active_bundle_id=")
         return
     bundle = payload["bundle"]
     print(f"active_bundle_id={payload['active_bundle_id']}")

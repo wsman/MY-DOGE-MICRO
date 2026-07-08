@@ -1,4 +1,4 @@
-"""Process-local slot bundle activation state."""
+"""Slot bundle activation state."""
 
 from __future__ import annotations
 
@@ -12,9 +12,11 @@ from doge.platform.slots.policy import SlotPolicy
 
 @dataclass(frozen=True)
 class SlotBundleActivation:
-    """Current process-local bundle activation record."""
+    """Current bundle activation record."""
 
     bundle_id: str | None = None
+    activated_at: str | None = None
+    actor_hash: str | None = None
 
     @property
     def active(self) -> bool:
@@ -22,28 +24,49 @@ class SlotBundleActivation:
 
 
 class SlotBundleActivationState:
-    """Small mutable holder for local-alpha bundle activation.
-
-    This is intentionally process-local. Sprint 046 does not add persistence or
-    cross-process synchronization.
-    """
+    """Small mutable holder used as a bundle activation cache."""
 
     def __init__(self) -> None:
         self._lock = RLock()
         self._bundle_id: str | None = None
+        self._activated_at: str | None = None
+        self._actor_hash: str | None = None
 
     def current(self) -> SlotBundleActivation:
         with self._lock:
-            return SlotBundleActivation(self._bundle_id)
+            return SlotBundleActivation(self._bundle_id, self._activated_at, self._actor_hash)
 
-    def activate(self, bundle: SlotBundle) -> SlotBundleActivation:
+    def activate(
+        self,
+        bundle: SlotBundle,
+        *,
+        activated_at: str | None = None,
+        actor_hash: str | None = None,
+    ) -> SlotBundleActivation:
         with self._lock:
             self._bundle_id = bundle.id
-            return SlotBundleActivation(self._bundle_id)
+            self._activated_at = activated_at
+            self._actor_hash = actor_hash
+            return SlotBundleActivation(self._bundle_id, self._activated_at, self._actor_hash)
+
+    def replace(
+        self,
+        *,
+        bundle_id: str | None,
+        activated_at: str | None = None,
+        actor_hash: str | None = None,
+    ) -> SlotBundleActivation:
+        with self._lock:
+            self._bundle_id = bundle_id
+            self._activated_at = activated_at
+            self._actor_hash = actor_hash
+            return SlotBundleActivation(self._bundle_id, self._activated_at, self._actor_hash)
 
     def clear(self) -> SlotBundleActivation:
         with self._lock:
             self._bundle_id = None
+            self._activated_at = None
+            self._actor_hash = None
             return SlotBundleActivation()
 
 
