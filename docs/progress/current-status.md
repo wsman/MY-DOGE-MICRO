@@ -23,6 +23,25 @@ authority remains [runtime-maturity.yaml](runtime-maturity.yaml).
 - Use [../guides/approve-and-resume-runs.md](../guides/approve-and-resume-runs.md)
   for approval handling.
 
+## Slot Platform Local Built-in Path
+
+Slot Platform controlled built-in consumers are now default-on for local
+operation: `DOGE_FEATURE_SLOT_PLATFORM`, `DOGE_FEATURE_SLOT_GOVERNANCE`,
+`DOGE_FEATURE_SLOT_WATCHER`, `DOGE_FEATURE_SLOT_LOADER`, and
+`DOGE_FEATURE_WORKFLOW_TEMPLATES` are enabled by default. Legacy direct wiring
+remains available by setting the relevant flag to `0`.
+
+Higher-risk surfaces remain default-off and require explicit operator opt-in:
+`DOGE_FEATURE_SLOT_UI`, `DOGE_FEATURE_SLOT_ENFORCEMENT`,
+`DOGE_FEATURE_SLOT_RUNTIME_INTERCEPTION`, `DOGE_FEATURE_SLOT_INSTALL`,
+`DOGE_FEATURE_SLOT_PROVIDER_EXECUTION`, `DOGE_FEATURE_CAPABILITY_REGISTRY`,
+`DOGE_FEATURE_PYTHON_ANALYSIS_ENABLED`, `DOGE_FEATURE_PLATFORM_OBJECTS`,
+`DOGE_FEATURE_RUN_SUMMARY_API`, and `DOGE_FEATURE_RUNTIME_OUTBOX_PUBLISHER`.
+
+The latest Slot Platform remote-CI milestone is P6 (`a1da266`), recorded in
+`production/qa/evidence/ci/remote-ci-a1da266.json`. The Slot Platform does not
+close any external/operator gates and remains experimental.
+
 ## Not A Release Claim
 
 This page does not replace the generated status or maturity YAML. Do not claim Stable, GA, Production Ready, or enterprise Beta from this page.

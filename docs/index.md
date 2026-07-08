@@ -29,6 +29,7 @@ governance, and CDD framework docs.
 | Current human status | [progress/current-status.md](progress/current-status.md) |
 | Current generated status | [quality/status.md](quality/status.md) |
 | Runtime maturity authority | [progress/runtime-maturity.yaml](progress/runtime-maturity.yaml) |
+| Slot Platform configuration | [reference/configuration.md](reference/configuration.md) |
 
 ## Product References
 
@@ -71,6 +72,7 @@ reference/http-api.md; put contract changes there first, then update tests.
 | Source layout map | [architecture/source-layout-map.md](architecture/source-layout-map.md) |
 | Compatibility surfaces | [architecture/compatibility-surfaces.md](architecture/compatibility-surfaces.md) |
 | Data ownership | [architecture/data-ownership.md](architecture/data-ownership.md) |
+| Slot Platform | [architecture/index.md#slot-platform](architecture/index.md#slot-platform) |
 | Bounded context index | [../design/cdd/module-index.md](../design/cdd/module-index.md) |
 | Architecture registry | [registry/architecture.yaml](registry/architecture.yaml) |
 | Traceability | [architecture/architecture-traceability.md](architecture/architecture-traceability.md) |

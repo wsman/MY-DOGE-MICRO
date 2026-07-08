@@ -40,6 +40,15 @@ files in supporting roles.
 - Shortcut pages in this directory should link these authorities and stay short;
   they must not re-list the bounded-context set, runtime path, or shim rules.
 
+## Slot Platform
+
+The Slot Platform is an experimental extension mechanism (ADR-0042 through
+ADR-0064). It is governed by feature flags, with controlled built-in facets
+defaulting on and higher-risk install/execution surfaces defaulting off. See
+[ADR-0042](adr-0042-slot-platform.md), [ADR-0064](adr-0064-slot-provider-execution.md),
+and operational flag details in
+[../reference/configuration.md](../reference/configuration.md).
+
 ## ADRs
 
 The ADR files live directly in this directory as `adr-NNNN-*.md`. The

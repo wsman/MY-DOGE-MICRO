@@ -119,6 +119,46 @@ No README, release note, or docs entry should claim Stable, GA, or Production
 Ready while those values remain unchanged. See
 [runtime-levels.md](docs/architecture/runtime-levels.md).
 
+## Slot Platform Status
+
+The Slot Platform (ADR-0042 through ADR-0064) is an experimental, built-in
+extension mechanism. It contributes tools, models, data sources, workflows,
+documents, gateway routes, UI panels, watchers, eval suites, and governance
+policies as slot facets.
+
+Controlled built-in Slot Platform consumers are locally default-on:
+`DOGE_FEATURE_SLOT_PLATFORM`, `DOGE_FEATURE_SLOT_GOVERNANCE`,
+`DOGE_FEATURE_SLOT_WATCHER`, `DOGE_FEATURE_SLOT_LOADER`, and
+`DOGE_FEATURE_WORKFLOW_TEMPLATES`.
+
+Higher-risk surfaces remain default-off and require explicit operator opt-in:
+`DOGE_FEATURE_SLOT_UI`, `DOGE_FEATURE_SLOT_ENFORCEMENT`,
+`DOGE_FEATURE_SLOT_RUNTIME_INTERCEPTION`, `DOGE_FEATURE_SLOT_INSTALL`,
+`DOGE_FEATURE_SLOT_PROVIDER_EXECUTION`, `DOGE_FEATURE_CAPABILITY_REGISTRY`,
+`DOGE_FEATURE_PYTHON_ANALYSIS_ENABLED`, `DOGE_FEATURE_PLATFORM_OBJECTS`,
+`DOGE_FEATURE_RUN_SUMMARY_API`, and `DOGE_FEATURE_RUNTIME_OUTBOX_PUBLISHER`.
+
+No third-party slot provider code executes unless the operator explicitly
+enables `DOGE_FEATURE_SLOT_PROVIDER_EXECUTION` and all trust/runtime gates
+pass. The current execution model is in-process `importlib` and is not
+OS/container/WASM sandboxing, filesystem mediation, or malicious-code
+containment.
+
+Inspect built-in slots from the CLI:
+
+```bash
+doge slots list
+doge slots bundle list
+doge slots show market.core
+```
+
+The latest Slot Platform remote-CI milestone is P6 (`a1da266`), recorded in
+`production/qa/evidence/ci/remote-ci-a1da266.json`. The Slot Platform does not
+close any external/operator gates and remains experimental. See
+[docs/reference/configuration.md](docs/reference/configuration.md) for flag
+details and [docs/architecture/index.md](docs/architecture/index.md) for the
+ADR chain.
+
 ## Architecture At A Glance
 
 OpenDoge has one architecture, counted three ways depending on the

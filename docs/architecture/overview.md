@@ -54,6 +54,18 @@ This is a target layout, not proof that all implementation has moved. New
 facades and physical moves require compatibility import tests, layer gates, and
 contract tests.
 
+## Slot Platform (Experimental)
+
+ADR-0042 introduces the Slot Platform, an experimental extension mechanism
+where built-in slot contributions resolve tools, models, data sources,
+workflows, documents, gateway routes, UI panels, watchers, eval suites, and
+governance policies through the SlotKernel. The controlled built-in path is
+default-on for local operation; higher-risk install, enforcement, runtime
+interception, UI, and provider execution surfaces remain default-off. The Slot
+Platform is not a marketplace, production-ready extension host, or sandbox. See
+[ADR-0042](adr-0042-slot-platform.md) and the full ADR chain in the
+[architecture index](index.md).
+
 ## Governing Documents
 
 - [ADR-0021: Bounded Context Consolidation](adr-0021-bounded-context-consolidation.md)

@@ -116,6 +116,10 @@ and `POST /v1/slot-bundles/active/deactivate`.
 `DOGE_SLOT_ENTERPRISE_ALLOWLIST` remains scoped to the manifest-only install
 preview path.
 
+A high-level overview of Slot Platform status, default-on/default-off flags,
+and built-in slot consumers is in the repository README:
+[../../README.md](../../README.md).
+
 ## Secrets
 
 | Variable | Meaning |
