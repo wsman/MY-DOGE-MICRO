@@ -131,6 +131,14 @@ class FeatureCapabilityProvider:
                 metadata=_feature_metadata("slot_enforcement"),
             ),
             capability(
+                "feature.slot_runtime_interception",
+                "runtime",
+                "Slot Runtime Interception",
+                _feature_status(self._settings.features.slot_runtime_interception),
+                risk_level="medium",
+                metadata=_feature_metadata("slot_runtime_interception"),
+            ),
+            capability(
                 "feature.slot_loader",
                 "platform",
                 "Slot Loader",

@@ -78,6 +78,9 @@ class GatewayContainer:
     def build_company_announcement_repository(self): return tools.build_company_announcement_repository(self.build_note_repository())
     def build_consensus_estimate_repository(self): return tools.build_consensus_estimate_repository()
     def build_python_analysis_executor(self, settings=None): return tools.build_python_analysis_executor(settings)
+    def build_slot_runtime_executor(self, settings=None):
+        from doge.bootstrap.runtime_factories.slots import build_slot_runtime_executor
+        return build_slot_runtime_executor(settings)
     def build_tool_application_service(self): return tools.build_tool_application_service(self.db_path, self.runtime_container, self.workspace_container, documents.build_rag_service, use_cases.build_generate_industry_report_use_case)
 
     # -- Process graph collaborators --

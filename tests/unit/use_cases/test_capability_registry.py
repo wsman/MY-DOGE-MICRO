@@ -70,13 +70,15 @@ def test_feature_capabilities_include_lifecycle_metadata():
         "feature.slot_watcher": "slot_watcher",
         "feature.slot_ui": "slot_ui",
         "feature.slot_enforcement": "slot_enforcement",
+        "feature.slot_runtime_interception": "slot_runtime_interception",
         "feature.slot_loader": "slot_loader",
         "feature.slot_install": "slot_install",
     }
     for capability_id, feature_name in expected.items():
+        expected_lifecycle = FEATURE_LIFECYCLES[feature_name]
         lifecycle = capabilities[capability_id]["metadata"]["lifecycle"]
-        assert lifecycle["env_var"] == FEATURE_LIFECYCLES[feature_name].env_var
-        assert lifecycle["current_default"] is False
+        assert lifecycle["env_var"] == expected_lifecycle.env_var
+        assert lifecycle["current_default"] is expected_lifecycle.current_default
         assert lifecycle["target_default_on"]
         assert lifecycle["target_removal"]
         assert lifecycle["replacement_behavior"]

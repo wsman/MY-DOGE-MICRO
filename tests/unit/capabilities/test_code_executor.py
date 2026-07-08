@@ -51,6 +51,36 @@ def test_subprocess_code_executor_keeps_legacy_unsafe_code_guard():
     assert result.error == "Code uses disallowed operations in the demo sandbox."
 
 
+def test_subprocess_code_executor_scrubs_secret_environment(monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "secret-value")
+    monkeypatch.setenv("DOGE_SLOT_TRUSTED_PUBLISHER_KEYS", "ops=secret")
+    code = (
+        "import importlib\n"
+        "os_mod = importlib.import_module('os')\n"
+        "print(os_mod.environ.get('DEEPSEEK_API_KEY'))\n"
+        "print(os_mod.environ.get('DOGE_SLOT_TRUSTED_PUBLISHER_KEYS'))\n"
+    )
+
+    result = SubprocessCodeExecutor().execute(code, timeout=1.0)
+
+    assert result.ok is True
+    assert result.stdout.splitlines() == ["None", "None"]
+
+
+def test_subprocess_code_executor_runs_from_scratch_cwd():
+    code = (
+        "import importlib\n"
+        "os_mod = importlib.import_module('os')\n"
+        "print(os_mod.getcwd())\n"
+    )
+
+    result = SubprocessCodeExecutor().execute(code, timeout=1.0)
+
+    assert result.ok is True
+    assert "doge-python-analysis-" in result.stdout
+    assert str(result.stdout).strip() != str(__import__("os").getcwd())
+
+
 def test_composition_requires_feature_flag_before_subprocess_executor():
     disabled = build_python_analysis_executor(
         Settings(features=FeatureConfig(python_analysis_enabled=False, python_analysis_executor="subprocess"))

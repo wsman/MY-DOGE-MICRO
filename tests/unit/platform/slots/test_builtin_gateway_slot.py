@@ -15,10 +15,16 @@ def test_slot_discovery_gateway_slot_manifest() -> None:
     assert manifest.type is SlotType.GATEWAY
     assert manifest.owner == "api-gateway"
     assert manifest.feature_flags == ("slot_platform",)
-    assert manifest.provides.capabilities == ("gateway.routes", "slot.discovery")
+    assert manifest.provides.capabilities == (
+        "gateway.routes",
+        "slot.discovery",
+        "slot.activation",
+    )
     assert manifest.provides.metadata["router_id"] == "gateway.slots"
     assert manifest.provides.metadata["prefix"] == "/v1"
     assert "/v1/slots" in manifest.provides.metadata["paths"]
+    assert "/v1/slot-bundles/{bundle_id}/activate" in manifest.provides.metadata["paths"]
+    assert "/v1/slot-bundles/active/deactivate" in manifest.provides.metadata["paths"]
     assert "/v1/ui-panels" in manifest.provides.metadata["paths"]
     assert manifest.permissions.risk_level == "low"
 

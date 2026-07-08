@@ -19,6 +19,7 @@ from doge.platform.slots import (
     SlotContext,
     SlotHealth,
     SlotManifest,
+    SlotPermissionViolation,
     SlotProvides,
     SlotRegistry,
     SlotType,
@@ -37,6 +38,7 @@ _ALL_FEATURE_VARS = [
     "DOGE_FEATURE_SLOT_WATCHER",
     "DOGE_FEATURE_SLOT_UI",
     "DOGE_FEATURE_SLOT_ENFORCEMENT",
+    "DOGE_FEATURE_SLOT_RUNTIME_INTERCEPTION",
     "DOGE_FEATURE_SLOT_LOADER",
     "DOGE_FEATURE_SLOT_INSTALL",
 ]
@@ -140,6 +142,7 @@ class _DataSlot(ISlot):
 
 def test_data_slot_off_returns_no_registry(monkeypatch) -> None:
     _strip_feature_env(monkeypatch)
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "0")
     reset_settings()
 
     assert slots_module.build_slot_aware_data_source() is None
@@ -147,6 +150,7 @@ def test_data_slot_off_returns_no_registry(monkeypatch) -> None:
 
 def test_default_data_source_factory_preserves_tdx_when_slot_platform_off(monkeypatch) -> None:
     _strip_feature_env(monkeypatch)
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "0")
     reset_settings()
 
     data_source = market_factories.build_tdx_data_source()
@@ -201,6 +205,25 @@ def test_scan_market_use_case_uses_slot_data_source_registry(monkeypatch) -> Non
     assert stock_repo.ensure_schema_markets == ["cn"]
     assert stock_repo.saved[0][0] == "cn"
     assert stock_repo.saved[0][1].iloc[0]["ticker"] == "000001.SZ"
+
+
+def test_runtime_interception_denies_latest_market_date_without_network_permission(monkeypatch) -> None:
+    source = _Source("data.custom")
+    registry = SlotRegistry()
+    registry.register(_DataSlot("data.custom_slot", source_id="data.custom", source=source))
+    monkeypatch.setattr(slots_module, "build_builtin_slot_registry", lambda: registry)
+    _strip_feature_env(
+        monkeypatch,
+        keep={"DOGE_FEATURE_SLOT_PLATFORM", "DOGE_FEATURE_SLOT_RUNTIME_INTERCEPTION"},
+    )
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "1")
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_RUNTIME_INTERCEPTION", "1")
+    reset_settings()
+
+    data_source = slots_module.build_slot_aware_data_source()
+
+    with pytest.raises(SlotPermissionViolation):
+        data_source.get_latest_market_date("cn")
 
 
 def test_duplicate_data_source_contribution_fails_fast(monkeypatch) -> None:

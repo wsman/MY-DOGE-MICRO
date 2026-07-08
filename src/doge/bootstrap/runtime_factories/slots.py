@@ -15,7 +15,7 @@ contract lives in :mod:`doge.platform.slots` (see
 
 from __future__ import annotations
 
-from dataclasses import fields
+from dataclasses import fields, replace
 from inspect import signature
 from pathlib import Path
 from typing import Any
@@ -24,6 +24,7 @@ from doge.application.tools.registry import ToolRegistry
 from doge.bootstrap.runtime_factories.builtin_model_slot import ModelKimiAgentSdkSlot
 from doge.config import get_settings
 from doge.config.settings import parse_slot_trusted_publisher_keys
+from doge.core.ports.slot_runtime_executor import DisabledSlotRuntimeExecutor
 from doge.core.ports.enterprise_governance import EnterpriseAuditEvent
 from doge.eval.slot import LocalEvalCasesSlot
 from doge.eval.suites import EvalSuiteRegistry
@@ -44,6 +45,7 @@ from doge.platform.slots import (
     SLOT_SERVICE_SECRET_PROVIDER,
     SlotBundle,
     SlotBundleActivationState,
+    SlotAccessEvent,
     SlotConfigurationError,
     SlotContribution,
     SlotContext,
@@ -56,6 +58,12 @@ from doge.platform.slots import (
     SlotRegistry,
     SlotType,
     UnknownSlotError,
+    SandboxedSlotRuntimeExecutor,
+    guard_network_port,
+    guard_secret_provider,
+    slot_permission_context,
+    slot_scoped_executor,
+    slot_scoped_object,
     policy_for_activation,
     sign_slot_manifest,
 )
@@ -258,7 +266,10 @@ def deactivate_slot_bundle(
         tenant_id=tenant_id,
         request_id=request_id,
     )
-    return {"status": "deactivated", "active_bundle_id": None}
+    return {
+        "status": "deactivated",
+        "active_bundle_id": None,
+    }
 
 
 def install_slot(
@@ -351,11 +362,23 @@ def clear_slot_bundle_activation(
     _activation_repo_for_settings(resolved_settings, activation_repo).clear()
 
 
+def build_slot_runtime_executor(settings: Any | None = None) -> Any:
+    """Build the configured slot runtime executor boundary."""
+
+    resolved_settings = settings if settings is not None else get_settings()
+    if not _slot_runtime_interception_enabled(resolved_settings):
+        return DisabledSlotRuntimeExecutor()
+    return SandboxedSlotRuntimeExecutor(
+        audit_sink=_slot_runtime_audit_sink(resolved_settings),
+    )
+
+
 def build_slot_aware_tool_registry(
     gateway_container_fn: Any,
     *,
     entitlement_checker: Any = None,
     context: Any = None,
+    settings: Any | None = None,
 ) -> ToolRegistry:
     """Assemble a ``ToolRegistry`` from slot contributions + remaining descriptors.
 
@@ -366,20 +389,25 @@ def build_slot_aware_tool_registry(
     without dedup).
     """
     service = gateway_container_fn().build_tool_application_service()
-    settings = get_settings()
+    resolved_settings = settings if settings is not None else get_settings()
 
     slot_context = SlotContext(
-        settings=settings,
-        feature_flags=_feature_flags(settings),
+        settings=resolved_settings,
+        feature_flags=_feature_flags(resolved_settings),
         tool_application_service=service,
     )
 
-    slot_kernel = build_builtin_slot_kernel(enforcement=_slot_enforcement_policy(settings), settings=settings)
+    slot_kernel = build_builtin_slot_kernel(
+        enforcement=_slot_enforcement_policy(resolved_settings),
+        settings=resolved_settings,
+    )
     contributions = slot_kernel.resolve_contributions(slot_context, slot_type=SlotType.TOOL)
+    interception_enabled = _slot_runtime_interception_enabled(resolved_settings)
+    audit_sink = _slot_runtime_audit_sink(resolved_settings) if interception_enabled else None
 
     effective_entitlement = build_slot_aware_entitlement_checker(
         entitlement_checker,
-        settings=settings,
+        settings=resolved_settings,
     )
     registry = ToolRegistry(entitlement_checker=effective_entitlement, context=context)
     slot_owned: set[str] = set(_slot_manifest_tool_names(slot_kernel))
@@ -390,7 +418,15 @@ def build_slot_aware_tool_registry(
             raise SlotConfigurationError(
                 f"slot {contribution.slot_id} contributed tools without an executor"
             )
-        registry.include_descriptors(contribution.tools, contribution.executor)
+        manifest = _slot_manifest_for_contribution(slot_kernel, contribution)
+        executor = slot_scoped_executor(
+            contribution.executor,
+            contribution.slot_id,
+            manifest.permissions,
+            enabled=interception_enabled,
+            audit_sink=audit_sink,
+        )
+        registry.include_descriptors(contribution.tools, executor)
 
     remaining = tuple(
         descriptor
@@ -404,42 +440,87 @@ def build_slot_aware_tool_registry(
 def build_slot_aware_agent_backends(
     gateway_container_fn: Any,
     secret_provider: Any = None,
+    *,
+    settings: Any | None = None,
 ) -> dict[str, Any]:
     """Assemble agent backends from model slot contributions."""
 
     if secret_provider is None:
         secret_provider = gateway_container_fn().build_secret_provider()
-    settings = get_settings()
+    resolved_settings = settings if settings is not None else get_settings()
+    interception_enabled = _slot_runtime_interception_enabled(resolved_settings)
+    audit_sink = _slot_runtime_audit_sink(resolved_settings) if interception_enabled else None
     slot_context = SlotContext(
-        settings=settings,
-        feature_flags=_feature_flags(settings),
+        settings=resolved_settings,
+        feature_flags=_feature_flags(resolved_settings),
         service_locator=lambda service_id: (
             secret_provider if service_id == SLOT_SERVICE_SECRET_PROVIDER else None
         ),
     )
-    slot_kernel = build_builtin_slot_kernel(enforcement=_slot_enforcement_policy(settings), settings=settings)
+    slot_kernel = build_builtin_slot_kernel(
+        enforcement=_slot_enforcement_policy(resolved_settings),
+        settings=resolved_settings,
+    )
     contributions = slot_kernel.resolve_contributions(slot_context, slot_type=SlotType.MODEL)
 
     backends: dict[str, Any] = {}
     for contribution in contributions:
+        manifest = _slot_manifest_for_contribution(slot_kernel, contribution)
+        guarded_secret_provider = guard_secret_provider(
+            secret_provider,
+            enabled=interception_enabled,
+            audit_sink=audit_sink,
+        )
+        contribution_context = SlotContext(
+            settings=resolved_settings,
+            feature_flags=_feature_flags(resolved_settings),
+            service_locator=lambda service_id, provider=guarded_secret_provider: (
+                provider if service_id == SLOT_SERVICE_SECRET_PROVIDER else None
+            ),
+        )
         for backend in contribution.model_backends:
             if backend.backend_id in backends:
                 raise SlotConfigurationError(
                     f"duplicate model backend contribution: {backend.backend_id}"
+                )
+            with slot_permission_context(
+                contribution.slot_id,
+                manifest.permissions,
+                enforce=interception_enabled,
+                audit_sink=audit_sink,
+            ):
+                backend_instance = backend.factory(contribution_context)
+            guarded_backend = guard_network_port(
+                backend_instance,
+                enabled=interception_enabled,
+                audit_sink=audit_sink,
+                methods=("chat",),
             )
-            backends[backend.backend_id] = backend.factory(slot_context)
+            backends[backend.backend_id] = slot_scoped_object(
+                guarded_backend,
+                contribution.slot_id,
+                manifest.permissions,
+                enabled=interception_enabled,
+                audit_sink=audit_sink,
+            )
     return backends
 
 
-def build_slot_aware_workflow_templates() -> tuple[dict[str, Any], ...]:
+def build_slot_aware_workflow_templates(
+    *,
+    settings: Any | None = None,
+) -> tuple[dict[str, Any], ...]:
     """Assemble built-in workflow template definitions from workflow slots."""
 
-    settings = get_settings()
+    resolved_settings = settings if settings is not None else get_settings()
     slot_context = SlotContext(
-        settings=settings,
-        feature_flags=_feature_flags(settings),
+        settings=resolved_settings,
+        feature_flags=_feature_flags(resolved_settings),
     )
-    slot_kernel = build_builtin_slot_kernel(enforcement=_slot_enforcement_policy(settings), settings=settings)
+    slot_kernel = build_builtin_slot_kernel(
+        enforcement=_slot_enforcement_policy(resolved_settings),
+        settings=resolved_settings,
+    )
     contributions = slot_kernel.resolve_contributions(
         slot_context,
         slot_type=SlotType.WORKFLOW,
@@ -447,13 +528,22 @@ def build_slot_aware_workflow_templates() -> tuple[dict[str, Any], ...]:
 
     templates: list[dict[str, Any]] = []
     seen: set[str] = set()
+    interception_enabled = _slot_runtime_interception_enabled(resolved_settings)
+    audit_sink = _slot_runtime_audit_sink(resolved_settings) if interception_enabled else None
     for contribution in contributions:
+        manifest = _slot_manifest_for_contribution(slot_kernel, contribution)
         for workflow in contribution.workflows:
             if workflow.slug in seen:
                 raise SlotConfigurationError(
                     f"duplicate workflow template contribution: {workflow.slug}"
                 )
-            template = dict(workflow.template_factory(slot_context))
+            with slot_permission_context(
+                contribution.slot_id,
+                manifest.permissions,
+                enforce=interception_enabled,
+                audit_sink=audit_sink,
+            ):
+                template = dict(workflow.template_factory(slot_context))
             if template.get("slug") != workflow.slug:
                 raise SlotConfigurationError(
                     f"workflow contribution {workflow.slug} returned mismatched "
@@ -568,14 +658,28 @@ def build_slot_aware_document_parser(
 
     parsers: list[Any] = []
     seen_parser_ids: set[str] = set()
+    interception_enabled = _slot_runtime_interception_enabled(resolved_settings)
+    audit_sink = _slot_runtime_audit_sink(resolved_settings) if interception_enabled else None
     for contribution in contributions:
+        manifest = _slot_manifest_for_contribution(slot_kernel, contribution)
         for parser in contribution.document_parsers:
             if parser.parser_id in seen_parser_ids:
                 raise SlotConfigurationError(
                     f"duplicate document parser contribution: {parser.parser_id}"
                 )
             seen_parser_ids.add(parser.parser_id)
-            parsers.append(parser)
+            parsers.append(
+                replace(
+                    parser,
+                    factory=_slot_scoped_factory(
+                        parser.factory,
+                        contribution.slot_id,
+                        manifest.permissions,
+                        enabled=interception_enabled,
+                        audit_sink=audit_sink,
+                    ),
+                )
+            )
 
     if not parsers:
         return None
@@ -599,14 +703,40 @@ def build_slot_aware_data_source(
 
     data_sources: list[Any] = []
     seen_source_ids: set[str] = set()
+    interception_enabled = _slot_runtime_interception_enabled(resolved_settings)
+    audit_sink = _slot_runtime_audit_sink(resolved_settings) if interception_enabled else None
     for contribution in contributions:
+        manifest = _slot_manifest_for_contribution(slot_kernel, contribution)
         for data_source in contribution.data_sources:
             if data_source.source_id in seen_source_ids:
                 raise SlotConfigurationError(
                     f"duplicate data source contribution: {data_source.source_id}"
                 )
             seen_source_ids.add(data_source.source_id)
-            data_sources.append(data_source)
+            data_sources.append(
+                replace(
+                    data_source,
+                    factory=_slot_scoped_factory(
+                        data_source.factory,
+                        contribution.slot_id,
+                        manifest.permissions,
+                        enabled=interception_enabled,
+                        audit_sink=audit_sink,
+                        result_wrapper=lambda source, slot_id=contribution.slot_id, permissions=manifest.permissions: slot_scoped_object(
+                            guard_network_port(
+                                source,
+                                enabled=interception_enabled,
+                                audit_sink=audit_sink,
+                                methods=("connect", "download_kline", "get_latest_market_date"),
+                            ),
+                            slot_id,
+                            permissions,
+                            enabled=interception_enabled,
+                            audit_sink=audit_sink,
+                        ),
+                    ),
+                )
+            )
 
     if not data_sources:
         return None
@@ -637,14 +767,23 @@ def build_slot_aware_gateway_routes(
 
     mounted: list[str] = []
     seen_router_ids: set[str] = set()
+    interception_enabled = _slot_runtime_interception_enabled(resolved_settings)
+    audit_sink = _slot_runtime_audit_sink(resolved_settings) if interception_enabled else None
     for contribution in contributions:
+        manifest = _slot_manifest_for_contribution(slot_kernel, contribution)
         for route in contribution.routes:
             if route.router_id in seen_router_ids:
                 raise SlotConfigurationError(
                     f"duplicate gateway route contribution: {route.router_id}"
                 )
             seen_router_ids.add(route.router_id)
-            router = route.router_factory(slot_context)
+            with slot_permission_context(
+                contribution.slot_id,
+                manifest.permissions,
+                enforce=interception_enabled,
+                audit_sink=audit_sink,
+            ):
+                router = route.router_factory(slot_context)
             if router is None:
                 raise SlotConfigurationError(
                     f"gateway route {route.router_id} returned no router"
@@ -675,7 +814,10 @@ def build_slot_aware_eval_suites(
 
     eval_suites: list[Any] = []
     seen_suite_ids: set[str] = set()
+    interception_enabled = _slot_runtime_interception_enabled(resolved_settings)
+    audit_sink = _slot_runtime_audit_sink(resolved_settings) if interception_enabled else None
     for contribution in contributions:
+        manifest = _slot_manifest_for_contribution(slot_kernel, contribution)
         for suite in contribution.eval_suites:
             if suite.suite_id in seen_suite_ids:
                 raise SlotConfigurationError(
@@ -705,8 +847,18 @@ def build_slot_aware_ui_panels(
 
     ui_panels: list[Any] = []
     seen_panel_ids: set[tuple[str, str]] = set()
+    interception_enabled = _slot_runtime_interception_enabled(resolved_settings)
+    audit_sink = _slot_runtime_audit_sink(resolved_settings) if interception_enabled else None
     for contribution in contributions:
-        for panel in contribution.ui_panels:
+        manifest = _slot_manifest_for_contribution(slot_kernel, contribution)
+        with slot_permission_context(
+            contribution.slot_id,
+            manifest.permissions,
+            enforce=interception_enabled,
+            audit_sink=audit_sink,
+        ):
+            panels = tuple(contribution.ui_panels)
+        for panel in panels:
             key = (panel.workspace, panel.panel_id)
             if key in seen_panel_ids:
                 raise SlotConfigurationError(
@@ -761,8 +913,8 @@ def build_slot_bundle_rows(
         feature_flags=_feature_flags(resolved_settings),
     )
     slot_kernel = build_builtin_slot_kernel(
-        enforcement=_slot_enforcement_policy(resolved_settings),
         activation_repo=activation_repo,
+        enforcement=_slot_enforcement_policy(resolved_settings),
         settings=resolved_settings,
     )
     active_bundle_id = (
@@ -807,6 +959,65 @@ def _slot_enforcement_policy(settings: Any) -> SlotEnforcementPolicy:
     )
 
 
+def _slot_runtime_interception_enabled(settings: Any) -> bool:
+    return bool(getattr(settings.features, "slot_runtime_interception", False))
+
+
+def _slot_manifest_for_contribution(slot_kernel: SlotKernel, contribution: SlotContribution) -> Any:
+    return slot_kernel.registry.get(contribution.slot_id).manifest()
+
+
+def _slot_runtime_audit_sink(settings: Any) -> Any:
+    def _append(event: SlotAccessEvent) -> None:
+        try:
+            _governance_repo_for_settings(settings).append_audit_event(
+                EnterpriseAuditEvent(
+                    event_type="slot_permission_violation",
+                    tenant_id="local",
+                    actor_hash="slot-runtime-interception",
+                    resource_type=event.resource_type,
+                    resource_id=event.slot_id,
+                    metadata={
+                        "slot_id": event.slot_id,
+                        "declared": event.declared,
+                        "attempted": event.attempted,
+                        "action": event.action,
+                    },
+                )
+            )
+        except Exception:
+            pass
+
+    return _append
+
+
+def _slot_scoped_factory(
+    factory: Any,
+    slot_id: str,
+    permissions: Any,
+    *,
+    enabled: bool,
+    audit_sink: Any,
+    result_wrapper: Any | None = None,
+) -> Any:
+    def _factory(context: SlotContext) -> Any:
+        if enabled:
+            with slot_permission_context(
+                slot_id,
+                permissions,
+                enforce=True,
+                audit_sink=audit_sink,
+            ):
+                result = factory(context)
+        else:
+            result = factory(context)
+        if result_wrapper is not None:
+            return result_wrapper(result)
+        return result
+
+    return _factory
+
+
 def _slot_install_policy(
     settings: Any,
     *,
@@ -821,13 +1032,13 @@ def _slot_install_policy(
         auth_mode=settings.auth.mode,
         allow_unsigned_local=settings.slots.allow_unsigned_local,
         enterprise_allowlist=settings.slots.enterprise_allowlist,
+        trusted_signers=settings.slots.trusted_signers,
         trusted_publisher_keys=trusted_publisher_keys,
         signing_repository=(
             _slot_signing_repo_for_settings(settings, signing_repo)
             if signing_repo is not None or trusted_publisher_keys
             else None
         ),
-        trusted_signers=settings.slots.trusted_signers,
     )
 
 
