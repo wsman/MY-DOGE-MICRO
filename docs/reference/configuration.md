@@ -26,20 +26,36 @@ operator overrides supplied by environment variables.
 
 ## Experimental Feature Flags
 
-All migration flags default to off unless an operator explicitly enables them.
+Five local Slot Platform flags now default on for the controlled built-in path:
+`DOGE_FEATURE_SLOT_PLATFORM`, `DOGE_FEATURE_SLOT_GOVERNANCE`,
+`DOGE_FEATURE_SLOT_WATCHER`, `DOGE_FEATURE_WORKFLOW_TEMPLATES`, and
+`DOGE_FEATURE_SLOT_LOADER`. Operators can opt out with `=0` / `false`.
+Higher-risk install, enforcement, runtime interception, UI-slot, and execution
+surfaces remain default off.
 
-| Variable | Meaning |
-|----------|---------|
-| `DOGE_FEATURE_SLOT_PLATFORM` | Enables experimental built-in slot registration and slot discovery surfaces. |
-| `DOGE_FEATURE_SLOT_GOVERNANCE` | Enables experimental governance slot contribution resolution for slot-aware tool-registry entitlement composition. Requires `DOGE_FEATURE_SLOT_PLATFORM=1` for live slot resolution. |
-| `DOGE_FEATURE_SLOT_WATCHER` | Enables experimental watcher slot contribution resolution for runtime event middleware. Requires `DOGE_FEATURE_SLOT_PLATFORM=1` for live slot resolution. |
-| `DOGE_FEATURE_SLOT_UI` | Enables experimental UI panel slot contribution resolution and read-only `/v1/ui-panels` discovery. Requires `DOGE_FEATURE_SLOT_PLATFORM=1` for live slot resolution. |
-| `DOGE_FEATURE_SLOT_ENFORCEMENT` | Enables experimental SlotKernel permission and active-health enforcement. Requires `DOGE_FEATURE_SLOT_PLATFORM=1` for live slot resolution. |
-| `DOGE_FEATURE_SLOT_LOADER` | Enables experimental JSON disk manifest loading from `DOGE_SLOT_MANIFEST_DIRS` and process-local slot bundle activation. Requires `DOGE_FEATURE_SLOT_PLATFORM=1` for live activation. |
-| `DOGE_FEATURE_SLOT_INSTALL` | Enables experimental manifest-only local third-party slot install preview. Requires `DOGE_FEATURE_SLOT_PLATFORM=1` and `DOGE_FEATURE_SLOT_LOADER=1`. |
-| `DOGE_FEATURE_WORKFLOW_TEMPLATES` | Enables experimental workflow-template platform APIs and, with slot platform enabled, the workflow template slot consumer. |
-| `DOGE_FEATURE_CAPABILITY_REGISTRY` | Enables experimental capability discovery APIs. |
-| `DOGE_FEATURE_PYTHON_ANALYSIS_ENABLED` | Enables the high-risk Python analysis feature only when paired with a non-disabled executor. |
+| Variable | Default | Meaning |
+|----------|---------|---------|
+| `DOGE_FEATURE_SLOT_PLATFORM` | on | Enables experimental built-in slot registration and slot discovery surfaces. Set `0` to restore legacy direct wiring. |
+| `DOGE_FEATURE_SLOT_GOVERNANCE` | on | Enables governance slot contribution resolution for slot-aware tool-registry entitlement composition. Requires Slot Platform to remain enabled; set this flag to `0` for governance-only opt-out. |
+| `DOGE_FEATURE_SLOT_WATCHER` | on | Enables watcher slot contribution resolution for runtime event middleware. Requires Slot Platform to remain enabled; set this flag to `0` for watcher-only opt-out. |
+| `DOGE_FEATURE_WORKFLOW_TEMPLATES` | on | Enables workflow-template platform APIs and, with slot platform enabled, the workflow template slot consumer. |
+| `DOGE_FEATURE_SLOT_LOADER` | on | Enables JSON disk manifest loading from `DOGE_SLOT_MANIFEST_DIRS` as manifest-only slots and persisted local bundle activation/deactivation. Requires `DOGE_FEATURE_SLOT_PLATFORM=1` for live activation; set `0` to disable loader and activation surfaces. |
+| `DOGE_FEATURE_SLOT_UI` | off | Enables experimental UI panel slot contribution resolution and read-only `/v1/ui-panels` discovery. Requires `DOGE_FEATURE_SLOT_PLATFORM=1` for live slot resolution. |
+| `DOGE_FEATURE_SLOT_ENFORCEMENT` | off | Enables experimental SlotKernel permission and active-health enforcement. Requires `DOGE_FEATURE_SLOT_PLATFORM=1` for live slot resolution. |
+| `DOGE_FEATURE_SLOT_RUNTIME_INTERCEPTION` | off | Enables experimental in-process runtime guards for built-in slot db/secret/network port access. Requires slot-aware execution paths; does not provide filesystem mediation or OS/container/WASM isolation. |
+| `DOGE_FEATURE_SLOT_INSTALL` | off | Enables experimental manifest-only local third-party slot install preview. Requires `DOGE_FEATURE_SLOT_PLATFORM=1` and `DOGE_FEATURE_SLOT_LOADER=1`. |
+| `DOGE_FEATURE_CAPABILITY_REGISTRY` | off | Enables experimental capability discovery APIs. |
+| `DOGE_FEATURE_PYTHON_ANALYSIS_ENABLED` | off | Enables the high-risk Python analysis feature only when paired with a non-disabled executor. |
+
+`DOGE_FEATURE_SLOT_ENFORCEMENT` and
+`DOGE_FEATURE_SLOT_RUNTIME_INTERCEPTION` are intentionally separate.
+Enforcement is SlotKernel admission policy before contribution resolve/start.
+Runtime interception is P4 in-process mediation for guarded db/secret/network
+ports after a built-in slot call is executing. Runtime interception is not a
+malicious-code boundary: direct filesystem, socket, sqlite, or process access
+outside guarded ports remains P5 sandbox work. The Python analysis subprocess is
+also hardened with secret env scrub and a scratch cwd, but Windows remains a
+soft boundary without rlimit/seccomp/chroot-style isolation.
 
 ## Slot Platform Install Preview
 
@@ -48,8 +64,32 @@ All migration flags default to off unless an operator explicitly enables them.
 | `DOGE_SLOT_MANIFEST_DIRS` | CSV list of JSON manifest files or directories loaded as manifest-only slots when `DOGE_FEATURE_SLOT_LOADER=1`. |
 | `DOGE_SLOT_INSTALL_DIR` | Local directory where `doge slots install` copies validated manifest-only slot previews. |
 | `DOGE_SLOT_ENTERPRISE_ALLOWLIST` | CSV slot-id allowlist required for install preview in `DOGE_AUTH_MODE=enterprise`. |
-| `DOGE_SLOT_TRUSTED_SIGNERS` | CSV signer names accepted by sidecar signature metadata verification. |
-| `DOGE_SLOT_ALLOW_UNSIGNED_LOCAL` | Allows unsigned local-demo manifest installs when true; enterprise mode still requires allowlist and trusted signature metadata. |
+| `DOGE_SLOT_TRUSTED_PUBLISHER_KEYS` | CSV `key_id=base64_ed25519_public_key` pairs trusted for v2 `slot.signature.json` Ed25519 manifest signatures. |
+| `DOGE_SLOT_TRUSTED_SIGNERS` | Deprecated legacy v1 metadata signer names. Kept only so old sidecars can be reported as `legacy`; enterprise install requires verified v2 signatures. |
+| `DOGE_SLOT_ALLOW_UNSIGNED_LOCAL` | Allows unsigned local-demo manifest installs when true; enterprise mode still requires allowlist and verified v2 Ed25519 signature. |
+
+`DOGE_SLOT_TRUSTED_PUBLISHER_KEYS` may also be supplied through the canonical
+secret name `slot.trusted_publisher_keys` when `DOGE_SECRET_PROVIDER=process`.
+The secret value uses the same CSV pair format as the environment variable.
+
+Slot signing-key revocations are stored in the local agent database table
+`slot_signer_revocations` and are managed by `doge slots revoke-key`. There is
+no separate revocation environment variable.
+
+v2 sidecars are Ed25519 signatures over canonical SlotManifest JSON bytes. v1
+sidecars from Sprint 047 remain readable as `legacy` but are not cryptographic
+and do not satisfy enterprise verified-signature policy.
+
+## Enterprise ACL Resource Types
+
+Enterprise HTTP slot-bundle activation and deactivation use database ACL grants,
+not `DOGE_SLOT_ENTERPRISE_ALLOWLIST`. Grant `resource_type=slot_bundle`,
+`resource_id=<bundle id>` or `*`, and `permission=write` or `*` in
+`enterprise_acl_grants` to authorize `POST /v1/slot-bundles/{bundle_id}/activate`
+and `POST /v1/slot-bundles/active/deactivate`.
+
+`DOGE_SLOT_ENTERPRISE_ALLOWLIST` remains scoped to the manifest-only install
+preview path.
 
 ## Secrets
 

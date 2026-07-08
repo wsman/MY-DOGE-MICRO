@@ -4,6 +4,9 @@ This index points to QA, smoke, performance, accessibility, soak, and user-test 
 
 | Date | Type | Evidence | Scope | Verdict |
 |------|------|----------|-------|---------|
+| 2026-07-08 | local acceptance | `production/qa/evidence/slot-runtime-interception-local-acceptance-2026-07-08.md` | P4 slot runtime interception | PASS |
+| 2026-07-08 | local acceptance | `production/qa/evidence/slot-cryptographic-signing-local-acceptance-2026-07-08.md` | P3 slot cryptographic signing | PASS |
+| 2026-07-08 | local acceptance | `production/qa/evidence/slot-bundle-enterprise-acl-local-acceptance-2026-07-08.md` | P2.5 enterprise HTTP slot-bundle ACL gate | PASS |
 | 2026-06-11 | pytest evidence | `production/qa/evidence/source-pytest-2026-06-11.md` | baseline source tests | PASS |
 | 2026-06-11 | web build | `production/qa/evidence/web-build-2026-06-11.md` | web baseline | PASS |
 | 2026-06-12 | smoke | `production/qa/smoke/smoke-2026-06-12.md` | implementation verification | PASS |

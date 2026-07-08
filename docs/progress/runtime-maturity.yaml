@@ -35,7 +35,7 @@ slot_platform_foundation_2026_07_06:
   status: local_experimental_external_gates_open
   scope:
     - "Slot Platform Foundation (ADR-0042): SlotManifest v1 contract, ISlot/SlotContribution/SlotContext/SlotRegistry, and one built-in market.core tool slot."
-    - "Dual-path tool registration is feature-flagged behind DOGE_FEATURE_SLOT_PLATFORM (default false); flag-off tool-registry and runtime behavior are byte-identical to the legacy factory path."
+    - "Dual-path tool registration was introduced behind DOGE_FEATURE_SLOT_PLATFORM (default false at Sprint 033 acceptance); ADR-0058 later promotes the controlled built-in Slot Platform path to default-on while preserving flag-off fallback."
     - "doge slots list/show CLI (read-only, manifest-only) for slot discovery; no /v1 route, OpenAPI, SDK, Web, daemon-command, ModelRouter, or external-gate change."
     - "Manifest permissions and health are declarative only in Sprint 033; filesystem/network/shell/secret/database enforcement is explicitly future work."
   evidence:
@@ -67,7 +67,7 @@ slot_platform_foundation_2026_07_06:
     level_3_sdk_platform: experimental
   notes:
     - "Sprint 033 does NOT close any external/operator gate; posture remains 4 open / 2 passed."
-    - "Slot Platform is experimental and feature-flagged off; do not cite it as Stable or production-ready."
+    - "Slot Platform remains experimental; ADR-0058 later makes the controlled built-in path default-on locally, but it must not be cited as Stable or production-ready."
 
 slot_contribution_facets_2026_07_07:
   status: local_experimental_external_gates_open
@@ -109,7 +109,7 @@ slot_contribution_facets_2026_07_07:
     level_3_sdk_platform: experimental
   notes:
     - "Sprint 034 completes contribution facets plus the model-backend slot proof; it does NOT complete the full OpenClaw-like Slot Platform."
-    - "Slot Platform remains experimental and feature-flagged off; do not cite it as Stable or production-ready."
+    - "Slot Platform remains experimental; ADR-0058 later makes the controlled built-in path default-on locally, but it must not be cited as Stable or production-ready."
 
 workflow_slot_consumer_2026_07_07:
   status: local_experimental_external_gates_open
@@ -152,7 +152,7 @@ workflow_slot_consumer_2026_07_07:
     level_3_sdk_platform: experimental
   notes:
     - "Sprint 035 completes the workflow-facet consumer proof only; it does NOT complete the full OpenClaw-like Slot Platform."
-    - "Slot Platform remains experimental and feature-flagged off; do not cite it as Stable or production-ready."
+    - "Slot Platform remains experimental; ADR-0058 later makes the controlled built-in path default-on locally, but it must not be cited as Stable or production-ready."
 
 slot_discovery_surfaces_2026_07_07:
   status: local_experimental_external_gates_open
@@ -194,7 +194,7 @@ slot_discovery_surfaces_2026_07_07:
     level_3_sdk_platform: experimental
   notes:
     - "Sprint 036 completes read-only built-in slot discovery only; it does NOT complete the full OpenClaw-like Slot Platform."
-    - "Slot Platform remains experimental and feature-flagged off by default."
+    - "Slot Platform remains experimental; default posture is updated by ADR-0058 for controlled built-in consumers only."
 
 governance_slot_consumer_2026_07_07:
   status: local_experimental_external_gates_open
@@ -237,7 +237,7 @@ governance_slot_consumer_2026_07_07:
     level_3_sdk_platform: experimental
   notes:
     - "Sprint 037 completes the governance-facet consumer proof only; it does NOT complete the full OpenClaw-like Slot Platform."
-    - "Slot Platform and slot governance remain experimental and feature-flagged off by default."
+    - "Slot Platform and slot governance remain experimental; ADR-0058 later makes both default-on locally while keeping production gates open."
 
 watcher_slot_consumer_2026_07_07:
   status: local_experimental_external_gates_open
@@ -280,7 +280,7 @@ watcher_slot_consumer_2026_07_07:
     level_3_sdk_platform: experimental
   notes:
     - "Sprint 038 completes the watcher-facet consumer proof only; it does NOT complete the full OpenClaw-like Slot Platform."
-    - "Slot Platform and slot watcher remain experimental and feature-flagged off by default."
+    - "Slot Platform and slot watcher remain experimental; ADR-0058 later makes both default-on locally while keeping concrete policy watchers future work."
 
 document_slot_consumer_2026_07_07:
   status: local_experimental_external_gates_open
@@ -322,7 +322,7 @@ document_slot_consumer_2026_07_07:
     level_3_sdk_platform: experimental
   notes:
     - "Sprint 039 completes the document-facet consumer proof only; it does NOT complete the full OpenClaw-like Slot Platform."
-    - "Slot Platform remains experimental and feature-flagged off by default."
+    - "Slot Platform remains experimental; default posture is updated by ADR-0058 for controlled built-in consumers only."
 
 data_slot_consumer_2026_07_07:
   status: local_experimental_external_gates_open
@@ -362,7 +362,7 @@ data_slot_consumer_2026_07_07:
     level_3_sdk_platform: experimental
   notes:
     - "Sprint 040 completes the data-facet consumer proof only; it does NOT complete the full OpenClaw-like Slot Platform."
-    - "Slot Platform remains experimental and feature-flagged off by default."
+    - "Slot Platform remains experimental; default posture is updated by ADR-0058 for controlled built-in consumers only."
 
 gateway_slot_consumer_2026_07_07:
   status: local_experimental_external_gates_open
@@ -400,7 +400,7 @@ gateway_slot_consumer_2026_07_07:
     level_3_sdk_platform: experimental
   notes:
     - "Sprint 041 completes the gateway-facet consumer proof only; it does NOT complete the full OpenClaw-like Slot Platform."
-    - "Slot Platform remains experimental and feature-flagged off by default."
+    - "Slot Platform remains experimental; default posture is updated by ADR-0058 for controlled built-in consumers only."
 
 eval_slot_consumer_2026_07_07:
   status: local_experimental_external_gates_open
@@ -440,7 +440,7 @@ eval_slot_consumer_2026_07_07:
     level_3_sdk_platform: experimental
   notes:
     - "Sprint 042 completes the eval-facet consumer proof only; it does NOT complete the full OpenClaw-like Slot Platform."
-    - "Slot Platform remains experimental and feature-flagged off by default."
+    - "Slot Platform remains experimental; default posture is updated by ADR-0058 for controlled built-in consumers only."
 
 slot_kernel_bundles_policy_2026_07_07:
   status: local_experimental_external_gates_open
@@ -486,7 +486,7 @@ slot_kernel_bundles_policy_2026_07_07:
     level_3_sdk_platform: experimental
   notes:
     - "Sprint 043 completes the first-class kernel/bundle/policy proof only; it does NOT complete the full OpenClaw-like Slot Platform."
-    - "Slot Platform remains experimental and feature-flagged off by default."
+    - "Slot Platform remains experimental; default posture is updated by ADR-0058 for controlled built-in consumers only."
 
 single_stack_direction:
   status: local_convergence_complete_external_gates_open
@@ -613,7 +613,7 @@ ui_slot_consumer_2026_07_07:
     - "UIPanelRegistry and build_slot_aware_ui_panels consume UI panel slot contributions through SlotKernel.resolve_contributions()."
     - "GET /v1/ui-panels exposes read-only Research workspace panel metadata behind DOGE_FEATURE_SLOT_PLATFORM and DOGE_FEATURE_SLOT_UI."
     - "ResearchAgentView renders existing panels through the frontend panelRegistry while preserving Analyst/Developer parity."
-    - "Sprint 044 moved API route authority to 95 HTTP routes; Sprint 046 later moved current route authority to 96 HTTP routes."
+    - "Sprint 044 moved API route authority to 95 HTTP routes; Sprint 046 later moved that stage's route authority to 96 HTTP routes, superseded by the P2 97-route authority below."
     - "No Web Slot Center, dynamic component loading, SlotLoader, third-party install/signing, SDK slot client, runtime permission/health enforcement, external-gate, or production-readiness change."
   evidence:
     - docs/architecture/adr-0053-ui-slot-consumer.md
@@ -655,7 +655,7 @@ slot_enforcement_2026_07_07:
     - "Active health probes call ISlot.health(context); disabled health blocks slot resolution/start, while degraded health is reported and allowed by default."
     - "Permission enforcement blocks forbidden-risk and shell-permission slots by default under enforcement."
     - "Tool slot manifests reserve owned tool names before contribution resolution so enforcement-blocked tool slots cannot fall back to legacy ToolApplicationService registration."
-    - "No OS sandboxing, network interception, filesystem mediation, SlotLoader, third-party install/signing, bundle activation, SDK slot client, backend route count, external-gate, or production-readiness change."
+    - "Sprint 045 did not add OS sandboxing, network interception, filesystem mediation, SlotLoader, third-party install/signing, bundle activation, SDK slot client, backend route count, external-gate, or production-readiness change; ADR-0063 later adds only default-off in-process db/secret/network guarded-port interception and subprocess env/cwd hardening."
   evidence:
     - docs/architecture/adr-0055-slot-enforcement.md
     - design/cdd/sprint-045-slot-enforcement.md
@@ -675,7 +675,7 @@ slot_loader_bundle_activation_2026_07_07:
     - "Slot Loader and Bundle Activation (ADR-0056): SlotLoader validates JSON manifests from DOGE_SLOT_MANIFEST_DIRS and registers them as manifest-only slots when DOGE_FEATURE_SLOT_LOADER is enabled."
     - "Manifest-only slots are discovery/policy records only; provider entrypoints are not imported and third-party code is not executed."
     - "Process-local bundle activation constrains SlotKernel resolution through SlotPolicy and is exposed through doge slots bundle activate and POST /v1/slot-bundles/{bundle_id}/activate."
-    - "API route authority now tracks 96 HTTP routes: 34 legacy /api compatibility routes plus 62 daemon/v1 and health routes."
+    - "At Sprint 046 acceptance, API route authority tracked 96 HTTP routes: 34 legacy /api compatibility routes plus 62 daemon/v1 and health routes; P2 later moves current authority to 97 routes."
     - "No YAML parsing, third-party install/signing, enterprise allowlist, persistent activation state, SDK slot client, OS sandboxing, external-gate, or production-readiness change."
   evidence:
     - docs/architecture/adr-0056-slot-loader-bundle-activation.md
@@ -695,8 +695,9 @@ third_party_slot_install_preview_2026_07_07:
   status: local_experimental_external_gates_open
   scope:
     - "Third-party Slot Install Preview (ADR-0057): doge slots install validates one JSON SlotManifest and copies it into DOGE_SLOT_INSTALL_DIR as a manifest-only local slot."
-    - "Sidecar signature metadata validates slot id, manifest SHA-256, and trusted signer names; it is not a cryptographic signature format."
-    - "Enterprise mode requires DOGE_SLOT_ENTERPRISE_ALLOWLIST, DOGE_SLOT_TRUSTED_SIGNERS, and verified sidecar metadata before install."
+    - "At Sprint 047 acceptance, sidecar signature metadata validated slot id, manifest SHA-256, and trusted signer names; it was not a cryptographic signature format."
+    - "ADR-0062 later upgrades new sidecars to v2 Ed25519 manifest signatures while keeping v1 metadata sidecars readable as legacy."
+    - "Enterprise mode at Sprint 047 required DOGE_SLOT_ENTERPRISE_ALLOWLIST, DOGE_SLOT_TRUSTED_SIGNERS, and verified sidecar metadata before install; ADR-0062 later requires verified v2 signatures."
     - "Installed slots remain manifest-only; provider entrypoints are not imported and third-party code is not executed."
     - "No marketplace, HTTP install route, SDK install method, YAML parser, OS sandboxing, external-gate, or production-readiness change."
   evidence:
@@ -718,7 +719,7 @@ slot_platform_sprints_035_048_local_acceptance_2026_07_07:
     - "Local closeout review and full-regression evidence for Slot Platform Sprints 035-048."
     - "Slot Platform runtime consumers now exist for workflow, discovery, governance, watcher, document, data, gateway, eval, kernel/bundle/policy/lifecycle, UI, Web Slot Center, enforcement, loader/activation, and manifest-only install preview surfaces."
     - "Review repairs fixed active health reporting in slot status rows and explicit-settings propagation for manifest-only loading."
-    - "No push, remote CI assertion, latest_remotely_verified_sha promotion, provider execution, OS/container/WASM sandboxing, cryptographic signing format, YAML manifest parser, HTTP install API, SDK install API, marketplace, external-gate closure, or production-ready declaration is part of this evidence."
+    - "At the 2026-07-07 closeout, no push, remote CI assertion, latest_remotely_verified_sha promotion, provider execution, OS/container/WASM sandboxing, cryptographic signing format, YAML manifest parser, HTTP install API, SDK install API, marketplace, external-gate closure, or production-ready declaration was part of this evidence; ADR-0062 later adds manifest signing only."
   evidence:
     - production/qa/evidence/slot-platform-sprints-035-048-local-acceptance-2026-07-07.md
     - docs/architecture/adr-0044-workflow-slot-consumer.md
@@ -751,10 +752,253 @@ slot_platform_sprints_035_048_local_acceptance_2026_07_07:
     stable_declaration: forbidden
     level_3_sdk_platform: experimental
 
+slot_platform_controlled_default_on_2026_07_08:
+  status: local_acceptance_passed_remote_ci_not_run
+  scope:
+    - "P0 controlled default-on Slot Platform posture (ADR-0058): workflow_templates, slot_platform, slot_governance, and slot_watcher now default on for local built-in consumer resolution."
+    - "Built-in SlotKernel-backed consumers resolve by default for tool/model/data/document/workflow/eval/governance/watcher/gateway paths; legacy direct wiring remains available through explicit opt-out feature env vars."
+    - "slot_install, slot_enforcement, slot_ui, python_analysis_enabled, runtime_outbox_publisher, platform_objects, capability_registry, and run_summary_api remain default-off; ADR-0060 later promotes slot_loader to default-on."
+    - "Bundle rows may be resolved by default, but no bundle is auto-activated; ADR-0060 later adds explicit persisted activation/deactivation controls."
+    - "At P0 acceptance, no push, remote CI assertion, latest_remotely_verified_sha promotion, provider execution, OS/container/WASM sandboxing, cryptographic signing format, YAML manifest parser, HTTP install API, SDK install API, marketplace, external-gate closure, or production-ready declaration was part of this evidence; ADR-0062 later adds manifest signing only."
+  evidence:
+    - docs/architecture/adr-0058-slot-platform-controlled-default-on.md
+    - production/qa/evidence/slot-platform-default-on-local-acceptance-2026-07-08.md
+    - src/doge/config/settings.py
+    - src/doge/bootstrap/runtime_factories/slots.py
+    - src/doge/bootstrap/runtime_factories/tools.py
+    - src/doge/bootstrap/runtime_factories/runtime_kernel.py
+    - src/doge/bootstrap/workspace.py
+    - docs/reference/configuration.md
+  verification:
+    focused_settings_cli_doged: "70 passed, 2 warnings"
+    focused_slot_architecture: "135 passed, 2 warnings"
+    focused_slot_parity: "62 passed, 2 warnings"
+    focused_platform_workflow: "23 passed, 2 warnings"
+    python_full: "2109 passed, 8 skipped, 128 warnings"
+    web: "164 passed; build passed"
+    typescript_sdk: "17 passed; build passed"
+    sdk_contract: "15 surfaces, 15 entity parity checks"
+    docs_governance: "import boundaries, docs authority, docs links, docs maturity, ADR index, governance YAML, alpha maturity honesty, and plan closure passed"
+    plan_closure: "acceptable-open: 2 passed, 4 open, 0 failed, 0 invalid"
+    whitespace: "git diff --check and Windows git diff --check passed"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+
+tool_slot_domain_migration_2026_07_08:
+  status: local_acceptance_passed_remote_ci_not_run
+  scope:
+    - "P1 tool slot domain migration (ADR-0059): five built-in SlotType.TOOL providers now cover portfolio.core, evidence.core, quant.lab, governance.actions, and compliance.screening."
+    - "The implementation is a discovery/governance overlay over the existing ToolApplicationService descriptors; no provider code moved, no ToolApplicationService method body changed, and no /v1/tools schema/count changed."
+    - "Slot-owned tool descriptors now total 22: market.core owns 6 and the P1 slots own 16; run_python_analysis remains the only facade-remaining descriptor and keeps its separate Python analysis gate."
+    - "bundle.local_analyst includes all five P1 slots; bundle.research_workspace includes portfolio.core, evidence.core, and quant.lab."
+    - "Slot manifest risk metadata is not an execution authority; high-risk/approval behavior remains governed by tool-level ToolDescriptor metadata and entitlement policy."
+    - "At P1 acceptance, no push, remote CI assertion, latest_remotely_verified_sha promotion, new feature flag, provider execution, OS/container/WASM sandboxing, cryptographic signing format, YAML manifest parser, HTTP install API, SDK install API, marketplace, external-gate closure, or production-ready declaration was part of this evidence; ADR-0060 later adds persisted bundle activation and ADR-0062 later adds manifest signing only."
+  evidence:
+    - docs/architecture/adr-0059-tool-slot-domain-migration.md
+    - production/qa/evidence/tool-slot-domain-migration-local-acceptance-2026-07-08.md
+    - src/doge/products/portfolio/slot.py
+    - src/doge/products/research/slot.py
+    - src/doge/products/quant/slot.py
+    - src/doge/platform/governance/actions_slot.py
+    - src/doge/platform/governance/compliance_slot.py
+    - src/doge/bootstrap/runtime_factories/slots.py
+    - tests/unit/platform/slots/test_portfolio_slot.py
+    - tests/unit/platform/slots/test_evidence_slot.py
+    - tests/unit/platform/slots/test_quant_lab_slot.py
+    - tests/unit/platform/slots/test_governance_actions_slot.py
+    - tests/unit/platform/slots/test_compliance_screening_slot.py
+    - tests/contract/test_tool_registry_slot_parity.py
+  verification:
+    focused_new_slot_units: "20 passed"
+    focused_tool_registry_parity: "7 passed"
+    focused_slot_api_cli_doged: "64 passed, 2 warnings"
+    focused_architecture_boundaries: "26 passed"
+    python_full: "2130 passed, 8 skipped, 128 warnings"
+    web: "164 passed; build passed"
+    typescript_sdk: "17 passed; build passed"
+    sdk_contract: "15 surfaces, 15 entity parity checks"
+    docs_governance: "import boundaries, docs authority, docs links, docs maturity, ADR index, governance YAML, source-plan alpha honesty, ADR-0059 alpha honesty, and acceptable-open plan closure passed"
+    plan_closure: "acceptable-open: 2 passed, 4 open, 0 failed, 0 invalid"
+    whitespace: "git diff --check and Windows git diff --check passed"
+    manual_smoke: "doge slots list reports 16 slot rows by default; the five P1 tool slots resolve with counts 4, 8, 1, 2, and 1; slot-platform opt-out reports disabled"
+    api_smoke: "/v1/tools remains 23 by default and with DOGE_FEATURE_SLOT_PLATFORM=0; /v1/slots reports 16 rows by default and is unmounted under slot-platform opt-out"
+    doged_features: "P1 evidence observed no new feature rows and slot_loader false; ADR-0060 later flips slot_loader default-on while keeping slot_install, slot_enforcement, slot_ui, and python_analysis_enabled false"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+
+slot_center_persistent_activation_2026_07_08:
+  status: local_acceptance_passed_remote_ci_not_run
+  scope:
+    - "P2 persistent Slot Center activation (ADR-0060): slot_loader now defaults on for manifest-only loading and persisted built-in bundle activation/deactivation controls."
+    - "SQLite slot_activation_state stores a single active bundle id with activated_at and actor_hash; activation overwrites, deactivation clears, and kernel/bundle-row construction hydrates the in-process activation cache."
+    - "HTTP, CLI, and Web Slot Center now expose activate/deactivate controls: POST /v1/slot-bundles/{bundle_id}/activate, POST /v1/slot-bundles/active/deactivate, doge slots bundle activate/deactivate, and Admin Center buttons."
+    - "API route authority now tracks 97 HTTP routes: 34 legacy /api compatibility routes plus 63 daemon/v1 and health routes."
+    - "No bundle is auto-activated; slot_install, slot_enforcement, slot_ui, python_analysis_enabled, provider execution, OS/container/WASM sandboxing, YAML manifest parser, HTTP install API, SDK install API, marketplace, enterprise bundle ACL beyond ADR-0061's HTTP activate/deactivate gate, external-gate closure, and production maturity promotion remain out of scope for P2. ADR-0062 later adds manifest signing only."
+  evidence:
+    - docs/architecture/adr-0060-persistent-slot-bundle-activation.md
+    - production/qa/evidence/slot-center-persistent-activation-local-acceptance-2026-07-08.md
+    - src/doge/core/ports/slot_activation_repository.py
+    - src/doge/infrastructure/database/slot_activation_repository.py
+    - src/doge/infrastructure/database/migration_runner.py
+    - src/doge/bootstrap/runtime_factories/slots.py
+    - src/doge/interfaces/gateway/routers/slots.py
+    - web/src/views/AdminCenterView.vue
+    - web/src/stores/platform.ts
+  verification:
+    focused_backend: "114 passed, 2 warnings"
+    focused_web: "8 passed"
+    route_governance: "39 passed, 2 warnings"
+    focused_architecture_boundaries: "26 passed"
+    python_full: "2138 passed, 8 skipped, 128 warnings"
+    web: "167 passed; build passed"
+    typescript_sdk: "17 passed; build passed"
+    sdk_contract: "15 surfaces, 15 entity parity checks"
+    docs_governance: "import boundaries, docs authority, docs links, docs maturity, ADR index, governance YAML, source-plan alpha honesty, ADR-0060 alpha honesty, and acceptable-open plan closure passed"
+    plan_closure: "acceptable-open: 2 passed, 4 open, 0 failed, 0 invalid"
+    whitespace: "git diff --check and Windows git diff --check passed"
+    manual_smoke: "temporary DOGE_DB_DIR CLI activate/list/deactivate confirmed active true then all inactive; doged features reports slot_loader=true while slot_install, slot_enforcement, slot_ui, and python_analysis_enabled remain false"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+
+slot_bundle_enterprise_acl_2026_07_08:
+  status: local_acceptance_passed_remote_ci_not_run
+  scope:
+    - "P2.5 Enterprise Bundle ACL Gate (ADR-0061): enterprise-mode HTTP activate/deactivate now requires enterprise_acl_grants authorization with resource_type=slot_bundle and permission=write before activation factories run."
+    - "Activation checks the target bundle id; deactivation checks the current active bundle id when one exists. Deactivate with no active bundle remains idempotent."
+    - "Denied enterprise HTTP activation returns 403 before slot_activation_state is written and before slot_bundle_activate audit is appended; granted activation/deactivation keeps the ADR-0060 successful audit behavior."
+    - "Local-demo HTTP behavior remains no-op-pass through ensure_resource_access; CLI activate/deactivate remains a local-operator trust path and does not run HTTP ACL checks."
+    - "No schema migration is required because enterprise_acl_grants already stores arbitrary resource_type values and slot_bundle already existed in audit events."
+    - "No provider execution, OS/container/WASM sandboxing, YAML manifest parser, HTTP install API, SDK install API, marketplace, install allowlist expansion, external-gate closure, remote CI assertion, latest_remotely_verified_sha promotion, or maturity promotion is part of P2.5. ADR-0062 later adds manifest signing only."
+  evidence:
+    - docs/architecture/adr-0061-enterprise-bundle-acl.md
+    - production/qa/evidence/slot-bundle-enterprise-acl-local-acceptance-2026-07-08.md
+    - src/doge/interfaces/gateway/routers/slots.py
+    - tests/contract/test_slot_api.py
+    - tests/integration/test_slot_bundle_activation_persistence.py
+  verification:
+    focused_enterprise_acl: "64 passed, 2 warnings"
+    python_full: "2144 passed, 8 skipped, 128 warnings"
+    web: "168 passed; build passed"
+    typescript_sdk: "17 passed; build passed"
+    sdk_contract: "15 surfaces, 15 entity parity checks"
+    docs_governance: "import boundaries, docs authority, docs links, docs maturity, ADR index, governance YAML, source-plan alpha honesty, ADR-0061 alpha honesty, and acceptable-open plan closure passed"
+    plan_closure: "acceptable-open: 2 passed, 4 open, 0 failed, 0 invalid"
+    whitespace: "git diff --check and Windows git diff --check passed"
+    manual_smoke: "enterprise HTTP deny/allow/deactivate and audit passed; local-demo HTTP activate/deactivate passed; CLI activate/list/deactivate passed; Admin Center generic alert displays slot_bundle access denied"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+
+slot_cryptographic_signing_2026_07_08:
+  status: local_acceptance_passed_remote_ci_not_run
+  scope:
+    - "P3 Slot Cryptographic Signing (ADR-0062): slot.signature.json v2 sidecars now use Ed25519 signatures over canonical SlotManifest JSON bytes."
+    - "Trusted publisher public keys are read from DOGE_SLOT_TRUSTED_PUBLISHER_KEYS and optional ISecretProvider secret slot.trusted_publisher_keys; legacy DOGE_SLOT_TRUSTED_SIGNERS remains only for v1 metadata compatibility."
+    - "SQLite slot_signer_revocations stores revoked key ids; verification reports revoked before accepting a trusted key."
+    - "CLI adds doge slots sign and doge slots revoke-key, both gated by DOGE_FEATURE_SLOT_INSTALL."
+    - "v1 metadata sidecars are still readable as legacy and do not satisfy enterprise verified-signature policy."
+    - "This releases only the no-cryptographic-manifest-signing invariant; slot_install remains default off and installed slots remain manifest-only."
+    - "No provider execution, OS/container/WASM sandboxing, YAML manifest parser, HTTP install API, SDK install API, marketplace, external-gate closure, remote CI assertion, latest_remotely_verified_sha promotion, or maturity promotion is part of P3."
+  evidence:
+    - docs/architecture/adr-0062-slot-cryptographic-signing.md
+    - production/qa/evidence/slot-cryptographic-signing-local-acceptance-2026-07-08.md
+    - src/doge/platform/slots/install.py
+    - src/doge/core/ports/slot_signing_repository.py
+    - src/doge/infrastructure/database/slot_signing_repository.py
+    - src/doge/infrastructure/database/migration_runner.py
+    - src/doge/bootstrap/runtime_factories/slots.py
+    - src/doge/interfaces/cli/commands/slots.py
+  verification:
+    focused_signing_cli_settings_migrations: "70 passed"
+    python_full: "2155 passed, 8 skipped, 128 warnings"
+    web: "168 passed; build passed"
+    typescript_sdk: "17 passed; build passed"
+    sdk_contract: "15 surfaces, 15 entity parity checks"
+    docs_governance: "import boundaries, docs authority, docs links, docs maturity, governance YAML, ADR index, ADR-0057 alpha honesty, ADR-0062 alpha honesty, Sprint 047 CDD alpha honesty, P3 evidence alpha honesty, runtime maturity alpha honesty, source-plan alpha honesty, and acceptable-open plan closure passed"
+    plan_closure: "acceptable-open: 2 passed, 4 open, 0 failed, 0 invalid"
+    whitespace: "git diff --check and Windows git diff --check passed"
+    manual_smoke: "doge slots sign/install/tamper/revoke-key/legacy-sidecar smoke passed: verified install, invalid tamper rejection, revoked-key rejection, and legacy v1 warning observed"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+
+slot_runtime_interception_2026_07_08:
+  status: local_acceptance_passed_remote_ci_not_run
+  scope:
+    - "P4 Slot Runtime Permission Interception (ADR-0063): DOGE_FEATURE_SLOT_RUNTIME_INTERCEPTION is default off and independent from DOGE_FEATURE_SLOT_ENFORCEMENT."
+    - "Built-in slot-aware tool executors, model factories, data-source factories, and selected facet factory calls now run with a context-var slot permission scope when runtime interception is enabled."
+    - "Port guards enforce declared secrets, database none/read/write, and network none/allow for known in-process ports; denied access raises SlotPermissionViolation and emits best-effort slot_permission_violation audit metadata."
+    - "SubprocessCodeExecutor now scrubs secret-bearing environment variables and runs from a scratch cwd when Python analysis is explicitly enabled."
+    - "This releases only the P4 in-process db/secret/network guarded-port interception and subprocess hardening subset."
+    - "No filesystem mediation, OS/container/WASM sandboxing, malicious-code containment, provider entrypoint execution, YAML manifest parser, HTTP install API, SDK install API, marketplace, external-gate closure, remote CI assertion, latest_remotely_verified_sha promotion, or maturity promotion is part of P4."
+  evidence:
+    - docs/architecture/adr-0063-slot-runtime-permission-interception.md
+    - design/cdd/p4-slot-runtime-interception.md
+    - production/qa/evidence/slot-runtime-interception-local-acceptance-2026-07-08.md
+    - src/doge/platform/slots/runtime_access.py
+    - src/doge/core/ports/slot_runtime_executor.py
+    - src/doge/bootstrap/runtime_factories/slots.py
+    - src/doge/bootstrap/gateway_factories/tools.py
+    - src/doge/infrastructure/code_execution/python.py
+  verification:
+    focused_runtime_subprocess_settings_capability: "53 passed"
+    slot_boundary_and_parity: "33 passed"
+    existing_slot_regression: "83 passed, 2 warnings"
+    python_full: "2167 passed, 8 skipped, 128 warnings"
+    web: "168 passed; build passed"
+    typescript_sdk: "17 passed; build passed"
+    sdk_contract: "15 surfaces, 15 entity parity checks"
+    docs_governance: "import boundaries, docs authority, docs links, docs maturity, governance YAML, ADR index, ADR-0063 alpha honesty, P4 CDD alpha honesty, runtime maturity alpha honesty, P4 evidence alpha honesty, source-plan alpha honesty, and acceptable-open plan closure passed"
+    plan_closure: "acceptable-open: 2 passed, 4 open, 0 failed, 0 invalid"
+    whitespace: "git diff --check and Windows git diff --check passed"
+    manual_smoke: "flag-off and no-context allow paths passed; flag-on db/secret/network denial with audit passed; subprocess env scrub and scratch cwd passed"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+
 local_structure_convergence_2026_07_02:
   status: local_structure_convergence_closed_external_gates_open
   scope:
-    - "Active route terminology now tracks 96 HTTP routes outside archive/import snapshots."
+    - "Active route terminology now tracks 97 HTTP routes outside archive/import snapshots."
     - "API app factory extraction, tool-service split, TS SDK runtime types, and Web SDK type reuse are retained as local Structure Convergence evidence."
     - "Source layout map added as a thin placement guide that links the existing file-structure, module-boundary, and module-ownership authorities."
     - "Five user paths are documented: Local Analyst, Daemon Operator, SDK Integrator, Research Workspace, and Eval/Demo Owner."
@@ -1929,7 +2173,7 @@ local_verification:
       plan_closure_input_template_tests: "6 passed; generated non-closing evidence from copied operator templates now fails strict validation when unresolved placeholder issue ids or template sentinels remain"
       governance_yaml_shape_check: "scripts/validate_governance_yaml_shape.py passed for docs/progress/runtime-maturity.yaml, production/sprint-status.yaml, docs/registry/architecture.yaml, docs/registry/entities.yaml, and docs/architecture/tr-registry.yaml; validates UTF-8, no tab indentation, no CR-only line endings, even two-space indentation, unique top-level keys, and required top-level sections without claiming full YAML parsing"
       governance_yaml_shape_tests: "tests/unit/qa/test_validate_governance_yaml_shape.py: 6 passed"
-      fastapi_route_governance_sync: "docs/API.md, design/cdd/fastapi-service.md, docs/registry/architecture.yaml, docs/registry/entities.yaml, docs/architecture/tr-registry.yaml, docs/architecture/architecture-traceability.md, and docs/architecture/adr-0007-api-surface-and-cors.md now agree on 96 HTTP routes; docs/imports/my-doge-micro/current-state-2026-06-21.md remains a historical 88-route snapshot; tests/contract/test_api_doc_route_coverage.py proves docs/API.md matches the live FastAPI app, and tests/unit/governance/test_s017_planning_docs.py proves docs/registry/entities.yaml has the same (method, path) route set"
+      fastapi_route_governance_sync: "docs/API.md, design/cdd/fastapi-service.md, docs/registry/architecture.yaml, docs/registry/entities.yaml, docs/architecture/tr-registry.yaml, docs/architecture/architecture-traceability.md, and docs/architecture/adr-0007-api-surface-and-cors.md now agree on 97 HTTP routes; docs/imports/my-doge-micro/current-state-2026-06-21.md remains a historical 88-route snapshot; tests/contract/test_api_doc_route_coverage.py proves docs/API.md matches the live FastAPI app, and tests/unit/governance/test_s017_planning_docs.py proves docs/registry/entities.yaml has the same (method, path) route set"
       external_evidence_validator_suite: "focused plan-closure repair set: 57 passed in 9.14s"
       targeted_cross_wave_regression: "full python regression continuation check: 1297 passed, 9 skipped, 11 warnings in 107.94s; eval smoke: 7 passed in 0.82s; contract/integration: 115 passed, 1 skipped in 32.70s"
       prepared_external_handoff_workspace: "production/qa/evidence/plan-closure/handoffs/9b77f9c-2026-06-30; validation passed; includes operator-checklist.md and operator-commands.ps1; it stages operator inputs only, does not create completed evidence, and does not close gates; S017-003, W3-live, AUTH-prod, and S017-007 still require real operator input before their builders can close gates"

@@ -28,6 +28,19 @@ This sprint does not add OS sandboxing, network interception, filesystem
 mediation, third-party slot install, signing, enterprise allowlists, bundle
 activation, or production-readiness changes.
 
+## Status Update - 2026-07-08
+
+ADR-0063 extends this decision with a separate default-off runtime interception
+layer. ADR-0055 remains the SlotKernel resolution-time admission contract for
+permissions and health; ADR-0063 adds in-process db/secret/network port guards
+for built-in slot-aware execution plus subprocess env/cwd hardening.
+
+The ADR-0055 exclusions remain accurate for Sprint 045 history. As of ADR-0063,
+the "no runtime interception" boundary is partially released only for
+in-process guarded ports. OS/container/WASM sandboxing, filesystem mediation,
+malicious-code containment, and third-party provider execution remain out of
+scope.
+
 ## Technology Compatibility
 
 | Field | Value |

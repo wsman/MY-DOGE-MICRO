@@ -14,6 +14,11 @@ blocked tool slots from falling back into legacy tool registration.
 
 This sprint does not complete the full OpenClaw-like Slot Platform.
 
+Later status: P4 / ADR-0063 adds a separate default-off in-process runtime
+interception layer for guarded db/secret/network ports and subprocess env/cwd
+hardening. Sprint 045 remains the SlotKernel resolution-time enforcement
+record.
+
 ## Scope
 
 - Add ADR-0055 and this sprint CDD/governance trail.
@@ -38,6 +43,11 @@ This sprint does not complete the full OpenClaw-like Slot Platform.
 - SDK slot client.
 - Backend route count changes.
 - Production readiness declaration or external/operator gate closure.
+
+P4 / ADR-0063 later releases only the guarded-port runtime interception and
+subprocess env/cwd hardening subset. OS/container/WASM sandboxing, filesystem
+mediation, provider execution, SDK install, marketplace behavior, and
+production readiness remain out of scope.
 
 ## Registration
 

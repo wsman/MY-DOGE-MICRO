@@ -24,6 +24,12 @@ own 404 feature gate. When the flag is on, `_register_v1_routes()` mounts
 `gateway.slots` through `GatewayRouteContribution` and skips the direct
 hardcoded slots-router include. The resulting route set is equivalent.
 
+## Status Update - 2026-07-08
+
+ADR-0058 makes the built-in Slot Platform consumer path default-on for local
+runs, so `gateway.slots` is the default route-registration path. The direct
+router include remains the explicit opt-out fallback.
+
 ## Technology Compatibility
 
 | Field | Value |

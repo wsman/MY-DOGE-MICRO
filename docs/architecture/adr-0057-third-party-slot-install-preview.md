@@ -4,6 +4,15 @@
 
 Accepted
 
+## Status Update - 2026-07-08
+
+ADR-0062 supersedes only this ADR's metadata-only signature mechanism. Sprint
+047 remains the install-preview decision: installs are still manifest-only,
+`DOGE_FEATURE_SLOT_INSTALL` remains default off, and provider entrypoints are
+not imported or executed. New v2 sidecars use Ed25519 cryptographic signatures
+over canonical manifest bytes; v1 sidecars from this ADR remain readable as
+`legacy` and do not satisfy enterprise verified-signature policy.
+
 ## Date
 
 2026-07-07

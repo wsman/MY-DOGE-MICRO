@@ -6,6 +6,13 @@ Proposed
 ## Date
 2026-06-22
 
+## Status Update - 2026-07-08
+
+ADR-0058 defaults `DOGE_FEATURE_WORKFLOW_TEMPLATES` on for the controlled local
+Slot Platform path. The original experimental constraints below remain relevant
+for template safety, versioning, and rollback; explicit opt-out remains available
+with `DOGE_FEATURE_WORKFLOW_TEMPLATES=0`.
+
 ## Technology Compatibility
 
 | Field | Value |

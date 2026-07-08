@@ -2,7 +2,7 @@
 
 The local-first HTTP backend of MY-DOGE-MICRO. A single FastAPI application
 (`doge.interfaces.api.main`) binds to `127.0.0.1:8901` by default and exposes
-**96 HTTP routes**: 34 legacy `/api/*` compatibility routes plus 62 daemon/v1
+**97 HTTP routes**: 34 legacy `/api/*` compatibility routes plus 63 daemon/v1
 and health routes.
 Per ADR-0024, new platform work should target `/v1/*` through SDK clients.
 Legacy `/api/*` remains for local compatibility and emits deprecation metadata
@@ -36,7 +36,7 @@ not part of the main user workflow.
 | Bind port | `8901` | `src/doge/interfaces/api/main.py` |
 | Auth | Mode-driven: `local_demo` no bearer token; `enterprise` bearer provider fail-closed | see [Authentication](#authentication) |
 | Routers | legacy `/api/*` routers + v1 daemon routers | `src/doge/interfaces/api/main.py` |
-| HTTP routes | 96 (34 legacy `/api/*` routes + 62 daemon/v1 and health routes) | `src/doge/interfaces/api/main.py` |
+| HTTP routes | 97 (34 legacy `/api/*` routes + 63 daemon/v1 and health routes) | `src/doge/interfaces/api/main.py` |
 | Framework | FastAPI 0.123.8 + uvicorn 0.38.0 | `pyproject.toml:19-20` |
 | Streaming | sse-starlette 3.0.3 (`EventSourceResponse`) | `pyproject.toml:21` |
 
@@ -67,8 +67,9 @@ Primary user and SDK flows should stay on this sequence:
 read-only `GET /v1/slot-bundles` support capability discovery. `GET /v1/ui-panels`
 is a feature-gated UI-slot metadata surface for the Research workspace.
 `DOGE_FEATURE_SLOT_ENFORCEMENT` affects slot status/runtime assembly but does
-not add routes. `DOGE_FEATURE_SLOT_LOADER` enables process-local
-`POST /v1/slot-bundles/{bundle_id}/activate`. Audit, enterprise ACL, health/readiness, and portfolio import
+not add routes. `DOGE_FEATURE_SLOT_LOADER` enables persisted local bundle
+activation through `POST /v1/slot-bundles/{bundle_id}/activate` and
+`POST /v1/slot-bundles/active/deactivate`. Audit, enterprise ACL, health/readiness, and portfolio import
 endpoints remain documented below as operator/reference APIs, not the default
 product path.
 
@@ -124,7 +125,7 @@ Authentication is mode-driven (`DOGE_AUTH_MODE`, `AuthConfig` in
 
 ## Full Reference
 
-- Route table and per-route reference (all 96 HTTP routes; primary v1
+- Route table and per-route reference (all 97 HTTP routes; primary v1
   families `sessions`, `runs`, `documents`, `tools`, `platform`; legacy
   `/api/*`; operator appendix):
   [reference/http-api.md](reference/http-api.md)

@@ -28,6 +28,21 @@ No `/v1` route, OpenAPI schema, SDK surface, Web UI, daemon command source,
 ModelRouter, persistence schema, or external/operator gate is changed. Manifest
 permissions and health are declarative only in Sprint 033.
 
+## Status Update - 2026-07-08
+
+ADR-0058 supersedes the Sprint 033 default-off posture for
+`DOGE_FEATURE_SLOT_PLATFORM`: the built-in Slot Platform consumer path is now on
+by default for local runs. The legacy direct wiring remains available with
+`DOGE_FEATURE_SLOT_PLATFORM=0`, and SlotLoader, install, enforcement, UI,
+third-party provider execution, signing, sandboxing, YAML manifests, marketplace
+behavior, remote CI promotion, and production readiness remain out of scope.
+
+ADR-0059 extends the same no-code-moved tool-slot overlay from `market.core` to
+five additional built-in tool domains: `portfolio.core`, `evidence.core`,
+`quant.lab`, `governance.actions`, and `compliance.screening`. The `/v1/tools`
+descriptor set remains parity-stable, and `run_python_analysis` remains outside
+tool slots until a separate high-risk execution decision.
+
 ## Technology Compatibility
 
 | Field | Value |

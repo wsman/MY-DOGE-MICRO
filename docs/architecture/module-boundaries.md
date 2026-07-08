@@ -29,11 +29,17 @@
   `Any` rather than framework/runtime concrete types. Built-in slot providers
   live beside their product code when there is a product owner (e.g.
   `doge.products.market.slot.MarketCoreSlot` groups the market-facing tool
-  descriptors), beside platform code when the platform context owns the
-  behavior (e.g. `doge.platform.workspace.slot.WorkflowTemplatesSlot` wraps the
-  built-in workflow-template seed definitions, and
+  descriptors; ADR-0059 adds `doge.products.portfolio.slot.PortfolioCoreSlot`,
+  `doge.products.research.slot.EvidenceCoreSlot`, and
+  `doge.products.quant.slot.QuantLabSlot` for product-owned tool grouping),
+  beside platform code when the platform context owns the behavior (e.g.
+  `doge.platform.workspace.slot.WorkflowTemplatesSlot` wraps the built-in
+  workflow-template seed definitions,
   `doge.platform.governance.slot.ToolGovernancePolicySlot` wraps tool
-  entitlement/approval policy, and
+  entitlement/approval policy,
+  `doge.platform.governance.actions_slot.GovernanceActionsSlot` and
+  `doge.platform.governance.compliance_slot.ComplianceScreeningSlot` wrap
+  governance-owned tool descriptors, and
   `doge.platform.runtime.slot.RuntimeEventWatcherSlot` wraps runtime event
   watcher behavior), beside infrastructure code when the provider wraps a
   concrete infrastructure implementation (e.g.
@@ -57,13 +63,19 @@
   `doge.platform.slots`. `SlotLoader` loads JSON manifests as manifest-only
   slots for discovery/policy diagnostics; it must not import provider
   entrypoints until a separate third-party install/signing decision exists.
-  Bundle activation is process-local and remains in bootstrap/API/CLI wiring,
-  not product modules. Third-party slot install preview may copy validated JSON
+  Bundle activation is persisted through the bootstrap/API/CLI wiring and its
+  repository port, not product modules. Third-party slot install preview may copy validated JSON
   manifests into the configured install directory, but those slots stay
   manifest-only; provider entrypoint execution remains blocked until a separate
-  sandbox/signing decision exists. See ADR-0042, ADR-0043,
+  sandbox/signing decision exists. ADR-0058 makes the controlled built-in
+  consumer path default-on, and ADR-0060 makes manifest-only loader activation
+  controls default-on locally; install, enforcement, UI slot metadata, and
+  provider execution remain separately gated. ADR-0059 adds domain-level built-in
+  tool-slot ownership without moving provider implementations or changing
+  `/v1/tools` parity. See ADR-0042, ADR-0043,
   ADR-0044, ADR-0046, ADR-0047, ADR-0048, ADR-0049, ADR-0050, ADR-0051,
-  ADR-0052, ADR-0053, ADR-0054, ADR-0055, ADR-0056, and ADR-0057.
+  ADR-0052, ADR-0053, ADR-0054, ADR-0055, ADR-0056, ADR-0057, ADR-0058,
+  ADR-0059, and ADR-0060.
 - ADR-0027 is the controlling sunset policy for compatibility shims. Shim files
   may re-export, delegate, warn, and preserve documented compatibility symbols
   only; they must not gain new behavior ownership.

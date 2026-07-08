@@ -24,6 +24,12 @@ and CLI `--suite` support resolve a slot-contributed cases path and then call
 the same runner path. When `DOGE_FEATURE_SLOT_PLATFORM` is off, no eval suite
 registry is assembled.
 
+## Status Update - 2026-07-08
+
+ADR-0058 makes the built-in Slot Platform consumer path default-on for local
+runs, so `eval.local_cases` is available through `EvalSuiteRegistry` by default.
+The explicit `run(cases_path)` path remains unchanged.
+
 ## Technology Compatibility
 
 | Field | Value |

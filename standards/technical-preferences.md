@@ -62,7 +62,7 @@
 <!-- Add approved third-party dependencies here -->
 - duckdb, pandas, scipy, tabulate, tqdm
 - yfinance, opentdx, akshare
-- openai
+- openai, PyJWT, cryptography
 - mcp, fastapi, uvicorn, sse-starlette, pydantic, httpx
 - PyQt6
 - pytest, pytest-asyncio

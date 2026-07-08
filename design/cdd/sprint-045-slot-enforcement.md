@@ -17,6 +17,13 @@ The sprint does not add OS sandboxing, network interception, filesystem
 mediation, third-party slot install, signing, enterprise allowlists, bundle
 activation, external gate closure, or production-readiness changes.
 
+Later status: P4 / ADR-0063 adds a separate default-off in-process runtime
+interception layer for guarded db/secret/network ports and subprocess env/cwd
+hardening. Sprint 045's scope and ADR-0055 still describe only SlotKernel
+resolution-time admission enforcement; OS/container/WASM sandboxing,
+filesystem mediation, provider execution, and production readiness remain out
+of scope.
+
 ## 2. User Promise / JTBD
 
 A platform engineer can enable slot enforcement locally and see manifest
@@ -173,3 +180,7 @@ Local verification passed and is recorded in
 - Third-party slot install, signing, and enterprise allowlist.
 - SDK slot client methods.
 - Production readiness declaration or external/operator gate closure.
+
+P4 / ADR-0063 later releases only the db/secret/network guarded-port
+interception and subprocess env/cwd hardening subset. The remaining out-of-scope
+items above still apply to Sprint 045 history and to production readiness.

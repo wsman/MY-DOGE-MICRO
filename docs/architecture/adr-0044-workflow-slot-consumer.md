@@ -24,6 +24,13 @@ This is the first runtime consumer for a non-tool, non-model slot facet. It does
 not create a `SlotKernel`, `SlotBundle`, `SlotLoader`, `/v1/slots`, Web Slot
 Center, runtime permission enforcement, or third-party installation path.
 
+## Status Update - 2026-07-08
+
+ADR-0058 supersedes the Sprint 035 default-off posture for
+`DOGE_FEATURE_SLOT_PLATFORM` and `DOGE_FEATURE_WORKFLOW_TEMPLATES`: both are now
+on by default for local runs. The legacy built-in template fallback remains
+available through explicit opt-out.
+
 ## Technology Compatibility
 
 | Field | Value |

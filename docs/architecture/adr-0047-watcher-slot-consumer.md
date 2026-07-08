@@ -26,6 +26,13 @@ return `block`, `pause`, or `fail` decisions; these fail closed by raising befor
 commit, rolling back the transaction, and preventing outbox/publish side
 effects.
 
+## Status Update - 2026-07-08
+
+ADR-0058 supersedes the Sprint 038 default-off posture for
+`DOGE_FEATURE_SLOT_PLATFORM` and `DOGE_FEATURE_SLOT_WATCHER`: both are now on by
+default for local runs. The built-in watcher remains allow-only; concrete
+cost/secret/citation/tenant/Python-executor watcher policies remain future work.
+
 ## Technology Compatibility
 
 | Field | Value |

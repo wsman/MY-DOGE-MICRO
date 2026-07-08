@@ -3,6 +3,12 @@
 Status: Ready for Acceptance / Local Verification Passed
 Date: 2026-07-07
 
+Status Update - 2026-07-08: ADR-0062 upgrades the signature mechanism from
+this sprint's v1 metadata sidecar to v2 Ed25519 cryptographic signatures,
+trusted publisher keys, and SQLite key revocation. Sprint 047 remains the
+manifest-only install-preview scope; provider entrypoints are still not
+imported or executed, and `DOGE_FEATURE_SLOT_INSTALL` remains default off.
+
 ## 1. Overview
 
 Sprint 047 adds a local third-party slot install preview.
@@ -157,7 +163,9 @@ Local verification passed:
 
 - Provider entrypoint import or arbitrary Python plugin execution.
 - Marketplace or registry download flow.
-- Cryptographic signature format.
+- Cryptographic signature format in Sprint 047; ADR-0062 later adds v2
+  Ed25519 manifest signatures without changing the manifest-only install
+  boundary.
 - HTTP install API.
 - SDK slot client methods.
 - YAML manifest parsing.

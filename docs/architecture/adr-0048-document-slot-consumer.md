@@ -25,6 +25,13 @@ built-in slot registry for document parser contributions and receive a
 dispatcher. The default slot is parity preserving: text and binary fallback
 parsing remain equivalent to the legacy local parser.
 
+## Status Update - 2026-07-08
+
+ADR-0058 makes the built-in Slot Platform consumer path default-on for local
+runs, so the document parser slot path is now the default when not explicitly
+opted out. This does not add OCR, Kimi file parsing, active health probes, or
+third-party provider execution.
+
 ## Technology Compatibility
 
 | Field | Value |

@@ -25,6 +25,13 @@ from data slot contributions. The default registration order keeps TDX first,
 so scan behavior remains parity preserving unless a caller explicitly selects a
 different source.
 
+## Status Update - 2026-07-08
+
+ADR-0058 makes the built-in Slot Platform consumer path default-on for local
+runs, so the data-source registry path is now the default when no preferred TDX
+server is supplied. The direct TDX fallback remains available through explicit
+opt-out or preferred-server selection.
+
 ## Technology Compatibility
 
 | Field | Value |

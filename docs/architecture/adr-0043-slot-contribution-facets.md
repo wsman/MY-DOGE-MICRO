@@ -29,6 +29,13 @@ document, gateway, UI, watcher, eval, and governance consumers remain deferred.
 No `/v1` route, OpenAPI schema, SDK surface, Web UI, daemon command source,
 database schema, ModelRouter dispatch rule, or external/operator gate changes.
 
+## Status Update - 2026-07-08
+
+ADR-0058 makes the built-in Slot Platform consumer path default-on for local
+runs. This does not change the facet contract, does not enable third-party
+provider execution, and does not promote loader/install/enforcement/UI slot
+surfaces to default-on.
+
 ## Technology Compatibility
 
 | Field | Value |

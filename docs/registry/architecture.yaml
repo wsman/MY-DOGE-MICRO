@@ -20,7 +20,7 @@
 # STATUS VALUES: active | superseded_by: ADR-NNNN
 
 version: 1
-last_updated: "2026-07-07"
+last_updated: "2026-07-08"
 
 # ============================================================================
 # SYSTEMS — canonical eight bounded contexts (ADR-0021)
@@ -47,7 +47,7 @@ superseded_systems:
   - {num: 6, slug: market-reporting, name: "Market Reporting", category: Feature, layer: Feature, cdd: design/cdd/market-reporting.md, status: "superseded_by: ADR-0021", target: "Market Intelligence", notes: "Pure-SQL reports; NO LLM"}
   - {num: 7, slug: research-insight-knowledge-base, name: "Research Insight Knowledge Base", category: Core, layer: Core, cdd: design/cdd/research-insight-knowledge-base.md, status: "superseded_by: ADR-0021", target: "Research / Knowledge & Evidence", notes: "Owns stock_notes + stock_names historical store"}
   - {num: 8, slug: mcp-server, name: "MCP Server", category: Interface, layer: Interface, cdd: design/cdd/mcp-server.md, status: "superseded_by: ADR-0021", target: "entrypoints/mcp"}
-  - {num: 9, slug: fastapi-service, name: "FastAPI Service", category: Interface, layer: Interface, cdd: design/cdd/fastapi-service.md, status: "superseded_by: ADR-0021", target: "entrypoints/api", notes: "96 HTTP routes; 127.0.0.1:8901; legacy /api plus daemon /v1/platform"}
+  - {num: 9, slug: fastapi-service, name: "FastAPI Service", category: Interface, layer: Interface, cdd: design/cdd/fastapi-service.md, status: "superseded_by: ADR-0021", target: "entrypoints/api", notes: "97 HTTP routes; 127.0.0.1:8901; legacy /api plus daemon /v1/platform"}
   - {num: 10, slug: pyqt-desktop-dashboard, name: "PyQt Desktop Dashboard", category: Presentation, layer: Presentation, cdd: design/cdd/pyqt-desktop-dashboard.md, status: "superseded_by: ADR-0021", target: "entrypoints/pyqt"}
   - {num: 11, slug: vue-web-console, name: "Vue Web Console", category: Presentation, layer: Presentation, cdd: design/cdd/vue-web-console.md, status: "superseded_by: ADR-0021", target: "web"}
   - {num: 12, slug: clean-architecture-migration, name: "Clean Architecture Migration", category: Operations, layer: Operations, cdd: design/cdd/clean-architecture-migration.md, status: "superseded_by: ADR-0021", target: "architecture governance"}
@@ -189,7 +189,7 @@ interfaces:
     consumers: [vue-web-console, pyqt-desktop-dashboard]
     transports: [http]
     adr: docs/architecture/adr-0007-api-surface-and-cors.md
-    signature: "96 HTTP routes; JSON + SSE; bind 127.0.0.1:8901; legacy /api compatibility plus preferred /v1 daemon/platform routes"
+    signature: "97 HTTP routes; JSON + SSE; bind 127.0.0.1:8901; legacy /api compatibility plus preferred /v1 daemon/platform routes"
     referenced_by:
       - docs/architecture/adr-0008-web-architecture.md
       - docs/architecture/adr-0024-single-stack-runtime-direction.md
@@ -524,6 +524,54 @@ api_decisions:
     adr: docs/architecture/adr-0024-single-stack-runtime-direction.md
     reason: "Prevents permanent dual architecture while preserving local compatibility and demo surfaces through explicit deprecation gates."
     added: "2026-06-25"
+
+  - purpose: slot_platform_default_posture
+    status: active
+    api: "workflow_templates, slot_platform, slot_governance, slot_watcher, and slot_loader default on; slot_install, slot_enforcement, slot_ui, and python_analysis_enabled default off"
+    not: "Default bundle activation, provider entrypoint execution, marketplace install, sandboxing, YAML manifests, provider/package signing, or production-ready plugin runtime"
+    adr: docs/architecture/adr-0060-persistent-slot-bundle-activation.md
+    reason: "ADR-0060 supersedes ADR-0058 for slot_loader only: manifest-only loading and persistent bundle activation controls are default-enabled locally, while install/enforcement/UI/execution surfaces remain explicitly gated."
+    added: "2026-07-08"
+
+  - purpose: tool_slot_domain_ownership
+    status: active
+    api: "Built-in tool descriptors are grouped by slot id: market.core, portfolio.core, evidence.core, quant.lab, governance.actions, and compliance.screening"
+    not: "Moving provider implementations into slot modules, adding new feature flags, changing /v1/tools descriptors, or slotting high-risk Python execution"
+    adr: docs/architecture/adr-0059-tool-slot-domain-migration.md
+    reason: "Domain-level tool slot ownership improves discovery and later governance/enforcement seams while preserving ToolApplicationService parity."
+    added: "2026-07-08"
+
+  - purpose: slot_center_persistent_activation
+    status: active
+    api: "SQLite-backed single active bundle record plus POST /v1/slot-bundles/{bundle_id}/activate, POST /v1/slot-bundles/active/deactivate, CLI, and Web Slot Center controls"
+    not: "Auto-activating bundles, per-slot persistent enablement, enterprise bundle ACL beyond ADR-0061's HTTP activate/deactivate gate, provider execution, sandboxing, YAML manifests, provider/package signing, or marketplace behavior"
+    adr: docs/architecture/adr-0060-persistent-slot-bundle-activation.md
+    reason: "P2 turns Slot Center from read-only local preview into a durable local alpha control surface while preserving the manifest-only safety boundary."
+    added: "2026-07-08"
+
+  - purpose: slot_bundle_enterprise_acl
+    status: active
+    api: "Enterprise-mode HTTP slot-bundle activate/deactivate requires enterprise_acl_grants with resource_type=slot_bundle and permission=write"
+    not: "CLI ACL checks, local-demo behavior changes, deny-audit events, schema migration, install allowlist expansion, provider execution, sandboxing, YAML manifests, SDK install APIs, or marketplace behavior"
+    adr: docs/architecture/adr-0061-enterprise-bundle-acl.md
+    reason: "P2.5 closes the enterprise HTTP authorization gap left by ADR-0060 while keeping CLI as a local-operator trust path and preserving the local alpha posture."
+    added: "2026-07-08"
+
+  - purpose: slot_cryptographic_signing
+    status: active
+    api: "Ed25519 v2 slot.signature.json verification over canonical SlotManifest JSON, trusted publisher keys, SQLite key revocation, and CLI sign/revoke-key"
+    not: "Provider entrypoint execution, provider package signing, remote key distribution, sandboxing, YAML manifests, HTTP install APIs, SDK install APIs, marketplace behavior, or default-on install"
+    adr: docs/architecture/adr-0062-slot-cryptographic-signing.md
+    reason: "P3 releases only the no-cryptographic-manifest-signing invariant while keeping install preview gated and manifest-only."
+    added: "2026-07-08"
+
+  - purpose: slot_runtime_interception
+    status: active
+    api: "Default-off in-process slot runtime guards for db/secret/network ports plus Python subprocess env/cwd hardening"
+    not: "Filesystem mediation, OS/container/WASM sandboxing, malicious-code containment, third-party provider execution, marketplace behavior, or production-ready plugin runtime"
+    adr: docs/architecture/adr-0063-slot-runtime-permission-interception.md
+    reason: "P4 releases only the guarded-port runtime interception and subprocess hardening subset while keeping provider execution and true sandboxing deferred."
+    added: "2026-07-08"
 
 # ============================================================================
 # PERFORMANCE BUDGETS
@@ -1022,5 +1070,53 @@ adr_index:
     status: Accepted
     date: "2026-07-07"
     path: docs/architecture/adr-0057-third-party-slot-install-preview.md
-    governs: "feature-flagged manifest-only third-party local slot install preview with signature metadata and enterprise allowlist checks"
+    governs: "feature-flagged manifest-only third-party local slot install preview with legacy v1 signature metadata and enterprise allowlist checks"
     depends_on: [ADR-0042, ADR-0055, ADR-0056]
+
+  - id: ADR-0058
+    title: "Slot Platform Controlled Default On"
+    status: Accepted
+    date: "2026-07-08"
+    path: docs/architecture/adr-0058-slot-platform-controlled-default-on.md
+    governs: "controlled default-on posture for built-in Slot Platform consumers while loader/install/enforcement/ui/execution surfaces remain default-off"
+    depends_on: [ADR-0018, ADR-0042, ADR-0044, ADR-0046, ADR-0047, ADR-0052]
+
+  - id: ADR-0059
+    title: "Tool Slot Domain Migration"
+    status: Accepted
+    date: "2026-07-08"
+    path: docs/architecture/adr-0059-tool-slot-domain-migration.md
+    governs: "built-in domain-level tool slot ownership for portfolio, evidence, quant SQL, governance actions, and compliance screening without provider-code movement"
+    depends_on: [ADR-0013, ADR-0021, ADR-0042, ADR-0043, ADR-0045, ADR-0052, ADR-0058]
+
+  - id: ADR-0060
+    title: "Persistent Slot Bundle Activation"
+    status: Accepted
+    date: "2026-07-08"
+    path: docs/architecture/adr-0060-persistent-slot-bundle-activation.md
+    governs: "SQLite-backed local alpha bundle activation, deactivate controls, slot_loader default-on posture, and Web Slot Center activation actions"
+    depends_on: [ADR-0042, ADR-0052, ADR-0056, ADR-0058, ADR-0059]
+
+  - id: ADR-0061
+    title: "Enterprise Bundle ACL Gate"
+    status: Accepted
+    date: "2026-07-08"
+    path: docs/architecture/adr-0061-enterprise-bundle-acl.md
+    governs: "enterprise-mode HTTP slot-bundle activate/deactivate write ACL gate over resource_type slot_bundle"
+    depends_on: [ADR-0015, ADR-0042, ADR-0052, ADR-0060]
+
+  - id: ADR-0062
+    title: "Slot Cryptographic Signing"
+    status: Accepted
+    date: "2026-07-08"
+    path: docs/architecture/adr-0062-slot-cryptographic-signing.md
+    governs: "Ed25519 v2 slot manifest signatures, trusted publisher keys, signing-key revocation, and CLI sign/revoke controls"
+    depends_on: [ADR-0057, ADR-0060]
+
+  - id: ADR-0063
+    title: "Slot Runtime Permission Interception and Subprocess Hardening"
+    status: Accepted
+    date: "2026-07-08"
+    path: docs/architecture/adr-0063-slot-runtime-permission-interception.md
+    governs: "default-off in-process slot db/secret/network runtime guards and Python subprocess env/cwd hardening"
+    depends_on: [ADR-0042, ADR-0055, ADR-0062]

@@ -266,8 +266,8 @@ def test_fastapi_route_count_governance_syncs_to_s017_surface():
         entities_registry,
     )
 
-    assert len(route_rows) == 96
-    assert len(entity_routes) == 96
+    assert len(route_rows) == 97
+    assert len(entity_routes) == 97
     assert set(entity_routes) == set(route_rows)
     for path in [
         "/v1/runs",
@@ -289,6 +289,7 @@ def test_fastapi_route_count_governance_syncs_to_s017_surface():
         "/v1/slots",
         "/v1/slot-bundles",
         "/v1/slot-bundles/{bundle_id}/activate",
+        "/v1/slot-bundles/active/deactivate",
         "/v1/ui-panels",
         "/v1/slots/{slot_id}",
         "/v1/slots/{slot_id}/health",
@@ -307,9 +308,9 @@ def test_fastapi_route_count_governance_syncs_to_s017_surface():
         traceability,
         adr_0007,
     ]:
-        assert "96 HTTP routes" in text
+        assert "97 HTTP routes" in text
         assert "51 HTTP routes" not in text
-    assert "96 canonical HTTP routes" in entities_registry
+    assert "97 canonical HTTP routes" in entities_registry
     assert "51 canonical HTTP routes" not in entities_registry
     assert "88 HTTP routes" in imported_state
 

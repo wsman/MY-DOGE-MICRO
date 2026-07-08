@@ -23,6 +23,13 @@ The surfaces read manifests, static health, feature flags, and derived
 invoke lifecycle hooks, enable or disable slots, activate bundles, install
 third-party slots, or enforce runtime permissions.
 
+## Status Update - 2026-07-08
+
+ADR-0058 makes read-only built-in slot discovery available by default through the
+controlled local Slot Platform path. Discovery remains read-only; activation,
+install, provider execution, signing, sandboxing, and marketplace behavior are
+still gated or absent.
+
 ## Technology Compatibility
 
 | Field | Value |

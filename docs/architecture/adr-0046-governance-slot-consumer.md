@@ -25,6 +25,13 @@ The flag-on default policy is parity-equivalent with the current
 tools continue to require approval. Additional governance slots can constrain
 the schema and execution surface through the same composition chain.
 
+## Status Update - 2026-07-08
+
+ADR-0058 supersedes the Sprint 037 default-off posture for
+`DOGE_FEATURE_SLOT_PLATFORM` and `DOGE_FEATURE_SLOT_GOVERNANCE`: both are now on
+by default for local runs. Runtime permission/health enforcement and third-party
+slot policy remain gated separately.
+
 ## Technology Compatibility
 
 | Field | Value |

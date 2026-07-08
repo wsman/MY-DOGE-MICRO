@@ -24,6 +24,18 @@ built-in scenario bundles. It does not add bundle activation, disk manifest
 loading, third-party install, signing, runtime permission enforcement, SDK slot
 clients, or Web Slot Center.
 
+## Status Update - 2026-07-08
+
+ADR-0058 makes SlotKernel-backed built-in contribution resolution the local
+default for the promoted built-in consumers. This is not persistent bundle
+activation: `DOGE_FEATURE_SLOT_LOADER` stays default-off and active bundle state
+remains process-local when explicitly enabled.
+
+ADR-0060 later supersedes the last sentence above: `slot_loader` now defaults on
+for manifest-only loading, and operator-selected bundle activation is persisted
+in SQLite. This ADR still owns the `SlotKernel`/`SlotPolicy`/`SlotBundle`
+contract shape.
+
 ## Technology Compatibility
 
 | Field | Value |

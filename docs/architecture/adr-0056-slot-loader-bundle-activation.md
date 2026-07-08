@@ -29,6 +29,14 @@ This sprint does not add YAML parsing, third-party install, signature
 verification, enterprise allowlists, persistent activation state, SDK slot
 client methods, or OS sandboxing.
 
+## Status Update - 2026-07-08
+
+ADR-0060 supersedes this ADR's process-local-only activation decision and
+default-off `DOGE_FEATURE_SLOT_LOADER` posture. The current local alpha path
+persists one active built-in bundle in SQLite, adds deactivate controls, and
+defaults `slot_loader` on while preserving this ADR's manifest-only loader
+boundary: disk manifests still never import provider entrypoints.
+
 ## Technology Compatibility
 
 | Field | Value |

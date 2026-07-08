@@ -25,6 +25,12 @@ fallback. It does not add Web Slot Center, dynamic component loading, bundle
 activation, persistent UI layout state, third-party slots, signing, permission
 enforcement, or production-readiness changes.
 
+## Status Update - 2026-07-08
+
+ADR-0058 makes `DOGE_FEATURE_SLOT_PLATFORM` default-on for local runs, but does
+not promote `DOGE_FEATURE_SLOT_UI`. UI panel metadata remains explicitly gated
+by `DOGE_FEATURE_SLOT_UI=1`; the frontend fallback remains the default UI path.
+
 ## Technology Compatibility
 
 | Field | Value |
