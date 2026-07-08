@@ -40,9 +40,11 @@ def test_context_migration_registry_declares_context_ownership():
         "runtime:run_queue_leases",
         "runtime:approval_explanation_fields",
         "runtime:runtime_query_indexes",
+        "slots:bundle_activation_state",
+        "slots:signer_revocations",
     }.issubset(keys)
-    assert {"runtime", "evidence"}.issubset(contexts)
-    for context in ("runtime", "evidence", "portfolio", "governance", "workspace"):
+    assert {"runtime", "evidence", "slots"}.issubset(contexts)
+    for context in ("runtime", "evidence", "portfolio", "governance", "workspace", "slots"):
         assert (repo_root / "migrations" / context / "README.md").exists()
         assert (
             repo_root
@@ -61,7 +63,7 @@ def test_source_local_migration_manifests_match_registry():
     registered_by_context: dict[str, set[str]] = {}
     repo_root = Path(__file__).resolve().parents[3]
     manifest_root = repo_root / "src" / "doge" / "infrastructure" / "database" / "migrations"
-    contexts = ("runtime", "evidence", "portfolio", "governance", "workspace")
+    contexts = ("runtime", "evidence", "portfolio", "governance", "workspace", "slots")
 
     for migration in migrations:
         registered_by_context.setdefault(migration.context, set()).add(migration.name)
@@ -144,6 +146,8 @@ def test_bootstrap_upgrades_legacy_agent_database_with_context_migrations(tmp_pa
             "attempt_count",
         }.issubset(_columns(conn, "run_queue"))
         assert _table_exists(conn, "runtime_outbox")
+        assert _table_exists(conn, "slot_activation_state")
+        assert _table_exists(conn, "slot_signer_revocations")
 
         document = conn.execute(
             """

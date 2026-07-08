@@ -302,6 +302,20 @@ CREATE TABLE IF NOT EXISTS approval_actor_decisions (
     PRIMARY KEY(approval_id, tenant_id, actor_hash, created_at)
 );
 
+CREATE TABLE IF NOT EXISTS slot_activation_state (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    bundle_id TEXT,
+    activated_at TEXT,
+    actor_hash TEXT
+);
+
+CREATE TABLE IF NOT EXISTS slot_signer_revocations (
+    key_id TEXT PRIMARY KEY,
+    revoked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    reason TEXT,
+    actor_hash TEXT
+);
+
 CREATE TABLE IF NOT EXISTS workspaces (
     workspace_id TEXT PRIMARY KEY,
     tenant_id TEXT,

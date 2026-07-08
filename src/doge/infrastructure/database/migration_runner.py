@@ -73,6 +73,8 @@ def _migrations() -> tuple[Migration, ...]:
         Migration("runtime", "approval_explanation_fields", _migrate_approval_explanation_fields),
         Migration("runtime", "runtime_child_foreign_keys", _migrate_runtime_child_foreign_keys),
         Migration("runtime", "runtime_query_indexes", _migrate_runtime_query_indexes),
+        Migration("slots", "bundle_activation_state", _migrate_slot_bundle_activation),
+        Migration("slots", "signer_revocations", _migrate_slot_signer_revocations),
     )
 
 
@@ -470,5 +472,31 @@ def _migrate_runtime_query_indexes(conn: sqlite3.Connection) -> None:
         """
         CREATE INDEX IF NOT EXISTS idx_run_queue_status_worker_lease
         ON run_queue(status, worker_id, lease_expires_at)
+        """
+    )
+
+
+def _migrate_slot_bundle_activation(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS slot_activation_state (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            bundle_id TEXT,
+            activated_at TEXT,
+            actor_hash TEXT
+        )
+        """
+    )
+
+
+def _migrate_slot_signer_revocations(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS slot_signer_revocations (
+            key_id TEXT PRIMARY KEY,
+            revoked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            reason TEXT,
+            actor_hash TEXT
+        )
         """
     )

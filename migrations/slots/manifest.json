@@ -1,0 +1,7 @@
+{
+  "context": "slots",
+  "migrations": [
+    "bundle_activation_state",
+    "signer_revocations"
+  ]
+}

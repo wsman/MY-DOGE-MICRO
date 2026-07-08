@@ -67,6 +67,12 @@ from doge.core.ports.runtime_services import (
     ToolResult,
 )
 from doge.core.ports.secrets import ISecretProvider
+from doge.core.ports.slot_activation_repository import ISlotActivationRepository, SlotActivationRecord
+from doge.core.ports.slot_runtime_executor import (
+    DisabledSlotRuntimeExecutor,
+    ISlotRuntimeExecutor,
+)
+from doge.core.ports.slot_signing_repository import ISlotSigningRepository, SlotSignerRevocation
 from doge.core.ports.unit_of_work import IAgentUnitOfWork
 from doge.core.ports.worker_queue import IRunQueue
 from doge.core.ports.vector_store import IVectorStore, VectorRecord, VectorSearchResult
@@ -122,6 +128,9 @@ __all__ = [
     "IRunScopeResolver",
     "IRiskFactorSource",
     "ISecretProvider",
+    "ISlotActivationRepository",
+    "ISlotRuntimeExecutor",
+    "ISlotSigningRepository",
     "ISchemaBrowser",
     "ISessionRepository",
     "IStockNameRepository",
@@ -136,9 +145,12 @@ __all__ = [
     "VectorRecord",
     "VectorSearchResult",
     "DisabledCodeExecutor",
+    "DisabledSlotRuntimeExecutor",
     "ExecutionResult",
     "ModelExecutionResult",
     "RoutingDecision",
+    "SlotActivationRecord",
+    "SlotSignerRevocation",
     "TDXServer",
     "ToolResult",
     "StorageWriteError",
