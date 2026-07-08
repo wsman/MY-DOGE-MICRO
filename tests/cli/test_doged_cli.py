@@ -211,6 +211,11 @@ def test_doged_features_prints_feature_flags(capsys):
 
     out = capsys.readouterr().out
     assert "run_summary_api=off env=DOGE_FEATURE_RUN_SUMMARY_API" in out
+    assert "workflow_templates=on env=DOGE_FEATURE_WORKFLOW_TEMPLATES" in out
+    assert "slot_platform=on env=DOGE_FEATURE_SLOT_PLATFORM" in out
+    assert "slot_governance=on env=DOGE_FEATURE_SLOT_GOVERNANCE" in out
+    assert "slot_watcher=on env=DOGE_FEATURE_SLOT_WATCHER" in out
+    assert "slot_loader=on env=DOGE_FEATURE_SLOT_LOADER" in out
     assert "python_analysis_executor=disabled" in out
 
 
@@ -227,9 +232,36 @@ def test_doged_routes_prints_registered_routes(monkeypatch, capsys):
     assert out == ["GET /health/ready ready", "POST /v1/sessions create_session"]
 
 
-def test_doged_slots_prints_builtin_slot_statuses(monkeypatch, capsys):
-    monkeypatch.delenv("DOGE_FEATURE_SLOT_PLATFORM", raising=False)
-    monkeypatch.delenv("DOGE_FEATURE_WORKFLOW_TEMPLATES", raising=False)
+def test_doged_slots_prints_builtin_slot_statuses_by_default(monkeypatch, capsys):
+    _clear_doged_cli_env()
+    reset_settings()
+
+    try:
+        doged_main.main(["slots"])
+    finally:
+        _clear_doged_cli_env()
+
+    out = capsys.readouterr().out
+    assert "market.core status=resolved type=tool" in out
+    assert "portfolio.core status=resolved type=tool" in out
+    assert "evidence.core status=resolved type=tool" in out
+    assert "quant.lab status=resolved type=tool" in out
+    assert "governance.actions status=resolved type=tool" in out
+    assert "compliance.screening status=resolved type=tool" in out
+    assert "workflow.templates status=resolved type=workflow" in out
+    assert "data.tdx status=resolved type=data" in out
+    assert "data.yfinance status=resolved type=data" in out
+    assert "gateway.slots status=resolved type=gateway" in out
+    assert "eval.local_cases status=resolved type=eval" in out
+    assert "ui.research_workspace status=disabled type=ui" in out
+    assert "governance.tool_policy status=resolved type=governance" in out
+    assert "watcher.runtime_events status=resolved type=watcher" in out
+    assert "document.local_parser status=resolved type=document" in out
+
+
+def test_doged_slots_respects_slot_platform_opt_out(monkeypatch, capsys):
+    _clear_doged_cli_env()
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "0")
     reset_settings()
 
     try:
@@ -239,15 +271,14 @@ def test_doged_slots_prints_builtin_slot_statuses(monkeypatch, capsys):
 
     out = capsys.readouterr().out
     assert "market.core status=disabled type=tool" in out
+    assert "portfolio.core status=disabled type=tool" in out
+    assert "evidence.core status=disabled type=tool" in out
+    assert "quant.lab status=disabled type=tool" in out
+    assert "governance.actions status=disabled type=tool" in out
+    assert "compliance.screening status=disabled type=tool" in out
     assert "workflow.templates status=disabled type=workflow" in out
     assert "data.tdx status=disabled type=data" in out
-    assert "data.yfinance status=disabled type=data" in out
     assert "gateway.slots status=disabled type=gateway" in out
-    assert "eval.local_cases status=disabled type=eval" in out
-    assert "ui.research_workspace status=disabled type=ui" in out
-    assert "governance.tool_policy status=disabled type=governance" in out
-    assert "watcher.runtime_events status=disabled type=watcher" in out
-    assert "document.local_parser status=disabled type=document" in out
 
 
 def test_doged_slots_json_marks_workflow_resolved_when_flags_on(monkeypatch, capsys):
@@ -262,6 +293,15 @@ def test_doged_slots_json_marks_workflow_resolved_when_flags_on(monkeypatch, cap
 
     payload = json.loads(capsys.readouterr().out)
     market = next(slot for slot in payload["slots"] if slot["id"] == "market.core")
+    portfolio = next(slot for slot in payload["slots"] if slot["id"] == "portfolio.core")
+    evidence = next(slot for slot in payload["slots"] if slot["id"] == "evidence.core")
+    quant = next(slot for slot in payload["slots"] if slot["id"] == "quant.lab")
+    governance_actions = next(
+        slot for slot in payload["slots"] if slot["id"] == "governance.actions"
+    )
+    compliance = next(
+        slot for slot in payload["slots"] if slot["id"] == "compliance.screening"
+    )
     workflow = next(slot for slot in payload["slots"] if slot["id"] == "workflow.templates")
     governance = next(
         slot for slot in payload["slots"] if slot["id"] == "governance.tool_policy"
@@ -275,10 +315,20 @@ def test_doged_slots_json_marks_workflow_resolved_when_flags_on(monkeypatch, cap
     ui_slot = next(slot for slot in payload["slots"] if slot["id"] == "ui.research_workspace")
     assert market["status"] == "resolved"
     assert market["counts"]["tools"] == 6
+    assert portfolio["status"] == "resolved"
+    assert portfolio["counts"]["tools"] == 4
+    assert evidence["status"] == "resolved"
+    assert evidence["counts"]["tools"] == 8
+    assert quant["status"] == "resolved"
+    assert quant["counts"]["tools"] == 1
+    assert governance_actions["status"] == "resolved"
+    assert governance_actions["counts"]["tools"] == 2
+    assert compliance["status"] == "resolved"
+    assert compliance["counts"]["tools"] == 1
     assert workflow["status"] == "resolved"
     assert workflow["type"] == "workflow"
-    assert governance["status"] == "disabled"
-    assert watcher["status"] == "disabled"
+    assert governance["status"] == "resolved"
+    assert watcher["status"] == "resolved"
     assert document["status"] == "resolved"
     assert document["type"] == "document"
     assert tdx["status"] == "resolved"

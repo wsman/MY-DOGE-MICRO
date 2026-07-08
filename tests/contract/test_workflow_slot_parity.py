@@ -94,8 +94,12 @@ def test_slot_aware_workflow_templates_match_builtin_templates(monkeypatch) -> N
 
 
 def test_slot_aware_workflow_templates_require_workflow_flag(monkeypatch) -> None:
-    _strip_feature_env(monkeypatch, keep={"DOGE_FEATURE_SLOT_PLATFORM"})
+    _strip_feature_env(
+        monkeypatch,
+        keep={"DOGE_FEATURE_SLOT_PLATFORM", "DOGE_FEATURE_WORKFLOW_TEMPLATES"},
+    )
     monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "1")
+    monkeypatch.setenv("DOGE_FEATURE_WORKFLOW_TEMPLATES", "0")
     reset_settings()
 
     assert slots_module.build_slot_aware_workflow_templates() == ()

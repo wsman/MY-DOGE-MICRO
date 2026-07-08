@@ -56,6 +56,7 @@ DOGE_FEATURE_VARS = [
     "DOGE_FEATURE_SLOT_WATCHER",
     "DOGE_FEATURE_SLOT_UI",
     "DOGE_FEATURE_SLOT_ENFORCEMENT",
+    "DOGE_FEATURE_SLOT_RUNTIME_INTERCEPTION",
     "DOGE_FEATURE_SLOT_LOADER",
     "DOGE_FEATURE_SLOT_INSTALL",
     "DOGE_PYTHON_ANALYSIS_EXECUTOR",
@@ -66,6 +67,7 @@ DOGE_SLOT_VARS = [
     "DOGE_SLOT_INSTALL_DIR",
     "DOGE_SLOT_ENTERPRISE_ALLOWLIST",
     "DOGE_SLOT_TRUSTED_SIGNERS",
+    "DOGE_SLOT_TRUSTED_PUBLISHER_KEYS",
     "DOGE_SLOT_ALLOW_UNSIGNED_LOCAL",
 ]
 
@@ -170,6 +172,7 @@ class TestEnvOverrides:
         monkeypatch.setenv("DOGE_SLOT_INSTALL_DIR", str(install_dir))
         monkeypatch.setenv("DOGE_SLOT_ENTERPRISE_ALLOWLIST", "local.a,local.b")
         monkeypatch.setenv("DOGE_SLOT_TRUSTED_SIGNERS", "ops,sec")
+        monkeypatch.setenv("DOGE_SLOT_TRUSTED_PUBLISHER_KEYS", "ops-key=abc123==,sec-key=def456")
         monkeypatch.setenv("DOGE_SLOT_ALLOW_UNSIGNED_LOCAL", "0")
         # Act
         settings = get_settings()
@@ -177,6 +180,10 @@ class TestEnvOverrides:
         assert settings.slots.install_dir == install_dir
         assert settings.slots.enterprise_allowlist == ("local.a", "local.b")
         assert settings.slots.trusted_signers == ("ops", "sec")
+        assert settings.slots.trusted_publisher_keys == {
+            "ops-key": "abc123==",
+            "sec-key": "def456",
+        }
         assert settings.slots.allow_unsigned_local is False
 
 
@@ -331,21 +338,22 @@ class TestKnownConstants:
 
 
 class TestFeatureLifecycle:
-    def test_platformization_flags_default_off(self):
+    def test_platformization_flags_default_state(self):
         features = get_settings().features
 
         assert features.run_summary_api is False
         assert features.platform_objects is False
-        assert features.workflow_templates is False
+        assert features.workflow_templates is True
         assert features.capability_registry is False
         assert features.runtime_outbox_publisher is False
         assert features.python_analysis_enabled is False
-        assert features.slot_platform is False
-        assert features.slot_governance is False
-        assert features.slot_watcher is False
+        assert features.slot_platform is True
+        assert features.slot_governance is True
+        assert features.slot_watcher is True
         assert features.slot_ui is False
         assert features.slot_enforcement is False
-        assert features.slot_loader is False
+        assert features.slot_runtime_interception is False
+        assert features.slot_loader is True
         assert features.slot_install is False
         assert get_settings().slots.manifest_dirs == ()
         assert get_settings().slots.enterprise_allowlist == ()
@@ -366,6 +374,7 @@ class TestFeatureLifecycle:
             "slot_watcher",
             "slot_ui",
             "slot_enforcement",
+            "slot_runtime_interception",
             "slot_loader",
             "slot_install",
         }
@@ -373,8 +382,9 @@ class TestFeatureLifecycle:
             lifecycle.env_var for lifecycle in FEATURE_LIFECYCLES.values()
         } == set(DOGE_FEATURE_VARS) - {"DOGE_PYTHON_ANALYSIS_EXECUTOR"}
 
-        for lifecycle in FEATURE_LIFECYCLES.values():
-            assert lifecycle.current_default is False
+        defaults = FeatureConfig()
+        for name, lifecycle in FEATURE_LIFECYCLES.items():
+            assert lifecycle.current_default is getattr(defaults, name)
             assert lifecycle.introduced
             assert lifecycle.target_default_on
             assert lifecycle.target_removal

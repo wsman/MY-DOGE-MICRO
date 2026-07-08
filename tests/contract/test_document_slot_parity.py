@@ -109,6 +109,7 @@ def _strip_feature_env(monkeypatch, keep: set[str] | None = None) -> None:
 
 def test_document_slot_off_returns_no_parser(monkeypatch) -> None:
     _strip_feature_env(monkeypatch)
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "0")
     reset_settings()
 
     assert slots_module.build_slot_aware_document_parser() is None
@@ -165,6 +166,7 @@ def test_gateway_page_extraction_factory_preserves_legacy_parser_when_slot_platf
     tmp_path,
 ) -> None:
     _strip_feature_env(monkeypatch)
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "0")
     reset_settings()
     source = tmp_path / "memo.txt"
     source.write_text("legacy text", encoding="utf-8")

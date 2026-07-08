@@ -10,6 +10,7 @@ from typing import Any
 from doge.infrastructure.database.enterprise_governance import SQLiteEnterpriseGovernanceRepository
 from doge.infrastructure.database.platform_repository import SQLitePlatformRepository
 from doge.infrastructure.database.portfolio_repository import SQLitePortfolioRepository, demo_portfolio
+from doge.infrastructure.database.slot_activation_repository import SQLiteSlotActivationRepository
 from doge.platform.workspace import composition
 from doge.platform.workspace.template_seed import BUILTIN_TEMPLATES
 from doge.platform.workspace.application import ResearchCaseService, WorkflowService
@@ -33,6 +34,9 @@ class WorkspaceContainer:
 
     def build_enterprise_governance_repository(self):
         return SQLiteEnterpriseGovernanceRepository(self.db_path)
+
+    def build_slot_activation_repository(self):
+        return SQLiteSlotActivationRepository(self.db_path)
 
     def build_research_case_service(
         self,
@@ -68,7 +72,7 @@ class WorkspaceContainer:
         if settings.features.slot_platform and settings.features.workflow_templates:
             from doge.bootstrap.runtime_factories.slots import build_slot_aware_workflow_templates
 
-            return build_slot_aware_workflow_templates()
+            return build_slot_aware_workflow_templates(settings=settings)
         return tuple(BUILTIN_TEMPLATES)
 
     def runtime_container(self):

@@ -47,11 +47,15 @@ def build_model_router(document_repository=None) -> ModelRouter:
 
 
 def build_agent_backends(gateway_container_fn, secret_provider=None):
-    if get_settings().features.slot_platform:
+    settings = get_settings()
+    if settings.features.slot_platform:
         from doge.bootstrap.runtime_factories.slots import build_slot_aware_agent_backends
 
-        return build_slot_aware_agent_backends(gateway_container_fn, secret_provider)
-    settings = get_settings()
+        return build_slot_aware_agent_backends(
+            gateway_container_fn,
+            secret_provider,
+            settings=settings,
+        )
     secret_provider = secret_provider or gateway_container_fn().build_secret_provider()
     return {
         "kimi_agent_sdk": KimiAgentSdkBackend(

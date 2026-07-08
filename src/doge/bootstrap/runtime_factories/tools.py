@@ -13,13 +13,15 @@ def build_default_tool_registry(gateway_container_fn, *, entitlement_checker: An
     # default registry is assembled from slot contributions plus the remaining
     # descriptors. The flag-off branch is behaviorally identical to the legacy
     # factory (it only adds one settings read before delegating).
-    if get_settings().features.slot_platform:
+    settings = get_settings()
+    if settings.features.slot_platform:
         from doge.bootstrap.runtime_factories.slots import build_slot_aware_tool_registry
 
         return build_slot_aware_tool_registry(
             gateway_container_fn,
             entitlement_checker=entitlement_checker,
             context=context,
+            settings=settings,
         )
     return _build_tool_registry(
         service=gateway_container_fn().build_tool_application_service(),

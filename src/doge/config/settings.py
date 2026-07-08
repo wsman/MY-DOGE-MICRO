@@ -74,6 +74,31 @@ def _env_csv(name: str, default: tuple[str, ...] = ()) -> tuple[str, ...]:
     return tuple(item.strip() for item in env.split(",") if item.strip())
 
 
+def parse_slot_trusted_publisher_keys(value: str | None) -> dict[str, str]:
+    """Parse ``key_id=base64_public_key`` CSV pairs for slot signature trust."""
+    if not value:
+        return {}
+    parsed: dict[str, str] = {}
+    for item in value.split(","):
+        raw = item.strip()
+        if not raw:
+            continue
+        if "=" not in raw:
+            raise ValueError("slot trusted publisher keys must use key_id=base64_public_key pairs")
+        key_id, public_key = raw.split("=", 1)
+        key_id = key_id.strip()
+        public_key = public_key.strip()
+        if not key_id or not public_key:
+            raise ValueError("slot trusted publisher keys must use non-empty key ids and values")
+        parsed[key_id] = public_key
+    return parsed
+
+
+def _env_slot_trusted_publisher_keys(name: str) -> dict[str, str]:
+    """Read slot Ed25519 public keys from an env var."""
+    return parse_slot_trusted_publisher_keys(os.environ.get(name))
+
+
 def _env_json_object(name: str, default: dict) -> dict:
     """Read a JSON-object env var (e.g. HTTP headers), falling back to ``default``."""
     raw = os.environ.get(name)
@@ -497,7 +522,12 @@ class SecretConfig:
     allowed_names: tuple[str, ...] = field(
         default_factory=lambda: _env_csv(
             "DOGE_SECRET_ALLOWED_NAMES",
-            ("kimi.api_key", "deepseek.api_key", "auth.static_bearer_token"),
+            (
+                "kimi.api_key",
+                "deepseek.api_key",
+                "auth.static_bearer_token",
+                "slot.trusted_publisher_keys",
+            ),
         )
     )
 
@@ -544,7 +574,7 @@ FEATURE_LIFECYCLES: dict[str, FeatureLifecycle] = {
     "workflow_templates": FeatureLifecycle(
         env_var="DOGE_FEATURE_WORKFLOW_TEMPLATES",
         introduced="platformization Phase B; docs/progress/platformization-consolidation-baseline.md",
-        current_default=False,
+        current_default=True,
         target_default_on="after ADR-0018 preflight and template-created run regressions are green",
         target_removal="one release cycle after default-on with approved workflow-template compatibility removal story",
         replacement_behavior="workflow template listing, creation, lookup, and case-run creation are always available",
@@ -592,7 +622,7 @@ FEATURE_LIFECYCLES: dict[str, FeatureLifecycle] = {
     "slot_platform": FeatureLifecycle(
         env_var="DOGE_FEATURE_SLOT_PLATFORM",
         introduced="Sprint 033 Slot Platform Foundation; docs/architecture/adr-0042-slot-platform.md",
-        current_default=False,
+        current_default=True,
         target_default_on="after ADR-0042 parity evidence and full regression are green",
         target_removal="one release cycle after slot-backed tool registration is byte-equivalent to the legacy path with an approved removal story",
         replacement_behavior="built-in tool/model slots register their contributions through the SlotRegistry",
@@ -604,7 +634,7 @@ FEATURE_LIFECYCLES: dict[str, FeatureLifecycle] = {
     "slot_governance": FeatureLifecycle(
         env_var="DOGE_FEATURE_SLOT_GOVERNANCE",
         introduced="Sprint 037 Governance Slot Consumer; docs/architecture/adr-0046-governance-slot-consumer.md",
-        current_default=False,
+        current_default=True,
         target_default_on="after governance-slot entitlement parity and enterprise tool-governance regressions are green",
         target_removal="one release cycle after governance slot policy composition is always-on with an approved removal story",
         replacement_behavior="tool entitlement and approval policies are always composed through governance slots",
@@ -616,7 +646,7 @@ FEATURE_LIFECYCLES: dict[str, FeatureLifecycle] = {
     "slot_watcher": FeatureLifecycle(
         env_var="DOGE_FEATURE_SLOT_WATCHER",
         introduced="Sprint 038 Watcher Slot Consumer; docs/architecture/adr-0047-watcher-slot-consumer.md",
-        current_default=False,
+        current_default=True,
         target_default_on="after watcher-slot event parity and runtime rollback regressions are green",
         target_removal="one release cycle after watcher middleware is always-on with an approved removal story",
         replacement_behavior="runtime events are always observed by slot-contributed watcher middleware",
@@ -650,15 +680,27 @@ FEATURE_LIFECYCLES: dict[str, FeatureLifecycle] = {
         ),
         rollback_criterion="restore default False if slot resolution, tool registration, or health diagnostics differ unexpectedly",
     ),
+    "slot_runtime_interception": FeatureLifecycle(
+        env_var="DOGE_FEATURE_SLOT_RUNTIME_INTERCEPTION",
+        introduced="P4 Slot Runtime Permission Interception; docs/architecture/adr-0063-slot-runtime-permission-interception.md",
+        current_default=False,
+        target_default_on="after in-process db/secret/network guard parity and violation-audit regressions are green",
+        target_removal="after slot runtime resource mediation is always-on or replaced by a hardened P5 sandbox executor",
+        replacement_behavior="built-in slot calls run with in-process db, secret, and network guards derived from SlotPermissions",
+        regression_commands=(
+            "python -m pytest tests/unit/platform/slots/test_slot_runtime_access.py tests/unit/capabilities/test_code_executor.py tests/test_settings.py tests/unit/use_cases/test_capability_registry.py -q",
+        ),
+        rollback_criterion="restore default False if built-in slot execution, audit emission, or legacy no-context execution regresses",
+    ),
     "slot_loader": FeatureLifecycle(
         env_var="DOGE_FEATURE_SLOT_LOADER",
         introduced="Sprint 046 SlotLoader and Bundle Activation; docs/architecture/adr-0056-slot-loader-bundle-activation.md",
-        current_default=False,
+        current_default=True,
         target_default_on="after disk manifest loading and bundle activation parity regressions are green",
         target_removal="one release cycle after JSON slot manifest loading and bundle activation are always-on with an approved removal story",
-        replacement_behavior="validated JSON slot manifests and active bundle policy overlays are always available through SlotKernel",
+        replacement_behavior="validated JSON slot manifests and persisted active bundle policy overlays are available through SlotKernel",
         regression_commands=(
-            "python -m pytest tests/unit/platform/slots/test_slot_loader.py tests/unit/platform/slots/test_slot_activation.py tests/contract/test_slot_kernel_bundle_rows.py tests/contract/test_slot_api.py tests/cli/test_cli_slots.py -q",
+            "python -m pytest tests/unit/platform/slots/test_slot_loader.py tests/unit/platform/slots/test_slot_activation.py tests/unit/infrastructure/test_slot_activation_repository.py tests/integration/test_slot_bundle_activation_persistence.py tests/contract/test_slot_kernel_bundle_rows.py tests/contract/test_slot_api.py tests/cli/test_cli_slots.py -q",
         ),
         rollback_criterion="restore default False if slot discovery, bundle activation, or built-in slot parity differs unexpectedly",
     ),
@@ -666,13 +708,13 @@ FEATURE_LIFECYCLES: dict[str, FeatureLifecycle] = {
         env_var="DOGE_FEATURE_SLOT_INSTALL",
         introduced="Sprint 047 Third-party Slot Install Preview; docs/architecture/adr-0057-third-party-slot-install-preview.md",
         current_default=False,
-        target_default_on="after manifest install, signature metadata, and enterprise allowlist regressions are green",
+        target_default_on="after manifest install, Ed25519 signature, revocation, and enterprise allowlist regressions are green",
         target_removal="one release cycle after local slot install preview is always-on with an approved removal story",
         replacement_behavior="validated third-party slot manifests can be installed as manifest-only local slots",
         regression_commands=(
             "python -m pytest tests/unit/platform/slots/test_slot_install.py tests/cli/test_cli_slots.py -q",
         ),
-        rollback_criterion="restore default False if local install writes, signature checks, or enterprise allowlist behavior differ unexpectedly",
+        rollback_criterion="restore default False if local install writes, cryptographic signature checks, revocation, or enterprise allowlist behavior differ unexpectedly",
     ),
 }
 
@@ -688,7 +730,7 @@ class FeatureConfig:
         default_factory=lambda: _env_bool("DOGE_FEATURE_PLATFORM_OBJECTS", False)
     )
     workflow_templates: bool = field(
-        default_factory=lambda: _env_bool("DOGE_FEATURE_WORKFLOW_TEMPLATES", False)
+        default_factory=lambda: _env_bool("DOGE_FEATURE_WORKFLOW_TEMPLATES", True)
     )
     capability_registry: bool = field(
         default_factory=lambda: _env_bool("DOGE_FEATURE_CAPABILITY_REGISTRY", False)
@@ -700,13 +742,13 @@ class FeatureConfig:
         default_factory=lambda: _env_bool("DOGE_FEATURE_PYTHON_ANALYSIS_ENABLED", False)
     )
     slot_platform: bool = field(
-        default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_PLATFORM", False)
+        default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_PLATFORM", True)
     )
     slot_governance: bool = field(
-        default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_GOVERNANCE", False)
+        default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_GOVERNANCE", True)
     )
     slot_watcher: bool = field(
-        default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_WATCHER", False)
+        default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_WATCHER", True)
     )
     slot_ui: bool = field(
         default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_UI", False)
@@ -714,8 +756,11 @@ class FeatureConfig:
     slot_enforcement: bool = field(
         default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_ENFORCEMENT", False)
     )
+    slot_runtime_interception: bool = field(
+        default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_RUNTIME_INTERCEPTION", False)
+    )
     slot_loader: bool = field(
-        default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_LOADER", False)
+        default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_LOADER", True)
     )
     slot_install: bool = field(
         default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_INSTALL", False)
@@ -740,6 +785,9 @@ class SlotConfig:
     )
     trusted_signers: tuple[str, ...] = field(
         default_factory=lambda: _env_csv("DOGE_SLOT_TRUSTED_SIGNERS")
+    )
+    trusted_publisher_keys: dict[str, str] = field(
+        default_factory=lambda: _env_slot_trusted_publisher_keys("DOGE_SLOT_TRUSTED_PUBLISHER_KEYS")
     )
     allow_unsigned_local: bool = field(
         default_factory=lambda: _env_bool("DOGE_SLOT_ALLOW_UNSIGNED_LOCAL", True)

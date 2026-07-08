@@ -142,8 +142,12 @@ def _strip_feature_env(monkeypatch, keep: set[str] | None = None) -> None:
 
 
 def test_watcher_slot_off_returns_no_runtime_middleware(monkeypatch) -> None:
-    _strip_feature_env(monkeypatch, keep={"DOGE_FEATURE_SLOT_PLATFORM"})
+    _strip_feature_env(
+        monkeypatch,
+        keep={"DOGE_FEATURE_SLOT_PLATFORM", "DOGE_FEATURE_SLOT_WATCHER"},
+    )
     monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "1")
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_WATCHER", "0")
     reset_settings()
 
     assert slots_module.build_slot_aware_runtime_event_watcher() is None

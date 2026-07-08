@@ -106,6 +106,7 @@ def test_seed_workflow_templates_accepts_injected_template_definitions(tmp_path)
 
 def test_workspace_container_uses_legacy_templates_when_slot_flag_off(tmp_path, monkeypatch):
     _strip_feature_env(monkeypatch)
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "0")
     monkeypatch.setenv("DOGE_FEATURE_WORKFLOW_TEMPLATES", "1")
     reset_settings()
 
@@ -136,7 +137,7 @@ def test_workspace_container_uses_slot_templates_when_both_flags_on(tmp_path, mo
     monkeypatch.setattr(
         slots_module,
         "build_slot_aware_workflow_templates",
-        lambda: sentinel,
+        lambda **_kwargs: sentinel,
     )
 
     templates = WorkspaceContainer(

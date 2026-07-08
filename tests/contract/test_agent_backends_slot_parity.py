@@ -98,6 +98,7 @@ def _backend_summary(backends: dict[str, object]) -> dict[str, type]:
 
 def test_build_agent_backends_flag_on_matches_flag_off(monkeypatch, fake_gateway, secret_provider) -> None:
     _strip_feature_env(monkeypatch)
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "0")
     reset_settings()
     off = runtime_kernel.build_agent_backends(lambda: fake_gateway, secret_provider)
 
