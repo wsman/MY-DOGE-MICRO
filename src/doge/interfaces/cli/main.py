@@ -1,4 +1,4 @@
-"""Canonical CLI entrypoint for MY-DOGE-MICRO.
+"""Canonical CLI entrypoint for OpenDoge.
 
 Usage:
     doge stock <ticker> [--market cn] [--days 20]
@@ -67,7 +67,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Build the top-level argparse parser and subparsers."""
     parser = argparse.ArgumentParser(
         prog="doge",
-        description="MY-DOGE stock data query tool",
+        description="OpenDoge stock data query tool",
     )
     sub = parser.add_subparsers(dest="cmd")
 
@@ -215,14 +215,19 @@ def build_parser() -> argparse.ArgumentParser:
     p_slots_install = slots_sub.add_parser("install", help="install a local slot manifest preview")
     p_slots_install.add_argument("source", help="slot manifest JSON file or directory containing slot.json")
     p_slots_install.add_argument("--json", action="store_true")
-    p_slots_sign = slots_sub.add_parser("sign", help="write an Ed25519 v2 slot signature sidecar")
+    p_slots_sign = slots_sub.add_parser("sign", help="write an Ed25519 slot signature sidecar")
     p_slots_sign.add_argument("manifest", help="slot manifest JSON file")
     p_slots_sign.add_argument("--key", required=True, help="Ed25519 private key PEM path")
     p_slots_sign.add_argument("--key-id", help="trusted publisher key id")
+    p_slots_sign.add_argument(
+        "--package-dir",
+        help="provider package directory to bind into a v3 signature sidecar",
+    )
     p_slots_sign.add_argument("--json", action="store_true")
     p_slots_revoke = slots_sub.add_parser("revoke-key", help="revoke a slot publisher signing key")
     p_slots_revoke.add_argument("key_id", help="publisher signing key id")
     p_slots_revoke.add_argument("--reason", default="", help="operator-visible revocation reason")
+    p_slots_revoke.add_argument("--successor-key-id", help="replacement key id for operator rotation metadata")
     p_slots_revoke.add_argument("--json", action="store_true")
 
     # case

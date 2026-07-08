@@ -1,6 +1,6 @@
-# MY-DOGE TypeScript SDK
+# OpenDoge TypeScript SDK
 
-TypeScript client for the local MY-DOGE daemon `/v1` API.
+TypeScript client for the local OpenDoge daemon `/v1` API.
 
 Maturity: Platform Alpha client surface. Level 3 remains experimental, and this
 package must not be described as stable or production ready.

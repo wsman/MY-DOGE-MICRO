@@ -1,6 +1,6 @@
-# MY-DOGE Python SDK
+# OpenDoge Python SDK
 
-Python client for the local MY-DOGE daemon `/v1` API.
+Python client for the local OpenDoge daemon `/v1` API.
 
 Maturity: Platform Alpha client surface. Level 3 remains experimental, and this
 package must not be described as stable or production ready.

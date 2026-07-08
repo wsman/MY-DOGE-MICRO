@@ -42,7 +42,7 @@ def test_docs_index_points_to_current_product_docs():
 
 def test_readme_is_current_product_entry_not_legacy_architecture():
     readme = _read("README.md")
-    assert readme.startswith("# MY-DOGE-MICRO")
+    assert readme.startswith("# OpenDoge")
     for stale in [
         "MY-DOGE QUANT SYSTEM",
         "15 modules",

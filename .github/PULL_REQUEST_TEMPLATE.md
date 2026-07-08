@@ -1,4 +1,4 @@
-# MY-DOGE-MICRO PR Checklist
+# OpenDoge PR Checklist
 
 ## Ownership
 

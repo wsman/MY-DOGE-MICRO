@@ -1,6 +1,6 @@
-# MY-DOGE Web Console
+# OpenDoge Web Console
 
-Vue 3 + Vite console for the local MY-DOGE API.
+Vue 3 + Vite console for the local OpenDoge API.
 
 ## Development
 

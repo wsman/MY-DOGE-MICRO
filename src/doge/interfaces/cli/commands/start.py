@@ -61,7 +61,7 @@ _PATH_KEYS = [key for key, *_ in _PATHS]
 
 def _print_menu() -> None:
     print("=" * 60)
-    print("MY-DOGE-MICRO — choose a path:")
+    print("OpenDoge — choose a path:")
     print("=" * 60)
     for index, (_key, label, desc, _cmd) in enumerate(_PATHS, start=1):
         print(f"  {index}. {label} — {desc}")

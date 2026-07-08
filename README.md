@@ -1,7 +1,7 @@
-# MY-DOGE-MICRO
+# OpenDoge
 
-MY-DOGE-MICRO is a local-first quantitative investment decision-support
-platform. It combines market scans, research workflows, portfolio/risk checks,
+OpenDoge is a local-first, slot-based financial research agent runtime. It
+combines market scans, research workflows, portfolio/risk checks,
 evidence-backed agent runs, and local API/UI/MCP surfaces without requiring
 cloud storage.
 
@@ -121,7 +121,7 @@ Ready while those values remain unchanged. See
 
 ## Architecture At A Glance
 
-MY-DOGE-MICRO has one architecture, counted three ways depending on the
+OpenDoge has one architecture, counted three ways depending on the
 question:
 
 - **3 runtime levels** — Level 1 embedded CLI/session, Level 2 daemon gateway,

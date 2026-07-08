@@ -1,5 +1,5 @@
 name: Product Issue
-description: Report a bug, request a feature, or track work for a MY-DOGE-MICRO product module.
+description: Report a bug, request a feature, or track work for an OpenDoge product module.
 labels: []
 body:
   - type: dropdown
