@@ -30,8 +30,8 @@ Five local Slot Platform flags now default on for the controlled built-in path:
 `DOGE_FEATURE_SLOT_PLATFORM`, `DOGE_FEATURE_SLOT_GOVERNANCE`,
 `DOGE_FEATURE_SLOT_WATCHER`, `DOGE_FEATURE_WORKFLOW_TEMPLATES`, and
 `DOGE_FEATURE_SLOT_LOADER`. Operators can opt out with `=0` / `false`.
-Higher-risk install, enforcement, runtime interception, UI-slot, and execution
-surfaces remain default off.
+Higher-risk install, enforcement, runtime interception, UI-slot, and provider
+execution surfaces remain default off.
 
 | Variable | Default | Meaning |
 |----------|---------|---------|
@@ -44,6 +44,7 @@ surfaces remain default off.
 | `DOGE_FEATURE_SLOT_ENFORCEMENT` | off | Enables experimental SlotKernel permission and active-health enforcement. Requires `DOGE_FEATURE_SLOT_PLATFORM=1` for live slot resolution. |
 | `DOGE_FEATURE_SLOT_RUNTIME_INTERCEPTION` | off | Enables experimental in-process runtime guards for built-in slot db/secret/network port access. Requires slot-aware execution paths; does not provide filesystem mediation or OS/container/WASM isolation. |
 | `DOGE_FEATURE_SLOT_INSTALL` | off | Enables experimental manifest-only local third-party slot install preview. Requires `DOGE_FEATURE_SLOT_PLATFORM=1` and `DOGE_FEATURE_SLOT_LOADER=1`. |
+| `DOGE_FEATURE_SLOT_PROVIDER_EXECUTION` | off | Enables experimental local installed-provider importlib execution only after slot platform, loader, install, runtime interception, trusted Ed25519 signature, revocation check, and SlotKernel admission gates pass. This is not OS/container/WASM sandboxing. |
 | `DOGE_FEATURE_CAPABILITY_REGISTRY` | off | Enables experimental capability discovery APIs. |
 | `DOGE_FEATURE_PYTHON_ANALYSIS_ENABLED` | off | Enables the high-risk Python analysis feature only when paired with a non-disabled executor. |
 
@@ -53,7 +54,7 @@ Enforcement is SlotKernel admission policy before contribution resolve/start.
 Runtime interception is P4 in-process mediation for guarded db/secret/network
 ports after a built-in slot call is executing. Runtime interception is not a
 malicious-code boundary: direct filesystem, socket, sqlite, or process access
-outside guarded ports remains P5 sandbox work. The Python analysis subprocess is
+outside guarded ports remains future sandbox work. The Python analysis subprocess is
 also hardened with secret env scrub and a scratch cwd, but Windows remains a
 soft boundary without rlimit/seccomp/chroot-style isolation.
 
@@ -77,8 +78,32 @@ Slot signing-key revocations are stored in the local agent database table
 no separate revocation environment variable.
 
 v2 sidecars are Ed25519 signatures over canonical SlotManifest JSON bytes. v1
-sidecars from Sprint 047 remain readable as `legacy` but are not cryptographic
-and do not satisfy enterprise verified-signature policy.
+sidecars from Sprint 047 remain readable as `legacy` but are not cryptographic,
+do not satisfy enterprise verified-signature policy, and do not make a slot
+execution eligible.
+
+## Slot Provider Execution
+
+`DOGE_FEATURE_SLOT_PROVIDER_EXECUTION=1` is a local alpha execution gate for
+installed slots only. It does not change `DOGE_SLOT_MANIFEST_DIRS`: those
+manifests remain manifest-only discovery records.
+
+Execution eligibility requires:
+
+- `DOGE_FEATURE_SLOT_PLATFORM=1`
+- `DOGE_FEATURE_SLOT_LOADER=1`
+- `DOGE_FEATURE_SLOT_INSTALL=1`
+- `DOGE_FEATURE_SLOT_RUNTIME_INTERCEPTION=1`
+- `DOGE_FEATURE_SLOT_PROVIDER_EXECUTION=1`
+- a v2 Ed25519 signature with a trusted `DOGE_SLOT_TRUSTED_PUBLISHER_KEYS`
+  key id
+- signing-key revocation lookup in `slot_signer_revocations`
+- `DOGE_SLOT_ENTERPRISE_ALLOWLIST` in enterprise mode
+- SlotKernel policy/enforcement admission
+
+P5 provider execution is in-process importlib execution. It is not filesystem
+mediation, malicious-code containment, provider package signing, marketplace
+install, or OS/container/WASM sandboxing.
 
 ## Enterprise ACL Resource Types
 

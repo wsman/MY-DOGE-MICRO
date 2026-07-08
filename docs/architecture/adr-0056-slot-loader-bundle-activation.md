@@ -37,6 +37,11 @@ persists one active built-in bundle in SQLite, adds deactivate controls, and
 defaults `slot_loader` on while preserving this ADR's manifest-only loader
 boundary: disk manifests still never import provider entrypoints.
 
+ADR-0064 later adds a bootstrap-owned installed-provider execution path. That
+path does not change `SlotLoader`: manifests loaded from
+`DOGE_SLOT_MANIFEST_DIRS` remain manifest-only discovery records, and execution
+eligibility is evaluated only for installed manifests under `DOGE_SLOT_INSTALL_DIR`.
+
 ## Technology Compatibility
 
 | Field | Value |

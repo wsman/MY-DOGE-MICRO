@@ -527,10 +527,18 @@ api_decisions:
 
   - purpose: slot_platform_default_posture
     status: active
-    api: "workflow_templates, slot_platform, slot_governance, slot_watcher, and slot_loader default on; slot_install, slot_enforcement, slot_ui, and python_analysis_enabled default off"
-    not: "Default bundle activation, provider entrypoint execution, marketplace install, sandboxing, YAML manifests, provider/package signing, or production-ready plugin runtime"
-    adr: docs/architecture/adr-0060-persistent-slot-bundle-activation.md
-    reason: "ADR-0060 supersedes ADR-0058 for slot_loader only: manifest-only loading and persistent bundle activation controls are default-enabled locally, while install/enforcement/UI/execution surfaces remain explicitly gated."
+    api: "workflow_templates, slot_platform, slot_governance, slot_watcher, and slot_loader default on; slot_install, slot_enforcement, slot_ui, slot_provider_execution, and python_analysis_enabled default off"
+    not: "Default bundle activation, marketplace install, OS/container/WASM sandboxing, YAML manifests, provider package signing, or production-ready plugin runtime"
+    adr: docs/architecture/adr-0064-slot-provider-execution.md
+    reason: "ADR-0060 supersedes ADR-0058 for slot_loader only, while ADR-0064 adds a separate default-off installed-provider execution path gated by signing, revocation, runtime interception, and SlotKernel admission."
+    added: "2026-07-08"
+
+  - purpose: slot_provider_execution_gate
+    status: active
+    api: "installed local slot provider entrypoint execution through bootstrap InstalledProviderSlot when all P5 gates pass"
+    not: "SlotLoader provider imports, non-installed manifest-dir execution, restricted gateway/UI/watcher/eval/governance facets, OS sandboxing, package signing, marketplace install, or production plugin runtime"
+    adr: docs/architecture/adr-0064-slot-provider-execution.md
+    reason: "Provider execution needs bootstrap-owned settings, trusted publisher keys, revocation repository, runtime interception, and admission checks; the pure slot contract package remains manifest-only."
     added: "2026-07-08"
 
   - purpose: tool_slot_domain_ownership
@@ -560,9 +568,9 @@ api_decisions:
   - purpose: slot_cryptographic_signing
     status: active
     api: "Ed25519 v2 slot.signature.json verification over canonical SlotManifest JSON, trusted publisher keys, SQLite key revocation, and CLI sign/revoke-key"
-    not: "Provider entrypoint execution, provider package signing, remote key distribution, sandboxing, YAML manifests, HTTP install APIs, SDK install APIs, marketplace behavior, or default-on install"
+    not: "Provider entrypoint execution by signing alone, provider package signing, remote key distribution, sandboxing, YAML manifests, HTTP install APIs, SDK install APIs, marketplace behavior, or default-on install"
     adr: docs/architecture/adr-0062-slot-cryptographic-signing.md
-    reason: "P3 releases only the no-cryptographic-manifest-signing invariant while keeping install preview gated and manifest-only."
+    reason: "P3 releases only the no-cryptographic-manifest-signing invariant; ADR-0064 later consumes verified signing and revocation as required provider-execution gates."
     added: "2026-07-08"
 
   - purpose: slot_runtime_interception
@@ -1120,3 +1128,11 @@ adr_index:
     path: docs/architecture/adr-0063-slot-runtime-permission-interception.md
     governs: "default-off in-process slot db/secret/network runtime guards and Python subprocess env/cwd hardening"
     depends_on: [ADR-0042, ADR-0055, ADR-0062]
+
+  - id: ADR-0064
+    title: "Slot Provider Execution"
+    status: Accepted
+    date: "2026-07-08"
+    path: docs/architecture/adr-0064-slot-provider-execution.md
+    governs: "default-off installed trusted-provider importlib execution path with signing, revocation, runtime-interception, facet allowlist, and SlotKernel admission gates"
+    depends_on: [ADR-0042, ADR-0055, ADR-0056, ADR-0057, ADR-0062, ADR-0063]

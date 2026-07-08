@@ -62,12 +62,13 @@
   `SlotLifecycle` and `SlotEnforcementPolicy` contracts in
   `doge.platform.slots`. `SlotLoader` loads JSON manifests as manifest-only
   slots for discovery/policy diagnostics; it must not import provider
-  entrypoints until a separate third-party install/signing decision exists.
+  entrypoints. ADR-0064 adds installed-provider execution only in bootstrap,
+  after signing, revocation, runtime interception, and admission gates pass.
   Bundle activation is persisted through the bootstrap/API/CLI wiring and its
   repository port, not product modules. Third-party slot install preview may copy validated JSON
-  manifests into the configured install directory, but those slots stay
-  manifest-only; provider entrypoint execution remains blocked until a separate
-  sandbox/signing decision exists. ADR-0058 makes the controlled built-in
+  manifests into the configured install directory; those slots stay
+  manifest-only unless the ADR-0064 `DOGE_FEATURE_SLOT_PROVIDER_EXECUTION`
+  gate explicitly admits them. ADR-0058 makes the controlled built-in
   consumer path default-on, and ADR-0060 makes manifest-only loader activation
   controls default-on locally; install, enforcement, UI slot metadata, and
   provider execution remain separately gated. ADR-0059 adds domain-level built-in

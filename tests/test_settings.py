@@ -59,6 +59,7 @@ DOGE_FEATURE_VARS = [
     "DOGE_FEATURE_SLOT_RUNTIME_INTERCEPTION",
     "DOGE_FEATURE_SLOT_LOADER",
     "DOGE_FEATURE_SLOT_INSTALL",
+    "DOGE_FEATURE_SLOT_PROVIDER_EXECUTION",
     "DOGE_PYTHON_ANALYSIS_EXECUTOR",
 ]
 
@@ -355,6 +356,7 @@ class TestFeatureLifecycle:
         assert features.slot_runtime_interception is False
         assert features.slot_loader is True
         assert features.slot_install is False
+        assert features.slot_provider_execution is False
         assert get_settings().slots.manifest_dirs == ()
         assert get_settings().slots.enterprise_allowlist == ()
         assert get_settings().slots.trusted_signers == ()
@@ -377,6 +379,7 @@ class TestFeatureLifecycle:
             "slot_runtime_interception",
             "slot_loader",
             "slot_install",
+            "slot_provider_execution",
         }
         assert {
             lifecycle.env_var for lifecycle in FEATURE_LIFECYCLES.values()

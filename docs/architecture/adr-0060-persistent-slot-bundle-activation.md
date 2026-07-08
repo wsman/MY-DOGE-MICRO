@@ -46,6 +46,11 @@ sandboxing, signing, YAML manifests, install APIs, SDK install APIs,
 marketplace behavior, external gate closure, remote CI promotion, and maturity
 promotion remain outside ADR-0060 and ADR-0061.
 
+ADR-0064 later adds a default-off installed-provider execution path. Persistent
+bundle activation can still disable installed slots because built-in bundles do
+not include third-party slot ids by default; ADR-0060 does not become a dynamic
+third-party enablement system.
+
 ## Technology Compatibility
 
 | Field | Value |

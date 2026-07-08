@@ -73,6 +73,7 @@ def test_feature_capabilities_include_lifecycle_metadata():
         "feature.slot_runtime_interception": "slot_runtime_interception",
         "feature.slot_loader": "slot_loader",
         "feature.slot_install": "slot_install",
+        "feature.slot_provider_execution": "slot_provider_execution",
     }
     for capability_id, feature_name in expected.items():
         expected_lifecycle = FEATURE_LIFECYCLES[feature_name]

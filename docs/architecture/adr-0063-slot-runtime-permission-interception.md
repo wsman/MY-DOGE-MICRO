@@ -40,6 +40,11 @@ WASM isolation, filesystem mediation, YAML manifests, HTTP install APIs, SDK
 install APIs, marketplace behavior, external gate closure, remote CI promotion,
 or maturity promotion.
 
+ADR-0064 later consumes `DOGE_FEATURE_SLOT_RUNTIME_INTERCEPTION` as a required
+gate for installed-provider execution. P4 remains only in-process guarded-port
+mediation and subprocess hardening; it is not OS/container/WASM sandboxing or
+malicious-code containment.
+
 ## Technology Compatibility
 
 | Field | Value |

@@ -1,9 +1,9 @@
-"""CLI command: platform slots (ADR-0042, experimental).
+"""CLI command: platform slots (ADR-0042/0064, experimental).
 
-Read-only inspection of built-in slots. ``list`` and ``show`` read manifests
-only — they do NOT construct the live ``ToolApplicationService`` — so the CLI
-stays deterministic and free of DB/network calls. Live slot resolution happens
-only in the runtime factory (``bootstrap/runtime_factories/slots.py``).
+``list`` and ``show`` read slot status rows and execution eligibility metadata
+without resolving contributions or importing provider entrypoints. Live slot
+resolution happens only in the runtime factory
+(``bootstrap/runtime_factories/slots.py``).
 """
 
 from __future__ import annotations
@@ -17,7 +17,6 @@ from typing import Any
 
 from doge.bootstrap.runtime_factories.slots import (
     activate_slot_bundle,
-    build_builtin_slot_registry,
     build_slot_bundle_rows,
     build_slot_status_rows,
     deactivate_slot_bundle,
@@ -35,8 +34,6 @@ def cmd_slots(args) -> None:
         _emit_disabled(args.json)
         return
 
-    registry = build_builtin_slot_registry()
-
     if args.slots_cmd == "list":
         rows = [
             {
@@ -44,6 +41,8 @@ def cmd_slots(args) -> None:
                 "status": row["status"],
                 "type": row["type"],
                 "tools": row["counts"]["tools"],
+                "execution_eligible": row["execution_eligible"],
+                "execution_blockers": row["execution_blockers"],
             }
             for row in build_slot_status_rows(settings)
         ]
@@ -51,13 +50,15 @@ def cmd_slots(args) -> None:
         return
 
     if args.slots_cmd == "show":
-        try:
-            slot = registry.get(args.slot_id)
-        except Exception as exc:  # noqa: BLE001 - concise operator message
-            print(f"slots failed: {exc}", file=sys.stderr)
+        row = next(
+            (item for item in build_slot_status_rows(settings) if item["id"] == args.slot_id),
+            None,
+        )
+        if row is None:
+            print(f"slots failed: unknown slot: {args.slot_id}", file=sys.stderr)
             sys.exit(1)
             return
-        _emit_show(slot.manifest(), args.json)
+        _emit_show(row, args.json)
         return
 
     if args.slots_cmd == "bundle":
@@ -236,22 +237,25 @@ def _emit_revoked(payload: dict[str, Any], json_only: bool) -> None:
     print(f"revoked_at={payload['revoked_at']}")
 
 
-def _emit_show(manifest: Any, json_only: bool) -> None:
+def _emit_show(row: dict[str, Any], json_only: bool) -> None:
     if json_only:
-        print(json.dumps(_serialize(manifest), ensure_ascii=False))
+        print(json.dumps(row, ensure_ascii=False))
         return
-    print(f"id={manifest.id}")
-    print(f"name={manifest.name}")
-    print(f"version={manifest.version}")
-    print(f"type={manifest.type.value}")
-    print(f"owner={manifest.owner}")
-    print(f"maturity={manifest.maturity}")
-    print(f"entrypoint={manifest.entrypoint}")
-    print(f"description={manifest.description}")
-    print(f"health.status={manifest.health.status}")
-    print(f"feature_flags={','.join(manifest.feature_flags)}")
-    print(f"tools={','.join(manifest.provides.tools)}")
-    print(f"permissions.risk_level={manifest.permissions.risk_level}")
+    print(f"id={row['id']}")
+    print(f"name={row['name']}")
+    print(f"version={row['version']}")
+    print(f"type={row['type']}")
+    print(f"owner={row['owner']}")
+    print(f"maturity={row['maturity']}")
+    print(f"entrypoint={row['entrypoint']}")
+    print(f"description={row['description']}")
+    print(f"status={row['status']}")
+    print(f"health.status={row['health']['status']}")
+    print(f"feature_flags={','.join(row['feature_flags'])}")
+    print(f"tools={','.join(row['provides']['tools'])}")
+    print(f"permissions.risk_level={row['permissions']['risk_level']}")
+    print(f"execution.eligible={str(row['execution_eligible']).lower()}")
+    print(f"execution.blockers={','.join(row['execution_blockers'])}")
 
 
 def _serialize(obj: Any) -> Any:

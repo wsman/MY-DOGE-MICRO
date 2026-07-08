@@ -162,6 +162,25 @@ class FeatureCapabilityProvider:
                     "enterprise_allowlist": list(self._settings.slots.enterprise_allowlist),
                 },
             ),
+            capability(
+                "feature.slot_provider_execution",
+                "platform",
+                "Slot Provider Execution",
+                _feature_status(self._settings.features.slot_provider_execution),
+                risk_level="high",
+                metadata={
+                    **_feature_metadata("slot_provider_execution"),
+                    "requires": [
+                        "slot_platform",
+                        "slot_loader",
+                        "slot_install",
+                        "slot_runtime_interception",
+                        "trusted_publisher_signature",
+                        "revocation_check",
+                    ],
+                    "sandbox": "in_process_runtime_interception_only",
+                },
+            ),
         ]
 
 

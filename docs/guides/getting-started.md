@@ -101,7 +101,7 @@ is read via the `_env_path` / `_env_int` helpers (`settings.py:18-49`).
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DOGE_SLOT_INSTALL_DIR` | `<project_root>/data/slots` | Local manifest-only install directory for the experimental third-party slot install preview. Installed slots remain discovery/policy records only; provider entrypoints are not imported. |
+| `DOGE_SLOT_INSTALL_DIR` | `<project_root>/data/slots` | Local install directory for experimental third-party slot manifests. Installed slots remain discovery/policy records unless `DOGE_FEATURE_SLOT_PROVIDER_EXECUTION=1` and all ADR-0064 trust/runtime gates pass. |
 
 ### MCP server (`MCPConfig`, `settings.py:128-134`)
 

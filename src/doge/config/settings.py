@@ -716,6 +716,18 @@ FEATURE_LIFECYCLES: dict[str, FeatureLifecycle] = {
         ),
         rollback_criterion="restore default False if local install writes, cryptographic signature checks, revocation, or enterprise allowlist behavior differ unexpectedly",
     ),
+    "slot_provider_execution": FeatureLifecycle(
+        env_var="DOGE_FEATURE_SLOT_PROVIDER_EXECUTION",
+        introduced="P5 Slot Provider Execution; docs/architecture/adr-0064-slot-provider-execution.md",
+        current_default=False,
+        target_default_on="never before trusted-provider execution has external security review, hardened isolation, and full operator rollback evidence",
+        target_removal="after provider execution is replaced by or promoted behind a hardened container/WASM/OS sandbox with approved production gates",
+        replacement_behavior="installed trusted-publisher slots may import an in-process ISlot entrypoint only after all local alpha gates pass",
+        regression_commands=(
+            "python -m pytest tests/unit/platform/slots/test_slot_provider_execution.py tests/test_settings.py tests/unit/use_cases/test_capability_registry.py tests/cli/test_cli_slots.py tests/contract/test_slot_api.py -q",
+        ),
+        rollback_criterion="restore default False and unregister InstalledProviderSlot if any untrusted, unsigned, revoked, non-intercepted, or restricted-facet provider can execute",
+    ),
 }
 
 
@@ -764,6 +776,9 @@ class FeatureConfig:
     )
     slot_install: bool = field(
         default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_INSTALL", False)
+    )
+    slot_provider_execution: bool = field(
+        default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_PROVIDER_EXECUTION", False)
     )
     python_analysis_executor: str = field(
         default_factory=lambda: (os.environ.get("DOGE_PYTHON_ANALYSIS_EXECUTOR") or "disabled").strip().lower()

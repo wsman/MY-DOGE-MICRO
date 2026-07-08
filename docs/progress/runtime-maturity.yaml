@@ -698,7 +698,7 @@ third_party_slot_install_preview_2026_07_07:
     - "At Sprint 047 acceptance, sidecar signature metadata validated slot id, manifest SHA-256, and trusted signer names; it was not a cryptographic signature format."
     - "ADR-0062 later upgrades new sidecars to v2 Ed25519 manifest signatures while keeping v1 metadata sidecars readable as legacy."
     - "Enterprise mode at Sprint 047 required DOGE_SLOT_ENTERPRISE_ALLOWLIST, DOGE_SLOT_TRUSTED_SIGNERS, and verified sidecar metadata before install; ADR-0062 later requires verified v2 signatures."
-    - "Installed slots remain manifest-only; provider entrypoints are not imported and third-party code is not executed."
+    - "At Sprint 047 acceptance, installed slots remained manifest-only; ADR-0064 later adds a separate default-off installed-provider execution gate without changing this install-preview history."
     - "No marketplace, HTTP install route, SDK install method, YAML parser, OS sandboxing, external-gate, or production-readiness change."
   evidence:
     - docs/architecture/adr-0057-third-party-slot-install-preview.md
@@ -985,6 +985,39 @@ slot_runtime_interception_2026_07_08:
     plan_closure: "acceptable-open: 2 passed, 4 open, 0 failed, 0 invalid"
     whitespace: "git diff --check and Windows git diff --check passed"
     manual_smoke: "flag-off and no-context allow paths passed; flag-on db/secret/network denial with audit passed; subprocess env scrub and scratch cwd passed"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+
+slot_provider_execution_2026_07_08:
+  status: local_acceptance_passed_remote_ci_not_run
+  scope:
+    - "P5 Slot Provider Execution (ADR-0064): DOGE_FEATURE_SLOT_PROVIDER_EXECUTION is default off and independent from install, signing, and runtime interception."
+    - "Installed manifests under DOGE_SLOT_INSTALL_DIR may register as bootstrap-owned InstalledProviderSlot only when slot_platform, slot_loader, slot_install, slot_runtime_interception, and slot_provider_execution are enabled."
+    - "Provider execution requires verified Ed25519 manifest signature, trusted publisher key, revocation_checked true, non-revoked signing key, enterprise allowlist when in enterprise mode, and SlotKernel admission."
+    - "SlotLoader and DOGE_SLOT_MANIFEST_DIRS remain manifest-only discovery paths and never import provider entrypoints."
+    - "Allowed installed-provider facets are tools, model_backends, workflows, data_sources, and document_parsers; gateway routes, UI panels, watchers, eval suites, and governance policies are restricted."
+    - "Status rows now report execution_eligible, execution_blockers, and signature metadata without importing provider code."
+    - "No filesystem mediation, OS/container/WASM sandboxing, malicious-code containment, provider package signing, YAML manifest parser, HTTP install API, SDK install API, marketplace, external-gate closure, remote CI assertion, latest_remotely_verified_sha promotion, or maturity promotion is part of P5."
+  evidence:
+    - docs/architecture/adr-0064-slot-provider-execution.md
+    - design/cdd/p5-slot-provider-execution.md
+    - production/qa/evidence/slot-provider-execution-local-acceptance-2026-07-08.md
+    - src/doge/bootstrap/runtime_factories/provider_slot.py
+    - src/doge/bootstrap/runtime_factories/slots.py
+    - tests/unit/platform/slots/test_slot_provider_execution.py
+  verification:
+    combined_p5_backend: "137 passed, 2 warnings"
+    focused_provider_settings_capability_cli_api: "86 passed, 2 warnings"
+    broader_slot_boundary_and_runtime: "51 passed"
+    docs_governance: "ADR index, governance YAML, docs authority, docs maturity, ADR-0064 alpha honesty, P5 CDD alpha honesty, and P5 evidence alpha honesty passed"
+    whitespace: "Windows git diff --check passed"
   open_gates:
     - S017-003
     - W3-live

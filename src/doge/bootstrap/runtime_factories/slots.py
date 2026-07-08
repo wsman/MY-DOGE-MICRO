@@ -22,6 +22,12 @@ from typing import Any
 
 from doge.application.tools.registry import ToolRegistry
 from doge.bootstrap.runtime_factories.builtin_model_slot import ModelKimiAgentSdkSlot
+from doge.bootstrap.runtime_factories.provider_slot import (
+    InstalledProviderSlot,
+    builtin_execution_decision,
+    manifest_only_execution_decision,
+    provider_execution_decision,
+)
 from doge.config import get_settings
 from doge.config.settings import parse_slot_trusted_publisher_keys
 from doge.core.ports.slot_runtime_executor import DisabledSlotRuntimeExecutor
@@ -54,6 +60,7 @@ from doge.platform.slots import (
     SlotInstaller,
     SlotKernel,
     SlotLoader,
+    ManifestOnlySlot,
     SlotPolicy,
     SlotRegistry,
     SlotType,
@@ -895,6 +902,11 @@ def build_slot_status_rows(settings: Any | None = None) -> tuple[dict[str, Any],
             slot.manifest(),
             status_by_id[slot.manifest().id].status,
             health_status=status_by_id[slot.manifest().id].health,
+            execution=_slot_execution_status(
+                slot,
+                resolved_settings,
+                admission_status=status_by_id[slot.manifest().id].status,
+            ),
         )
         for slot in slot_kernel.registry.all()
     )
@@ -1157,14 +1169,37 @@ def _register_manifest_only_slots(registry: SlotRegistry, settings: Any) -> None
         return
     manifest_dirs = list(getattr(settings.slots, "manifest_dirs", ()))
     install_dir = getattr(settings.slots, "install_dir", None)
-    if getattr(settings.features, "slot_install", False) and install_dir is not None:
-        install_path = Path(install_dir)
+    install_path = Path(install_dir) if install_dir is not None else None
+    install_slots: tuple[ManifestOnlySlot, ...] = ()
+    if getattr(settings.features, "slot_install", False) and install_path is not None:
         if install_path.exists():
-            manifest_dirs.append(install_path)
-    if not manifest_dirs:
-        return
+            install_slots = SlotLoader().load((install_path,))
     for slot in SlotLoader().load(manifest_dirs):
         registry.register(slot)
+    for slot in install_slots:
+        registry.register(_installed_slot_for_registration(slot, settings))
+
+
+def _installed_slot_for_registration(slot: ManifestOnlySlot, settings: Any) -> Any:
+    trusted_keys = _slot_trusted_publisher_keys(settings)
+    signing_repo = _slot_signing_repo_for_settings(settings)
+    decision = provider_execution_decision(
+        slot.manifest(),
+        slot.source_path,
+        settings,
+        trusted_publisher_keys=trusted_keys,
+        signing_repository=signing_repo,
+        installed=True,
+    )
+    if not decision.eligible:
+        return slot
+    return InstalledProviderSlot(
+        slot.manifest(),
+        source_path=slot.source_path,
+        settings=settings,
+        trusted_publisher_keys=trusted_keys,
+        signing_repository=signing_repo,
+    )
 
 
 def _find_bundle(bundle_id: str, bundles: tuple[SlotBundle, ...]) -> SlotBundle:
@@ -1196,12 +1231,55 @@ def _flags_satisfied(feature_flags: tuple[str, ...], context: SlotContext) -> bo
     return True
 
 
+def _slot_execution_status(
+    slot: Any,
+    settings: Any,
+    *,
+    admission_status: str | None,
+) -> dict[str, Any]:
+    if isinstance(slot, InstalledProviderSlot):
+        return provider_execution_decision(
+            slot.manifest(),
+            slot.source_path,
+            settings,
+            trusted_publisher_keys=slot.trusted_publisher_keys,
+            signing_repository=slot.signing_repository,
+            admission_status=admission_status,
+            installed=True,
+        ).to_dict()
+    if isinstance(slot, ManifestOnlySlot):
+        installed = _is_installed_manifest_path(slot.source_path, settings)
+        trusted_keys = _slot_trusted_publisher_keys(settings) if installed else {}
+        signing_repo = _slot_signing_repo_for_settings(settings) if installed else None
+        return manifest_only_execution_decision(
+            slot.manifest(),
+            source_path=slot.source_path,
+            settings=settings,
+            installed=installed,
+            trusted_publisher_keys=trusted_keys,
+            signing_repository=signing_repo,
+            admission_status=admission_status,
+        ).to_dict()
+    return builtin_execution_decision().to_dict()
+
+
+def _is_installed_manifest_path(path: Path, settings: Any) -> bool:
+    install_dir = Path(settings.slots.install_dir).resolve()
+    try:
+        path.resolve().relative_to(install_dir)
+    except ValueError:
+        return False
+    return True
+
+
 def _slot_status_row(
     manifest: Any,
     status: str,
     *,
     health_status: str | None = None,
+    execution: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    execution_payload = execution or builtin_execution_decision().to_dict()
     return {
         "id": manifest.id,
         "name": manifest.name,
@@ -1212,6 +1290,9 @@ def _slot_status_row(
         "description": manifest.description,
         "entrypoint": manifest.entrypoint,
         "status": status,
+        "execution_eligible": bool(execution_payload["eligible"]),
+        "execution_blockers": list(execution_payload["blockers"]),
+        "execution": execution_payload,
         "feature_flags": list(manifest.feature_flags),
         "provides": {
             "tools": list(manifest.provides.tools),

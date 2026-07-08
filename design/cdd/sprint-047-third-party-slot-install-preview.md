@@ -6,8 +6,9 @@ Date: 2026-07-07
 Status Update - 2026-07-08: ADR-0062 upgrades the signature mechanism from
 this sprint's v1 metadata sidecar to v2 Ed25519 cryptographic signatures,
 trusted publisher keys, and SQLite key revocation. Sprint 047 remains the
-manifest-only install-preview scope; provider entrypoints are still not
-imported or executed, and `DOGE_FEATURE_SLOT_INSTALL` remains default off.
+manifest-only install-preview scope, and `DOGE_FEATURE_SLOT_INSTALL` remains
+default off. ADR-0064 later adds a separate default-off installed-provider
+execution gate; this CDD remains historical for the install preview itself.
 
 ## 1. Overview
 

@@ -3,6 +3,11 @@
 Status: Ready for Acceptance / Local Verification Passed
 Date: 2026-07-08
 
+Status Update - 2026-07-08: ADR-0064 later uses
+`DOGE_FEATURE_SLOT_RUNTIME_INTERCEPTION` as a required gate for installed slot
+provider execution. P4 itself remains only in-process guarded-port mediation
+and subprocess env/cwd hardening; it is not an OS/container/WASM sandbox.
+
 ## 1. Overview
 
 P4 adds a default-off runtime permission interception layer for built-in

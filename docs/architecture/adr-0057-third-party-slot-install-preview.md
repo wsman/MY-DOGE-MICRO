@@ -8,10 +8,15 @@ Accepted
 
 ADR-0062 supersedes only this ADR's metadata-only signature mechanism. Sprint
 047 remains the install-preview decision: installs are still manifest-only,
-`DOGE_FEATURE_SLOT_INSTALL` remains default off, and provider entrypoints are
-not imported or executed. New v2 sidecars use Ed25519 cryptographic signatures
-over canonical manifest bytes; v1 sidecars from this ADR remain readable as
-`legacy` and do not satisfy enterprise verified-signature policy.
+`DOGE_FEATURE_SLOT_INSTALL` remains default off, and default discovery still
+does not import provider entrypoints. New v2 sidecars use Ed25519 cryptographic
+signatures over canonical manifest bytes; v1 sidecars from this ADR remain
+readable as `legacy` and do not satisfy enterprise verified-signature policy.
+
+ADR-0064 later supersedes the blanket "provider entrypoints are not imported or
+executed" statement only for an explicit, default-off, installed,
+trusted-publisher, revocation-checked, runtime-intercepted local alpha path.
+ADR-0057 remains accurate for install preview and manifest-only discovery.
 
 ## Date
 

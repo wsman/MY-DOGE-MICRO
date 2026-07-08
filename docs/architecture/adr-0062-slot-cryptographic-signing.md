@@ -31,10 +31,14 @@ The decision adds:
 - legacy handling for ADR-0057 v1 metadata sidecars.
 
 This ADR releases only the previous "no cryptographic signing format"
-invariant. It does not enable provider entrypoint execution, sandboxing, YAML
-manifests, HTTP install APIs, SDK install APIs, marketplace behavior, external
-gate closure, remote CI promotion, or maturity promotion. `slot_install`
-remains default off.
+invariant. It does not by itself enable provider entrypoint execution,
+sandboxing, YAML manifests, HTTP install APIs, SDK install APIs, marketplace
+behavior, external gate closure, remote CI promotion, or maturity promotion.
+`slot_install` remains default off.
+
+ADR-0064 later consumes this ADR's verified Ed25519 signature and revocation
+checks as required gates for a separate default-off installed-provider execution
+path. Signing alone still does not make a slot execution eligible.
 
 ## Technology Compatibility
 

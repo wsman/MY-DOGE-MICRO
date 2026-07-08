@@ -39,6 +39,11 @@ boundary: no auto-activated bundle, no provider execution, no install
 execution, no sandboxing, no signing, no YAML manifests, no marketplace, no
 remote CI promotion, and no production-ready declaration.
 
+ADR-0064 later adds `DOGE_FEATURE_SLOT_PROVIDER_EXECUTION`, but that flag
+defaults off and requires installed trusted-provider gates. ADR-0058 remains
+controlling for the default local path: provider execution is not default-on and
+does not imply production plugin readiness.
+
 ## Technology Compatibility
 
 | Field | Value |
