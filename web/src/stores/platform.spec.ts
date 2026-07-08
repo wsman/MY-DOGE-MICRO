@@ -1,12 +1,14 @@
 import { setActivePinia, createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  activateSlotBundle,
   addCaseAsset,
   createProject,
   createResearchCase,
   createResearchCaseRunFromTemplate,
   createWorkflowTemplate,
   createWorkspace,
+  deactivateSlotBundle,
   executeCaseTemplate,
   fetchCapabilities,
   fetchHomeQueue,
@@ -34,6 +36,7 @@ import {
 import { usePlatformStore } from './platform'
 
 vi.mock('../api/platform', () => ({
+  activateSlotBundle: vi.fn(),
   fetchCapabilities: vi.fn(),
   fetchHomeQueue: vi.fn(),
   fetchRunSummaryResources: vi.fn(),
@@ -61,6 +64,7 @@ vi.mock('../api/platform', () => ({
   linkResearchCaseRun: vi.fn(),
   preflightCaseExecution: vi.fn(),
   executeCaseTemplate: vi.fn(),
+  deactivateSlotBundle: vi.fn(),
   addCaseAsset: vi.fn(),
   recordCaseDecision: vi.fn(),
 }))
@@ -88,6 +92,14 @@ describe('platform store', () => {
     vi.mocked(listResearchCases).mockResolvedValue([researchCase('case-1', 'prj-1')])
     vi.mocked(listSlots).mockResolvedValue([slotRow('market.core')])
     vi.mocked(listSlotBundles).mockResolvedValue([slotBundle('bundle.research_workspace')])
+    vi.mocked(activateSlotBundle).mockResolvedValue({
+      status: 'activated',
+      active_bundle_id: 'bundle.research_workspace',
+    })
+    vi.mocked(deactivateSlotBundle).mockResolvedValue({
+      status: 'deactivated',
+      active_bundle_id: null,
+    })
     vi.mocked(listUiPanels).mockResolvedValue([uiPanel('guided_flow')])
     vi.mocked(listWorkflowTemplates).mockResolvedValue([workflowTemplate('tpl-1')])
     vi.mocked(listCaseAssets).mockResolvedValue([caseAsset('asset-1', 'case-1')])
@@ -299,6 +311,32 @@ describe('platform store', () => {
     expect(store.caseReviewByCaseId['case-1'].approvals[0].approval_id).toBe('appr-1')
   })
 
+  it('activates a slot bundle and refreshes slot center snapshots', async () => {
+    vi.mocked(listSlots).mockResolvedValueOnce([slotRow('market.core', 'resolved')])
+    vi.mocked(listSlotBundles).mockResolvedValueOnce([slotBundle('bundle.research_workspace', true)])
+    const store = usePlatformStore()
+
+    const payload = await store.activateSlotBundle('bundle.research_workspace')
+
+    expect(activateSlotBundle).toHaveBeenCalledWith('bundle.research_workspace')
+    expect(payload.active_bundle_id).toBe('bundle.research_workspace')
+    expect(store.slotRowsById['market.core'].status).toBe('resolved')
+    expect(store.slotBundlesById['bundle.research_workspace'].active).toBe(true)
+  })
+
+  it('deactivates the active slot bundle and refreshes slot center snapshots', async () => {
+    vi.mocked(listSlots).mockResolvedValueOnce([slotRow('market.core', 'resolved')])
+    vi.mocked(listSlotBundles).mockResolvedValueOnce([slotBundle('bundle.research_workspace', false)])
+    const store = usePlatformStore()
+
+    const payload = await store.deactivateSlotBundle()
+
+    expect(deactivateSlotBundle).toHaveBeenCalledWith()
+    expect(payload.active_bundle_id).toBeNull()
+    expect(store.slotRowsById['market.core'].status).toBe('resolved')
+    expect(store.slotBundlesById['bundle.research_workspace'].active).toBe(false)
+  })
+
   it('surfaces request errors and clears loading state', async () => {
     vi.mocked(listWorkspaces).mockRejectedValueOnce(new Error('platform disabled'))
     const store = usePlatformStore()
@@ -392,7 +430,7 @@ function uiPanel(panelId: string) {
   }
 }
 
-function slotRow(slotId: string) {
+function slotRow(slotId: string, status = 'resolved') {
   return {
     id: slotId,
     name: 'Market Core',
@@ -402,7 +440,7 @@ function slotRow(slotId: string) {
     maturity: 'alpha',
     description: 'Market tools',
     entrypoint: 'doge.products.market.slot.MarketCoreSlot',
-    status: 'resolved',
+    status,
     feature_flags: ['slot_platform'],
     provides: {
       tools: ['query_stock'],
@@ -434,11 +472,12 @@ function slotRow(slotId: string) {
   }
 }
 
-function slotBundle(bundleId: string) {
+function slotBundle(bundleId: string, active = false) {
   return {
     id: bundleId,
     name: 'Research Workspace',
     description: 'Research workspace bundle',
+    active,
     status: 'partial',
     slot_ids: ['market.core', 'ui.research_workspace'],
     enabled_slot_ids: ['market.core'],

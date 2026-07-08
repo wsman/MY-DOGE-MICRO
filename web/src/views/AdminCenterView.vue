@@ -70,12 +70,44 @@
                     <h4>{{ bundle.name }}</h4>
                     <p>{{ bundle.id }}</p>
                   </div>
-                  <n-tag size="small" :type="bundleTagType(bundle.status)">{{ bundle.status }}</n-tag>
+                  <n-space size="small" class="row-tags">
+                    <n-tag v-if="bundle.active" size="small" type="success">active</n-tag>
+                    <n-tag size="small" :type="bundleTagType(bundle.status)">{{ bundle.status }}</n-tag>
+                  </n-space>
                 </div>
                 <div class="row-meta">
                   <span>{{ bundle.counts.enabled }} enabled</span>
                   <span>{{ bundle.counts.disabled }} disabled</span>
                   <span>{{ bundle.counts.missing }} missing</span>
+                </div>
+                <div class="bundle-actions">
+                  <n-button
+                    size="tiny"
+                    secondary
+                    type="primary"
+                    :disabled="activateDisabled(bundle)"
+                    :loading="pendingBundleId === bundle.id && pendingAction === 'activate'"
+                    @click="activateBundle(bundle.id)"
+                  >
+                    <template #icon>
+                      <n-icon><PlayCircleOutline /></n-icon>
+                    </template>
+                    Activate
+                  </n-button>
+                  <n-button
+                    v-if="bundle.active"
+                    size="tiny"
+                    secondary
+                    type="warning"
+                    :disabled="deactivateDisabled(bundle)"
+                    :loading="pendingBundleId === bundle.id && pendingAction === 'deactivate'"
+                    @click="deactivateBundle(bundle.id)"
+                  >
+                    <template #icon>
+                      <n-icon><StopCircleOutline /></n-icon>
+                    </template>
+                    Deactivate
+                  </n-button>
                 </div>
               </article>
               <div v-if="!bundles.length && !store.loading" class="empty-state">No bundles</div>
@@ -120,12 +152,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
-import { RefreshOutline } from '@vicons/ionicons5'
+import { computed, onMounted, ref } from 'vue'
+import { PlayCircleOutline, RefreshOutline, StopCircleOutline } from '@vicons/ionicons5'
 import { NAlert, NButton, NIcon, NSpace, NSpin, NTag } from 'naive-ui'
 import { usePlatformStore } from '../stores/platform'
+import type { SlotBundleRow } from '../api/platform'
 
 const store = usePlatformStore()
+const pendingBundleId = ref<string | null>(null)
+const pendingAction = ref<'activate' | 'deactivate' | null>(null)
 const errorMessage = computed(() => store.error?.message ?? '')
 const capabilities = computed(() => store.capabilities?.capabilities ?? [])
 const statusCounts = computed(() => store.capabilities?.status_counts ?? {})
@@ -181,6 +216,20 @@ function bundleTagType(status: string) {
   return 'default'
 }
 
+function activateDisabled(bundle: SlotBundleRow) {
+  return (
+    store.loading ||
+    pendingBundleId.value !== null ||
+    bundle.active ||
+    bundle.status === 'invalid' ||
+    bundle.counts.missing > 0
+  )
+}
+
+function deactivateDisabled(bundle: SlotBundleRow) {
+  return store.loading || pendingBundleId.value !== null || !bundle.active
+}
+
 function flagsLabel(flags: string[]) {
   return flags.length ? flags.join(', ') : 'always on'
 }
@@ -191,6 +240,28 @@ async function load() {
     store.loadSlots(),
     store.loadSlotBundles(),
   ])
+}
+
+async function activateBundle(bundleId: string) {
+  pendingBundleId.value = bundleId
+  pendingAction.value = 'activate'
+  try {
+    await store.activateSlotBundle(bundleId)
+  } finally {
+    pendingBundleId.value = null
+    pendingAction.value = null
+  }
+}
+
+async function deactivateBundle(bundleId: string) {
+  pendingBundleId.value = bundleId
+  pendingAction.value = 'deactivate'
+  try {
+    await store.deactivateSlotBundle()
+  } finally {
+    pendingBundleId.value = null
+    pendingAction.value = null
+  }
 }
 
 onMounted(load)
@@ -324,6 +395,13 @@ p {
 .bundle-panel {
   display: grid;
   gap: 8px;
+}
+
+.bundle-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .row-copy,

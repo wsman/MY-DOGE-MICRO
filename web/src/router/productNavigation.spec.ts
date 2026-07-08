@@ -5,6 +5,8 @@ import { PRIMARY_SCENARIO_NAV_ITEMS, VIEW_REGISTRY } from '../views/registry'
 
 describe('product navigation routes', () => {
   afterEach(() => {
+    vi.doUnmock('../views/HomeDashboardView.vue')
+    vi.doUnmock('../views/ResearchAgentView.vue')
     vi.unstubAllEnvs()
     vi.resetModules()
   })
@@ -53,20 +55,19 @@ describe('product navigation routes', () => {
 
   it('redirects platform routes to the legacy agent route when the rollback env value is set', async () => {
     vi.stubEnv('VITE_DOGE_FEATURE_PLATFORM_SHELL', '0')
+    vi.doMock('../views/HomeDashboardView.vue', () => ({
+      default: { name: 'MockHomeDashboardView' },
+    }))
+    vi.doMock('../views/ResearchAgentView.vue', () => ({
+      default: { name: 'MockResearchAgentView' },
+    }))
     vi.resetModules()
 
     const { default: rollbackRouter } = await import('./index')
-    // push('/home') under rollback redirects via the beforeEach guard to
-    // /research-agent, which lazy-loads ResearchAgentView.vue. That view's
-    // import graph (matrix / comparison / export panels + markdown-it) is
-    // heavy enough that first-load transform under jsdom sits right at the
-    // default 5s timeout, so give this router-navigation case explicit
-    // headroom. The router behaviour under test is the redirect itself, not
-    // the view load.
     await rollbackRouter.push('/home')
 
     expect(rollbackRouter.currentRoute.value.path).toBe('/research-agent')
-  }, 20000)
+  })
 
 
   it('registers the product-domain views for split panels', () => {

@@ -98,6 +98,7 @@ export interface SlotBundleRow {
   id: string
   name: string
   description: string
+  active: boolean
   status: string
   slot_ids: string[]
   enabled_slot_ids: string[]
@@ -114,6 +115,12 @@ export interface SlotBundleRow {
 
 export interface SlotBundleListResponse {
   bundles: SlotBundleRow[]
+}
+
+export interface SlotBundleActivationResponse {
+  status: string
+  active_bundle_id: string | null
+  bundle?: SlotBundleRow
 }
 
 export async function fetchCapabilities(): Promise<CapabilitySnapshot> {
@@ -138,6 +145,14 @@ export async function listSlots(): Promise<SlotStatusRow[]> {
 export async function listSlotBundles(): Promise<SlotBundleRow[]> {
   const payload = await dogeClient.request<SlotBundleListResponse>('GET', '/v1/slot-bundles')
   return payload.bundles
+}
+
+export async function activateSlotBundle(bundleId: string): Promise<SlotBundleActivationResponse> {
+  return await dogeClient.request<SlotBundleActivationResponse>('POST', `/v1/slot-bundles/${bundleId}/activate`)
+}
+
+export async function deactivateSlotBundle(): Promise<SlotBundleActivationResponse> {
+  return await dogeClient.request<SlotBundleActivationResponse>('POST', '/v1/slot-bundles/active/deactivate')
 }
 
 export async function listWorkspaces(limit = 100): Promise<Workspace[]> {

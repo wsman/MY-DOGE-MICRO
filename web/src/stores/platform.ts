@@ -1,12 +1,14 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import {
+  activateSlotBundle as activateSlotBundleApi,
   addCaseAsset as addCaseAssetApi,
   createProject as createProjectApi,
   createResearchCase as createResearchCaseApi,
   createResearchCaseRunFromTemplate as createResearchCaseRunFromTemplateApi,
   createWorkflowTemplate as createWorkflowTemplateApi,
   createWorkspace as createWorkspaceApi,
+  deactivateSlotBundle as deactivateSlotBundleApi,
   executeCaseTemplate as executeCaseTemplateApi,
   fetchCapabilities,
   fetchHomeQueue,
@@ -135,6 +137,26 @@ export const usePlatformStore = defineStore('platform', () => {
     return await runTracked(async () => {
       slotBundles.value = await listSlotBundles()
       return slotBundles.value
+    })
+  }
+
+  async function activateSlotBundle(bundleId: string) {
+    return await runTracked(async () => {
+      const payload = await activateSlotBundleApi(bundleId)
+      const [slots, bundles] = await Promise.all([listSlots(), listSlotBundles()])
+      slotRows.value = slots
+      slotBundles.value = bundles
+      return payload
+    })
+  }
+
+  async function deactivateSlotBundle() {
+    return await runTracked(async () => {
+      const payload = await deactivateSlotBundleApi()
+      const [slots, bundles] = await Promise.all([listSlots(), listSlotBundles()])
+      slotRows.value = slots
+      slotBundles.value = bundles
+      return payload
     })
   }
 
@@ -379,6 +401,8 @@ export const usePlatformStore = defineStore('platform', () => {
     loadUiPanels,
     loadSlots,
     loadSlotBundles,
+    activateSlotBundle,
+    deactivateSlotBundle,
     loadWorkspaces,
     loadWorkspace,
     loadProjects,

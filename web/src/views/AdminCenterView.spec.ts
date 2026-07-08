@@ -26,6 +26,8 @@ const storeMock = vi.hoisted(() => ({
   loadCapabilities: vi.fn(async () => undefined),
   loadSlots: vi.fn(async () => undefined),
   loadSlotBundles: vi.fn(async () => undefined),
+  activateSlotBundle: vi.fn(async (_bundleId: string) => undefined),
+  deactivateSlotBundle: vi.fn(async () => undefined),
 }))
 
 vi.mock('../stores/platform', () => ({
@@ -48,10 +50,13 @@ describe('AdminCenterView', () => {
     ]
     storeMock.slotBundles = [
       slotBundle('bundle.research_workspace', { status: 'partial', enabled: 1, disabled: 1 }),
+      slotBundle('bundle.local_analyst', { active: true, enabled: 2 }),
     ]
     storeMock.loadCapabilities.mockClear()
     storeMock.loadSlots.mockClear()
     storeMock.loadSlotBundles.mockClear()
+    storeMock.activateSlotBundle.mockClear()
+    storeMock.deactivateSlotBundle.mockClear()
   })
 
   it('renders slot center summaries, slots, bundles, and capabilities', async () => {
@@ -77,8 +82,34 @@ describe('AdminCenterView', () => {
     expect(text).toContain('ui.research_workspace')
     expect(text).toContain('Research Workspace')
     expect(text).toContain('bundle.research_workspace')
+    expect(text).toContain('bundle.local_analyst')
+    expect(text).toContain('active')
+    expect(text).toContain('Activate')
+    expect(text).toContain('Deactivate')
     expect(text).toContain('Capability Registry')
     expect(text).toContain('Slot Platform')
+  })
+
+  it('activates and deactivates slot bundles from row controls', async () => {
+    const wrapper = mount(AdminCenterView)
+    await flushPromises()
+
+    await buttonByText(wrapper, 'Activate').trigger('click')
+    await flushPromises()
+    await buttonByText(wrapper, 'Deactivate').trigger('click')
+    await flushPromises()
+
+    expect(storeMock.activateSlotBundle).toHaveBeenCalledWith('bundle.research_workspace')
+    expect(storeMock.deactivateSlotBundle).toHaveBeenCalledWith()
+  })
+
+  it('surfaces slot bundle permission errors through the generic alert', async () => {
+    storeMock.error = { message: 'slot_bundle access denied' }
+
+    const wrapper = mount(AdminCenterView)
+    await flushPromises()
+
+    expect(wrapper.find('[role="alert"]').text()).toContain('slot_bundle access denied')
   })
 })
 
@@ -136,6 +167,7 @@ function slotRow(
 function slotBundle(
   id: string,
   overrides: Partial<{
+    active: boolean
     status: string
     enabled: number
     disabled: number
@@ -149,6 +181,7 @@ function slotBundle(
     id,
     name: 'Research Workspace',
     description: 'Research workspace bundle',
+    active: overrides.active ?? false,
     status: overrides.status ?? 'resolved',
     slot_ids: ['market.core', 'ui.research_workspace'],
     enabled_slot_ids: Array.from({ length: enabled }, (_, index) => `enabled.${index}`),
@@ -162,4 +195,14 @@ function slotBundle(
       missing,
     },
   }
+}
+
+function buttonByText(wrapper: ReturnType<typeof mount>, label: string) {
+  const button = wrapper.findAll('button').find(item => (
+    item.text().includes(label) && item.attributes('disabled') === undefined
+  ))
+  if (!button) {
+    throw new Error(`button not found: ${label}`)
+  }
+  return button
 }
