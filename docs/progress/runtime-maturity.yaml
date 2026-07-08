@@ -3,27 +3,58 @@ stable_declaration: forbidden
 non_runtime_followup_plan: docs/progress/runtime-stability-followup-plan.md
 
 latest_remotely_verified_sha:
-  head_sha: "ee4c3283bb69ae21671ffd2d9fef908e4819ce16"
-  evidence: production/qa/evidence/ci/remote-ci-ee4c328.json
+  head_sha: "a1da266a134ab6e6d2711fab6430c26616210191"
+  evidence: production/qa/evidence/ci/remote-ci-a1da266.json
   remote_ci_result: passed
-  remote_ci_run_id: 28448012096
-  local_remediation_status: sprint_g_remote_verified_external_gates_open
+  remote_ci_run_id: 28936342646
+  local_remediation_status: p6_slot_platform_remote_verified_external_gates_open
   notes:
-    - "Exact-SHA remote CI for the latest remotely verified SHA ee4c328 passed: GitHub Actions run 28448012096 completed with conclusion=success on a push event for the CI workflow; evidence is stored at production/qa/evidence/ci/remote-ci-ee4c328.json and validated by scripts/validate_alpha_remote_ci_success.py."
+    - "Exact-SHA remote CI for the latest remotely verified SHA a1da266 passed: GitHub Actions run 28936342646 completed with conclusion=success on a push event for the CI workflow; evidence is stored at production/qa/evidence/ci/remote-ci-a1da266.json and validated by scripts/validate_alpha_remote_ci_success.py."
+    - "GitHub API evidence was queried through the historical wsman/MY-DOGE-MICRO path and returned the transferred canonical run URL https://github.com/Negentropy-Laby/OpenDoge/actions/runs/28936342646; scripts/verify_remote_ci_evidence.py accepts only this project-specific canonical alias."
+    - "Prior verified pushed HEAD ee4c3283bb69ae21671ffd2d9fef908e4819ce16 (run 28448012096) is retained as Sprint G closure history."
     - "Prior verified pushed HEAD fd1768fa690a9a0c3a8d7905a7b72f0af54f6b04 (run 28326916286) is retained as Sprint B citation/evidence closure history."
     - "Prior pushed HEAD 9f304a82ae603f0d15210d7cbfc4e502a61fea43 had exact-SHA CI run 28423757545 with conclusion=failure; Sprint G repaired the governance SHA-alignment blocker before promoting ee4c328."
 
 current_pushed_head_local_evidence:
-  head_sha: "ee4c3283bb69ae21671ffd2d9fef908e4819ce16"
-  evidence: production/qa/evidence/sprint-g-architecture-consolidation.md
-  remote_ci_evidence: production/qa/evidence/ci/remote-ci-ee4c328.json
-  local_architecture_status: sprint_g_local_complete_external_gates_open
+  head_sha: "a1da266a134ab6e6d2711fab6430c26616210191"
+  evidence: production/qa/evidence/slot-remote-ci-a1da266-local-acceptance-2026-07-08.md
+  remote_ci_evidence: production/qa/evidence/ci/remote-ci-a1da266.json
+  local_architecture_status: p6_slot_platform_remote_verified_external_gates_open
   remote_ci_result: passed
-  remote_ci_run_id: 28448012096
+  remote_ci_run_id: 28936342646
   notes:
-    - "Sprint G closure SHA ee4c3283bb69ae21671ffd2d9fef908e4819ce16 is on origin/main and has exact-SHA GitHub Actions CI run 28448012096 with conclusion=success."
-    - "Sprint G local architecture consolidation evidence is recorded in production/qa/evidence/sprint-g-architecture-consolidation.md."
+    - "P6 target SHA a1da266a134ab6e6d2711fab6430c26616210191 is on origin/main and has exact-SHA GitHub Actions CI run 28936342646 with conclusion=success."
+    - "P0-P5 Slot Platform local evidence remains unchanged; P6 promotes only latest_remotely_verified_sha and current pushed-head evidence."
     - "External/operator gates remain open and are not closed by this remote CI result."
+
+slot_platform_remote_ci_p6_2026_07_08:
+  status: remote_ci_verified_external_gates_open
+  scope:
+    - "P6 records exact-SHA remote CI evidence for the already-pushed Slot Platform P0-P5 head a1da266a134ab6e6d2711fab6430c26616210191."
+    - "latest_remotely_verified_sha is promoted from ee4c3283bb69ae21671ffd2d9fef908e4819ce16 to a1da266a134ab6e6d2711fab6430c26616210191."
+    - "No Slot Platform runtime behavior, provider execution behavior, install surface, sandboxing, marketplace, or maturity label is promoted by P6."
+  evidence:
+    - production/qa/evidence/ci/remote-ci-a1da266.json
+    - production/qa/evidence/slot-remote-ci-a1da266-local-acceptance-2026-07-08.md
+    - scripts/verify_remote_ci_evidence.py
+    - scripts/validate_alpha_remote_ci_success.py
+    - tests/unit/governance/test_docs_sha_alignment.py
+  focused_tests:
+    - "py -3 scripts/validate_alpha_remote_ci_success.py production/qa/evidence/ci/remote-ci-a1da266.json --expected-head a1da266a134ab6e6d2711fab6430c26616210191 --require-canonical-path"
+    - "py -3 -m pytest tests/unit/qa/test_verify_remote_ci_evidence.py tests/unit/qa/test_validate_alpha_remote_ci_success.py -q"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+  notes:
+    - "Remote CI run 28936342646 completed successfully for workflow CI, event push, exact head SHA a1da266a134ab6e6d2711fab6430c26616210191."
+    - "The GitHub run URL is https://github.com/Negentropy-Laby/OpenDoge/actions/runs/28936342646 because GitHub returns the transferred canonical repository path for the historical wsman/MY-DOGE-MICRO API query."
+    - "P6 closes no external/operator gate: S017-003, W3-live, AUTH-prod, and S017-007 remain open."
 
 maturity_labels:
   level_1_embedded_cli_session: alpha

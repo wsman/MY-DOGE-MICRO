@@ -69,6 +69,22 @@ def test_validate_remote_ci_evidence_rejects_off_repo_success_run_url():
     assert any("remote CI success run html_url must be" in error for error in errors)
 
 
+def test_validate_remote_ci_evidence_accepts_transferred_repo_success_run_url():
+    payload = _payload(_run(status="completed", conclusion="success"))
+    payload["runs"][0]["html_url"] = "https://github.com/Negentropy-Laby/OpenDoge/actions/runs/27967339069"
+
+    assert validate(payload) == []
+
+
+def test_validate_remote_ci_evidence_rejects_unrelated_github_success_run_url():
+    payload = _payload(_run(status="completed", conclusion="success"))
+    payload["runs"][0]["html_url"] = "https://github.com/other/project/actions/runs/27967339069"
+
+    errors = validate(payload)
+
+    assert any("remote CI success run html_url must be one of:" in error for error in errors)
+
+
 def test_validate_remote_ci_evidence_rejects_mismatched_sha():
     other_sha = "0" * 40
     payload = _payload(_run(head_sha=other_sha, status="completed", conclusion="success"))

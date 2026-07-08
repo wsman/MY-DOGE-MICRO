@@ -1,0 +1,30 @@
+{
+  "generated_at": "2026-07-08T13:59:50.534215Z",
+  "head_sha": "a1da266a134ab6e6d2711fab6430c26616210191",
+  "query_url": "https://api.github.com/repos/wsman/MY-DOGE-MICRO/actions/runs?head_sha=a1da266a134ab6e6d2711fab6430c26616210191&per_page=20",
+  "repo": "wsman/MY-DOGE-MICRO",
+  "required_workflow_name": "CI",
+  "result": "passed",
+  "runs": [
+    {
+      "conclusion": "success",
+      "created_at": "2026-07-08T10:38:45Z",
+      "event": "push",
+      "head_sha": "a1da266a134ab6e6d2711fab6430c26616210191",
+      "html_url": "https://github.com/Negentropy-Laby/OpenDoge/actions/runs/28936342646",
+      "id": 28936342646,
+      "name": "CI",
+      "status": "completed",
+      "updated_at": "2026-07-08T10:41:09Z"
+    }
+  ],
+  "schema": "doge.remote_ci_evidence.v1",
+  "total_count": 1,
+  "wait": {
+    "attempts": 1,
+    "enabled": true,
+    "poll_interval_seconds": 10.0,
+    "status": "success",
+    "timeout_seconds": 60.0
+  }
+}

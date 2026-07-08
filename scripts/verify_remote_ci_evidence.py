@@ -20,6 +20,9 @@ DEFAULT_REPO = "MY-DOGE-MICRO"
 DEFAULT_WORKFLOW_NAME = "CI"
 GITHUB_API_ROOT = "https://api.github.com"
 GITHUB_WEB_ROOT = "https://github.com"
+SUCCESS_RUN_REPO_ALIASES = {
+    "wsman/MY-DOGE-MICRO": ("Negentropy-Laby/OpenDoge",),
+}
 
 
 def build_evidence(
@@ -111,6 +114,7 @@ def validate(
     expected_repo: str = f"{DEFAULT_OWNER}/{DEFAULT_REPO}",
     api_root: str = GITHUB_API_ROOT,
     web_root: str = GITHUB_WEB_ROOT,
+    success_run_repo_aliases: tuple[str, ...] | None = None,
 ) -> list[str]:
     errors: list[str] = []
     if payload.get("schema") != SCHEMA:
@@ -174,7 +178,10 @@ def validate(
     if success:
         _validate_success_run_urls(
             matching_runs,
-            repo=expected_repo,
+            repos=_success_run_repos(
+                expected_repo,
+                aliases=success_run_repo_aliases,
+            ),
             web_root=web_root,
             errors=errors,
         )
@@ -271,10 +278,25 @@ def _validate_query_url(
         errors.append("query_url must include the exact head_sha query parameter")
 
 
+def _success_run_repos(
+    repo: str,
+    *,
+    aliases: tuple[str, ...] | None,
+) -> tuple[str, ...]:
+    candidates = [repo]
+    candidates.extend(aliases if aliases is not None else SUCCESS_RUN_REPO_ALIASES.get(repo, ()))
+    repos: list[str] = []
+    for candidate in candidates:
+        if "/" not in candidate or candidate in repos:
+            continue
+        repos.append(candidate)
+    return tuple(repos)
+
+
 def _validate_success_run_urls(
     runs: list[dict[str, Any]],
     *,
-    repo: str,
+    repos: tuple[str, ...],
     web_root: str,
     errors: list[str],
 ) -> None:
@@ -288,13 +310,11 @@ def _validate_success_run_urls(
             continue
         parsed = urlparse(html_url)
         run_id = str(run.get("id"))
-        expected_path = f"/{repo}/actions/runs/{run_id}"
-        if (
-            parsed.scheme != expected.scheme
-            or parsed.netloc != expected.netloc
-            or parsed.path != expected_path
-        ):
-            errors.append(f"remote CI success run html_url must be {web_root.rstrip('/')}{expected_path}")
+        expected_paths = tuple(f"/{repo}/actions/runs/{run_id}" for repo in repos)
+        if parsed.scheme == expected.scheme and parsed.netloc == expected.netloc and parsed.path in expected_paths:
+            continue
+        expected_urls = ", ".join(f"{web_root.rstrip('/')}{path}" for path in expected_paths)
+        errors.append(f"remote CI success run html_url must be one of: {expected_urls}")
 
 
 def _success_run(

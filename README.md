@@ -102,10 +102,14 @@ Authoritative source: [runtime-maturity.yaml](docs/progress/runtime-maturity.yam
 | `doge.application.composition` | Removed | replaced by `doge.bootstrap.processes` (Sprint M) |
 | PyQt desktop dashboard | Removed | replaced by Web / SDK / `/v1` (Sprint M) |
 
-The latest remotely verified SHA remains
-`ee4c3283bb69ae21671ffd2d9fef908e4819ce16`, with GitHub Actions run
-`28448012096` recorded in
-`production/qa/evidence/ci/remote-ci-ee4c328.json`.
+The latest remotely verified SHA is
+`a1da266a134ab6e6d2711fab6430c26616210191`, with GitHub Actions run
+`28936342646` recorded in
+`production/qa/evidence/ci/remote-ci-a1da266.json`.
+
+GitHub returns that run under the transferred canonical repository URL
+`https://github.com/Negentropy-Laby/OpenDoge/actions/runs/28936342646`
+while the historical origin path remains `wsman/MY-DOGE-MICRO`.
 
 The prior pushed HEAD `9f304a82ae603f0d15210d7cbfc4e502a61fea43` had exact-SHA GitHub Actions CI
 run `28423757545` with result `failure`; Sprint G repaired that blocker before
