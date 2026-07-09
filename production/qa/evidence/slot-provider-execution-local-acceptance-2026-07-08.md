@@ -92,3 +92,14 @@ validate_alpha_maturity_honesty.py --file production/qa/evidence/slot-provider-e
   required.
 - In-process importlib execution is not described as a hardened sandbox.
 - Production and stable declarations remain forbidden.
+
+## Post-P9 Supersession Note - 2026-07-09
+
+This evidence is an at-acceptance historical record. Any "no HTTP install API",
+"no SDK install API", "no SDK install method", or "no SDK slot client" wording
+in this file remains true for the sprint accepted here. ADR-0067 and
+`production/qa/evidence/slot-install-surfaces-local-acceptance-2026-07-09.md`
+supersede that deferral going forward by adding default-off local HTTP, SDK, and
+Web install surfaces. YAML manifests, URL/upload install, marketplace/catalog
+behavior, default-on provider execution, external gate closure, and production
+readiness remain deferred.
