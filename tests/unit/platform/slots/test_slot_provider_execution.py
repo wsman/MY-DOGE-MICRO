@@ -16,10 +16,12 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from doge.bootstrap.runtime_factories.slots import (
     build_builtin_slot_kernel,
     build_slot_aware_eval_suites,
+    build_slot_aware_runtime_event_watcher,
     build_slot_aware_ui_panels,
     build_slot_status_rows,
 )
 from doge.config.settings import AuthConfig, DBConfig, FeatureConfig, Settings, SlotConfig
+from doge.core.domain.agent_models import AgentEvent, EventType
 from doge.infrastructure.database.slot_signing_repository import SQLiteSlotSigningRepository
 from doge.platform.slots import (
     SlotConfigurationError,
@@ -113,6 +115,27 @@ def test_provider_execution_allows_static_ui_panel_facets_after_p10_gate(
     provider_row = next(row for row in rows if row["panel_id"] == "provider_static_panel")
     assert provider_row["component_module"] == "provider:static-panel"
     assert provider_row["modes"] == ["developer"]
+    assert installed.import_marker.read_text(encoding="utf-8") == "imported"
+
+
+def test_provider_execution_allows_scoped_watcher_facets_after_p10_gate(
+    tmp_path, monkeypatch
+) -> None:
+    installed = _installed_provider(tmp_path, monkeypatch, slot_type="watcher")
+    settings = _settings(tmp_path, installed, provider_execution=True, slot_watcher=True)
+    event = AgentEvent(
+        event_id="evt-provider",
+        run_id="run-provider",
+        event_type=EventType.RUN_CREATED,
+    )
+
+    middleware = build_slot_aware_runtime_event_watcher(settings=settings)
+
+    assert middleware is not None
+    decisions = dict(middleware.decisions_for(event))
+    decision = decisions["provider.watcher.allow"]
+    assert decision.action == "allow"
+    assert decision.reason == f"{installed.slot_id}:True"
     assert installed.import_marker.read_text(encoding="utf-8") == "imported"
 
 
@@ -528,6 +551,7 @@ def _settings(
     manifest_dirs: tuple[Path, ...] = (),
     trusted_publisher_keys: dict[str, str] | None = None,
     slot_ui: bool = False,
+    slot_watcher: bool = False,
 ) -> Settings:
     return Settings(
         db=DBConfig(dir=tmp_path / "db"),
@@ -539,6 +563,7 @@ def _settings(
             slot_runtime_interception=runtime_interception,
             slot_provider_execution=provider_execution,
             slot_ui=slot_ui,
+            slot_watcher=slot_watcher,
         ),
         slots=SlotConfig(
             manifest_dirs=manifest_dirs,
@@ -623,6 +648,24 @@ def _manifest(
             "permissions": {"risk_level": "low"},
             "feature_flags": ["slot_platform", "slot_ui"],
         }
+    if slot_type == "watcher":
+        return {
+            "schema_version": 1,
+            "id": slot_id,
+            "name": "Third-party Runtime Watcher",
+            "version": "0.1.0",
+            "type": "watcher",
+            "owner": "vendor",
+            "maturity": "experimental",
+            "description": "Trusted local runtime watcher provider fixture.",
+            "entrypoint": entrypoint,
+            "provides": {
+                "capabilities": ["runtime_event_observe", "provider_watcher"],
+                "metadata": {"default_action": "allow"},
+            },
+            "permissions": {"risk_level": "low"},
+            "feature_flags": ["slot_platform", "slot_watcher"],
+        }
     if slot_type != "workflow":
         raise ValueError(f"unsupported provider fixture slot_type: {slot_type}")
     return {
@@ -660,6 +703,8 @@ def _provider_module(
         return _eval_provider_module(slot_id, eval_cases_path)
     if slot_type == "ui":
         return _ui_provider_module(slot_id)
+    if slot_type == "watcher":
+        return _watcher_provider_module(slot_id)
     if slot_type != "workflow":
         raise ValueError(f"unsupported provider fixture slot_type: {slot_type}")
     return f"""
@@ -849,6 +894,70 @@ class ProviderSlot(ISlot):
                 ),
             ),
         )
+"""
+
+
+def _watcher_provider_module(slot_id: str) -> str:
+    return f"""
+import os
+from pathlib import Path
+
+from .helper import MARKER_TEXT
+
+from doge.platform.slots import (
+    ISlot,
+    SlotContribution,
+    SlotHealth,
+    SlotManifest,
+    SlotProvides,
+    SlotType,
+    WatcherContribution,
+    WatcherDecision,
+    current_slot_permission_context,
+)
+
+marker = os.environ.get("P5_PROVIDER_IMPORT_MARKER")
+if marker:
+    Path(marker).write_text(MARKER_TEXT, encoding="utf-8")
+
+
+class ProviderSlot(ISlot):
+    def manifest(self):
+        return SlotManifest(
+            schema_version=1,
+            id={slot_id!r},
+            name="Third-party Runtime Watcher",
+            version="0.1.0",
+            type=SlotType.WATCHER,
+            owner="vendor",
+            maturity="experimental",
+            description="Trusted local runtime watcher provider fixture.",
+            entrypoint=__name__ + ".ProviderSlot",
+            provides=SlotProvides(
+                capabilities=("runtime_event_observe", "provider_watcher"),
+                metadata={{"default_action": "allow"}},
+            ),
+            health=SlotHealth(status="experimental"),
+            feature_flags=("slot_platform", "slot_watcher"),
+        )
+
+    def resolve(self, context):
+        return SlotContribution(
+            slot_id={slot_id!r},
+            watchers=(
+                WatcherContribution(
+                    watcher_id="provider.watcher.allow",
+                    on_event=_allow_event,
+                ),
+            ),
+        )
+
+
+def _allow_event(event, context):
+    active = current_slot_permission_context()
+    if active is None:
+        return WatcherDecision(action="allow", reason="none")
+    return WatcherDecision(action="allow", reason=f"{{active.slot_id}}:{{active.enforce}}")
 """
 
 

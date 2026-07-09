@@ -43,7 +43,7 @@ OS/container/WASM sandboxing, or production maturity.
 | **Depends On** | ADR-0043 (Slot Contribution Facets), ADR-0053 (UI Slot Consumer), ADR-0064 (Slot Provider Execution), ADR-0065 (Provider Package Identity), ADR-0066 (Code-String Isolation Prototype), ADR-0067 (Install Surfaces), ADR-0068 (Eval Suite Provider Facet) |
 | **Extends** | ADR-0064 by moving only `ui_panels` from restricted provider facets into the installed-provider allowlist |
 | **Supersedes** | ADR-0064's "UI panels are not executable from installed third-party providers" statement, only for metadata-only UI panel contributions |
-| **Enables** | Later watcher, governance policy, and route facet decisions |
+| **Enables** | ADR-0070 watcher provider facet, then later governance policy and route facet decisions |
 | **Blocks** | Any claim that P10 enables third-party frontend code loading, route injection, watchers, governance policy mutation, provider sandboxing, external gate closure, or production maturity |
 
 ## Context
@@ -135,7 +135,7 @@ consumers. Frontend rendering remains controlled by the static
 |------|-------------|--------|------------|
 | UI panel metadata is mistaken for third-party frontend code loading | MEDIUM | HIGH | ADR/CDD/evidence state static metadata only; frontend allowlist remains the render authority. |
 | Provider panel ids collide with built-ins | LOW | MEDIUM | Existing `UIPanelRegistry` duplicate checks fail fast within each workspace. |
-| Remaining restricted facets open accidentally | LOW | HIGH | Tests keep route facets rejected after UI facet expansion; `_RESTRICTED_FACETS` still blocks routes/watchers/governance. |
+| Remaining restricted facets open accidentally | LOW | HIGH | Tests keep route facets rejected after UI facet expansion; `_RESTRICTED_FACETS` still blocks routes/governance after ADR-0070. |
 
 ## CDD Requirements Addressed
 

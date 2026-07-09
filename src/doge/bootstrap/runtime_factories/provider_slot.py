@@ -34,6 +34,7 @@ _EXECUTABLE_TYPES = frozenset(
         SlotType.DOCUMENT,
         SlotType.EVAL,
         SlotType.UI,
+        SlotType.WATCHER,
     }
 )
 
@@ -45,11 +46,11 @@ _TYPE_FACETS = {
     SlotType.DOCUMENT: ("document_parsers",),
     SlotType.EVAL: ("eval_suites",),
     SlotType.UI: ("ui_panels",),
+    SlotType.WATCHER: ("watchers",),
 }
 
 _RESTRICTED_FACETS = (
     "routes",
-    "watchers",
     "governance_policies",
 )
 

@@ -87,6 +87,10 @@ Status update - 2026-07-09: ADR-0069/P10 also moves static `ui_panels` metadata
 out of this restricted list for installed, v3 package-signed, operator-gated
 providers. `routes`, `watchers`, and `governance_policies` remain restricted.
 
+Status update - 2026-07-09: ADR-0070/P10 also moves slot-scoped `watchers` out
+of this restricted list for installed, v3 package-signed, operator-gated
+providers. `routes` and `governance_policies` remain restricted.
+
 ## 6. Configuration
 
 ```text

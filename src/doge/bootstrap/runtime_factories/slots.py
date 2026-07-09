@@ -652,14 +652,28 @@ def build_slot_aware_runtime_event_watcher(
 
     watchers: list[Any] = []
     seen_watcher_ids: set[str] = set()
+    interception_enabled = _slot_runtime_interception_enabled(resolved_settings)
+    audit_sink = _slot_runtime_audit_sink(resolved_settings) if interception_enabled else None
     for contribution in contributions:
+        manifest = _slot_manifest_for_contribution(slot_kernel, contribution)
         for watcher in contribution.watchers:
             if watcher.watcher_id in seen_watcher_ids:
                 raise SlotConfigurationError(
                     f"duplicate watcher contribution: {watcher.watcher_id}"
                 )
             seen_watcher_ids.add(watcher.watcher_id)
-            watchers.append(watcher)
+            watchers.append(
+                replace(
+                    watcher,
+                    on_event=_slot_scoped_watcher(
+                        watcher.on_event,
+                        contribution.slot_id,
+                        manifest.permissions,
+                        enabled=interception_enabled,
+                        audit_sink=audit_sink,
+                    ),
+                )
+            )
 
     if not watchers:
         return None
@@ -1048,6 +1062,28 @@ def _slot_scoped_factory(
         return result
 
     return _factory
+
+
+def _slot_scoped_watcher(
+    on_event: Any,
+    slot_id: str,
+    permissions: Any,
+    *,
+    enabled: bool,
+    audit_sink: Any,
+) -> Any:
+    def _on_event(event: Any, context: SlotContext) -> Any:
+        if enabled:
+            with slot_permission_context(
+                slot_id,
+                permissions,
+                enforce=True,
+                audit_sink=audit_sink,
+            ):
+                return on_event(event, context)
+        return on_event(event, context)
+
+    return _on_event
 
 
 def _slot_install_policy(
