@@ -4,8 +4,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[3]
-LATEST_REMOTE_SHA = "030ff9b83c3719eb385fb0bb286e0ca76ce45214"
-CURRENT_PUSHED_HEAD_SHA = "030ff9b83c3719eb385fb0bb286e0ca76ce45214"
+LATEST_REMOTE_SHA = "5d832dc33cb13de612cb6a7274f7ac1435f17df5"
+CURRENT_PUSHED_HEAD_SHA = "5d832dc33cb13de612cb6a7274f7ac1435f17df5"
 SPRINT_B_COMMITTED_SHA = "fd1768fa690a9a0c3a8d7905a7b72f0af54f6b04"
 
 
@@ -18,23 +18,23 @@ def test_runtime_maturity_separates_latest_remote_sha_from_current_head() -> Non
 
     assert "latest_remotely_verified_sha:" in maturity
     assert LATEST_REMOTE_SHA in maturity
-    assert "latest remotely verified SHA 030ff9b passed" in maturity
-    assert "current HEAD 030ff9b passed" not in maturity
+    assert "latest remotely verified SHA 5d832dc passed" in maturity
+    assert "current HEAD 5d832dc passed" not in maturity
 
     assert "current_pushed_head_local_evidence:" in maturity
     assert CURRENT_PUSHED_HEAD_SHA in maturity
     assert "remote_ci_result: passed" in maturity
-    assert "remote_ci_run_id: 28993837317" in maturity
-    assert "remote-ci-030ff9b.json" in maturity
+    assert "remote_ci_run_id: 28996676434" in maturity
+    assert "remote-ci-5d832dc.json" in maturity
 
 
 def test_readme_does_not_claim_current_head_is_remotely_verified() -> None:
     readme = _read("README.md")
 
     assert f"The latest remotely verified SHA is\n`{LATEST_REMOTE_SHA}`" in readme
-    assert "GitHub Actions run\n`28993837317`" in readme
+    assert "GitHub Actions run\n`28996676434`" in readme
     assert "run `28423757545` with result `failure`" in readme
-    assert "remote-ci-030ff9b.json" in readme
+    assert "remote-ci-5d832dc.json" in readme
 
 
 def test_acceptance_report_targets_current_head_remote_ci_evidence() -> None:

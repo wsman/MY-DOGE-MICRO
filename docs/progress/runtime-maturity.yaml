@@ -3,29 +3,30 @@ stable_declaration: forbidden
 non_runtime_followup_plan: docs/progress/runtime-stability-followup-plan.md
 
 latest_remotely_verified_sha:
-  head_sha: "030ff9b83c3719eb385fb0bb286e0ca76ce45214"
-  evidence: production/qa/evidence/ci/remote-ci-030ff9b.json
+  head_sha: "5d832dc33cb13de612cb6a7274f7ac1435f17df5"
+  evidence: production/qa/evidence/ci/remote-ci-5d832dc.json
   remote_ci_result: passed
-  remote_ci_run_id: 28993837317
-  local_remediation_status: p6_1_slot_platform_remote_verified_external_gates_open
+  remote_ci_run_id: 28996676434
+  local_remediation_status: p10_slot_platform_remote_verified_external_gates_open
   notes:
-    - "Exact-SHA remote CI for the latest remotely verified SHA 030ff9b passed: GitHub Actions run 28993837317 completed with conclusion=success on a push event for the CI workflow; evidence is stored at production/qa/evidence/ci/remote-ci-030ff9b.json and validated by scripts/validate_alpha_remote_ci_success.py."
-    - "GitHub returned the run under the transferred canonical repository URL https://github.com/Negentropy-Laby/OpenDoge/actions/runs/28993837317 while the historical origin path remains wsman/MY-DOGE-MICRO; scripts/verify_remote_ci_evidence.py accepts only this project-specific canonical alias."
+    - "Exact-SHA remote CI for the latest remotely verified SHA 5d832dc passed: GitHub Actions run 28996676434 completed with conclusion=success on a push event for the CI workflow; evidence is stored at production/qa/evidence/ci/remote-ci-5d832dc.json and validated by scripts/validate_alpha_remote_ci_success.py."
+    - "GitHub returned the run under the transferred canonical repository URL https://github.com/Negentropy-Laby/OpenDoge/actions/runs/28996676434 while the historical origin path remains wsman/MY-DOGE-MICRO; scripts/verify_remote_ci_evidence.py accepts only this project-specific canonical alias."
+    - "Prior verified pushed HEAD 030ff9b83c3719eb385fb0bb286e0ca76ce45214 (run 28993837317) is retained as P6.1 Slot Platform P7/P8/P9 remote-CI history."
     - "Prior verified pushed HEAD a1da266a134ab6e6d2711fab6430c26616210191 (run 28936342646) is retained as P6 Slot Platform P0-P5 remote-CI history."
     - "Prior verified pushed HEAD ee4c3283bb69ae21671ffd2d9fef908e4819ce16 (run 28448012096) is retained as Sprint G closure history."
     - "Prior verified pushed HEAD fd1768fa690a9a0c3a8d7905a7b72f0af54f6b04 (run 28326916286) is retained as Sprint B citation/evidence closure history."
     - "Prior pushed HEAD 9f304a82ae603f0d15210d7cbfc4e502a61fea43 had exact-SHA CI run 28423757545 with conclusion=failure; Sprint G repaired the governance SHA-alignment blocker before promoting ee4c328."
 
 current_pushed_head_local_evidence:
-  head_sha: "030ff9b83c3719eb385fb0bb286e0ca76ce45214"
-  evidence: production/qa/evidence/slot-platform-remote-ci-030ff9b-local-acceptance-2026-07-09.md
-  remote_ci_evidence: production/qa/evidence/ci/remote-ci-030ff9b.json
-  local_architecture_status: p6_1_slot_platform_remote_verified_external_gates_open
+  head_sha: "5d832dc33cb13de612cb6a7274f7ac1435f17df5"
+  evidence: production/qa/evidence/slot-platform-remote-ci-5d832dc-local-acceptance-2026-07-09.md
+  remote_ci_evidence: production/qa/evidence/ci/remote-ci-5d832dc.json
+  local_architecture_status: p10_slot_platform_remote_verified_external_gates_open
   remote_ci_result: passed
-  remote_ci_run_id: 28993837317
+  remote_ci_run_id: 28996676434
   notes:
-    - "P6.1 target SHA 030ff9b83c3719eb385fb0bb286e0ca76ce45214 is on origin/main and has exact-SHA GitHub Actions CI run 28993837317 with conclusion=success."
-    - "P7 Provider Package Identity, P8 Code-String Isolation Prototype, P9 Slot Install Surfaces, OpenDoge naming cleanup, historical P9 supersession notes, and the presentation-reference cleanup are now covered by exact-SHA remote CI through 030ff9b."
+    - "P10 target SHA 5d832dc33cb13de612cb6a7274f7ac1435f17df5 is on origin/main and has exact-SHA GitHub Actions CI run 28996676434 with conclusion=success."
+    - "P6.1 ledger, P8 isolation non-claim coverage, and P10 eval_suites, ui_panels, watchers, governance_policies, and routes provider facets are now covered by exact-SHA remote CI through 5d832dc."
     - "Per P6 mode, this ledger/evidence update is a follow-up local commit and does not claim self-verification unless it is separately pushed and verified."
     - "External/operator gates remain open and are not closed by this remote CI result."
 
@@ -59,15 +60,45 @@ slot_platform_remote_ci_p6_1_2026_07_09:
     - "The local environment hit unauthenticated GitHub API rate limiting while polling; the run and all nine jobs were confirmed through the GitHub connector/public run page, then the canonical evidence JSON passed scripts/validate_alpha_remote_ci_success.py."
     - "P6.1 closes no external/operator gate: S017-003, W3-live, AUTH-prod, and S017-007 remain open."
 
+slot_platform_remote_ci_p10_2026_07_09:
+  status: remote_ci_verified_external_gates_open
+  scope:
+    - "P10 records exact-SHA remote CI evidence for pushed head 5d832dc33cb13de612cb6a7274f7ac1435f17df5."
+    - "This remote-CI target covers the P6.1 ledger follow-up, P8 provider-contribution isolation non-claim coverage, and all five P10 restricted provider facets."
+    - "latest_remotely_verified_sha is promoted from 030ff9b83c3719eb385fb0bb286e0ca76ce45214 to 5d832dc33cb13de612cb6a7274f7ac1435f17df5."
+    - "No Slot Platform runtime behavior, provider execution behavior, sandboxing, marketplace, external gate, or maturity label is promoted by this ledger update."
+  evidence:
+    - production/qa/evidence/ci/remote-ci-5d832dc.json
+    - production/qa/evidence/slot-platform-remote-ci-5d832dc-local-acceptance-2026-07-09.md
+    - scripts/verify_remote_ci_evidence.py
+    - scripts/validate_alpha_remote_ci_success.py
+    - tests/unit/governance/test_docs_sha_alignment.py
+  focused_tests:
+    - "py -3 scripts/validate_alpha_remote_ci_success.py production/qa/evidence/ci/remote-ci-5d832dc.json --expected-head 5d832dc33cb13de612cb6a7274f7ac1435f17df5 --require-canonical-path"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+  notes:
+    - "Remote CI run 28996676434 completed successfully for workflow CI, event push, exact head SHA 5d832dc33cb13de612cb6a7274f7ac1435f17df5."
+    - "The GitHub run URL is https://github.com/Negentropy-Laby/OpenDoge/actions/runs/28996676434 because GitHub returns the transferred canonical repository path for the historical wsman/MY-DOGE-MICRO push/query path."
+    - "This ledger/evidence follow-up commit follows P6 mode and is not self-verified unless it is separately pushed and verified."
+    - "This update closes no external/operator gate: S017-003, W3-live, AUTH-prod, and S017-007 remain open."
+
 slot_eval_suite_provider_facet_p10_2026_07_09:
-  status: local_acceptance_passed_external_gates_open
+  status: remote_ci_verified_external_gates_open
   label: "Slot Eval Suite Provider Facet"
   scope:
     - "P10 opens only the eval_suites provider facet for installed, v3 package-signed, operator-gated providers."
     - "Provider execution still requires slot_platform, slot_loader, slot_install, slot_runtime_interception, slot_provider_execution, verified package-aware v3 signatures, revocation checks, SlotKernel admission, and enterprise allowlist when applicable."
     - "Gateway routes, UI panels, watchers, and governance policies remain restricted provider facets."
     - "P10 does not change P8's provider-contribution residual: provider contribution objects remain in-process and are not OS/container/WASM isolated."
-    - "P10 is local-only in this ledger; latest_remotely_verified_sha remains 030ff9b until a later pushed SHA gets its own exact-SHA remote CI evidence."
+    - "P10 eval_suites is covered by exact-SHA remote CI for pushed head 5d832dc33cb13de612cb6a7274f7ac1435f17df5 (run 28996676434)."
   evidence:
     - docs/architecture/adr-0068-slot-eval-suite-provider-facet.md
     - design/cdd/p10-eval-suite-provider-facet.md
@@ -92,14 +123,14 @@ slot_eval_suite_provider_facet_p10_2026_07_09:
     - "No marketplace, YAML manifest parser, URL/upload install, filesystem mediation, malicious-code containment, external gate closure, or maturity promotion is included."
 
 slot_ui_panel_provider_facet_p10_2026_07_09:
-  status: local_acceptance_passed_external_gates_open
+  status: remote_ci_verified_external_gates_open
   label: "Slot UI Panel Provider Facet"
   scope:
     - "P10 opens only static ui_panels metadata for installed, v3 package-signed, operator-gated providers."
     - "Provider execution still requires slot_platform, slot_loader, slot_install, slot_runtime_interception, slot_provider_execution, verified package-aware v3 signatures, revocation checks, SlotKernel admission, DOGE_FEATURE_SLOT_UI for UI resolution, and enterprise allowlist when applicable."
     - "Gateway routes, watchers, and governance policies remain restricted provider facets."
     - "P10 UI does not add dynamic frontend component loading; web/src/views/panelRegistry.ts remains the static render allowlist."
-    - "P10 UI is local-only in this ledger; latest_remotely_verified_sha remains 030ff9b until a later pushed SHA gets its own exact-SHA remote CI evidence."
+    - "P10 UI panels are covered by exact-SHA remote CI for pushed head 5d832dc33cb13de612cb6a7274f7ac1435f17df5 (run 28996676434)."
   evidence:
     - docs/architecture/adr-0069-slot-ui-panel-provider-facet.md
     - design/cdd/p10-ui-panel-provider-facet.md
@@ -124,14 +155,14 @@ slot_ui_panel_provider_facet_p10_2026_07_09:
     - "No marketplace, YAML manifest parser, URL/upload install, frontend code loading, filesystem mediation, malicious-code containment, external gate closure, or maturity promotion is included."
 
 slot_watcher_provider_facet_p10_2026_07_09:
-  status: local_acceptance_passed_external_gates_open
+  status: remote_ci_verified_external_gates_open
   label: "Slot Watcher Provider Facet"
   scope:
     - "P10 opens only watchers for installed, v3 package-signed, operator-gated providers."
     - "Provider execution still requires slot_platform, slot_loader, slot_install, slot_runtime_interception, slot_provider_execution, verified package-aware v3 signatures, revocation checks, SlotKernel admission, DOGE_FEATURE_SLOT_WATCHER for watcher resolution, and enterprise allowlist when applicable."
     - "Watcher on_event callables are wrapped in slot permission context when runtime interception is enabled."
     - "At ADR-0070 acceptance, gateway routes and governance policies remained restricted provider facets; ADR-0071 later opens governance policies only."
-    - "P10 watchers are local-only in this ledger; latest_remotely_verified_sha remains 030ff9b until a later pushed SHA gets its own exact-SHA remote CI evidence."
+    - "P10 watchers are covered by exact-SHA remote CI for pushed head 5d832dc33cb13de612cb6a7274f7ac1435f17df5 (run 28996676434)."
   evidence:
     - docs/architecture/adr-0070-slot-watcher-provider-facet.md
     - design/cdd/p10-watcher-provider-facet.md
@@ -157,7 +188,7 @@ slot_watcher_provider_facet_p10_2026_07_09:
     - "No marketplace, YAML manifest parser, URL/upload install, filesystem mediation, malicious-code containment, external gate closure, or maturity promotion is included."
 
 slot_governance_policy_provider_facet_p10_2026_07_09:
-  status: local_acceptance_passed_external_gates_open
+  status: remote_ci_verified_external_gates_open
   label: "Slot Governance Policy Provider Facet"
   scope:
     - "P10 opens only governance_policies for installed, v3 package-signed, operator-gated providers."
@@ -165,7 +196,7 @@ slot_governance_policy_provider_facet_p10_2026_07_09:
     - "Provider governance policy factories and returned checker methods are wrapped in slot permission context when runtime interception is enabled."
     - "Composite tool entitlement remains monotonic: can_execute uses all checkers and requires_approval uses any checker, so provider policies can restrict or require more approval but cannot re-enable forbidden tools or remove built-in high-risk approval."
     - "At ADR-0071 acceptance, gateway routes remained the only restricted provider facet; ADR-0072 later opens routes with namespace/auth constraints."
-    - "P10 governance policies are local-only in this ledger; latest_remotely_verified_sha remains 030ff9b until a later pushed SHA gets its own exact-SHA remote CI evidence."
+    - "P10 governance policies are covered by exact-SHA remote CI for pushed head 5d832dc33cb13de612cb6a7274f7ac1435f17df5 (run 28996676434)."
   evidence:
     - docs/architecture/adr-0071-slot-governance-policy-provider-facet.md
     - design/cdd/p10-governance-policy-provider-facet.md
@@ -191,7 +222,7 @@ slot_governance_policy_provider_facet_p10_2026_07_09:
     - "No marketplace, YAML manifest parser, URL/upload install, tenant-isolation expansion, filesystem mediation, malicious-code containment, external gate closure, or maturity promotion is included."
 
 slot_gateway_route_provider_facet_p10_2026_07_09:
-  status: local_acceptance_passed_external_gates_open
+  status: remote_ci_verified_external_gates_open
   label: "Slot Gateway Route Provider Facet"
   scope:
     - "P10 opens the final routes provider facet for installed, v3 package-signed, operator-gated providers."
@@ -200,7 +231,7 @@ slot_gateway_route_provider_facet_p10_2026_07_09:
     - "Provider routes are included with the existing deps.require_api_token dependency."
     - "Provider route factories and request handlers are wrapped in slot permission context when runtime interception is enabled."
     - "Default route coverage remains the documented 98 HTTP routes unless an operator installs additional provider routes."
-    - "P10 routes are local-only in this ledger; latest_remotely_verified_sha remains 030ff9b until a later pushed SHA gets its own exact-SHA remote CI evidence."
+    - "P10 routes are covered by exact-SHA remote CI for pushed head 5d832dc33cb13de612cb6a7274f7ac1435f17df5 (run 28996676434)."
   evidence:
     - docs/architecture/adr-0072-slot-gateway-route-provider-facet.md
     - design/cdd/p10-gateway-route-provider-facet.md

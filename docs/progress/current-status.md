@@ -38,15 +38,16 @@ Higher-risk surfaces remain default-off and require explicit operator opt-in:
 `DOGE_FEATURE_PYTHON_ANALYSIS_ENABLED`, `DOGE_FEATURE_PLATFORM_OBJECTS`,
 `DOGE_FEATURE_RUN_SUMMARY_API`, and `DOGE_FEATURE_RUNTIME_OUTBOX_PUBLISHER`.
 
-The latest Slot Platform remote-CI milestone is P6.1 (`030ff9b`), recorded in
-`production/qa/evidence/ci/remote-ci-030ff9b.json`. The Slot Platform does not
+The latest Slot Platform remote-CI milestone is P10 (`5d832dc`), recorded in
+`production/qa/evidence/ci/remote-ci-5d832dc.json`. The Slot Platform does not
 close any external/operator gates and remains experimental.
 
-Local follow-up after that remote-CI target: P10 opens only the installed,
+The P10 remote-verified scope opens only the installed,
 package-signed, operator-gated `eval_suites` and static `ui_panels` provider
 facets, slot-scoped runtime `watchers`, monotonic `governance_policies`, and
-namespaced/authenticated gateway `routes`. P10 is not yet a remotely verified
-pushed SHA in this ledger.
+namespaced/authenticated gateway `routes`. The ledger follow-up commit that
+records this evidence follows P6 mode and is not self-verified unless it is
+separately pushed and verified.
 
 ## Not A Release Claim
 

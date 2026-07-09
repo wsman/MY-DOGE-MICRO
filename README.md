@@ -103,12 +103,12 @@ Authoritative source: [runtime-maturity.yaml](docs/progress/runtime-maturity.yam
 | PyQt desktop dashboard | Removed | replaced by Web / SDK / `/v1` (Sprint M) |
 
 The latest remotely verified SHA is
-`030ff9b83c3719eb385fb0bb286e0ca76ce45214`, with GitHub Actions run
-`28993837317` recorded in
-`production/qa/evidence/ci/remote-ci-030ff9b.json`.
+`5d832dc33cb13de612cb6a7274f7ac1435f17df5`, with GitHub Actions run
+`28996676434` recorded in
+`production/qa/evidence/ci/remote-ci-5d832dc.json`.
 
 GitHub returns that run under the transferred canonical repository URL
-`https://github.com/Negentropy-Laby/OpenDoge/actions/runs/28993837317`
+`https://github.com/Negentropy-Laby/OpenDoge/actions/runs/28996676434`
 while the historical origin path remains `wsman/MY-DOGE-MICRO`.
 
 The prior pushed HEAD `9f304a82ae603f0d15210d7cbfc4e502a61fea43` had exact-SHA GitHub Actions CI
@@ -152,8 +152,8 @@ doge slots bundle list
 doge slots show market.core
 ```
 
-The latest Slot Platform remote-CI milestone is P6.1 (`030ff9b`), recorded in
-`production/qa/evidence/ci/remote-ci-030ff9b.json`. The Slot Platform does not
+The latest Slot Platform remote-CI milestone is P10 (`5d832dc`), recorded in
+`production/qa/evidence/ci/remote-ci-5d832dc.json`. The Slot Platform does not
 close any external/operator gates and remains experimental. See
 [docs/reference/configuration.md](docs/reference/configuration.md) for flag
 details and [docs/architecture/index.md](docs/architecture/index.md) for the
