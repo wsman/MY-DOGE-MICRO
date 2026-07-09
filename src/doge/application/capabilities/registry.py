@@ -109,7 +109,12 @@ class FeatureCapabilityProvider:
                     ],
                     "scope": "run_python_analysis code strings only",
                     "isolation_mode": _code_string_isolation_mode(self._settings),
+                    "provider_contribution_runtime": "in_process",
                     "provider_contribution_isolation": "not_provided",
+                    "direct_filesystem_mediation": "not_provided",
+                    "raw_network_denial": "not_provided",
+                    "direct_os_api_containment": "not_provided",
+                    "pre_instruction_containment": "not_provided",
                 },
             ),
             capability(

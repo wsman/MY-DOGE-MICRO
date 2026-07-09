@@ -120,6 +120,21 @@ def test_code_string_isolation_capability_is_high_risk_and_scoped():
     ]
 
 
+def test_code_string_isolation_metadata_preserves_provider_residual_non_claims():
+    capabilities = FeatureCapabilityProvider(
+        Settings(features=FeatureConfig(slot_code_string_isolation=True))
+    ).collect()
+    metadata = _capability(capabilities, "feature.slot_code_string_isolation")["metadata"]
+
+    assert metadata["scope"] == "run_python_analysis code strings only"
+    assert metadata["provider_contribution_runtime"] == "in_process"
+    assert metadata["provider_contribution_isolation"] == "not_provided"
+    assert metadata["direct_filesystem_mediation"] == "not_provided"
+    assert metadata["raw_network_denial"] == "not_provided"
+    assert metadata["direct_os_api_containment"] == "not_provided"
+    assert metadata["pre_instruction_containment"] == "not_provided"
+
+
 def test_code_string_isolation_capability_marks_unavailable_host_blocked(monkeypatch):
     import doge.application.capabilities.registry as capability_registry
 
