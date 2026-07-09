@@ -40,6 +40,23 @@ provider package signing, malicious-code containment, marketplace behavior,
 HTTP install APIs, SDK install APIs, YAML manifests, remote CI promotion,
 external gate closure, or production maturity.
 
+Status Update - 2026-07-08: ADR-0065 closes ADR-0064's package identity gap for
+local installed providers. Provider execution now requires a v3 package-aware
+signature and loads entrypoint code from the installed signed `package/`
+directory. ADR-0065 does not change this ADR's remaining runtime boundary: the
+provider still runs in-process.
+
+Status Update - 2026-07-09: ADR-0066 adds default-off Windows Job Object
+resource limits only for `run_python_analysis` code strings. It does not isolate
+ADR-0064 provider contribution objects, which remain trusted-publisher,
+package-identified, in-process Python objects under the P4 guarded-port model.
+
+Status Update - 2026-07-09: ADR-0067 adds HTTP, Python SDK, TypeScript SDK, and
+Web install surfaces for local slot install. Those surfaces do not change this
+ADR's provider execution gates: provider import remains default off and still
+requires slot install, runtime interception, verified v3 package-aware signature,
+revocation check, enterprise allowlist when applicable, and SlotKernel admission.
+
 ## Technology Compatibility
 
 | Field | Value |
@@ -79,8 +96,8 @@ slot discovery status.
 - Require `slot_platform`, `slot_loader`, and `slot_install` to be enabled.
 - Execute only installed manifests under `DOGE_SLOT_INSTALL_DIR`; manifests
   loaded from `DOGE_SLOT_MANIFEST_DIRS` stay manifest-only.
-- Reverify the installed manifest signature at resolve time.
-- Require signature status `verified`, trusted publisher key configuration,
+- Reverify the installed manifest and package-aware signature at resolve time.
+- Require v3 signature status `verified`, trusted publisher key configuration,
   `revocation_checked=true`, and a non-revoked signing key.
 - In `DOGE_AUTH_MODE=enterprise`, require `DOGE_SLOT_ENTERPRISE_ALLOWLIST`.
 - Require `DOGE_FEATURE_SLOT_RUNTIME_INTERCEPTION=1`.
@@ -158,7 +175,9 @@ same status rows. These discovery surfaces do not import providers.
 ### Negative
 
 - In-process provider import is not malicious-code containment.
-- Provider package code is not signed; only the manifest is signed.
+- P5 originally signed only the manifest. ADR-0065 requires v3 package-aware
+  signatures for provider execution; transitive dependency packages remain
+  unsigned by slot sidecars.
 - Active bundle policy can still disable installed slots because built-in
   bundles do not include third-party slot ids.
 - Filesystem, socket, raw sqlite, subprocess, and direct OS APIs are not
@@ -169,7 +188,7 @@ same status rows. These discovery surfaces do not import providers.
 | Risk | Probability | Impact | Mitigation |
 |------|-------------|--------|------------|
 | Operators mistake P5 for production-safe plugins | MEDIUM | HIGH | ADR/CDD/config/maturity/evidence repeat default-off local alpha and no OS sandbox. |
-| Signed manifest points at malicious package code | MEDIUM | HIGH | P5 is local alpha only; provider package signing and hardened sandbox remain future work. |
+| Signed manifest points at swapped local package code | MEDIUM | HIGH | ADR-0065 resolves the local package identity gap with v3 package-aware signatures and path-confined imports. |
 | Provider import side effects bypass guards | HIGH | HIGH | P5 requires runtime interception but documents it as in-process guarded-port mediation only. |
 | Restricted facet sneaks into execution | LOW | HIGH | `InstalledProviderSlot` rejects restricted contribution fields after resolve. |
 
@@ -180,8 +199,10 @@ same status rows. These discovery surfaces do not import providers.
 - Installed slots remain manifest-only when the flag is off.
 - Status rows report execution eligibility and blockers without importing
   provider code.
-- Missing, untrusted, invalid, or revoked signatures block execution.
-- Resolve-time verification repeats signature and revocation checks.
+- Missing, untrusted, invalid, revoked, or manifest-only v2 signatures block
+  execution.
+- Resolve-time verification repeats package-aware signature and revocation
+  checks.
 - Enterprise mode requires `DOGE_SLOT_ENTERPRISE_ALLOWLIST`.
 - Runtime interception must be enabled before provider import.
 - Only tools, model backends, workflow templates, data sources, and document
@@ -196,3 +217,5 @@ same status rows. These discovery surfaces do not import providers.
 - ADR-0057: Third-party Slot Install Preview
 - ADR-0062: Slot Cryptographic Signing
 - ADR-0063: Slot Runtime Permission Interception and Subprocess Hardening
+- ADR-0065: Provider Package Identity
+- ADR-0066: Code-String Isolation Prototype and Contribution Residual

@@ -51,6 +51,7 @@ DOGE_FEATURE_VARS = [
     "DOGE_FEATURE_CAPABILITY_REGISTRY",
     "DOGE_FEATURE_RUNTIME_OUTBOX_PUBLISHER",
     "DOGE_FEATURE_PYTHON_ANALYSIS_ENABLED",
+    "DOGE_FEATURE_SLOT_CODE_STRING_ISOLATION",
     "DOGE_FEATURE_SLOT_PLATFORM",
     "DOGE_FEATURE_SLOT_GOVERNANCE",
     "DOGE_FEATURE_SLOT_WATCHER",
@@ -348,6 +349,7 @@ class TestFeatureLifecycle:
         assert features.capability_registry is False
         assert features.runtime_outbox_publisher is False
         assert features.python_analysis_enabled is False
+        assert features.slot_code_string_isolation is False
         assert features.slot_platform is True
         assert features.slot_governance is True
         assert features.slot_watcher is True
@@ -371,6 +373,7 @@ class TestFeatureLifecycle:
             "capability_registry",
             "runtime_outbox_publisher",
             "python_analysis_enabled",
+            "slot_code_string_isolation",
             "slot_platform",
             "slot_governance",
             "slot_watcher",

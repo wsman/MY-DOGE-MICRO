@@ -1,6 +1,7 @@
 """Gateway factory helpers for tool-service and financial-connector wiring."""
 from __future__ import annotations
 from doge.application.agent.tool_service import ToolApplicationService
+from doge.core.ports.enterprise_governance import EnterpriseAuditEvent
 from doge.infrastructure.code_execution.python import DisabledCodeExecutor, SubprocessCodeExecutor
 from doge.application.services.portfolio_service import PortfolioService, RiskService, ScenarioService
 from doge.config import get_settings
@@ -71,7 +72,11 @@ def build_python_analysis_executor(settings=None):
         return DisabledCodeExecutor()
     executor = settings.features.python_analysis_executor
     if executor == "subprocess":
-        return SubprocessCodeExecutor()
+        isolation_enabled = bool(getattr(settings.features, "slot_code_string_isolation", False))
+        return SubprocessCodeExecutor(
+            isolation_enabled=isolation_enabled,
+            audit_sink=_code_string_resource_audit_sink(settings) if isolation_enabled else None,
+        )
     return DisabledCodeExecutor()
 
 
@@ -121,3 +126,26 @@ def _slot_runtime_database_factory_guard(settings):
         return _factory
 
     return _guard
+
+
+def _code_string_resource_audit_sink(settings):
+    def _append(event: dict) -> None:
+        try:
+            from doge.infrastructure.database.enterprise_governance import (
+                SQLiteEnterpriseGovernanceRepository,
+            )
+
+            SQLiteEnterpriseGovernanceRepository(settings.db.agent_db).append_audit_event(
+                EnterpriseAuditEvent(
+                    event_type=str(event.get("event_type") or "slot_resource_limit_exceeded"),
+                    tenant_id="local",
+                    actor_hash="code-string-isolation",
+                    resource_type=str(event.get("resource_type") or "code_string"),
+                    resource_id=str(event.get("resource_id") or "run_python_analysis"),
+                    metadata={key: value for key, value in event.items() if key != "event_type"},
+                )
+            )
+        except Exception:
+            pass
+
+    return _append

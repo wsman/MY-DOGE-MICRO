@@ -45,6 +45,13 @@ gate for installed-provider execution. P4 remains only in-process guarded-port
 mediation and subprocess hardening; it is not OS/container/WASM sandboxing or
 malicious-code containment.
 
+Status Update - 2026-07-09: ADR-0066 extends only the optional Python analysis
+code-string subprocess path with default-off Windows Job Object resource limits
+under `DOGE_FEATURE_SLOT_CODE_STRING_ISOLATION`. ADR-0066 does not change this
+ADR's in-process guarded-port model, does not add filesystem mediation, and does
+not isolate provider contribution objects. The P4 direct-import residuals for
+trusted in-process code remain open.
+
 ## Technology Compatibility
 
 | Field | Value |
@@ -263,3 +270,4 @@ Network access is opt-in. `network="allow"` permits guarded network methods;
 - ADR-0055: Slot Permission and Health Enforcement
 - ADR-0057: Third-party Slot Install Preview
 - ADR-0062: Slot Cryptographic Signing
+- ADR-0066: Code-String Isolation Prototype and Contribution Residual

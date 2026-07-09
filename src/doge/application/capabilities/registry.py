@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import asdict
 from pathlib import Path
@@ -92,6 +93,23 @@ class FeatureCapabilityProvider:
                 metadata={
                     **_feature_metadata("python_analysis_enabled"),
                     "executor": self._settings.features.python_analysis_executor,
+                },
+            ),
+            capability(
+                "feature.slot_code_string_isolation",
+                "runtime",
+                "Code-String Isolation",
+                _code_string_isolation_status(self._settings),
+                risk_level="high",
+                metadata={
+                    **_feature_metadata("slot_code_string_isolation"),
+                    "requires": [
+                        "python_analysis_enabled",
+                        "python_analysis_executor=subprocess",
+                    ],
+                    "scope": "run_python_analysis code strings only",
+                    "isolation_mode": _code_string_isolation_mode(self._settings),
+                    "provider_contribution_isolation": "not_provided",
                 },
             ),
             capability(
@@ -301,6 +319,22 @@ def _python_analysis_feature_status(settings: Settings) -> str:
     if settings.features.python_analysis_enabled and settings.features.python_analysis_executor != "disabled":
         return "available"
     return "disabled"
+
+
+def _code_string_isolation_status(settings: Settings) -> str:
+    if not settings.features.slot_code_string_isolation:
+        return "disabled"
+    if os.name == "nt":
+        return "available"
+    return "blocked"
+
+
+def _code_string_isolation_mode(settings: Settings) -> str:
+    if not settings.features.slot_code_string_isolation:
+        return "disabled"
+    if os.name == "nt":
+        return "windows_job_object"
+    return "unavailable_non_windows_fail_closed"
 
 
 def _feature_metadata(feature_name: str) -> dict[str, Any]:

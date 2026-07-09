@@ -78,6 +78,9 @@ class ToolExecutionService:
         metadata: dict[str, Any] = {
             "executor": str(getattr(self._code_executor, "executor_name", "unknown")),
         }
+        if bool(getattr(self._code_executor, "isolation_enabled", False)):
+            metadata["isolation_mode"] = str(getattr(self._code_executor, "isolation_mode", "unknown"))
+            metadata["isolation_scope"] = "code_string_only"
         disabled_reason = getattr(self._code_executor, "disabled_reason", None)
         if disabled_reason:
             metadata["disabled_reason"] = str(disabled_reason)

@@ -65,6 +65,7 @@ def test_feature_capabilities_include_lifecycle_metadata():
         "feature.workflow_templates": "workflow_templates",
         "feature.capability_registry": "capability_registry",
         "feature.python_analysis_enabled": "python_analysis_enabled",
+        "feature.slot_code_string_isolation": "slot_code_string_isolation",
         "feature.slot_platform": "slot_platform",
         "feature.slot_governance": "slot_governance",
         "feature.slot_watcher": "slot_watcher",
@@ -97,6 +98,39 @@ def test_python_analysis_feature_requires_enabled_flag_and_executor():
 
     assert _capability(disabled_executor, "feature.python_analysis_enabled")["status"] == "disabled"
     assert _capability(subprocess_executor, "feature.python_analysis_enabled")["status"] == "available"
+
+
+def test_code_string_isolation_capability_is_high_risk_and_scoped():
+    capabilities = FeatureCapabilityProvider(
+        Settings(features=FeatureConfig(slot_code_string_isolation=True))
+    ).collect()
+    row = _capability(capabilities, "feature.slot_code_string_isolation")
+
+    assert row["status"] == (
+        "available"
+        if row["metadata"]["isolation_mode"] == "windows_job_object"
+        else "blocked"
+    )
+    assert row["risk_level"] == "high"
+    assert row["metadata"]["scope"] == "run_python_analysis code strings only"
+    assert row["metadata"]["provider_contribution_isolation"] == "not_provided"
+    assert row["metadata"]["requires"] == [
+        "python_analysis_enabled",
+        "python_analysis_executor=subprocess",
+    ]
+
+
+def test_code_string_isolation_capability_marks_unavailable_host_blocked(monkeypatch):
+    import doge.application.capabilities.registry as capability_registry
+
+    settings = Settings(features=FeatureConfig(slot_code_string_isolation=True))
+    monkeypatch.setattr(capability_registry.os, "name", "posix")
+
+    capabilities = FeatureCapabilityProvider(settings).collect()
+    row = _capability(capabilities, "feature.slot_code_string_isolation")
+
+    assert row["status"] == "blocked"
+    assert row["metadata"]["isolation_mode"] == "unavailable_non_windows_fail_closed"
 
 
 def test_tool_capability_provider_matches_default_tool_registry_schemas():

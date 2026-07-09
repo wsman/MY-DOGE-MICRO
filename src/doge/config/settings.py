@@ -619,6 +619,18 @@ FEATURE_LIFECYCLES: dict[str, FeatureLifecycle] = {
         ),
         rollback_criterion="restore default False and disabled executor if Python analysis can execute without explicit operator enablement",
     ),
+    "slot_code_string_isolation": FeatureLifecycle(
+        env_var="DOGE_FEATURE_SLOT_CODE_STRING_ISOLATION",
+        introduced="P8 Code-String Isolation Prototype; C:\\Users\\WSMAN\\.claude\\plans\\openclaw-rippling-sparkle.md",
+        current_default=False,
+        target_default_on="never before code-string isolation has external security review and cross-OS hardened executor evidence",
+        target_removal="after Python analysis is replaced by an always-on hardened container/WASM/OS code executor with approved production gates",
+        replacement_behavior="operator-approved Python analysis code strings execute through a hardened resource-limited code executor",
+        regression_commands=(
+            "python -m pytest tests/unit/capabilities/test_code_executor.py tests/test_settings.py tests/unit/use_cases/test_capability_registry.py -q",
+        ),
+        rollback_criterion="restore default False if code-string isolation changes default Python analysis behavior or silently falls back to an unisolated executor",
+    ),
     "slot_platform": FeatureLifecycle(
         env_var="DOGE_FEATURE_SLOT_PLATFORM",
         introduced="Sprint 033 Slot Platform Foundation; docs/architecture/adr-0042-slot-platform.md",
@@ -752,6 +764,9 @@ class FeatureConfig:
     )
     python_analysis_enabled: bool = field(
         default_factory=lambda: _env_bool("DOGE_FEATURE_PYTHON_ANALYSIS_ENABLED", False)
+    )
+    slot_code_string_isolation: bool = field(
+        default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_CODE_STRING_ISOLATION", False)
     )
     slot_platform: bool = field(
         default_factory=lambda: _env_bool("DOGE_FEATURE_SLOT_PLATFORM", True)
