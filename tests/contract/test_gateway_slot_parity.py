@@ -24,10 +24,20 @@ from doge.platform.slots import (
 
 
 class _GatewaySlot(ISlot):
-    def __init__(self, slot_id: str, *, router_id: str, router: APIRouter | None) -> None:
+    def __init__(
+        self,
+        slot_id: str,
+        *,
+        router_id: str,
+        router: APIRouter | None,
+        prefix: str | None = None,
+        requires_auth: bool = True,
+    ) -> None:
         self._slot_id = slot_id
         self._router_id = router_id
         self._router = router
+        self._prefix = prefix if prefix is not None else f"/v1/slot-providers/{slot_id}"
+        self._requires_auth = requires_auth
 
     def manifest(self) -> SlotManifest:
         return SlotManifest(
@@ -52,8 +62,9 @@ class _GatewaySlot(ISlot):
                 GatewayRouteContribution(
                     router_id=self._router_id,
                     router_factory=lambda _context: self._router,
-                    prefix="/v1",
+                    prefix=self._prefix,
                     tags=("test",),
+                    requires_auth=self._requires_auth,
                 ),
             ),
         )
@@ -109,6 +120,44 @@ def test_gateway_route_factory_returning_none_fails_fast(monkeypatch) -> None:
     monkeypatch.setattr(slots_module, "build_builtin_slot_registry", lambda: registry)
 
     with pytest.raises(SlotConfigurationError, match="returned no router"):
+        slots_module.build_slot_aware_gateway_routes(
+            FastAPI(),
+            settings=_settings(slot_platform=True),
+        )
+
+
+def test_provider_gateway_route_prefix_must_use_provider_namespace(monkeypatch) -> None:
+    registry = SlotRegistry()
+    registry.register(
+        _GatewaySlot(
+            "gateway.provider",
+            router_id="gateway.provider",
+            router=APIRouter(),
+            prefix="/v1",
+        )
+    )
+    monkeypatch.setattr(slots_module, "build_builtin_slot_registry", lambda: registry)
+
+    with pytest.raises(SlotConfigurationError, match="prefix must be"):
+        slots_module.build_slot_aware_gateway_routes(
+            FastAPI(),
+            settings=_settings(slot_platform=True),
+        )
+
+
+def test_provider_gateway_route_must_require_auth(monkeypatch) -> None:
+    registry = SlotRegistry()
+    registry.register(
+        _GatewaySlot(
+            "gateway.provider",
+            router_id="gateway.provider",
+            router=APIRouter(),
+            requires_auth=False,
+        )
+    )
+    monkeypatch.setattr(slots_module, "build_builtin_slot_registry", lambda: registry)
+
+    with pytest.raises(SlotConfigurationError, match="must require auth"):
         slots_module.build_slot_aware_gateway_routes(
             FastAPI(),
             settings=_settings(slot_platform=True),

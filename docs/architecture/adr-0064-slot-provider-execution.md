@@ -37,7 +37,8 @@ not executable from installed third-party providers in P5. ADR-0068 later
 releases `eval_suites`; ADR-0069 later releases static `ui_panels` metadata.
 ADR-0070 later releases slot-scoped `watchers`. The other restricted facets
 remained blocked at ADR-0070 acceptance; ADR-0071 later releases
-`governance_policies`. `routes` remains blocked.
+`governance_policies`; ADR-0072 later releases provider `routes` with
+namespace/auth constraints.
 
 This ADR does not add OS/container/WASM sandboxing, filesystem mediation,
 provider package signing, malicious-code containment, marketplace behavior,
@@ -78,6 +79,12 @@ Status Update - 2026-07-09: ADR-0071 releases only the `governance_policies`
 restricted facet for installed, v3 package-signed, operator-gated providers.
 Provider policies use monotonic tool-entitlement composition and slot-scoped
 factory/checker execution. Gateway routes remain restricted.
+
+Status Update - 2026-07-09: ADR-0072 releases the final `routes` restricted
+facet for installed, v3 package-signed, operator-gated providers. Non-built-in
+provider routes must mount under `/v1/slot-providers/<slot_id>`, require the
+existing API token dependency, and run route handlers under slot permission
+context when runtime interception is enabled.
 
 ## Technology Compatibility
 

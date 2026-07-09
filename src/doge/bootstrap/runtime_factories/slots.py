@@ -838,6 +838,7 @@ def build_slot_aware_gateway_routes(
                     f"duplicate gateway route contribution: {route.router_id}"
                 )
             seen_router_ids.add(route.router_id)
+            _validate_gateway_route_contribution(contribution, route)
             with slot_permission_context(
                 contribution.slot_id,
                 manifest.permissions,
@@ -853,6 +854,15 @@ def build_slot_aware_gateway_routes(
                 router,
                 prefix=route.prefix,
                 tags=list(route.tags),
+                dependencies=list(
+                    _slot_route_dependencies(
+                        contribution.slot_id,
+                        manifest.permissions,
+                        requires_auth=route.requires_auth,
+                        enabled=interception_enabled,
+                        audit_sink=audit_sink,
+                    )
+                ),
             )
             mounted.append(route.router_id)
     return tuple(mounted)
@@ -1146,6 +1156,52 @@ def _slot_scoped_entitlement_checker(
                 return checker.redact_schema(context, schema, category)
 
     return _SlotScopedEntitlementChecker()
+
+
+def _validate_gateway_route_contribution(contribution: SlotContribution, route: Any) -> None:
+    if route.requires_auth is not True:
+        raise SlotConfigurationError(
+            f"gateway route {route.router_id} must require auth"
+        )
+    if contribution.slot_id == "gateway.slots":
+        return
+    expected_prefix = f"/v1/slot-providers/{contribution.slot_id}"
+    if route.prefix != expected_prefix:
+        raise SlotConfigurationError(
+            f"gateway route {route.router_id} prefix must be {expected_prefix}"
+        )
+
+
+def _slot_route_dependencies(
+    slot_id: str,
+    permissions: Any,
+    *,
+    requires_auth: bool,
+    enabled: bool,
+    audit_sink: Any,
+) -> tuple[Any, ...]:
+    from fastapi import Depends
+
+    dependencies: list[Any] = []
+    if requires_auth:
+        from doge.interfaces.api import deps
+
+        dependencies.append(Depends(deps.require_api_token))
+
+    if not enabled:
+        return tuple(dependencies)
+
+    async def _slot_scope_dependency():
+        with slot_permission_context(
+            slot_id,
+            permissions,
+            enforce=True,
+            audit_sink=audit_sink,
+        ):
+            yield
+
+    dependencies.append(Depends(_slot_scope_dependency))
+    return tuple(dependencies)
 
 
 def _slot_install_policy(

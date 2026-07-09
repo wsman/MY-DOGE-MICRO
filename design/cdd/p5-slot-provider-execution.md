@@ -95,6 +95,10 @@ Status update - 2026-07-09: ADR-0071/P10 also moves monotonic
 `governance_policies` out of this restricted list for installed, v3
 package-signed, operator-gated providers. `routes` remains restricted.
 
+Status update - 2026-07-09: ADR-0072/P10 moves the final `routes` facet out of
+this restricted list for installed, v3 package-signed, operator-gated providers
+with provider namespace and API-token dependency constraints.
+
 ## 6. Configuration
 
 ```text

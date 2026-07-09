@@ -12,11 +12,14 @@ from pathlib import Path
 import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
 from doge.bootstrap.runtime_factories.slots import (
     build_builtin_slot_kernel,
     build_slot_aware_eval_suites,
     build_slot_aware_entitlement_checker,
+    build_slot_aware_gateway_routes,
     build_slot_aware_runtime_event_watcher,
     build_slot_aware_ui_panels,
     build_slot_status_rows,
@@ -154,6 +157,29 @@ def test_provider_execution_allows_scoped_governance_policy_facets_after_p10_gat
     assert installed.lifecycle_marker.read_text(encoding="utf-8") == (
         f"can_execute:{installed.slot_id}:True:query_stock"
     )
+    assert installed.import_marker.read_text(encoding="utf-8") == "imported"
+
+
+def test_provider_execution_allows_scoped_gateway_route_facets_after_p10_gate(
+    tmp_path, monkeypatch
+) -> None:
+    monkeypatch.setenv("DOGE_API_TOKEN", "route-token")
+    installed = _installed_provider(tmp_path, monkeypatch, slot_type="gateway")
+    settings = _settings(tmp_path, installed, provider_execution=True)
+    app = FastAPI()
+
+    mounted = build_slot_aware_gateway_routes(app, settings=settings)
+    client = TestClient(app)
+    denied = client.get(f"/v1/slot-providers/{installed.slot_id}/status")
+    response = client.get(
+        f"/v1/slot-providers/{installed.slot_id}/status",
+        headers={"Authorization": "Bearer route-token"},
+    )
+
+    assert mounted == ("gateway.slots", "provider.gateway.status")
+    assert denied.status_code == 401
+    assert response.status_code == 200
+    assert response.json() == {"slot_id": installed.slot_id, "enforce": True}
     assert installed.import_marker.read_text(encoding="utf-8") == "imported"
 
 
@@ -395,7 +421,7 @@ def test_provider_execution_requires_runtime_interception(tmp_path, monkeypatch)
     assert not installed.import_marker.exists()
 
 
-def test_provider_execution_keeps_route_facets_restricted_after_p10_eval(
+def test_provider_execution_rejects_route_facets_outside_gateway_type_after_p10(
     tmp_path, monkeypatch
 ) -> None:
     installed = _installed_provider(tmp_path, monkeypatch, restricted_facet=True)
@@ -403,7 +429,7 @@ def test_provider_execution_keeps_route_facets_restricted_after_p10_eval(
     kernel = build_builtin_slot_kernel(settings=settings)
     context = SlotContext(settings=settings, feature_flags=_feature_flags(settings))
 
-    with pytest.raises(SlotConfigurationError, match="restricted facet routes"):
+    with pytest.raises(SlotConfigurationError, match="facet routes outside its type"):
         kernel.resolve_contributions(context, slot_type=SlotType.WORKFLOW)
 
     assert installed.import_marker.exists()
@@ -704,6 +730,27 @@ def _manifest(
             "permissions": {"risk_level": "low"},
             "feature_flags": ["slot_platform", "slot_governance"],
         }
+    if slot_type == "gateway":
+        return {
+            "schema_version": 1,
+            "id": slot_id,
+            "name": "Third-party Gateway Routes",
+            "version": "0.1.0",
+            "type": "gateway",
+            "owner": "vendor",
+            "maturity": "experimental",
+            "description": "Trusted local gateway route provider fixture.",
+            "entrypoint": entrypoint,
+            "provides": {
+                "capabilities": ["gateway_routes", "provider_gateway_route"],
+                "metadata": {
+                    "router_id": "provider.gateway.status",
+                    "prefix": f"/v1/slot-providers/{slot_id}",
+                },
+            },
+            "permissions": {"risk_level": "low"},
+            "feature_flags": ["slot_platform"],
+        }
     if slot_type != "workflow":
         raise ValueError(f"unsupported provider fixture slot_type: {slot_type}")
     return {
@@ -745,6 +792,8 @@ def _provider_module(
         return _watcher_provider_module(slot_id)
     if slot_type == "governance":
         return _governance_provider_module(slot_id)
+    if slot_type == "gateway":
+        return _gateway_provider_module(slot_id)
     if slot_type != "workflow":
         raise ValueError(f"unsupported provider fixture slot_type: {slot_type}")
     return f"""
@@ -1079,6 +1128,83 @@ class ProviderChecker:
         if not self.can_execute(context, schema.get("function", {{}}).get("name", ""), category):
             return None
         return schema
+"""
+
+
+def _gateway_provider_module(slot_id: str) -> str:
+    return f"""
+import os
+from pathlib import Path
+
+from .helper import MARKER_TEXT
+
+from fastapi import APIRouter
+
+from doge.platform.slots import (
+    GatewayRouteContribution,
+    ISlot,
+    SlotContribution,
+    SlotHealth,
+    SlotManifest,
+    SlotProvides,
+    SlotType,
+    current_slot_permission_context,
+)
+
+marker = os.environ.get("P5_PROVIDER_IMPORT_MARKER")
+if marker:
+    Path(marker).write_text(MARKER_TEXT, encoding="utf-8")
+
+
+class ProviderSlot(ISlot):
+    def manifest(self):
+        return SlotManifest(
+            schema_version=1,
+            id={slot_id!r},
+            name="Third-party Gateway Routes",
+            version="0.1.0",
+            type=SlotType.GATEWAY,
+            owner="vendor",
+            maturity="experimental",
+            description="Trusted local gateway route provider fixture.",
+            entrypoint=__name__ + ".ProviderSlot",
+            provides=SlotProvides(
+                capabilities=("gateway_routes", "provider_gateway_route"),
+                metadata={{
+                    "router_id": "provider.gateway.status",
+                    "prefix": f"/v1/slot-providers/{slot_id}",
+                }},
+            ),
+            health=SlotHealth(status="experimental"),
+            feature_flags=("slot_platform",),
+        )
+
+    def resolve(self, context):
+        return SlotContribution(
+            slot_id={slot_id!r},
+            routes=(
+                GatewayRouteContribution(
+                    router_id="provider.gateway.status",
+                    router_factory=_router_factory,
+                    prefix=f"/v1/slot-providers/{slot_id}",
+                    tags=("provider-slot",),
+                    requires_auth=True,
+                ),
+            ),
+        )
+
+
+def _router_factory(context):
+    router = APIRouter()
+
+    @router.get("/status")
+    def status():
+        active = current_slot_permission_context()
+        if active is None:
+            return {{"slot_id": "none", "enforce": None}}
+        return {{"slot_id": active.slot_id, "enforce": active.enforce}}
+
+    return router
 """
 
 

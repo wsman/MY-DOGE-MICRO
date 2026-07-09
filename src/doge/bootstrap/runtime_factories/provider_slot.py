@@ -36,6 +36,7 @@ _EXECUTABLE_TYPES = frozenset(
         SlotType.UI,
         SlotType.WATCHER,
         SlotType.GOVERNANCE,
+        SlotType.GATEWAY,
     }
 )
 
@@ -49,11 +50,10 @@ _TYPE_FACETS = {
     SlotType.UI: ("ui_panels",),
     SlotType.WATCHER: ("watchers",),
     SlotType.GOVERNANCE: ("governance_policies",),
+    SlotType.GATEWAY: ("routes",),
 }
 
-_RESTRICTED_FACETS = (
-    "routes",
-)
+_RESTRICTED_FACETS = ()
 
 
 @dataclass(frozen=True)

@@ -32,6 +32,10 @@ URL/upload install, OS/container/WASM sandboxing, transitive dependency
 signing, provider malicious-code containment, tenant-isolation expansion, or
 production maturity.
 
+Status Update - 2026-07-09: ADR-0072 later opens provider `routes` with
+namespace/auth constraints. This ADR's gateway-route exclusion remains
+historical to the governance policy facet decision.
+
 ## Technology Compatibility
 
 | Field | Value |

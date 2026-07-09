@@ -44,9 +44,9 @@ close any external/operator gates and remains experimental.
 
 Local follow-up after that remote-CI target: P10 opens only the installed,
 package-signed, operator-gated `eval_suites` and static `ui_panels` provider
-facets, slot-scoped runtime `watchers`, and monotonic `governance_policies`.
-Routes remain restricted; P10 is not yet a remotely verified pushed SHA in this
-ledger.
+facets, slot-scoped runtime `watchers`, monotonic `governance_policies`, and
+namespaced/authenticated gateway `routes`. P10 is not yet a remotely verified
+pushed SHA in this ledger.
 
 ## Not A Release Claim
 
