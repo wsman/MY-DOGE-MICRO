@@ -14,6 +14,7 @@ class SlotSignerRevocation:
     revoked_at: str
     reason: str | None = None
     actor_hash: str | None = None
+    successor_key_id: str | None = None
 
 
 class ISlotSigningRepository(Protocol):
@@ -28,6 +29,7 @@ class ISlotSigningRepository(Protocol):
         *,
         reason: str | None = None,
         actor_hash: str | None = None,
+        successor_key_id: str | None = None,
     ) -> SlotSignerRevocation:
         ...
 

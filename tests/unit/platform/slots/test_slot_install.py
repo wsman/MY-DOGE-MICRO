@@ -8,10 +8,12 @@ import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
+import doge.platform.slots.install as slot_install_module
 from doge.platform.slots import (
     SlotConfigurationError,
     SlotInstallPolicy,
     SlotInstaller,
+    package_tree_digest,
     sign_slot_manifest,
     verify_slot_signature,
 )
@@ -33,6 +35,33 @@ def test_local_unsigned_install_copies_manifest_and_warns(tmp_path) -> None:
     assert result.signature.status == "missing"
     assert result.warnings == ("unsigned local slot manifest",)
     assert second.status == "already_installed"
+
+
+def test_install_cleans_staged_directory_when_copy_fails(tmp_path, monkeypatch) -> None:
+    source_dir = tmp_path / "source"
+    source_dir.mkdir()
+    manifest_path = source_dir / "slot.json"
+    manifest_path.write_text(json.dumps(_manifest("local.rollback")), encoding="utf-8")
+    _write_legacy_signature(manifest_path, "local.rollback", signer="ops")
+    install_dir = tmp_path / "installed"
+    original_copyfile = slot_install_module.shutil.copyfile
+
+    def fail_on_signature_copy(src, dst, *args, **kwargs):
+        if str(dst).endswith("slot.signature.json"):
+            raise OSError("copy failed")
+        return original_copyfile(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(slot_install_module.shutil, "copyfile", fail_on_signature_copy)
+
+    with pytest.raises(OSError, match="copy failed"):
+        SlotInstaller().install(
+            source_dir,
+            install_dir=install_dir,
+            policy=SlotInstallPolicy(trusted_signers=("ops",)),
+        )
+
+    assert not (install_dir / "local_rollback").exists()
+    assert not (install_dir / ".local_rollback.stage").exists()
 
 
 def test_install_rejects_high_risk_and_shell_by_default(tmp_path) -> None:
@@ -127,6 +156,82 @@ def test_valid_ed25519_signature_reports_verified_status(tmp_path) -> None:
     assert signature.key_id == "ops-key"
     assert signature.algorithm == "ed25519"
     assert signature.manifest_sha256
+
+
+def test_v3_signature_binds_package_digest_and_install_copies_package(tmp_path) -> None:
+    source_dir = tmp_path / "signed_package"
+    source_dir.mkdir()
+    manifest_path = source_dir / "slot.json"
+    manifest_path.write_text(json.dumps(_manifest("local.package")), encoding="utf-8")
+    package_dir = _write_package(source_dir)
+    key = _write_signature(manifest_path, key_id="ops-key", package_dir=package_dir)
+
+    signature = verify_slot_signature(
+        manifest_path,
+        slot_id="local.package",
+        trusted_publisher_keys={"ops-key": key["public_key"]},
+    )
+    result = SlotInstaller().install(
+        source_dir,
+        install_dir=tmp_path / "installed",
+        policy=SlotInstallPolicy(trusted_publisher_keys={"ops-key": key["public_key"]}),
+    )
+
+    assert signature.status == "verified"
+    assert signature.package_digest == package_tree_digest(package_dir)
+    assert signature.package_digest["algorithm"] == "sha256_tree_v1"
+    assert result.signature.package_digest == signature.package_digest
+    assert (tmp_path / "installed" / "local_package" / "package" / "local_package" / "provider.py").exists()
+
+
+def test_tampered_package_rejects_v3_signature(tmp_path) -> None:
+    source_dir = tmp_path / "signed_package"
+    source_dir.mkdir()
+    manifest_path = source_dir / "slot.json"
+    manifest_path.write_text(json.dumps(_manifest("local.tampered-package")), encoding="utf-8")
+    package_dir = _write_package(source_dir)
+    key = _write_signature(manifest_path, key_id="ops-key", package_dir=package_dir)
+    (package_dir / "local_package" / "provider.py").write_text("tampered = True\n", encoding="utf-8")
+
+    signature = verify_slot_signature(
+        manifest_path,
+        slot_id="local.tampered-package",
+        trusted_publisher_keys={"ops-key": key["public_key"]},
+    )
+
+    assert signature.status == "invalid"
+    assert "package digest mismatch" in signature.reason
+    with pytest.raises(SlotConfigurationError, match="invalid signature"):
+        SlotInstaller().install(
+            source_dir,
+            install_dir=tmp_path / "installed",
+            policy=SlotInstallPolicy(trusted_publisher_keys={"ops-key": key["public_key"]}),
+        )
+
+
+def test_v3_signature_requires_manifest_sibling_package_dir(tmp_path) -> None:
+    source_dir = tmp_path / "signed_package"
+    source_dir.mkdir()
+    manifest_path = source_dir / "slot.json"
+    manifest_path.write_text(json.dumps(_manifest("local.external-package")), encoding="utf-8")
+    external_package_dir = _write_package(tmp_path / "external")
+    private_key = Ed25519PrivateKey.generate()
+    private_key_path = source_dir / "ops-key.pem"
+    private_key_path.write_bytes(
+        private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+    )
+
+    with pytest.raises(SlotConfigurationError, match="beside the slot manifest"):
+        sign_slot_manifest(
+            manifest_path,
+            private_key_path=private_key_path,
+            key_id="ops-key",
+            package_dir=external_package_dir,
+        )
 
 
 def test_untrusted_ed25519_signature_reports_untrusted_status(tmp_path) -> None:
@@ -245,7 +350,7 @@ def _manifest(slot_id: str, *, permissions: dict | None = None) -> dict:
     }
 
 
-def _write_signature(manifest_path, *, key_id: str) -> dict[str, str]:
+def _write_signature(manifest_path, *, key_id: str, package_dir=None) -> dict[str, str]:
     private_key = Ed25519PrivateKey.generate()
     private_key_path = manifest_path.parent / f"{key_id}.pem"
     private_key_path.write_bytes(
@@ -255,12 +360,26 @@ def _write_signature(manifest_path, *, key_id: str) -> dict[str, str]:
             encryption_algorithm=serialization.NoEncryption(),
         )
     )
-    sign_slot_manifest(manifest_path, private_key_path=private_key_path, key_id=key_id)
+    sign_slot_manifest(
+        manifest_path,
+        private_key_path=private_key_path,
+        key_id=key_id,
+        package_dir=package_dir,
+    )
     public_key = private_key.public_key().public_bytes(
         encoding=serialization.Encoding.Raw,
         format=serialization.PublicFormat.Raw,
     )
     return {"public_key": base64.b64encode(public_key).decode("ascii")}
+
+
+def _write_package(source_dir) -> Path:
+    package_dir = source_dir / "package"
+    module_dir = package_dir / "local_package"
+    module_dir.mkdir(parents=True)
+    (module_dir / "__init__.py").write_text("", encoding="utf-8")
+    (module_dir / "provider.py").write_text("VALUE = 'signed-package'\n", encoding="utf-8")
+    return package_dir
 
 
 def _write_legacy_signature(manifest_path, slot_id: str, *, signer: str) -> None:

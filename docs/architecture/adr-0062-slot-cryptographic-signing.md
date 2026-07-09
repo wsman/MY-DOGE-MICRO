@@ -40,6 +40,12 @@ ADR-0064 later consumes this ADR's verified Ed25519 signature and revocation
 checks as required gates for a separate default-off installed-provider execution
 path. Signing alone still does not make a slot execution eligible.
 
+Status Update - 2026-07-08: ADR-0065 extends this ADR with v3 package-aware
+sidecars for provider execution. v2 sidecars remain manifest-only and still
+verify for install/discovery compatibility, but v3 signs canonical manifest
+bytes plus a deterministic provider package digest and is now required before
+installed provider execution can import code.
+
 ## Technology Compatibility
 
 | Field | Value |
@@ -205,7 +211,9 @@ pattern and is injected into the install policy from bootstrap wiring.
 ### Negative
 
 - Key distribution and rotation remain manual.
-- The signature only covers the manifest, not provider code packages.
+- P3 v2 signatures cover only the manifest. ADR-0065 adds v3 package-aware
+  sidecars for installed provider execution, but transitive dependency signing
+  remains out of scope.
 - v1 metadata sidecars must be re-signed to satisfy enterprise install.
 - `cryptography` is now a direct project dependency.
 
@@ -259,8 +267,10 @@ pattern and is injected into the install policy from bootstrap wiring.
 - v1 sidecars produce `legacy` and do not satisfy enterprise install.
 - CLI sign writes a v2 sidecar.
 - CLI revoke writes `slot_signer_revocations`.
-- No provider execution, sandboxing, HTTP install, SDK install, YAML parser,
-  marketplace, external gate closure, or maturity promotion is added.
+- ADR-0065 later adds v3 package-aware signatures for provider execution; this
+  P3 decision by itself adds no provider execution, sandboxing, HTTP install,
+  SDK install, YAML parser, marketplace, external gate closure, or maturity
+  promotion.
 - Maturity posture remains `production_ready: false`,
   `stable_declaration: forbidden`, and `level_3_sdk_platform: experimental`.
 
@@ -270,3 +280,4 @@ pattern and is injected into the install policy from bootstrap wiring.
 - ADR-0055: Slot Permission and Health Enforcement
 - ADR-0057: Third-party Slot Install Preview
 - ADR-0060: Persistent Slot Bundle Activation
+- ADR-0065: Provider Package Identity

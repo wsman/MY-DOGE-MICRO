@@ -115,6 +115,7 @@ def cmd_slots(args) -> None:
                 args.manifest,
                 private_key_path=args.key,
                 key_id=args.key_id or Path(args.key).stem,
+                package_dir=args.package_dir,
                 settings=settings,
             )
         except Exception as exc:  # noqa: BLE001 - concise operator message
@@ -132,6 +133,7 @@ def cmd_slots(args) -> None:
             payload = revoke_slot_signing_key(
                 args.key_id,
                 reason=args.reason or None,
+                successor_key_id=args.successor_key_id or None,
                 actor_hash="local-cli",
                 settings=settings,
             )
@@ -225,6 +227,7 @@ def _emit_signed(payload: dict[str, Any], json_only: bool) -> None:
     print(f"status={payload['status']}")
     print(f"key_id={payload['key_id']}")
     print(f"algorithm={payload['algorithm']}")
+    print(f"schema_version={payload['schema_version']}")
     print(f"signature_path={payload['signature_path']}")
 
 
@@ -235,6 +238,8 @@ def _emit_revoked(payload: dict[str, Any], json_only: bool) -> None:
     print(f"key_id={payload['key_id']}")
     print(f"status={payload['status']}")
     print(f"revoked_at={payload['revoked_at']}")
+    if payload.get("successor_key_id"):
+        print(f"successor_key_id={payload['successor_key_id']}")
 
 
 def _emit_show(row: dict[str, Any], json_only: bool) -> None:

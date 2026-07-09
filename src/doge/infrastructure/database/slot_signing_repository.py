@@ -38,25 +38,28 @@ class SQLiteSlotSigningRepository(ISlotSigningRepository):
         *,
         reason: str | None = None,
         actor_hash: str | None = None,
+        successor_key_id: str | None = None,
     ) -> SlotSignerRevocation:
         key_id = key_id.strip()
         if not key_id:
             raise ValueError("key_id is required")
+        successor_key_id = successor_key_id.strip() if successor_key_id else None
         with self._connect() as conn:
             conn.execute(
                 """
-                INSERT INTO slot_signer_revocations(key_id, reason, actor_hash)
-                VALUES (?, ?, ?)
+                INSERT INTO slot_signer_revocations(key_id, reason, actor_hash, successor_key_id)
+                VALUES (?, ?, ?, ?)
                 ON CONFLICT(key_id) DO UPDATE SET
                     reason = excluded.reason,
-                    actor_hash = excluded.actor_hash
+                    actor_hash = excluded.actor_hash,
+                    successor_key_id = excluded.successor_key_id
                 """,
-                (key_id, reason, actor_hash),
+                (key_id, reason, actor_hash, successor_key_id),
             )
             conn.commit()
             row = conn.execute(
                 """
-                SELECT key_id, revoked_at, reason, actor_hash
+                SELECT key_id, revoked_at, reason, actor_hash, successor_key_id
                 FROM slot_signer_revocations
                 WHERE key_id = ?
                 """,
@@ -68,7 +71,7 @@ class SQLiteSlotSigningRepository(ISlotSigningRepository):
         with self._connect() as conn:
             rows = conn.execute(
                 """
-                SELECT key_id, revoked_at, reason, actor_hash
+                SELECT key_id, revoked_at, reason, actor_hash, successor_key_id
                 FROM slot_signer_revocations
                 ORDER BY key_id
                 """
@@ -82,4 +85,5 @@ def _revocation_from_row(row) -> SlotSignerRevocation:
         revoked_at=row["revoked_at"],
         reason=row["reason"],
         actor_hash=row["actor_hash"],
+        successor_key_id=row["successor_key_id"],
     )

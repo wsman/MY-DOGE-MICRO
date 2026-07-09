@@ -7,7 +7,8 @@ revocation storage, and runtime permission guards, so it belongs in bootstrap.
 
 from __future__ import annotations
 
-import importlib
+import importlib.util
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping
@@ -101,12 +102,7 @@ class InstalledProviderSlot(ISlot):
                 + "; ".join(decision.blockers)
             )
         provider = self._load_provider(context)
-        with slot_permission_context(
-            self.slot_manifest.id,
-            self.slot_manifest.permissions,
-            enforce=bool(getattr(self.settings.features, "slot_runtime_interception", False)),
-            audit_sink=None,
-        ):
+        with self._permission_context():
             contribution = provider.resolve(context)
         _validate_contribution(self.slot_manifest, contribution)
         return contribution
@@ -119,12 +115,14 @@ class InstalledProviderSlot(ISlot):
     def start(self, context: SlotContext) -> None:
         self._ensure_eligible()
         provider = self._load_provider(context)
-        provider.start(context)
+        with self._permission_context():
+            provider.start(context)
 
     def stop(self, context: SlotContext) -> None:
         self._ensure_eligible()
         provider = self._load_provider(context)
-        provider.stop(context)
+        with self._permission_context():
+            provider.stop(context)
 
     def _ensure_eligible(self) -> None:
         decision = provider_execution_decision(
@@ -145,16 +143,22 @@ class InstalledProviderSlot(ISlot):
     def _load_provider(self, context: SlotContext) -> ISlot:
         if self._provider is not None:
             return self._provider
-        with slot_permission_context(
+        with self._permission_context():
+            provider = _import_provider(
+                self.slot_manifest.entrypoint,
+                package_dir=self.source_path.parent / "package",
+            )
+            _validate_provider_manifest(self.slot_manifest, provider.manifest())
+        self._provider = provider
+        return provider
+
+    def _permission_context(self):
+        return slot_permission_context(
             self.slot_manifest.id,
             self.slot_manifest.permissions,
             enforce=bool(getattr(self.settings.features, "slot_runtime_interception", False)),
             audit_sink=None,
-        ):
-            provider = _import_provider(self.slot_manifest.entrypoint)
-            _validate_provider_manifest(self.slot_manifest, provider.manifest())
-        self._provider = provider
-        return provider
+        )
 
 
 def provider_execution_decision(
@@ -211,6 +215,8 @@ def provider_execution_decision(
         if not signature.verified:
             reason = f": {signature.reason}" if signature.reason else ""
             blockers.append(f"signature {signature.status}{reason}")
+        elif signature.package_digest is None:
+            blockers.append("signature is manifest-only; package signature required")
         elif not signature.revocation_checked:
             blockers.append("signing key revocation was not checked")
 
@@ -260,7 +266,7 @@ def builtin_execution_decision() -> ProviderExecutionDecision:
     )
 
 
-def _import_provider(entrypoint: str) -> ISlot:
+def _import_provider(entrypoint: str, *, package_dir: Path) -> ISlot:
     try:
         module_name, attr_name = entrypoint.rsplit(".", 1)
     except ValueError as exc:
@@ -268,7 +274,7 @@ def _import_provider(entrypoint: str) -> ISlot:
             f"slot provider entrypoint must be a dotted object path: {entrypoint}"
         ) from exc
     try:
-        module = importlib.import_module(module_name)
+        module = _load_module_from_package(module_name, package_dir)
         target = getattr(module, attr_name)
     except Exception as exc:  # noqa: BLE001 - annotate entrypoint for operators
         raise SlotConfigurationError(f"failed to import slot provider {entrypoint}: {exc}") from exc
@@ -278,6 +284,149 @@ def _import_provider(entrypoint: str) -> ISlot:
             f"slot provider {entrypoint} must instantiate doge.platform.slots.ISlot"
         )
     return provider
+
+
+def _load_module_from_package(module_name: str, package_dir: Path):
+    package_root = package_dir.resolve()
+    if not package_root.is_dir():
+        raise SlotConfigurationError(f"slot provider package directory is missing: {package_dir}")
+    parts = module_name.split(".")
+    if not all(parts):
+        raise SlotConfigurationError(f"slot provider module path is invalid: {module_name}")
+    if parts[0] == "doge":
+        raise SlotConfigurationError("slot provider package name cannot shadow doge platform modules")
+    _reject_host_root_collision(parts[0], package_root)
+    _purge_package_prefix(parts[0])
+
+    for index in range(1, len(parts)):
+        package_name = ".".join(parts[:index])
+        package_path = package_root.joinpath(*parts[:index])
+        init_path = package_path / "__init__.py"
+        if init_path.is_file():
+            _load_module_from_file(
+                package_name,
+                init_path,
+                package_root=package_root,
+                submodule_search_locations=[str(package_path)],
+            )
+
+    module_file = package_root.joinpath(*parts).with_suffix(".py")
+    package_init = package_root.joinpath(*parts, "__init__.py")
+    if module_file.is_file():
+        return _load_module_from_file(module_name, module_file, package_root=package_root)
+    if package_init.is_file():
+        package_path = package_init.parent
+        return _load_module_from_file(
+            module_name,
+            package_init,
+            package_root=package_root,
+            submodule_search_locations=[str(package_path)],
+        )
+    raise SlotConfigurationError(
+        f"slot provider module {module_name!r} is not inside signed package {package_dir}"
+    )
+
+
+def _purge_package_prefix(root_name: str) -> None:
+    prefix = root_name + "."
+    for module_name in sorted(
+        (
+            name
+            for name in sys.modules
+            if name == root_name or name.startswith(prefix)
+        ),
+        key=lambda name: name.count("."),
+        reverse=True,
+    ):
+        sys.modules.pop(module_name, None)
+
+
+def _reject_host_root_collision(root_name: str, package_root: Path) -> None:
+    existing = sys.modules.get(root_name)
+    if existing is not None:
+        if _module_is_from_package(existing, package_root):
+            return
+        raise SlotConfigurationError(
+            f"slot provider package root {root_name!r} collides with an already loaded host module"
+        )
+    try:
+        spec = importlib.util.find_spec(root_name)
+    except (ImportError, OSError, ValueError):
+        return
+    if spec is None:
+        return
+    if _spec_is_from_package(spec, package_root):
+        return
+    raise SlotConfigurationError(
+        f"slot provider package root {root_name!r} collides with an importable host module"
+    )
+
+
+def _module_is_from_package(module: Any, package_root: Path) -> bool:
+    candidates: list[Path] = []
+    module_file = getattr(module, "__file__", None)
+    if module_file:
+        candidates.append(Path(str(module_file)))
+    module_path = getattr(module, "__path__", None)
+    if module_path:
+        candidates.extend(Path(str(item)) for item in module_path)
+    spec = getattr(module, "__spec__", None)
+    origin = getattr(spec, "origin", None)
+    if origin and origin not in {"built-in", "frozen", "namespace"}:
+        candidates.append(Path(str(origin)))
+    return _all_paths_are_from_package(candidates, package_root)
+
+
+def _spec_is_from_package(spec: Any, package_root: Path) -> bool:
+    candidates: list[Path] = []
+    origin = getattr(spec, "origin", None)
+    if origin and origin not in {"built-in", "frozen", "namespace"}:
+        candidates.append(Path(str(origin)))
+    locations = getattr(spec, "submodule_search_locations", None)
+    if locations:
+        candidates.extend(Path(str(item)) for item in locations)
+    return _all_paths_are_from_package(candidates, package_root)
+
+
+def _all_paths_are_from_package(candidates: list[Path], package_root: Path) -> bool:
+    if not candidates:
+        return False
+    for candidate in candidates:
+        try:
+            candidate.resolve().relative_to(package_root)
+        except (OSError, ValueError):
+            return False
+    return True
+
+
+def _load_module_from_file(
+    module_name: str,
+    module_path: Path,
+    *,
+    package_root: Path,
+    submodule_search_locations: list[str] | None = None,
+):
+    resolved = module_path.resolve()
+    try:
+        resolved.relative_to(package_root)
+    except ValueError as exc:
+        raise SlotConfigurationError(f"slot provider module escapes signed package: {module_path}") from exc
+    spec = importlib.util.spec_from_file_location(
+        module_name,
+        resolved,
+        submodule_search_locations=submodule_search_locations,
+    )
+    if spec is None or spec.loader is None:
+        raise SlotConfigurationError(f"failed to build import spec for slot provider module {module_name}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    previous_dont_write_bytecode = sys.dont_write_bytecode
+    sys.dont_write_bytecode = True
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.dont_write_bytecode = previous_dont_write_bytecode
+    return module
 
 
 def _validate_provider_manifest(installed: SlotManifest, provided: SlotManifest) -> None:
@@ -331,6 +480,9 @@ def _signature_dict(signature: SlotSignatureVerification | None) -> dict[str, An
         "key_id": signature.key_id,
         "algorithm": signature.algorithm,
         "manifest_sha256": signature.manifest_sha256,
+        "package_digest": dict(signature.package_digest)
+        if signature.package_digest is not None
+        else None,
         "signature_path": str(signature.signature_path) if signature.signature_path else "",
         "reason": signature.reason,
         "revocation_checked": signature.revocation_checked,

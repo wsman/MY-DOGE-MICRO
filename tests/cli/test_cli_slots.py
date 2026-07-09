@@ -415,6 +415,8 @@ def test_install_json_payload(monkeypatch, capsys, tmp_path) -> None:
     manifest = tmp_path / "slot.json"
     manifest.write_text(json.dumps(_manifest("local.cli")), encoding="utf-8")
     install_dir = tmp_path / "installed"
+    db_dir = tmp_path / "db"
+    monkeypatch.setenv("DOGE_DB_DIR", str(db_dir))
     monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "1")
     monkeypatch.setenv("DOGE_FEATURE_SLOT_LOADER", "1")
     monkeypatch.setenv("DOGE_FEATURE_SLOT_INSTALL", "1")
@@ -424,6 +426,7 @@ def test_install_json_payload(monkeypatch, capsys, tmp_path) -> None:
     try:
         main(["slots", "install", str(manifest), "--json"])
     finally:
+        monkeypatch.delenv("DOGE_DB_DIR", raising=False)
         reset_settings()
 
     payload = json.loads(capsys.readouterr().out)
@@ -464,6 +467,45 @@ def test_sign_json_payload(monkeypatch, capsys, tmp_path) -> None:
     assert payload["slot_id"] == "local.cli_sign"
     assert payload["key_id"] == "ops-key"
     assert payload["algorithm"] == "ed25519"
+    assert payload["schema_version"] == 2
+    assert (tmp_path / "slot.signature.json").exists()
+    assert public_key
+
+
+def test_sign_package_json_payload(monkeypatch, capsys, tmp_path) -> None:
+    _strip_feature_env(monkeypatch)
+    manifest = tmp_path / "slot.json"
+    manifest.write_text(json.dumps(_manifest("local.cli_sign_package")), encoding="utf-8")
+    package_dir = tmp_path / "package"
+    package_dir.mkdir()
+    (package_dir / "provider.py").write_text("VALUE = 'signed'\n", encoding="utf-8")
+    key_path, public_key = _write_private_key(tmp_path, "ops-key")
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "1")
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_INSTALL", "1")
+    reset_settings()
+
+    try:
+        main(
+            [
+                "slots",
+                "sign",
+                str(manifest),
+                "--key",
+                str(key_path),
+                "--key-id",
+                "ops-key",
+                "--package-dir",
+                str(package_dir),
+                "--json",
+            ]
+        )
+    finally:
+        reset_settings()
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "signed"
+    assert payload["schema_version"] == 3
+    assert payload["package_digest"]["algorithm"] == "sha256_tree_v1"
     assert (tmp_path / "slot.signature.json").exists()
     assert public_key
 
@@ -476,7 +518,18 @@ def test_revoke_key_json_payload(monkeypatch, capsys, tmp_path) -> None:
     reset_settings()
 
     try:
-        main(["slots", "revoke-key", "ops-key", "--reason", "compromised", "--json"])
+        main(
+            [
+                "slots",
+                "revoke-key",
+                "ops-key",
+                "--reason",
+                "compromised",
+                "--successor-key-id",
+                "ops-key-v2",
+                "--json",
+            ]
+        )
     finally:
         reset_settings()
 
@@ -485,6 +538,7 @@ def test_revoke_key_json_payload(monkeypatch, capsys, tmp_path) -> None:
     assert payload["key_id"] == "ops-key"
     assert payload["reason"] == "compromised"
     assert payload["actor_hash"] == "local-cli"
+    assert payload["successor_key_id"] == "ops-key-v2"
     assert payload["revoked_at"]
 
 

@@ -313,7 +313,8 @@ CREATE TABLE IF NOT EXISTS slot_signer_revocations (
     key_id TEXT PRIMARY KEY,
     revoked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     reason TEXT,
-    actor_hash TEXT
+    actor_hash TEXT,
+    successor_key_id TEXT
 );
 
 CREATE TABLE IF NOT EXISTS workspaces (

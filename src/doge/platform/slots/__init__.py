@@ -83,6 +83,7 @@ from doge.platform.slots.lifecycle import (
 from doge.platform.slots.loader import ManifestOnlySlot, SlotLoader
 from doge.platform.slots.install import (
     canonical_manifest_bytes,
+    package_tree_digest,
     sign_slot_manifest,
     SlotInstaller,
     SlotInstallPolicy,
@@ -169,6 +170,7 @@ __all__ = [
     "WatcherDecision",
     "WorkflowTemplateContribution",
     "canonical_manifest_bytes",
+    "package_tree_digest",
     "current_slot_permission_context",
     "current_slot_permissions",
     "guard_database_port",

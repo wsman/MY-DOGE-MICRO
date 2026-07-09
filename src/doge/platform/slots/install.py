@@ -54,6 +54,7 @@ class SlotSignatureVerification:
     key_id: str = ""
     algorithm: str = ""
     manifest_sha256: str = ""
+    package_digest: Mapping[str, Any] | None = None
     signature_path: Path | None = None
     reason: str = ""
     revocation_checked: bool = False
@@ -86,6 +87,9 @@ class SlotInstallResult:
                 "key_id": self.signature.key_id,
                 "algorithm": self.signature.algorithm,
                 "manifest_sha256": self.signature.manifest_sha256,
+                "package_digest": dict(self.signature.package_digest)
+                if self.signature.package_digest is not None
+                else None,
                 "signature_path": str(self.signature.signature_path)
                 if self.signature.signature_path is not None
                 else "",
@@ -130,11 +134,28 @@ class SlotInstaller:
                 )
             status = "already_installed"
         else:
-            destination_dir.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(manifest_path, destination_path)
+            destination_dir.parent.mkdir(parents=True, exist_ok=True)
+            stage_dir = _stage_dir_for(destination_dir)
+            if stage_dir.exists():
+                shutil.rmtree(stage_dir)
+            try:
+                stage_dir.mkdir(parents=True)
+                shutil.copyfile(manifest_path, stage_dir / "slot.json")
+                if signature.signature_path is not None and signature.status in {"verified", "untrusted", "legacy"}:
+                    shutil.copyfile(signature.signature_path, stage_dir / "slot.signature.json")
+                if signature.package_digest is not None and signature.status in {"verified", "untrusted"}:
+                    _copy_verified_package(manifest_path.parent / "package", stage_dir / "package", signature)
+                stage_dir.replace(destination_dir)
+            except Exception:
+                if stage_dir.exists():
+                    shutil.rmtree(stage_dir, ignore_errors=True)
+                raise
 
-        if signature.signature_path is not None and signature.status in {"verified", "untrusted", "legacy"}:
-            shutil.copyfile(signature.signature_path, destination_dir / "slot.signature.json")
+        if status == "already_installed":
+            if signature.signature_path is not None and signature.status in {"verified", "untrusted", "legacy"}:
+                shutil.copyfile(signature.signature_path, destination_dir / "slot.signature.json")
+            if signature.package_digest is not None and signature.status in {"verified", "untrusted"}:
+                _copy_verified_package(manifest_path.parent / "package", destination_dir / "package", signature)
 
         return SlotInstallResult(
             slot_id=manifest.id,
@@ -178,11 +199,11 @@ def verify_slot_signature(
             path=path,
             trusted_signers=trusted_signers,
         )
-    if schema_version != 2:
+    if schema_version not in {2, 3}:
         return SlotSignatureVerification(
             "invalid",
             signature_path=path,
-            reason="schema_version must be 1 or 2",
+            reason="schema_version must be 1, 2, or 3",
         )
 
     key_id = raw.get("key_id")
@@ -236,6 +257,55 @@ def verify_slot_signature(
             signature_path=path,
             reason="manifest hash mismatch",
         )
+    package_digest: Mapping[str, Any] | None = None
+    signature_payload = canonical_bytes
+    if schema_version == 3:
+        declared_digest = raw.get("package_digest")
+        if not isinstance(declared_digest, dict):
+            return SlotSignatureVerification(
+                "invalid",
+                key_id=key_id,
+                algorithm=algorithm,
+                manifest_sha256=expected_sha256,
+                signature_path=path,
+                reason="package_digest is required for schema_version 3",
+            )
+        try:
+            package_digest = package_tree_digest(Path(manifest_path).parent / "package")
+        except (OSError, ValueError, SlotConfigurationError) as exc:
+            return SlotSignatureVerification(
+                "invalid",
+                key_id=key_id,
+                algorithm=algorithm,
+                manifest_sha256=expected_sha256,
+                signature_path=path,
+                reason=f"package digest failed: {exc}",
+            )
+        try:
+            declared_digest_bytes = _canonical_package_digest(declared_digest)
+            computed_digest_bytes = _canonical_package_digest(package_digest)
+        except SlotConfigurationError as exc:
+            return SlotSignatureVerification(
+                "invalid",
+                key_id=key_id,
+                algorithm=algorithm,
+                manifest_sha256=expected_sha256,
+                package_digest=dict(declared_digest),
+                signature_path=path,
+                reason=str(exc),
+            )
+        if declared_digest_bytes != computed_digest_bytes:
+            return SlotSignatureVerification(
+                "invalid",
+                key_id=key_id,
+                algorithm=algorithm,
+                manifest_sha256=expected_sha256,
+                package_digest=dict(declared_digest),
+                signature_path=path,
+                reason="package digest mismatch",
+            )
+        signature_payload = canonical_bytes + computed_digest_bytes
+
     keys = trusted_publisher_keys or {}
     encoded_public_key = keys.get(key_id)
     if not encoded_public_key:
@@ -245,6 +315,7 @@ def verify_slot_signature(
             signer=key_id,
             algorithm=algorithm,
             manifest_sha256=expected_sha256,
+            package_digest=package_digest,
             signature_path=path,
             reason="key_id is not trusted",
         )
@@ -256,13 +327,14 @@ def verify_slot_signature(
             signer=key_id,
             algorithm=algorithm,
             manifest_sha256=expected_sha256,
+            package_digest=package_digest,
             signature_path=path,
             reason="key_id is revoked",
             revocation_checked=True,
         )
     try:
         public_key = Ed25519PublicKey.from_public_bytes(_b64decode(encoded_public_key))
-        public_key.verify(_b64decode(signature), canonical_bytes)
+        public_key.verify(_b64decode(signature), signature_payload)
     except (ValueError, binascii.Error, InvalidSignature) as exc:
         return SlotSignatureVerification(
             "invalid",
@@ -270,6 +342,7 @@ def verify_slot_signature(
             signer=key_id,
             algorithm=algorithm,
             manifest_sha256=expected_sha256,
+            package_digest=package_digest,
             signature_path=path,
             reason=f"signature verification failed: {exc}",
             revocation_checked=revocation_checked,
@@ -280,6 +353,7 @@ def verify_slot_signature(
         signer=key_id,
         algorithm=algorithm,
         manifest_sha256=expected_sha256,
+        package_digest=package_digest,
         signature_path=path,
         revocation_checked=revocation_checked,
     )
@@ -290,9 +364,10 @@ def sign_slot_manifest(
     *,
     private_key_path: str | Path,
     key_id: str,
+    package_dir: str | Path | None = None,
     password: bytes | None = None,
 ) -> dict[str, Any]:
-    """Write a v2 Ed25519 slot signature sidecar for ``manifest_path``."""
+    """Write an Ed25519 slot signature sidecar for ``manifest_path``."""
 
     key_id = key_id.strip()
     if not key_id:
@@ -305,15 +380,30 @@ def sign_slot_manifest(
     if not isinstance(key, Ed25519PrivateKey):
         raise SlotConfigurationError("slot signing key must be an Ed25519 private key")
     canonical_bytes = _canonical_manifest_bytes_from_obj(manifest)
-    signature = key.sign(canonical_bytes)
+    package_digest = None
+    signature_payload = canonical_bytes
+    schema_version = 2
+    if package_dir is not None:
+        expected_package_dir = Path(manifest_path).parent / "package"
+        package_path = Path(package_dir)
+        if package_path.resolve() != expected_package_dir.resolve():
+            raise SlotConfigurationError(
+                "package_dir must be the package directory beside the slot manifest"
+            )
+        package_digest = package_tree_digest(package_path)
+        signature_payload = canonical_bytes + _canonical_package_digest(package_digest)
+        schema_version = 3
+    signature = key.sign(signature_payload)
     payload = {
-        "schema_version": 2,
+        "schema_version": schema_version,
         "slot_id": slot_id,
         "key_id": key_id,
         "algorithm": "ed25519",
         "signature": base64.b64encode(signature).decode("ascii"),
         "manifest_sha256": hashlib.sha256(canonical_bytes).hexdigest(),
     }
+    if package_digest is not None:
+        payload["package_digest"] = package_digest
     signature_path = _signature_path_for(Path(manifest_path))
     signature_path.write_text(
         json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
@@ -326,6 +416,8 @@ def sign_slot_manifest(
         "algorithm": "ed25519",
         "signature_path": str(signature_path),
         "manifest_sha256": payload["manifest_sha256"],
+        "schema_version": schema_version,
+        "package_digest": package_digest,
     }
 
 
@@ -383,6 +475,10 @@ def _manifest_path_from_source(source: str | Path) -> Path:
     return manifest_path
 
 
+def _stage_dir_for(destination_dir: Path) -> Path:
+    return destination_dir.with_name(f".{destination_dir.name}.stage")
+
+
 def _signature_path_for(manifest_path: Path) -> Path:
     if manifest_path.name == "slot.json":
         return manifest_path.with_name("slot.signature.json")
@@ -438,6 +534,50 @@ def canonical_manifest_bytes(path: str | Path) -> bytes:
     return _canonical_manifest_bytes_from_obj(_manifest_json(Path(path)))
 
 
+def package_tree_digest(package_dir: str | Path) -> dict[str, Any]:
+    """Return the deterministic SHA-256 tree digest for a provider package dir."""
+
+    root = Path(package_dir)
+    if not root.exists():
+        raise SlotConfigurationError(f"slot provider package directory does not exist: {root}")
+    if not root.is_dir():
+        raise SlotConfigurationError(f"slot provider package path is not a directory: {root}")
+    root_resolved = root.resolve()
+    entries: list[dict[str, str]] = []
+    for path in sorted(root.rglob("*"), key=lambda item: item.as_posix()):
+        if path.is_symlink():
+            raise SlotConfigurationError(f"slot provider package cannot contain symlink: {path}")
+        if path.is_dir():
+            continue
+        if not path.is_file():
+            raise SlotConfigurationError(f"slot provider package contains non-file path: {path}")
+        resolved = path.resolve()
+        try:
+            relative = resolved.relative_to(root_resolved)
+        except ValueError as exc:
+            raise SlotConfigurationError(f"slot provider package path escapes package dir: {path}") from exc
+        entries.append(
+            {
+                "path": relative.as_posix(),
+                "sha256": _raw_sha256_file(path),
+            }
+        )
+    if not entries:
+        raise SlotConfigurationError("slot provider package directory is empty")
+    digest_payload = json.dumps(
+        entries,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return {
+        "algorithm": "sha256_tree_v1",
+        "layout": "directory",
+        "file_count": len(entries),
+        "value": hashlib.sha256(digest_payload).hexdigest(),
+    }
+
+
 def _manifest_json(path: Path) -> dict[str, Any]:
     raw = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
@@ -459,7 +599,55 @@ def _manifest_sha256(path: Path) -> str:
 
 
 def _raw_sha256_file(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        while chunk := handle.read(1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _canonical_package_digest(package_digest: Mapping[str, Any]) -> bytes:
+    try:
+        normalized = {
+            "algorithm": package_digest["algorithm"],
+            "file_count": package_digest["file_count"],
+            "layout": package_digest["layout"],
+            "value": package_digest["value"],
+        }
+    except KeyError as exc:
+        raise SlotConfigurationError(f"package_digest missing {exc.args[0]}") from exc
+    if normalized["algorithm"] != "sha256_tree_v1":
+        raise SlotConfigurationError("package_digest.algorithm must be sha256_tree_v1")
+    if normalized["layout"] != "directory":
+        raise SlotConfigurationError("package_digest.layout must be directory")
+    if not isinstance(normalized["file_count"], int) or normalized["file_count"] <= 0:
+        raise SlotConfigurationError("package_digest.file_count must be a positive integer")
+    if not isinstance(normalized["value"], str) or len(normalized["value"]) != 64:
+        raise SlotConfigurationError("package_digest.value must be a sha256 hex digest")
+    return json.dumps(
+        normalized,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+
+
+def _copy_verified_package(
+    source_package_dir: Path,
+    destination_package_dir: Path,
+    signature: SlotSignatureVerification,
+) -> None:
+    if signature.package_digest is None:
+        return
+    source_digest = package_tree_digest(source_package_dir)
+    if _canonical_package_digest(source_digest) != _canonical_package_digest(signature.package_digest):
+        raise SlotConfigurationError("slot provider package digest changed before install copy")
+    if destination_package_dir.exists():
+        destination_digest = package_tree_digest(destination_package_dir)
+        if _canonical_package_digest(destination_digest) != _canonical_package_digest(signature.package_digest):
+            raise SlotConfigurationError("installed slot provider package already exists with different content")
+        return
+    shutil.copytree(source_package_dir, destination_package_dir)
 
 
 def _b64decode(value: str) -> bytes:

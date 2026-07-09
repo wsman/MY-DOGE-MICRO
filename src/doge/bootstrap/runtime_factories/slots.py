@@ -312,6 +312,7 @@ def sign_slot(
     *,
     private_key_path: str,
     key_id: str,
+    package_dir: str | None = None,
     settings: Any | None = None,
 ) -> dict[str, Any]:
     """Sign a slot manifest with an Ed25519 private key."""
@@ -325,6 +326,7 @@ def sign_slot(
         manifest,
         private_key_path=private_key_path,
         key_id=key_id,
+        package_dir=package_dir,
     )
 
 
@@ -333,6 +335,7 @@ def revoke_slot_signing_key(
     *,
     reason: str | None = None,
     actor_hash: str = "local-cli",
+    successor_key_id: str | None = None,
     settings: Any | None = None,
     signing_repo: Any | None = None,
 ) -> dict[str, Any]:
@@ -347,6 +350,7 @@ def revoke_slot_signing_key(
         key_id,
         reason=reason,
         actor_hash=actor_hash,
+        successor_key_id=successor_key_id,
     )
     return {
         "status": "revoked",
@@ -354,6 +358,7 @@ def revoke_slot_signing_key(
         "revoked_at": record.revoked_at,
         "reason": record.reason,
         "actor_hash": record.actor_hash,
+        "successor_key_id": record.successor_key_id,
     }
 
 

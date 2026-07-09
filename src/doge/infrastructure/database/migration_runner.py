@@ -496,7 +496,10 @@ def _migrate_slot_signer_revocations(conn: sqlite3.Connection) -> None:
             key_id TEXT PRIMARY KEY,
             revoked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             reason TEXT,
-            actor_hash TEXT
+            actor_hash TEXT,
+            successor_key_id TEXT
         )
         """
     )
+    if "successor_key_id" not in _columns(conn, "slot_signer_revocations"):
+        conn.execute("ALTER TABLE slot_signer_revocations ADD COLUMN successor_key_id TEXT")
