@@ -38,8 +38,8 @@ Higher-risk surfaces remain default-off and require explicit operator opt-in:
 `DOGE_FEATURE_PYTHON_ANALYSIS_ENABLED`, `DOGE_FEATURE_PLATFORM_OBJECTS`,
 `DOGE_FEATURE_RUN_SUMMARY_API`, and `DOGE_FEATURE_RUNTIME_OUTBOX_PUBLISHER`.
 
-The latest Slot Platform remote-CI milestone is P6 (`a1da266`), recorded in
-`production/qa/evidence/ci/remote-ci-a1da266.json`. The Slot Platform does not
+The latest Slot Platform remote-CI milestone is P6.1 (`030ff9b`), recorded in
+`production/qa/evidence/ci/remote-ci-030ff9b.json`. The Slot Platform does not
 close any external/operator gates and remains experimental.
 
 ## Not A Release Claim

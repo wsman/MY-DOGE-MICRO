@@ -3,29 +3,61 @@ stable_declaration: forbidden
 non_runtime_followup_plan: docs/progress/runtime-stability-followup-plan.md
 
 latest_remotely_verified_sha:
-  head_sha: "a1da266a134ab6e6d2711fab6430c26616210191"
-  evidence: production/qa/evidence/ci/remote-ci-a1da266.json
+  head_sha: "030ff9b83c3719eb385fb0bb286e0ca76ce45214"
+  evidence: production/qa/evidence/ci/remote-ci-030ff9b.json
   remote_ci_result: passed
-  remote_ci_run_id: 28936342646
-  local_remediation_status: p6_slot_platform_remote_verified_external_gates_open
+  remote_ci_run_id: 28993837317
+  local_remediation_status: p6_1_slot_platform_remote_verified_external_gates_open
   notes:
-    - "Exact-SHA remote CI for the latest remotely verified SHA a1da266 passed: GitHub Actions run 28936342646 completed with conclusion=success on a push event for the CI workflow; evidence is stored at production/qa/evidence/ci/remote-ci-a1da266.json and validated by scripts/validate_alpha_remote_ci_success.py."
-    - "GitHub API evidence was queried through the historical wsman/MY-DOGE-MICRO path and returned the transferred canonical run URL https://github.com/Negentropy-Laby/OpenDoge/actions/runs/28936342646; scripts/verify_remote_ci_evidence.py accepts only this project-specific canonical alias."
+    - "Exact-SHA remote CI for the latest remotely verified SHA 030ff9b passed: GitHub Actions run 28993837317 completed with conclusion=success on a push event for the CI workflow; evidence is stored at production/qa/evidence/ci/remote-ci-030ff9b.json and validated by scripts/validate_alpha_remote_ci_success.py."
+    - "GitHub returned the run under the transferred canonical repository URL https://github.com/Negentropy-Laby/OpenDoge/actions/runs/28993837317 while the historical origin path remains wsman/MY-DOGE-MICRO; scripts/verify_remote_ci_evidence.py accepts only this project-specific canonical alias."
+    - "Prior verified pushed HEAD a1da266a134ab6e6d2711fab6430c26616210191 (run 28936342646) is retained as P6 Slot Platform P0-P5 remote-CI history."
     - "Prior verified pushed HEAD ee4c3283bb69ae21671ffd2d9fef908e4819ce16 (run 28448012096) is retained as Sprint G closure history."
     - "Prior verified pushed HEAD fd1768fa690a9a0c3a8d7905a7b72f0af54f6b04 (run 28326916286) is retained as Sprint B citation/evidence closure history."
     - "Prior pushed HEAD 9f304a82ae603f0d15210d7cbfc4e502a61fea43 had exact-SHA CI run 28423757545 with conclusion=failure; Sprint G repaired the governance SHA-alignment blocker before promoting ee4c328."
 
 current_pushed_head_local_evidence:
-  head_sha: "a1da266a134ab6e6d2711fab6430c26616210191"
-  evidence: production/qa/evidence/slot-remote-ci-a1da266-local-acceptance-2026-07-08.md
-  remote_ci_evidence: production/qa/evidence/ci/remote-ci-a1da266.json
-  local_architecture_status: p6_slot_platform_remote_verified_external_gates_open
+  head_sha: "030ff9b83c3719eb385fb0bb286e0ca76ce45214"
+  evidence: production/qa/evidence/slot-platform-remote-ci-030ff9b-local-acceptance-2026-07-09.md
+  remote_ci_evidence: production/qa/evidence/ci/remote-ci-030ff9b.json
+  local_architecture_status: p6_1_slot_platform_remote_verified_external_gates_open
   remote_ci_result: passed
-  remote_ci_run_id: 28936342646
+  remote_ci_run_id: 28993837317
   notes:
-    - "P6 target SHA a1da266a134ab6e6d2711fab6430c26616210191 is on origin/main and has exact-SHA GitHub Actions CI run 28936342646 with conclusion=success."
-    - "P0-P5 Slot Platform local evidence remains unchanged; P6 promotes only latest_remotely_verified_sha and current pushed-head evidence."
+    - "P6.1 target SHA 030ff9b83c3719eb385fb0bb286e0ca76ce45214 is on origin/main and has exact-SHA GitHub Actions CI run 28993837317 with conclusion=success."
+    - "P7 Provider Package Identity, P8 Code-String Isolation Prototype, P9 Slot Install Surfaces, OpenDoge naming cleanup, historical P9 supersession notes, and the presentation-reference cleanup are now covered by exact-SHA remote CI through 030ff9b."
+    - "Per P6 mode, this ledger/evidence update is a follow-up local commit and does not claim self-verification unless it is separately pushed and verified."
     - "External/operator gates remain open and are not closed by this remote CI result."
+
+slot_platform_remote_ci_p6_1_2026_07_09:
+  status: remote_ci_verified_external_gates_open
+  scope:
+    - "P6.1 records exact-SHA remote CI evidence for pushed head 030ff9b83c3719eb385fb0bb286e0ca76ce45214."
+    - "This remote-CI target covers the previously pushed P7/P8/P9 Slot Platform work plus OpenDoge presentation-reference cleanup."
+    - "latest_remotely_verified_sha is promoted from a1da266a134ab6e6d2711fab6430c26616210191 to 030ff9b83c3719eb385fb0bb286e0ca76ce45214."
+    - "No Slot Platform runtime behavior, provider execution behavior, sandboxing, marketplace, external gate, or maturity label is promoted by P6.1."
+  evidence:
+    - production/qa/evidence/ci/remote-ci-030ff9b.json
+    - production/qa/evidence/slot-platform-remote-ci-030ff9b-local-acceptance-2026-07-09.md
+    - scripts/verify_remote_ci_evidence.py
+    - scripts/validate_alpha_remote_ci_success.py
+    - tests/unit/governance/test_docs_sha_alignment.py
+  focused_tests:
+    - "py -3 scripts/validate_alpha_remote_ci_success.py production/qa/evidence/ci/remote-ci-030ff9b.json --expected-head 030ff9b83c3719eb385fb0bb286e0ca76ce45214 --require-canonical-path"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+  notes:
+    - "Remote CI run 28993837317 completed successfully for workflow CI, event push, exact head SHA 030ff9b83c3719eb385fb0bb286e0ca76ce45214."
+    - "The GitHub run URL is https://github.com/Negentropy-Laby/OpenDoge/actions/runs/28993837317 because GitHub returns the transferred canonical repository path for the historical wsman/MY-DOGE-MICRO push/query path."
+    - "The local environment hit unauthenticated GitHub API rate limiting while polling; the run and all nine jobs were confirmed through the GitHub connector/public run page, then the canonical evidence JSON passed scripts/validate_alpha_remote_ci_success.py."
+    - "P6.1 closes no external/operator gate: S017-003, W3-live, AUTH-prod, and S017-007 remain open."
 
 slot_install_surfaces_p9_2026_07_09:
   status: local_acceptance_passed_external_gates_open
@@ -64,7 +96,7 @@ slot_install_surfaces_p9_2026_07_09:
   notes:
     - "P9 releases only the prior no-HTTP-install and no-SDK-install deferrals; it does not promote slot_install, slot_provider_execution, slot_code_string_isolation, or Web install UI to default-on."
     - "Provider execution remains governed by ADR-0064/0065 and still requires separate default-off gates, verified v3 package-aware signatures, revocation check, runtime interception, enterprise allowlist when applicable, and SlotKernel admission."
-    - "P9 local work has not been pushed and has no exact-SHA remote CI evidence; latest_remotely_verified_sha remains a1da266a134ab6e6d2711fab6430c26616210191."
+    - "P9 is covered by P6.1 exact-SHA remote CI evidence for pushed head 030ff9b83c3719eb385fb0bb286e0ca76ce45214; the P6.1 ledger/evidence follow-up commit is not self-verified unless separately pushed and verified."
 
 slot_platform_remote_ci_p6_2026_07_08:
   status: remote_ci_verified_external_gates_open
@@ -130,7 +162,7 @@ slot_provider_package_identity_p7_2026_07_08:
     level_3_sdk_platform: experimental
   notes:
     - "P7 closes the local package identity gap that remained after ADR-0064: a signed manifest alone is no longer sufficient for provider execution."
-    - "Local acceptance passed, but this local work has not been pushed and has no exact-SHA remote CI evidence; latest_remotely_verified_sha remains a1da266a134ab6e6d2711fab6430c26616210191."
+    - "P7 is covered by P6.1 exact-SHA remote CI evidence for pushed head 030ff9b83c3719eb385fb0bb286e0ca76ce45214; the P6.1 ledger/evidence follow-up commit is not self-verified unless separately pushed and verified."
     - "P7 is still in-process execution and does not provide malicious-code containment, filesystem mediation, raw network denial, OS/container/WASM sandboxing, transitive dependency signing, marketplace behavior, HTTP install APIs, SDK install APIs, remote CI promotion, or external/operator gate closure."
     - "Sigstore/cosign, validity windows, grace periods, and full key lifecycle policy remain deferred."
 
@@ -172,7 +204,7 @@ slot_code_string_isolation_p8_2026_07_08:
     - "P8 improves only the code-string subprocess path and must not be cited as full provider contribution-object isolation."
     - "P8 does not provide filesystem mediation, raw network denial, malicious-code containment, transitive dependency signing, marketplace behavior, HTTP install APIs, SDK install APIs, remote CI promotion, external/operator gate closure, or maturity promotion."
     - "P7/ADR-0065 provides package identity for installed provider code; P8 does not turn package identity into runtime containment."
-    - "P8 local work has not been pushed and has no exact-SHA remote CI evidence; latest_remotely_verified_sha remains a1da266a134ab6e6d2711fab6430c26616210191."
+    - "P8 is covered by P6.1 exact-SHA remote CI evidence for pushed head 030ff9b83c3719eb385fb0bb286e0ca76ce45214; the P6.1 ledger/evidence follow-up commit is not self-verified unless separately pushed and verified."
 
 maturity_labels:
   level_1_embedded_cli_session: alpha
