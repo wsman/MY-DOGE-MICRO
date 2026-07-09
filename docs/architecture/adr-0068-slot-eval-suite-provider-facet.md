@@ -44,7 +44,7 @@ production maturity.
 | **Depends On** | ADR-0043 (Slot Contribution Facets), ADR-0051 (Eval Slot Consumer), ADR-0064 (Slot Provider Execution), ADR-0065 (Provider Package Identity), ADR-0066 (Code-String Isolation Prototype), ADR-0067 (Install Surfaces) |
 | **Extends** | ADR-0064 by moving only `eval_suites` from restricted provider facets into the installed-provider allowlist |
 | **Supersedes** | ADR-0064's "eval suites are not executable from installed third-party providers" statement, only for the default-off local alpha provider path |
-| **Enables** | Later restricted facet expansion for UI panels, watchers, governance policies, and routes |
+| **Enables** | ADR-0069 UI panel provider facet, then later watcher, governance policy, and route facet decisions |
 | **Blocks** | Any claim that P10 opens routes/UI/watchers/governance provider facets, enables marketplace install, provides provider sandboxing, closes external gates, or changes production maturity |
 
 ## Context

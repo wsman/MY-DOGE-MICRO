@@ -43,9 +43,9 @@ The latest Slot Platform remote-CI milestone is P6.1 (`030ff9b`), recorded in
 close any external/operator gates and remains experimental.
 
 Local follow-up after that remote-CI target: P10 opens only the installed,
-package-signed, operator-gated `eval_suites` provider facet. Routes, UI panels,
-watchers, and governance policies remain restricted; P10 is not yet a remotely
-verified pushed SHA in this ledger.
+package-signed, operator-gated `eval_suites` and static `ui_panels` provider
+facets. Routes, watchers, and governance policies remain restricted; P10 is not
+yet a remotely verified pushed SHA in this ledger.
 
 ## Not A Release Claim
 

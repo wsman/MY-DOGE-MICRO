@@ -34,7 +34,8 @@ Provider execution is limited to these contribution facets:
 
 Gateway routes, UI panels, watchers, eval suites, and governance policies were
 not executable from installed third-party providers in P5. ADR-0068 later
-releases only `eval_suites`; the other restricted facets remain blocked.
+releases `eval_suites`; ADR-0069 later releases static `ui_panels` metadata.
+The other restricted facets remain blocked.
 
 This ADR does not add OS/container/WASM sandboxing, filesystem mediation,
 provider package signing, malicious-code containment, marketplace behavior,
@@ -61,6 +62,11 @@ revocation check, enterprise allowlist when applicable, and SlotKernel admission
 Status Update - 2026-07-09: ADR-0068 releases only the `eval_suites` restricted
 facet for installed, v3 package-signed, operator-gated providers. Gateway
 routes, UI panels, watchers, and governance policies remain restricted.
+
+Status Update - 2026-07-09: ADR-0069 releases only the `ui_panels` restricted
+facet for installed, v3 package-signed, operator-gated providers, as static
+metadata consumed by the existing UI registry. Gateway routes, watchers, and
+governance policies remain restricted.
 
 ## Technology Compatibility
 

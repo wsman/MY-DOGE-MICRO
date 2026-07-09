@@ -91,6 +91,38 @@ slot_eval_suite_provider_facet_p10_2026_07_09:
     - "Routes remain restricted and are still last in the P10 facet order because FastAPI route injection is the broadest in-process attack surface."
     - "No marketplace, YAML manifest parser, URL/upload install, filesystem mediation, malicious-code containment, external gate closure, or maturity promotion is included."
 
+slot_ui_panel_provider_facet_p10_2026_07_09:
+  status: local_acceptance_passed_external_gates_open
+  label: "Slot UI Panel Provider Facet"
+  scope:
+    - "P10 opens only static ui_panels metadata for installed, v3 package-signed, operator-gated providers."
+    - "Provider execution still requires slot_platform, slot_loader, slot_install, slot_runtime_interception, slot_provider_execution, verified package-aware v3 signatures, revocation checks, SlotKernel admission, DOGE_FEATURE_SLOT_UI for UI resolution, and enterprise allowlist when applicable."
+    - "Gateway routes, watchers, and governance policies remain restricted provider facets."
+    - "P10 UI does not add dynamic frontend component loading; web/src/views/panelRegistry.ts remains the static render allowlist."
+    - "P10 UI is local-only in this ledger; latest_remotely_verified_sha remains 030ff9b until a later pushed SHA gets its own exact-SHA remote CI evidence."
+  evidence:
+    - docs/architecture/adr-0069-slot-ui-panel-provider-facet.md
+    - design/cdd/p10-ui-panel-provider-facet.md
+    - production/qa/evidence/slot-ui-panel-provider-facet-local-acceptance-2026-07-09.md
+    - src/doge/bootstrap/runtime_factories/provider_slot.py
+    - tests/unit/platform/slots/test_slot_provider_execution.py
+  focused_tests:
+    - "py -3 -m pytest tests\\unit\\platform\\slots\\test_slot_provider_execution.py tests\\contract\\test_slot_ui_registry.py tests\\unit\\platform\\workspace\\test_ui_panel_registry.py -q => 27 passed"
+    - "py -3 -m pytest tests\\unit\\platform\\slots\\test_slot_provider_execution.py tests\\contract\\test_slot_ui_registry.py tests\\unit\\platform\\workspace\\test_ui_panel_registry.py tests\\contract\\test_slot_api.py tests\\cli\\test_cli_slots.py -q => 75 passed, 2 warnings"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+  notes:
+    - "ADR-0069 supersedes only ADR-0064's ui_panels restricted-facet statement for static metadata on the default-off local provider path."
+    - "Routes remain restricted and are still last in the P10 facet order because FastAPI route injection is the broadest in-process attack surface."
+    - "No marketplace, YAML manifest parser, URL/upload install, frontend code loading, filesystem mediation, malicious-code containment, external gate closure, or maturity promotion is included."
+
 slot_install_surfaces_p9_2026_07_09:
   status: local_acceptance_passed_external_gates_open
   label: "Slot Install Surfaces and Operator Controls"
