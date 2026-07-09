@@ -32,6 +32,7 @@ _EXECUTABLE_TYPES = frozenset(
         SlotType.WORKFLOW,
         SlotType.DATA,
         SlotType.DOCUMENT,
+        SlotType.EVAL,
     }
 )
 
@@ -41,13 +42,13 @@ _TYPE_FACETS = {
     SlotType.WORKFLOW: ("workflows",),
     SlotType.DATA: ("data_sources",),
     SlotType.DOCUMENT: ("document_parsers",),
+    SlotType.EVAL: ("eval_suites",),
 }
 
 _RESTRICTED_FACETS = (
     "routes",
     "ui_panels",
     "watchers",
-    "eval_suites",
     "governance_policies",
 )
 

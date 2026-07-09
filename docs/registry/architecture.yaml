@@ -535,10 +535,10 @@ api_decisions:
 
   - purpose: slot_provider_execution_gate
     status: active
-    api: "installed local slot provider entrypoint execution through bootstrap InstalledProviderSlot when P5 gates and ADR-0065 package-aware v3 signature gates pass"
-    not: "SlotLoader provider imports, non-installed manifest-dir execution, restricted gateway/UI/watcher/eval/governance facets, OS sandboxing, malicious-code containment, transitive dependency signing, marketplace install, or production plugin runtime"
-    adr: docs/architecture/adr-0065-provider-package-identity.md
-    reason: "Provider execution needs bootstrap-owned settings, trusted publisher keys, revocation repository, runtime interception, package-aware v3 signature verification, path-confined installed-package import, and admission checks; the pure slot contract package remains manifest-only."
+    api: "installed local slot provider entrypoint execution through bootstrap InstalledProviderSlot when P5 gates and ADR-0065 package-aware v3 signature gates pass; ADR-0068 additionally allows eval_suites"
+    not: "SlotLoader provider imports, non-installed manifest-dir execution, restricted gateway/UI/watcher/governance facets, OS sandboxing, malicious-code containment, transitive dependency signing, marketplace install, or production plugin runtime"
+    adr: docs/architecture/adr-0068-slot-eval-suite-provider-facet.md
+    reason: "Provider execution needs bootstrap-owned settings, trusted publisher keys, revocation repository, runtime interception, package-aware v3 signature verification, path-confined installed-package import, and admission checks; ADR-0068 moves only eval_suites out of the restricted facet list."
     added: "2026-07-08"
 
   - purpose: tool_slot_domain_ownership
@@ -603,6 +603,14 @@ api_decisions:
     not: "URL install, upload install, YAML manifests, marketplace/catalog behavior, client-side provider import, default-on provider execution, OS/container/WASM sandboxing, or production plugin runtime"
     adr: docs/architecture/adr-0067-slot-install-surfaces.md
     reason: "P9 releases the no-HTTP/no-SDK install deferrals while preserving server-side local install policy, enterprise slot ACL, allowlist/signature gates, audit, rollback-safe staging, and default-off posture."
+    added: "2026-07-09"
+
+  - purpose: slot_eval_suite_provider_facet
+    status: active
+    api: "Installed, package-signed, operator-gated eval providers may contribute eval_suites through SlotKernel and EvalSuiteRegistry"
+    not: "Gateway route, UI panel, watcher, or governance policy provider facets; marketplace install; YAML manifests; URL/upload install; provider sandboxing; production plugin runtime"
+    adr: docs/architecture/adr-0068-slot-eval-suite-provider-facet.md
+    reason: "P10 opens the lowest-risk restricted facet first because eval suite contributions are declarative records consumed by the existing offline eval registry."
     added: "2026-07-09"
 
 # ============================================================================
@@ -1184,3 +1192,11 @@ adr_index:
     path: docs/architecture/adr-0067-slot-install-surfaces.md
     governs: "default-off HTTP, Python SDK, TypeScript SDK, and Web Slot Center install surfaces with enterprise slot ACL, audit, rollback staging, and explicit installed-slot bundle policy"
     depends_on: [ADR-0015, ADR-0054, ADR-0057, ADR-0060, ADR-0061, ADR-0062, ADR-0065]
+
+  - id: ADR-0068
+    title: "Slot Eval Suite Provider Facet"
+    status: Accepted
+    date: "2026-07-09"
+    path: docs/architecture/adr-0068-slot-eval-suite-provider-facet.md
+    governs: "installed package-signed provider eval_suites facet expansion while routes, UI panels, watchers, and governance policies remain restricted"
+    depends_on: [ADR-0043, ADR-0051, ADR-0064, ADR-0065, ADR-0066, ADR-0067]

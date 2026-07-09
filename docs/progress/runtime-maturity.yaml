@@ -59,6 +59,38 @@ slot_platform_remote_ci_p6_1_2026_07_09:
     - "The local environment hit unauthenticated GitHub API rate limiting while polling; the run and all nine jobs were confirmed through the GitHub connector/public run page, then the canonical evidence JSON passed scripts/validate_alpha_remote_ci_success.py."
     - "P6.1 closes no external/operator gate: S017-003, W3-live, AUTH-prod, and S017-007 remain open."
 
+slot_eval_suite_provider_facet_p10_2026_07_09:
+  status: local_acceptance_passed_external_gates_open
+  label: "Slot Eval Suite Provider Facet"
+  scope:
+    - "P10 opens only the eval_suites provider facet for installed, v3 package-signed, operator-gated providers."
+    - "Provider execution still requires slot_platform, slot_loader, slot_install, slot_runtime_interception, slot_provider_execution, verified package-aware v3 signatures, revocation checks, SlotKernel admission, and enterprise allowlist when applicable."
+    - "Gateway routes, UI panels, watchers, and governance policies remain restricted provider facets."
+    - "P10 does not change P8's provider-contribution residual: provider contribution objects remain in-process and are not OS/container/WASM isolated."
+    - "P10 is local-only in this ledger; latest_remotely_verified_sha remains 030ff9b until a later pushed SHA gets its own exact-SHA remote CI evidence."
+  evidence:
+    - docs/architecture/adr-0068-slot-eval-suite-provider-facet.md
+    - design/cdd/p10-eval-suite-provider-facet.md
+    - production/qa/evidence/slot-eval-suite-provider-facet-local-acceptance-2026-07-09.md
+    - src/doge/bootstrap/runtime_factories/provider_slot.py
+    - tests/unit/platform/slots/test_slot_provider_execution.py
+  focused_tests:
+    - "py -3 -m pytest tests\\unit\\platform\\slots\\test_slot_provider_execution.py tests\\unit\\platform\\slots\\test_builtin_eval_slot.py tests\\unit\\eval\\test_eval_suite_registry.py -q => 25 passed"
+    - "py -3 -m pytest tests\\unit\\platform\\slots\\test_slot_provider_execution.py tests\\unit\\platform\\slots\\test_builtin_eval_slot.py tests\\unit\\eval\\test_eval_suite_registry.py tests\\contract\\test_slot_api.py tests\\cli\\test_cli_slots.py -q => 73 passed, 2 warnings"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+  notes:
+    - "ADR-0068 supersedes only ADR-0064's eval_suites restricted-facet statement for the default-off local provider path."
+    - "Routes remain restricted and are still last in the P10 facet order because FastAPI route injection is the broadest in-process attack surface."
+    - "No marketplace, YAML manifest parser, URL/upload install, filesystem mediation, malicious-code containment, external gate closure, or maturity promotion is included."
+
 slot_install_surfaces_p9_2026_07_09:
   status: local_acceptance_passed_external_gates_open
   label: "Slot Install Surfaces and Operator Controls"

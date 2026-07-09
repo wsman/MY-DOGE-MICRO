@@ -43,12 +43,13 @@ files in supporting roles.
 ## Slot Platform
 
 The Slot Platform is an experimental extension mechanism (ADR-0042 through
-ADR-0067). It is governed by feature flags, with controlled built-in facets
+ADR-0068). It is governed by feature flags, with controlled built-in facets
 defaulting on and higher-risk install/execution/isolation surfaces defaulting
 off. See [ADR-0042](adr-0042-slot-platform.md),
 [ADR-0064](adr-0064-slot-provider-execution.md),
 [ADR-0066](adr-0066-code-string-isolation-prototype.md),
-[ADR-0067](adr-0067-slot-install-surfaces.md), and operational flag details in
+[ADR-0067](adr-0067-slot-install-surfaces.md),
+[ADR-0068](adr-0068-slot-eval-suite-provider-facet.md), and operational flag details in
 [../reference/configuration.md](../reference/configuration.md).
 
 ## ADRs

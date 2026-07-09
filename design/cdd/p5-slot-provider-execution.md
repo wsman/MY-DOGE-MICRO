@@ -79,6 +79,10 @@ Restricted installed-provider facets:
 - `eval_suites`
 - `governance_policies`
 
+Status update - 2026-07-09: ADR-0068/P10 moves only `eval_suites` out of this
+restricted list for installed, v3 package-signed, operator-gated providers.
+`routes`, `ui_panels`, `watchers`, and `governance_policies` remain restricted.
+
 ## 6. Configuration
 
 ```text

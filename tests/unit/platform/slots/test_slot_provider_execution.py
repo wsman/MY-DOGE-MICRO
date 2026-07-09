@@ -15,6 +15,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from doge.bootstrap.runtime_factories.slots import (
     build_builtin_slot_kernel,
+    build_slot_aware_eval_suites,
     build_slot_status_rows,
 )
 from doge.config.settings import AuthConfig, DBConfig, FeatureConfig, Settings, SlotConfig
@@ -71,6 +72,30 @@ def test_provider_execution_imports_and_resolves_only_after_all_gates_pass(
 
     contribution = next(item for item in contributions if item.slot_id == installed.slot_id)
     assert contribution.workflows[0].slug == "third-party-workflow"
+    assert installed.import_marker.read_text(encoding="utf-8") == "imported"
+
+
+def test_provider_execution_allows_eval_suite_facets_after_p10_gate(
+    tmp_path, monkeypatch
+) -> None:
+    cases_path = tmp_path / "provider-cases.json"
+    cases_path.write_text("[]", encoding="utf-8")
+    installed = _installed_provider(
+        tmp_path,
+        monkeypatch,
+        slot_type="eval",
+        eval_cases_path=cases_path,
+    )
+    settings = _settings(tmp_path, installed, provider_execution=True)
+
+    registry = build_slot_aware_eval_suites(settings=settings)
+
+    assert registry is not None
+    assert installed.slot_id in registry.suite_ids
+    suite = registry.suite_for(installed.slot_id)
+    assert suite.gold_set_path == cases_path.resolve()
+    assert suite.execution_profile == "local_alpha_provider"
+    assert suite.eval_policy == ("offline", "deterministic", "provider_signed")
     assert installed.import_marker.read_text(encoding="utf-8") == "imported"
 
 
@@ -312,7 +337,7 @@ def test_provider_execution_requires_runtime_interception(tmp_path, monkeypatch)
     assert not installed.import_marker.exists()
 
 
-def test_provider_execution_rejects_restricted_contribution_facets(
+def test_provider_execution_keeps_route_facets_restricted_after_p10_eval(
     tmp_path, monkeypatch
 ) -> None:
     installed = _installed_provider(tmp_path, monkeypatch, restricted_facet=True)
@@ -383,6 +408,8 @@ def _installed_provider(
     installed_by_installer: bool = False,
     key_id: str = "ops-key",
     package_name: str | None = None,
+    slot_type: str = "workflow",
+    eval_cases_path: Path | None = None,
 ) -> _InstalledFixture:
     package_name = package_name or f"p7_provider_{uuid.uuid4().hex}"
     slot_id = f"vendor.p{uuid.uuid4().hex}"
@@ -404,7 +431,12 @@ def _installed_provider(
     (provider_package / "__init__.py").write_text("", encoding="utf-8")
     (provider_package / "helper.py").write_text("MARKER_TEXT = 'imported'\n", encoding="utf-8")
     (provider_package / "provider.py").write_text(
-        _provider_module(slot_id, restricted_facet=restricted_facet),
+        _provider_module(
+            slot_id,
+            restricted_facet=restricted_facet,
+            slot_type=slot_type,
+            eval_cases_path=eval_cases_path,
+        ),
         encoding="utf-8",
     )
     if typosquat:
@@ -427,7 +459,15 @@ def _installed_provider(
     entrypoint = f"{package_name}.provider.ProviderSlot"
     manifest_path = slot_dir / "slot.json"
     manifest_path.write_text(
-        json.dumps(_manifest(slot_id, entrypoint), sort_keys=True),
+        json.dumps(
+            _manifest(
+                slot_id,
+                entrypoint,
+                slot_type=slot_type,
+                eval_cases_path=eval_cases_path,
+            ),
+            sort_keys=True,
+        ),
         encoding="utf-8",
     )
     private_key_path, public_key = _write_private_key(slot_dir)
@@ -516,7 +556,38 @@ def _unloaded_importable_host_root() -> str:
     pytest.skip("no unloaded importable host module root available")
 
 
-def _manifest(slot_id: str, entrypoint: str) -> dict:
+def _manifest(
+    slot_id: str,
+    entrypoint: str,
+    *,
+    slot_type: str = "workflow",
+    eval_cases_path: Path | None = None,
+) -> dict:
+    if slot_type == "eval":
+        if eval_cases_path is None:
+            raise ValueError("eval provider fixture requires eval_cases_path")
+        return {
+            "schema_version": 1,
+            "id": slot_id,
+            "name": "Third-party Eval Suite",
+            "version": "0.1.0",
+            "type": "eval",
+            "owner": "vendor",
+            "maturity": "experimental",
+            "description": "Trusted local eval suite provider execution fixture.",
+            "entrypoint": entrypoint,
+            "provides": {
+                "capabilities": ["eval_suite", "provider_eval_suite"],
+                "metadata": {
+                    "suite_id": slot_id,
+                    "gold_set_path": str(eval_cases_path),
+                },
+            },
+            "permissions": {"filesystem": "read", "risk_level": "low"},
+            "feature_flags": ["slot_platform"],
+        }
+    if slot_type != "workflow":
+        raise ValueError(f"unsupported provider fixture slot_type: {slot_type}")
     return {
         "schema_version": 1,
         "id": slot_id,
@@ -533,13 +604,25 @@ def _manifest(slot_id: str, entrypoint: str) -> dict:
     }
 
 
-def _provider_module(slot_id: str, *, restricted_facet: bool) -> str:
+def _provider_module(
+    slot_id: str,
+    *,
+    restricted_facet: bool,
+    slot_type: str = "workflow",
+    eval_cases_path: Path | None = None,
+) -> str:
     restricted = (
         "routes=(GatewayRouteContribution("
         "router_id='bad-route', router_factory=lambda context: None, prefix='/bad'),)"
         if restricted_facet
         else ""
     )
+    if slot_type == "eval":
+        if eval_cases_path is None:
+            raise ValueError("eval provider fixture requires eval_cases_path")
+        return _eval_provider_module(slot_id, eval_cases_path)
+    if slot_type != "workflow":
+        raise ValueError(f"unsupported provider fixture slot_type: {slot_type}")
     return f"""
 import os
 from pathlib import Path
@@ -608,6 +691,66 @@ class ProviderSlot(ISlot):
                 f"{{action}}:{{slot_id}}:{{enforce}}",
                 encoding="utf-8",
             )
+"""
+
+
+def _eval_provider_module(slot_id: str, eval_cases_path: Path) -> str:
+    return f"""
+import os
+from pathlib import Path
+
+from .helper import MARKER_TEXT
+
+from doge.platform.slots import (
+    EvalSuiteContribution,
+    ISlot,
+    SlotContribution,
+    SlotHealth,
+    SlotManifest,
+    SlotProvides,
+    SlotType,
+)
+
+marker = os.environ.get("P5_PROVIDER_IMPORT_MARKER")
+if marker:
+    Path(marker).write_text(MARKER_TEXT, encoding="utf-8")
+
+
+class ProviderSlot(ISlot):
+    def manifest(self):
+        return SlotManifest(
+            schema_version=1,
+            id={slot_id!r},
+            name="Third-party Eval Suite",
+            version="0.1.0",
+            type=SlotType.EVAL,
+            owner="vendor",
+            maturity="experimental",
+            description="Trusted local eval suite provider execution fixture.",
+            entrypoint=__name__ + ".ProviderSlot",
+            provides=SlotProvides(
+                capabilities=("eval_suite", "provider_eval_suite"),
+                metadata={{
+                    "suite_id": {slot_id!r},
+                    "gold_set_path": {str(eval_cases_path)!r},
+                }},
+            ),
+            health=SlotHealth(status="experimental"),
+            feature_flags=("slot_platform",),
+        )
+
+    def resolve(self, context):
+        return SlotContribution(
+            slot_id={slot_id!r},
+            eval_suites=(
+                EvalSuiteContribution(
+                    suite_id={slot_id!r},
+                    gold_set_path={str(eval_cases_path)!r},
+                    execution_profile="local_alpha_provider",
+                    eval_policy=("offline", "deterministic", "provider_signed"),
+                ),
+            ),
+        )
 """
 
 

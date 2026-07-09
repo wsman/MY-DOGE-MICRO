@@ -32,8 +32,9 @@ Provider execution is limited to these contribution facets:
 - data sources;
 - document parsers.
 
-Gateway routes, UI panels, watchers, eval suites, and governance policies are
-not executable from installed third-party providers in P5.
+Gateway routes, UI panels, watchers, eval suites, and governance policies were
+not executable from installed third-party providers in P5. ADR-0068 later
+releases only `eval_suites`; the other restricted facets remain blocked.
 
 This ADR does not add OS/container/WASM sandboxing, filesystem mediation,
 provider package signing, malicious-code containment, marketplace behavior,
@@ -56,6 +57,10 @@ Web install surfaces for local slot install. Those surfaces do not change this
 ADR's provider execution gates: provider import remains default off and still
 requires slot install, runtime interception, verified v3 package-aware signature,
 revocation check, enterprise allowlist when applicable, and SlotKernel admission.
+
+Status Update - 2026-07-09: ADR-0068 releases only the `eval_suites` restricted
+facet for installed, v3 package-signed, operator-gated providers. Gateway
+routes, UI panels, watchers, and governance policies remain restricted.
 
 ## Technology Compatibility
 
