@@ -73,6 +73,7 @@ from doge.platform.slots import (
     slot_scoped_object,
     policy_for_activation,
     sign_slot_manifest,
+    inspect_slot_install_source,
 )
 from doge.platform.workspace.slot import WorkflowTemplatesSlot
 from doge.platform.workspace.ui_panels import UIPanelRegistry
@@ -189,6 +190,7 @@ def build_builtin_slot_kernel(
         effective_policy = policy_for_activation(
             _active_bundle_activation(resolved_settings, activation_repo),
             bundles,
+            installed_slots=_installed_slot_ids(registry, resolved_settings),
         )
     return SlotKernel(
         registry,
@@ -285,6 +287,10 @@ def install_slot(
     *,
     secret_provider: Any | None = None,
     signing_repo: Any | None = None,
+    governance_repo: Any | None = None,
+    actor_hash: str = "local-operator",
+    tenant_id: str = "local",
+    request_id: str | None = None,
 ) -> dict[str, Any]:
     """Install a third-party manifest as a local manifest-only slot preview."""
 
@@ -304,7 +310,16 @@ def install_slot(
             signing_repo=signing_repo,
         ),
     )
-    return result.to_dict()
+    payload = result.to_dict()
+    _append_slot_install_audit(
+        payload,
+        settings=resolved_settings,
+        governance_repo=governance_repo,
+        actor_hash=actor_hash,
+        tenant_id=tenant_id,
+        request_id=request_id,
+    )
+    return payload
 
 
 def sign_slot(
@@ -1144,6 +1159,35 @@ def _append_slot_bundle_audit(
     )
 
 
+def _append_slot_install_audit(
+    result: dict[str, Any],
+    *,
+    settings: Any,
+    governance_repo: Any | None,
+    actor_hash: str,
+    tenant_id: str,
+    request_id: str | None,
+) -> None:
+    repo = _governance_repo_for_settings(settings, governance_repo)
+    repo.append_audit_event(
+        EnterpriseAuditEvent(
+            event_type="slot_install",
+            tenant_id=tenant_id,
+            actor_hash=actor_hash,
+            resource_type="slot",
+            resource_id=str(result["slot_id"]),
+            request_id=request_id,
+            metadata={
+                "status": result["status"],
+                "source_path": result["source_path"],
+                "installed_path": result["installed_path"],
+                "signature_status": result["signature"]["status"],
+                "warnings": list(result["warnings"]),
+            },
+        )
+    )
+
+
 def _build_builtin_slot_registry_for_settings(settings: Any) -> SlotRegistry:
     if signature(build_builtin_slot_registry).parameters:
         return build_builtin_slot_registry(settings)
@@ -1183,6 +1227,26 @@ def _register_manifest_only_slots(registry: SlotRegistry, settings: Any) -> None
         registry.register(slot)
     for slot in install_slots:
         registry.register(_installed_slot_for_registration(slot, settings))
+
+
+def _installed_slot_ids(registry: SlotRegistry, settings: Any) -> tuple[str, ...]:
+    if not getattr(settings.features, "slot_install", False):
+        return ()
+    install_dir = getattr(settings.slots, "install_dir", None)
+    if install_dir is None:
+        return ()
+    install_root = Path(install_dir).resolve()
+    out: list[str] = []
+    for slot in registry.all():
+        source_path = getattr(slot, "source_path", None)
+        if source_path is None:
+            continue
+        try:
+            Path(source_path).resolve().relative_to(install_root)
+        except ValueError:
+            continue
+        out.append(slot.manifest().id)
+    return tuple(out)
 
 
 def _installed_slot_for_registration(slot: ManifestOnlySlot, settings: Any) -> Any:

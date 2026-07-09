@@ -33,6 +33,7 @@ _SLOTS_ROUTE_MANIFEST = SlotManifest(
             "prefix": "/v1",
             "paths": (
                 "/v1/slots",
+                "/v1/slots/install",
                 "/v1/slot-bundles",
                 "/v1/slot-bundles/{bundle_id}/activate",
                 "/v1/slot-bundles/active/deactivate",

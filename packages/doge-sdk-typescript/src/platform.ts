@@ -10,6 +10,8 @@ import type {
   HomeQueue,
   Project,
   ResearchCase,
+  SlotInstallResponse,
+  SlotStatusRow,
   TemplatePreflightResult,
   WorkflowExecution,
   WorkflowTemplate,
@@ -294,6 +296,19 @@ export class PlatformResource {
 
   getWorkflowTemplate(templateId: string): Promise<WorkflowTemplate> {
     return this.root.request<WorkflowTemplate>('GET', `/v1/workflow-templates/${templateId}`)
+  }
+
+  async listSlots(): Promise<SlotStatusRow[]> {
+    const payload = await this.root.request<{ slots: SlotStatusRow[] }>('GET', '/v1/slots')
+    return payload.slots
+  }
+
+  getSlot(slotId: string): Promise<SlotStatusRow> {
+    return this.root.request<SlotStatusRow>('GET', `/v1/slots/${slotId}`)
+  }
+
+  installSlot(source: string): Promise<SlotInstallResponse> {
+    return this.root.request<SlotInstallResponse>('POST', '/v1/slots/install', { source })
   }
 }
 

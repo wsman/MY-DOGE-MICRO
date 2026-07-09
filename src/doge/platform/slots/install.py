@@ -111,9 +111,7 @@ class SlotInstaller:
         policy: SlotInstallPolicy | None = None,
     ) -> SlotInstallResult:
         resolved_policy = policy or SlotInstallPolicy()
-        manifest_path = _manifest_path_from_source(source)
-        [slot] = SlotLoader().load([manifest_path])
-        manifest = slot.manifest()
+        manifest_path, manifest = inspect_slot_install_source(source)
         signature = verify_slot_signature(
             manifest_path,
             slot_id=manifest.id,
@@ -165,6 +163,14 @@ class SlotInstaller:
             signature=signature,
             warnings=tuple(warnings),
         )
+
+
+def inspect_slot_install_source(source: str | Path) -> tuple[Path, SlotManifest]:
+    """Return the canonical manifest path and validated manifest for an install source."""
+
+    manifest_path = _manifest_path_from_source(source)
+    [slot] = SlotLoader().load([manifest_path])
+    return manifest_path, slot.manifest()
 
 
 def verify_slot_signature(

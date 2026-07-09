@@ -23,6 +23,7 @@ def test_slot_discovery_gateway_slot_manifest() -> None:
     assert manifest.provides.metadata["router_id"] == "gateway.slots"
     assert manifest.provides.metadata["prefix"] == "/v1"
     assert "/v1/slots" in manifest.provides.metadata["paths"]
+    assert "/v1/slots/install" in manifest.provides.metadata["paths"]
     assert "/v1/slot-bundles/{bundle_id}/activate" in manifest.provides.metadata["paths"]
     assert "/v1/slot-bundles/active/deactivate" in manifest.provides.metadata["paths"]
     assert "/v1/ui-panels" in manifest.provides.metadata["paths"]

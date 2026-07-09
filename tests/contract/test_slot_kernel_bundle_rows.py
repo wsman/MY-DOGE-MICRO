@@ -157,7 +157,8 @@ def test_slot_install_dir_is_loaded_as_manifest_only_source(tmp_path, monkeypatc
     reset_settings()
 
     try:
-        payload = install_slot(str(source.parent), settings=get_settings())
+        audit_repo = _AuditRepository()
+        payload = install_slot(str(source.parent), settings=get_settings(), governance_repo=audit_repo)
         rows = build_slot_status_rows(get_settings())
     finally:
         monkeypatch.delenv("DOGE_FEATURE_SLOT_PLATFORM", raising=False)
@@ -167,9 +168,45 @@ def test_slot_install_dir_is_loaded_as_manifest_only_source(tmp_path, monkeypatc
         reset_settings()
 
     assert payload["status"] == "installed"
+    assert audit_repo.events[-1].event_type == "slot_install"
     local = next(row for row in rows if row["id"] == "local.installed")
     assert local["status"] == "resolved"
     assert local["entrypoint"] == "doge.local.preview"
+
+
+def test_installed_slot_resolves_under_active_builtin_bundle(tmp_path, monkeypatch) -> None:
+    source = tmp_path / "source" / "slot.json"
+    source.parent.mkdir()
+    source.write_text(json.dumps(_manifest("local.bundle-provider")), encoding="utf-8")
+    install_dir = tmp_path / "installed"
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_PLATFORM", "1")
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_LOADER", "1")
+    monkeypatch.setenv("DOGE_FEATURE_SLOT_INSTALL", "1")
+    monkeypatch.setenv("DOGE_SLOT_INSTALL_DIR", str(install_dir))
+    reset_settings()
+
+    try:
+        install_slot(str(source.parent), settings=get_settings(), governance_repo=_AuditRepository())
+        activate_slot_bundle(
+            "bundle.daemon_operator",
+            settings=get_settings(),
+            governance_repo=_AuditRepository(),
+        )
+        rows = build_slot_status_rows(get_settings())
+    finally:
+        clear_slot_bundle_activation()
+        monkeypatch.delenv("DOGE_FEATURE_SLOT_PLATFORM", raising=False)
+        monkeypatch.delenv("DOGE_FEATURE_SLOT_LOADER", raising=False)
+        monkeypatch.delenv("DOGE_FEATURE_SLOT_INSTALL", raising=False)
+        monkeypatch.delenv("DOGE_SLOT_INSTALL_DIR", raising=False)
+        reset_settings()
+
+    local = next(row for row in rows if row["id"] == "local.bundle-provider")
+    market = next(row for row in rows if row["id"] == "market.core")
+    gateway = next(row for row in rows if row["id"] == "gateway.slots")
+    assert local["status"] == "resolved"
+    assert gateway["status"] == "resolved"
+    assert market["status"] == "disabled"
 
 
 def test_slot_status_rows_use_kernel_active_health(monkeypatch) -> None:
@@ -247,3 +284,12 @@ def _manifest(slot_id: str) -> dict:
         "provides": {"capabilities": ["local_preview"]},
         "feature_flags": ["slot_platform"],
     }
+
+
+class _AuditRepository:
+    def __init__(self) -> None:
+        self.events = []
+
+    def append_audit_event(self, event):
+        self.events.append(event)
+        return event

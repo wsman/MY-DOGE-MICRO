@@ -25,6 +25,17 @@ new backend routes, SDK slot clients, SlotLoader, third-party installation,
 signing, permission enforcement, active health probes, or production-readiness
 changes.
 
+## Status Update - 2026-07-09
+
+ADR-0067 supersedes the read-only Web Slot Center posture only for the
+default-off install modal. The Admin center can now expose an "Install slot"
+action when `VITE_DOGE_FEATURE_SLOT_INSTALL_UI` is enabled, and the action calls
+the server-side `POST /v1/slots/install` route through the platform store.
+
+ADR-0054 remains accurate for the initial Sprint 048 acceptance record and for
+the default Web posture. P9 does not add dynamic UI component loading, per-slot
+enablement, marketplace behavior, YAML manifests, or production readiness.
+
 ## Technology Compatibility
 
 | Field | Value |

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, Field
 
 from doge.interfaces.api import deps
 from doge.interfaces.api.enterprise_access import (
@@ -12,9 +13,18 @@ from doge.interfaces.api.enterprise_access import (
     enterprise_context,
     request_id,
 )
-from doge.platform.slots import SlotConfigurationError, UnknownSlotError
+from doge.platform.slots import (
+    SlotConfigurationError,
+    SlotManifestValidationError,
+    UnknownSlotError,
+    inspect_slot_install_source,
+)
 
 router = APIRouter(dependencies=[Depends(deps.require_api_token)])
+
+
+class SlotInstallRequest(BaseModel):
+    source: str = Field(..., min_length=1)
 
 
 def require_slot_platform(settings=Depends(deps.get_settings_dep)) -> Any:
@@ -38,6 +48,14 @@ def require_slot_loader(settings=Depends(require_slot_platform)) -> Any:
 
     if not settings.features.slot_loader:
         raise HTTPException(404, "slot loader API disabled")
+    return settings
+
+
+def require_slot_install(settings=Depends(require_slot_loader)) -> Any:
+    """Gate slot install APIs behind DOGE_FEATURE_SLOT_INSTALL."""
+
+    if not settings.features.slot_install:
+        raise HTTPException(404, "slot install API disabled")
     return settings
 
 
@@ -82,6 +100,37 @@ async def activate_slot_bundle(
         )
     except (SlotConfigurationError, UnknownSlotError) as exc:
         raise HTTPException(404, str(exc)) from exc
+
+
+@router.post("/slots/install")
+async def install_slot(
+    payload: SlotInstallRequest,
+    request: Request,
+    settings=Depends(require_slot_install),
+    governance_repo=Depends(deps.get_enterprise_governance_repository),
+):
+    try:
+        manifest_path, manifest = inspect_slot_install_source(payload.source)
+        ensure_resource_access(
+            request,
+            governance_repo,
+            "slot",
+            manifest.id,
+            "write",
+        )
+        context = enterprise_context(request)
+        return deps.install_slot(
+            str(manifest_path),
+            settings,
+            actor_hash=context.user_hash,
+            tenant_id=context.tenant_id,
+            request_id=request_id(request),
+            governance_repo=governance_repo,
+        )
+    except UnknownSlotError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except (SlotConfigurationError, SlotManifestValidationError) as exc:
+        raise HTTPException(400, str(exc)) from exc
 
 
 @router.post("/slot-bundles/active/deactivate")

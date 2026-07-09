@@ -21,7 +21,22 @@
           <div class="eyebrow">Slots</div>
           <h2>Slot Center</h2>
         </div>
-        <p>{{ slotStatusLine }}</p>
+        <div class="section-actions">
+          <p>{{ slotStatusLine }}</p>
+          <n-button
+            v-if="slotInstallUiEnabled"
+            size="small"
+            secondary
+            type="primary"
+            :disabled="store.loading"
+            @click="openInstallModal"
+          >
+            <template #icon>
+              <n-icon><AddCircleOutline /></n-icon>
+            </template>
+            Install slot
+          </n-button>
+        </div>
       </div>
 
       <section class="summary-strip" aria-label="Slot summary">
@@ -148,19 +163,85 @@
         </div>
       </n-spin>
     </section>
+
+    <n-modal
+      v-model:show="installModalOpen"
+      preset="dialog"
+      title="Install slot"
+      :show-icon="false"
+    >
+      <div class="install-modal">
+        <label class="field-label" for="slot-install-source">Source</label>
+        <n-input
+          id="slot-install-source"
+          v-model:value="installSource"
+          :disabled="installPending"
+          placeholder="C:\\path\\to\\slot or /path/to/slot"
+        />
+        <n-alert
+          v-if="installErrorMessage"
+          type="error"
+          :show-icon="false"
+          role="alert"
+        >
+          {{ installErrorMessage }}
+        </n-alert>
+        <div v-if="installResult" class="install-result" aria-label="Slot install result">
+          <div>
+            <span>Slot</span>
+            <strong>{{ installResult.slot_id }}</strong>
+          </div>
+          <div>
+            <span>Status</span>
+            <n-tag size="small" :type="installStatusTagType(installResult.status)">
+              {{ installResult.status }}
+            </n-tag>
+          </div>
+          <div>
+            <span>Signature</span>
+            <n-tag size="small" :type="signatureTagType(installResult.signature.status)">
+              {{ installResult.signature.status }}
+            </n-tag>
+          </div>
+          <div v-if="installResult.warnings.length" class="install-warnings">
+            <span>Warnings</span>
+            <ul>
+              <li v-for="warning in installResult.warnings" :key="warning">{{ warning }}</li>
+            </ul>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <n-button :disabled="installPending" @click="installModalOpen = false">Close</n-button>
+          <n-button
+            type="primary"
+            :loading="installPending"
+            :disabled="!installSource.trim()"
+            @click="submitInstall"
+          >
+            Install
+          </n-button>
+        </div>
+      </div>
+    </n-modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { PlayCircleOutline, RefreshOutline, StopCircleOutline } from '@vicons/ionicons5'
-import { NAlert, NButton, NIcon, NSpace, NSpin, NTag } from 'naive-ui'
+import { AddCircleOutline, PlayCircleOutline, RefreshOutline, StopCircleOutline } from '@vicons/ionicons5'
+import { NAlert, NButton, NIcon, NInput, NModal, NSpace, NSpin, NTag } from 'naive-ui'
+import { slotInstallUiEnabled } from '../config/features'
 import { usePlatformStore } from '../stores/platform'
-import type { SlotBundleRow } from '../api/platform'
+import type { SlotBundleRow, SlotInstallResponse } from '../api/platform'
 
 const store = usePlatformStore()
 const pendingBundleId = ref<string | null>(null)
 const pendingAction = ref<'activate' | 'deactivate' | null>(null)
+const installModalOpen = ref(false)
+const installSource = ref('')
+const installPending = ref(false)
+const installResult = ref<SlotInstallResponse | null>(null)
+const installErrorMessage = ref('')
 const errorMessage = computed(() => store.error?.message ?? '')
 const capabilities = computed(() => store.capabilities?.capabilities ?? [])
 const statusCounts = computed(() => store.capabilities?.status_counts ?? {})
@@ -216,6 +297,18 @@ function bundleTagType(status: string) {
   return 'default'
 }
 
+function installStatusTagType(status: string) {
+  if (status === 'installed' || status === 'already_installed') return 'success'
+  return 'default'
+}
+
+function signatureTagType(status: string) {
+  if (status === 'verified') return 'success'
+  if (status === 'missing' || status === 'legacy' || status === 'untrusted') return 'warning'
+  if (status === 'invalid' || status === 'revoked') return 'error'
+  return 'default'
+}
+
 function activateDisabled(bundle: SlotBundleRow) {
   return (
     store.loading ||
@@ -261,6 +354,28 @@ async function deactivateBundle(bundleId: string) {
   } finally {
     pendingBundleId.value = null
     pendingAction.value = null
+  }
+}
+
+function openInstallModal() {
+  installSource.value = ''
+  installResult.value = null
+  installErrorMessage.value = ''
+  installModalOpen.value = true
+}
+
+async function submitInstall() {
+  const source = installSource.value.trim()
+  if (!source) return
+  installPending.value = true
+  installResult.value = null
+  installErrorMessage.value = ''
+  try {
+    installResult.value = await store.installSlot({ source })
+  } catch {
+    installErrorMessage.value = store.error?.message ?? 'Install failed'
+  } finally {
+    installPending.value = false
   }
 }
 
@@ -337,6 +452,14 @@ p {
   align-items: end;
   justify-content: space-between;
   gap: 12px;
+}
+
+.section-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
 }
 
 .summary-strip {
@@ -433,6 +556,54 @@ p {
   font-size: 13px;
 }
 
+.install-modal {
+  display: grid;
+  gap: 10px;
+}
+
+.field-label {
+  color: var(--dgm-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.install-result {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--dgm-border);
+  border-radius: 6px;
+}
+
+.install-result > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.install-result span {
+  color: var(--dgm-text-faint);
+  font-size: 12px;
+}
+
+.install-warnings {
+  align-items: flex-start;
+}
+
+.install-warnings ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--dgm-text-muted);
+  font-size: 12px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 @media (max-width: 760px) {
   .capability-row,
   .row-main,
@@ -448,6 +619,22 @@ p {
 
   .row-tags {
     justify-content: flex-start;
+  }
+
+  .section-actions,
+  .modal-actions,
+  .install-result > div {
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+
+  .section-actions,
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  .install-result > div {
+    flex-direction: column;
   }
 }
 </style>

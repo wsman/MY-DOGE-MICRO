@@ -24,6 +24,7 @@ class SlotPolicy:
 
     enabled_slots: tuple[str, ...] = ()
     disabled_slots: tuple[str, ...] = ()
+    installed_slots: tuple[str, ...] = ()
     enforce_feature_flags: bool = True
 
     def __post_init__(self) -> None:
@@ -35,12 +36,18 @@ class SlotPolicy:
             )
 
     @classmethod
-    def from_bundle(cls, bundle: "SlotBundle") -> "SlotPolicy":
+    def from_bundle(
+        cls,
+        bundle: "SlotBundle",
+        *,
+        installed_slots: tuple[str, ...] = (),
+    ) -> "SlotPolicy":
         """Build a policy that admits only a bundle's slots."""
 
         return cls(
             enabled_slots=bundle.slot_ids,
             disabled_slots=bundle.disabled_slot_ids,
+            installed_slots=installed_slots,
         )
 
     def allows(self, manifest: SlotManifest, context: SlotContext) -> bool:
@@ -48,7 +55,11 @@ class SlotPolicy:
 
         if manifest.id in self.disabled_slots:
             return False
-        if self.enabled_slots and manifest.id not in self.enabled_slots:
+        if (
+            self.enabled_slots
+            and manifest.id not in self.enabled_slots
+            and manifest.id not in self.installed_slots
+        ):
             return False
         if not self.enforce_feature_flags:
             return True

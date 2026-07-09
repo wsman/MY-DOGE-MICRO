@@ -1,7 +1,7 @@
 # HTTP API Reference
 
 Full route table and per-route reference for the OpenDoge FastAPI backend
-(97 HTTP routes: 34 legacy `/api/*` + 63 daemon/v1). The quick-start
+(98 HTTP routes: 34 legacy `/api/*` + 64 daemon/v1). The quick-start
 narrative lives in [../API.md](../API.md); transport, SSE, CORS, error,
 concurrency, and OpenAPI contracts live in
 [http-api-contracts.md](http-api-contracts.md).
@@ -149,24 +149,25 @@ code cannot drift.
 | 81 | GET | `/v1/workflow-templates/{template_id}` | Read a workflow template by ID or slug (feature-flagged) | `v1/platform.py` |
 | 82 | GET | `/v1/capabilities` | Read redacted provider, feature, maturity, and tool capability status (feature-flagged) | `v1/platform.py` |
 | 83 | GET | `/v1/slots` | List built-in slot manifests, status, health, and capability summaries (feature-flagged) | `v1/slots.py` |
-| 84 | GET | `/v1/slot-bundles` | List built-in slot bundles and active status (feature-flagged) | `v1/slots.py` |
-| 85 | POST | `/v1/slot-bundles/{bundle_id}/activate` | Persistently activate a built-in slot bundle (feature-flagged) | `v1/slots.py` |
-| 86 | POST | `/v1/slot-bundles/active/deactivate` | Clear the active slot bundle (feature-flagged) | `v1/slots.py` |
-| 87 | GET | `/v1/ui-panels` | List Research workspace UI panel metadata (feature-flagged) | `v1/slots.py` |
-| 88 | GET | `/v1/slots/{slot_id}` | Read one built-in slot manifest/status summary (feature-flagged) | `v1/slots.py` |
-| 89 | GET | `/v1/slots/{slot_id}/health` | Read one built-in slot health summary (feature-flagged) | `v1/slots.py` |
-| 90 | GET | `/v1/tools` | List function-tool schemas | `v1/tools.py` |
-| 91 | POST | `/v1/portfolios/import` | Import a UTF-8 portfolio CSV and persist holdings | `v1/portfolios.py` |
-| 92 | GET | `/v1/audit/events` | List tenant-scoped audit events | `v1/audit.py` |
-| 93 | GET | `/v1/audit/events/export` | Export tenant audit events as redacted JSONL | `v1/audit.py` |
-| 94 | POST | `/v1/audit/events/retention` | Purge expired tenant audit events by retention policy | `v1/audit.py` |
-| 95 | GET | `/v1/enterprise/acl/grants` | List tenant ACL grants for enterprise admins | `v1/enterprise.py` |
-| 96 | POST | `/v1/enterprise/acl/grants` | Create a tenant ACL grant | `v1/enterprise.py` |
-| 97 | DELETE | `/v1/enterprise/acl/grants` | Revoke a tenant ACL grant | `v1/enterprise.py` |
+| 84 | POST | `/v1/slots/install` | Install a local slot manifest path through server-side slot install gates (feature-flagged) | `v1/slots.py` |
+| 85 | GET | `/v1/slot-bundles` | List built-in slot bundles and active status (feature-flagged) | `v1/slots.py` |
+| 86 | POST | `/v1/slot-bundles/{bundle_id}/activate` | Persistently activate a built-in slot bundle (feature-flagged) | `v1/slots.py` |
+| 87 | POST | `/v1/slot-bundles/active/deactivate` | Clear the active slot bundle (feature-flagged) | `v1/slots.py` |
+| 88 | GET | `/v1/ui-panels` | List Research workspace UI panel metadata (feature-flagged) | `v1/slots.py` |
+| 89 | GET | `/v1/slots/{slot_id}` | Read one built-in slot manifest/status summary (feature-flagged) | `v1/slots.py` |
+| 90 | GET | `/v1/slots/{slot_id}/health` | Read one built-in slot health summary (feature-flagged) | `v1/slots.py` |
+| 91 | GET | `/v1/tools` | List function-tool schemas | `v1/tools.py` |
+| 92 | POST | `/v1/portfolios/import` | Import a UTF-8 portfolio CSV and persist holdings | `v1/portfolios.py` |
+| 93 | GET | `/v1/audit/events` | List tenant-scoped audit events | `v1/audit.py` |
+| 94 | GET | `/v1/audit/events/export` | Export tenant audit events as redacted JSONL | `v1/audit.py` |
+| 95 | POST | `/v1/audit/events/retention` | Purge expired tenant audit events by retention policy | `v1/audit.py` |
+| 96 | GET | `/v1/enterprise/acl/grants` | List tenant ACL grants for enterprise admins | `v1/enterprise.py` |
+| 97 | POST | `/v1/enterprise/acl/grants` | Create a tenant ACL grant | `v1/enterprise.py` |
+| 98 | DELETE | `/v1/enterprise/acl/grants` | Revoke a tenant ACL grant | `v1/enterprise.py` |
 
 > The OpenAPI surface also exposes `/openapi.json`, `/docs`,
 > `/docs/oauth2-redirect`, `/redoc` (FastAPI defaults) — infrastructure, not
-> product endpoints, so not counted in the 97 HTTP routes above.
+> product endpoints, so not counted in the 98 HTTP routes above.
 
 ### Feature-Flagged Platform Surfaces
 
@@ -189,6 +190,10 @@ operator-opt-out.
   `DOGE_SLOT_MANIFEST_DIRS` and persisted local slot bundle activation through
   `POST /v1/slot-bundles/{bundle_id}/activate` and
   `POST /v1/slot-bundles/active/deactivate`.
+- `DOGE_FEATURE_SLOT_INSTALL=1` enables `POST /v1/slots/install` for local-path
+  slot manifest install through server-side ACL, audit, signature, and rollback
+  gates. URL fetches, uploads, marketplace install, and YAML manifests remain
+  deferred.
 - `DOGE_FEATURE_SLOT_UI=1` enables read-only `/v1/ui-panels` discovery for
   Research workspace panel metadata contributed by UI slots.
 - `DOGE_FEATURE_SLOT_ENFORCEMENT=1` enables SlotKernel permission and

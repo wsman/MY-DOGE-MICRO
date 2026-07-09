@@ -73,6 +73,8 @@ class SlotBundleActivationState:
 def policy_for_activation(
     activation: SlotBundleActivation,
     bundles: tuple[SlotBundle, ...],
+    *,
+    installed_slots: tuple[str, ...] = (),
 ) -> SlotPolicy:
     """Return a policy constrained by the active bundle, if one exists."""
 
@@ -80,5 +82,5 @@ def policy_for_activation(
         return SlotPolicy()
     for bundle in bundles:
         if bundle.id == activation.bundle_id:
-            return SlotPolicy.from_bundle(bundle)
+            return SlotPolicy.from_bundle(bundle, installed_slots=installed_slots)
     raise SlotConfigurationError(f"active slot bundle is not registered: {activation.bundle_id}")

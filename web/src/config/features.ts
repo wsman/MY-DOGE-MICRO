@@ -23,13 +23,28 @@ export const platformShellLifecycle = {
   rollbackCriterion: 'set VITE_DOGE_FEATURE_PLATFORM_SHELL=0 or restore currentDefault false if product navigation, accessibility evidence, or legacy deep links regress',
 } as const satisfies FeatureLifecycle
 
+export const slotInstallUiLifecycle = {
+  envVar: 'VITE_DOGE_FEATURE_SLOT_INSTALL_UI',
+  introduced: 'P9 Install Surfaces and Operator Controls; docs/architecture/adr-0067-slot-install-surfaces.md',
+  currentDefault: false,
+  targetDefaultOn: 'after HTTP install, SDK parity, Web Slot Center install tests, and operator rollback evidence pass',
+  targetRemoval: 'after slot install UI is accepted as a governed operator surface for one release cycle',
+  replacementBehavior: 'Web Slot Center can call the server-side slot install endpoint for local path manifests',
+  regressionCommands: [
+    'npm test -- src/stores/platform.spec.ts src/views/AdminCenterView.spec.ts',
+    'npm run build',
+  ],
+  rollbackCriterion: 'set VITE_DOGE_FEATURE_SLOT_INSTALL_UI=0 if install modal, error surfacing, or slot refresh behavior regresses',
+} as const satisfies FeatureLifecycle
+
 export const featureLifecycles = {
   platformShell: platformShellLifecycle,
+  slotInstallUi: slotInstallUiLifecycle,
 } as const
 
-export function isPlatformShellEnabled(value: unknown): boolean {
+function isFeatureEnabled(value: unknown, currentDefault: boolean): boolean {
   if (value === undefined || value === null || value === '') {
-    return platformShellLifecycle.currentDefault
+    return currentDefault
   }
   if (typeof value !== 'string') {
     return Boolean(value)
@@ -41,7 +56,16 @@ export function isPlatformShellEnabled(value: unknown): boolean {
   if (['1', 'true', 'on', 'yes'].includes(normalized)) {
     return true
   }
-  return platformShellLifecycle.currentDefault
+  return currentDefault
+}
+
+export function isPlatformShellEnabled(value: unknown): boolean {
+  return isFeatureEnabled(value, platformShellLifecycle.currentDefault)
+}
+
+export function isSlotInstallUiEnabled(value: unknown): boolean {
+  return isFeatureEnabled(value, slotInstallUiLifecycle.currentDefault)
 }
 
 export const platformShellEnabled = isPlatformShellEnabled(import.meta.env.VITE_DOGE_FEATURE_PLATFORM_SHELL)
+export const slotInstallUiEnabled = isSlotInstallUiEnabled(import.meta.env.VITE_DOGE_FEATURE_SLOT_INSTALL_UI)

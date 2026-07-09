@@ -1,4 +1,4 @@
-# MY-DOGE-MICRO — Architecture Stance Registry
+# OpenDoge — Architecture Stance Registry
 #
 # PURPOSE: Single source of truth for cross-ADR architectural stances that all
 # ADRs must agree on. Skills check this before writing new ADRs to detect
@@ -20,7 +20,7 @@
 # STATUS VALUES: active | superseded_by: ADR-NNNN
 
 version: 1
-last_updated: "2026-07-08"
+last_updated: "2026-07-09"
 
 # ============================================================================
 # SYSTEMS — canonical eight bounded contexts (ADR-0021)
@@ -47,7 +47,7 @@ superseded_systems:
   - {num: 6, slug: market-reporting, name: "Market Reporting", category: Feature, layer: Feature, cdd: design/cdd/market-reporting.md, status: "superseded_by: ADR-0021", target: "Market Intelligence", notes: "Pure-SQL reports; NO LLM"}
   - {num: 7, slug: research-insight-knowledge-base, name: "Research Insight Knowledge Base", category: Core, layer: Core, cdd: design/cdd/research-insight-knowledge-base.md, status: "superseded_by: ADR-0021", target: "Research / Knowledge & Evidence", notes: "Owns stock_notes + stock_names historical store"}
   - {num: 8, slug: mcp-server, name: "MCP Server", category: Interface, layer: Interface, cdd: design/cdd/mcp-server.md, status: "superseded_by: ADR-0021", target: "entrypoints/mcp"}
-  - {num: 9, slug: fastapi-service, name: "FastAPI Service", category: Interface, layer: Interface, cdd: design/cdd/fastapi-service.md, status: "superseded_by: ADR-0021", target: "entrypoints/api", notes: "97 HTTP routes; 127.0.0.1:8901; legacy /api plus daemon /v1/platform"}
+  - {num: 9, slug: fastapi-service, name: "FastAPI Service", category: Interface, layer: Interface, cdd: design/cdd/fastapi-service.md, status: "superseded_by: ADR-0021", target: "entrypoints/api", notes: "98 HTTP routes; 127.0.0.1:8901; legacy /api plus daemon /v1/platform"}
   - {num: 10, slug: pyqt-desktop-dashboard, name: "PyQt Desktop Dashboard", category: Presentation, layer: Presentation, cdd: design/cdd/pyqt-desktop-dashboard.md, status: "superseded_by: ADR-0021", target: "entrypoints/pyqt"}
   - {num: 11, slug: vue-web-console, name: "Vue Web Console", category: Presentation, layer: Presentation, cdd: design/cdd/vue-web-console.md, status: "superseded_by: ADR-0021", target: "web"}
   - {num: 12, slug: clean-architecture-migration, name: "Clean Architecture Migration", category: Operations, layer: Operations, cdd: design/cdd/clean-architecture-migration.md, status: "superseded_by: ADR-0021", target: "architecture governance"}
@@ -189,7 +189,7 @@ interfaces:
     consumers: [vue-web-console, pyqt-desktop-dashboard]
     transports: [http]
     adr: docs/architecture/adr-0007-api-surface-and-cors.md
-    signature: "97 HTTP routes; JSON + SSE; bind 127.0.0.1:8901; legacy /api compatibility plus preferred /v1 daemon/platform routes"
+    signature: "98 HTTP routes; JSON + SSE; bind 127.0.0.1:8901; legacy /api compatibility plus preferred /v1 daemon/platform routes"
     referenced_by:
       - docs/architecture/adr-0008-web-architecture.md
       - docs/architecture/adr-0024-single-stack-runtime-direction.md
@@ -527,18 +527,18 @@ api_decisions:
 
   - purpose: slot_platform_default_posture
     status: active
-    api: "workflow_templates, slot_platform, slot_governance, slot_watcher, and slot_loader default on; slot_install, slot_enforcement, slot_ui, slot_provider_execution, and python_analysis_enabled default off"
-    not: "Default bundle activation, marketplace install, OS/container/WASM sandboxing, YAML manifests, provider package signing, or production-ready plugin runtime"
-    adr: docs/architecture/adr-0064-slot-provider-execution.md
-    reason: "ADR-0060 supersedes ADR-0058 for slot_loader only, while ADR-0064 adds a separate default-off installed-provider execution path gated by signing, revocation, runtime interception, and SlotKernel admission."
+    api: "workflow_templates, slot_platform, slot_governance, slot_watcher, and slot_loader default on; slot_install, slot_enforcement, slot_ui, slot_provider_execution, python_analysis_enabled, slot_code_string_isolation, and Web install UI default off"
+    not: "Default bundle activation, marketplace install, URL/upload install, OS/container/WASM sandboxing, YAML manifests, default-on provider execution, provider contribution isolation, transitive dependency signing, or production-ready plugin runtime"
+    adr: docs/architecture/adr-0067-slot-install-surfaces.md
+    reason: "ADR-0060 supersedes ADR-0058 for slot_loader only; ADR-0064 adds default-off installed-provider execution; ADR-0065 requires package-aware v3 signatures before provider import; ADR-0066 adds a separate default-off code-string isolation prototype; ADR-0067 adds default-off HTTP/SDK/Web local install surfaces without changing production posture."
     added: "2026-07-08"
 
   - purpose: slot_provider_execution_gate
     status: active
-    api: "installed local slot provider entrypoint execution through bootstrap InstalledProviderSlot when all P5 gates pass"
-    not: "SlotLoader provider imports, non-installed manifest-dir execution, restricted gateway/UI/watcher/eval/governance facets, OS sandboxing, package signing, marketplace install, or production plugin runtime"
-    adr: docs/architecture/adr-0064-slot-provider-execution.md
-    reason: "Provider execution needs bootstrap-owned settings, trusted publisher keys, revocation repository, runtime interception, and admission checks; the pure slot contract package remains manifest-only."
+    api: "installed local slot provider entrypoint execution through bootstrap InstalledProviderSlot when P5 gates and ADR-0065 package-aware v3 signature gates pass"
+    not: "SlotLoader provider imports, non-installed manifest-dir execution, restricted gateway/UI/watcher/eval/governance facets, OS sandboxing, malicious-code containment, transitive dependency signing, marketplace install, or production plugin runtime"
+    adr: docs/architecture/adr-0065-provider-package-identity.md
+    reason: "Provider execution needs bootstrap-owned settings, trusted publisher keys, revocation repository, runtime interception, package-aware v3 signature verification, path-confined installed-package import, and admission checks; the pure slot contract package remains manifest-only."
     added: "2026-07-08"
 
   - purpose: tool_slot_domain_ownership
@@ -552,7 +552,7 @@ api_decisions:
   - purpose: slot_center_persistent_activation
     status: active
     api: "SQLite-backed single active bundle record plus POST /v1/slot-bundles/{bundle_id}/activate, POST /v1/slot-bundles/active/deactivate, CLI, and Web Slot Center controls"
-    not: "Auto-activating bundles, per-slot persistent enablement, enterprise bundle ACL beyond ADR-0061's HTTP activate/deactivate gate, provider execution, sandboxing, YAML manifests, provider/package signing, or marketplace behavior"
+    not: "Auto-activating bundles, per-slot persistent enablement, enterprise bundle ACL beyond ADR-0061's HTTP activate/deactivate gate, provider execution, sandboxing, YAML manifests, URL/upload install, or marketplace behavior"
     adr: docs/architecture/adr-0060-persistent-slot-bundle-activation.md
     reason: "P2 turns Slot Center from read-only local preview into a durable local alpha control surface while preserving the manifest-only safety boundary."
     added: "2026-07-08"
@@ -560,17 +560,25 @@ api_decisions:
   - purpose: slot_bundle_enterprise_acl
     status: active
     api: "Enterprise-mode HTTP slot-bundle activate/deactivate requires enterprise_acl_grants with resource_type=slot_bundle and permission=write"
-    not: "CLI ACL checks, local-demo behavior changes, deny-audit events, schema migration, install allowlist expansion, provider execution, sandboxing, YAML manifests, SDK install APIs, or marketplace behavior"
+    not: "CLI ACL checks, local-demo behavior changes, deny-audit events, schema migration, install allowlist expansion, provider execution, sandboxing, YAML manifests, URL/upload install, or marketplace behavior"
     adr: docs/architecture/adr-0061-enterprise-bundle-acl.md
     reason: "P2.5 closes the enterprise HTTP authorization gap left by ADR-0060 while keeping CLI as a local-operator trust path and preserving the local alpha posture."
     added: "2026-07-08"
 
   - purpose: slot_cryptographic_signing
     status: active
-    api: "Ed25519 v2 slot.signature.json verification over canonical SlotManifest JSON, trusted publisher keys, SQLite key revocation, and CLI sign/revoke-key"
-    not: "Provider entrypoint execution by signing alone, provider package signing, remote key distribution, sandboxing, YAML manifests, HTTP install APIs, SDK install APIs, marketplace behavior, or default-on install"
-    adr: docs/architecture/adr-0062-slot-cryptographic-signing.md
-    reason: "P3 releases only the no-cryptographic-manifest-signing invariant; ADR-0064 later consumes verified signing and revocation as required provider-execution gates."
+    api: "Ed25519 v2 manifest-only and v3 package-aware slot.signature.json verification, trusted publisher keys, SQLite key revocation with successor metadata, and CLI sign/revoke-key"
+    not: "Provider entrypoint execution by v2 signing alone, remote key distribution, sandboxing, YAML manifests, URL/upload install, marketplace behavior, or default-on install"
+    adr: docs/architecture/adr-0065-provider-package-identity.md
+    reason: "P3 releases the no-cryptographic-manifest-signing invariant; ADR-0065 extends it with v3 package-aware signatures required by installed provider execution."
+    added: "2026-07-08"
+
+  - purpose: slot_provider_package_identity
+    status: active
+    api: "v3 slot.signature.json binds canonical SlotManifest JSON plus sha256_tree_v1 provider package digest; installed provider import is path-confined to the signed package directory"
+    not: "v2 manifest-only execution eligibility, transitive dependency signing, filesystem mediation, malicious-code containment, OS/container/WASM sandboxing, Sigstore/cosign, marketplace behavior, YAML manifests, or URL/upload install"
+    adr: docs/architecture/adr-0065-provider-package-identity.md
+    reason: "P7 closes the signed-manifest-to-swapped-code gap while preserving local alpha and default-off execution posture."
     added: "2026-07-08"
 
   - purpose: slot_runtime_interception
@@ -580,6 +588,22 @@ api_decisions:
     adr: docs/architecture/adr-0063-slot-runtime-permission-interception.md
     reason: "P4 releases only the guarded-port runtime interception and subprocess hardening subset while keeping provider execution and true sandboxing deferred."
     added: "2026-07-08"
+
+  - purpose: slot_code_string_isolation
+    status: active
+    api: "Default-off DOGE_FEATURE_SLOT_CODE_STRING_ISOLATION applies Windows Job Object resource limits to run_python_analysis code strings only after Python analysis subprocess execution is explicitly enabled"
+    not: "Provider contribution-object isolation, filesystem mediation, raw network denial, malicious-code containment, POSIX hardened sandboxing, marketplace behavior, or production plugin runtime"
+    adr: docs/architecture/adr-0066-code-string-isolation-prototype.md
+    reason: "P8 can isolate the string-in/primitive-out ICodeExecutor path but cannot move live provider contribution objects out of process without a separate provider-runner protocol."
+    added: "2026-07-08"
+
+  - purpose: slot_install_surfaces
+    status: active
+    api: "Default-off local slot install through CLI, POST /v1/slots/install, Python SDK, TypeScript SDK, and Web Slot Center install modal"
+    not: "URL install, upload install, YAML manifests, marketplace/catalog behavior, client-side provider import, default-on provider execution, OS/container/WASM sandboxing, or production plugin runtime"
+    adr: docs/architecture/adr-0067-slot-install-surfaces.md
+    reason: "P9 releases the no-HTTP/no-SDK install deferrals while preserving server-side local install policy, enterprise slot ACL, allowlist/signature gates, audit, rollback-safe staging, and default-off posture."
+    added: "2026-07-09"
 
 # ============================================================================
 # PERFORMANCE BUDGETS
@@ -1136,3 +1160,27 @@ adr_index:
     path: docs/architecture/adr-0064-slot-provider-execution.md
     governs: "default-off installed trusted-provider importlib execution path with signing, revocation, runtime-interception, facet allowlist, and SlotKernel admission gates"
     depends_on: [ADR-0042, ADR-0055, ADR-0056, ADR-0057, ADR-0062, ADR-0063]
+
+  - id: ADR-0065
+    title: "Provider Package Identity"
+    status: Accepted
+    date: "2026-07-08"
+    path: docs/architecture/adr-0065-provider-package-identity.md
+    governs: "v3 package-aware slot signatures, sha256_tree_v1 provider package digest, installed package copy semantics, path-confined provider imports, and successor-key metadata"
+    depends_on: [ADR-0062, ADR-0064]
+
+  - id: ADR-0066
+    title: "Code-String Isolation Prototype and Contribution Residual"
+    status: Accepted
+    date: "2026-07-08"
+    path: docs/architecture/adr-0066-code-string-isolation-prototype.md
+    governs: "default-off Windows Job Object resource limits for run_python_analysis code strings, with provider contribution-object isolation explicitly out of scope"
+    depends_on: [ADR-0013, ADR-0063, ADR-0064, ADR-0065]
+
+  - id: ADR-0067
+    title: "Slot Install Surfaces and Operator Controls"
+    status: Accepted
+    date: "2026-07-09"
+    path: docs/architecture/adr-0067-slot-install-surfaces.md
+    governs: "default-off HTTP, Python SDK, TypeScript SDK, and Web Slot Center install surfaces with enterprise slot ACL, audit, rollback staging, and explicit installed-slot bundle policy"
+    depends_on: [ADR-0015, ADR-0054, ADR-0057, ADR-0060, ADR-0061, ADR-0062, ADR-0065]

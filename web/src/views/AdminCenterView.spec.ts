@@ -28,14 +28,20 @@ const storeMock = vi.hoisted(() => ({
   loadSlotBundles: vi.fn(async () => undefined),
   activateSlotBundle: vi.fn(async (_bundleId: string) => undefined),
   deactivateSlotBundle: vi.fn(async () => undefined),
+  installSlot: vi.fn(async (_payload: { source: string }) => slotInstallResponse('local.installed')),
 }))
 
 vi.mock('../stores/platform', () => ({
   usePlatformStore: () => storeMock,
 }))
 
+vi.mock('../config/features', () => ({
+  slotInstallUiEnabled: true,
+}))
+
 describe('AdminCenterView', () => {
   beforeEach(() => {
+    document.body.innerHTML = ''
     storeMock.loading = false
     storeMock.error = null
     storeMock.slotRows = [
@@ -57,6 +63,8 @@ describe('AdminCenterView', () => {
     storeMock.loadSlotBundles.mockClear()
     storeMock.activateSlotBundle.mockClear()
     storeMock.deactivateSlotBundle.mockClear()
+    storeMock.installSlot.mockClear()
+    storeMock.installSlot.mockResolvedValue(slotInstallResponse('local.installed'))
   })
 
   it('renders slot center summaries, slots, bundles, and capabilities', async () => {
@@ -84,6 +92,7 @@ describe('AdminCenterView', () => {
     expect(text).toContain('bundle.research_workspace')
     expect(text).toContain('bundle.local_analyst')
     expect(text).toContain('active')
+    expect(text).toContain('Install slot')
     expect(text).toContain('Activate')
     expect(text).toContain('Deactivate')
     expect(text).toContain('Capability Registry')
@@ -101,6 +110,44 @@ describe('AdminCenterView', () => {
 
     expect(storeMock.activateSlotBundle).toHaveBeenCalledWith('bundle.research_workspace')
     expect(storeMock.deactivateSlotBundle).toHaveBeenCalledWith()
+  })
+
+  it('installs a slot from the install modal and displays the result', async () => {
+    const wrapper = mount(AdminCenterView, { attachTo: document.body })
+    await flushPromises()
+
+    await buttonByText(wrapper, 'Install slot').trigger('click')
+    await flushPromises()
+    await setInstallSource('C:\\slots\\local.installed')
+    await flushPromises()
+    await clickBodyButtonByExactText('Install')
+    await flushPromises()
+
+    expect(storeMock.installSlot).toHaveBeenCalledWith({ source: 'C:\\slots\\local.installed' })
+    expect(document.body.textContent).toContain('local.installed')
+    expect(document.body.textContent).toContain('verified')
+    expect(document.body.textContent).toContain('local warning')
+    wrapper.unmount()
+  })
+
+  it('surfaces slot install errors inside the modal', async () => {
+    storeMock.installSlot.mockImplementationOnce(async () => {
+      storeMock.error = { message: 'slot access denied' }
+      throw new Error('slot access denied')
+    })
+    const wrapper = mount(AdminCenterView, { attachTo: document.body })
+    await flushPromises()
+
+    await buttonByText(wrapper, 'Install slot').trigger('click')
+    await flushPromises()
+    await setInstallSource('C:\\slots\\denied')
+    await flushPromises()
+    await clickBodyButtonByExactText('Install')
+    await flushPromises()
+
+    expect(storeMock.installSlot).toHaveBeenCalledWith({ source: 'C:\\slots\\denied' })
+    expect(document.body.textContent).toContain('slot access denied')
+    wrapper.unmount()
   })
 
   it('surfaces slot bundle permission errors through the generic alert', async () => {
@@ -197,12 +244,61 @@ function slotBundle(
   }
 }
 
+function slotInstallResponse(slotId: string) {
+  return {
+    slot_id: slotId,
+    status: 'installed',
+    installed_path: `data/slots/${slotId}/slot.json`,
+    source_path: `fixtures/${slotId}/slot.json`,
+    signature: {
+      status: 'verified',
+      signer: 'ops-key',
+      key_id: 'ops-key',
+      algorithm: 'ed25519',
+      manifest_sha256: 'abc',
+      package_digest: null,
+      signature_path: `fixtures/${slotId}/slot.signature.json`,
+      reason: '',
+      revocation_checked: true,
+    },
+    warnings: ['local warning'],
+  }
+}
+
 function buttonByText(wrapper: ReturnType<typeof mount>, label: string) {
   const button = wrapper.findAll('button').find(item => (
     item.text().includes(label) && item.attributes('disabled') === undefined
   ))
   if (!button) {
-    throw new Error(`button not found: ${label}`)
+    const labels = Array.from(document.body.querySelectorAll<HTMLButtonElement>('button'))
+      .map(item => `${item.textContent?.trim() ?? ''}${item.disabled ? ' [disabled]' : ''}`)
+      .join(', ')
+    throw new Error(`button not found: ${label}; available buttons: ${labels}`)
   }
   return button
+}
+
+async function setInstallSource(source: string) {
+  const root = document.body.querySelector<HTMLElement>('#slot-install-source')
+  const input = root instanceof HTMLInputElement
+    ? root
+    : root?.querySelector<HTMLInputElement>('input')
+  expect(input).toBeTruthy()
+  input!.value = source
+  input!.dispatchEvent(new InputEvent('input', { bubbles: true, data: source, inputType: 'insertText' }))
+  await flushPromises()
+}
+
+async function clickBodyButtonByExactText(label: string) {
+  const button = Array.from(document.body.querySelectorAll<HTMLButtonElement>('button')).find(item => (
+    item.textContent?.trim() === label && !item.disabled
+  ))
+  if (!button) {
+    const labels = Array.from(document.body.querySelectorAll<HTMLButtonElement>('button'))
+      .map(item => `${item.textContent?.trim() ?? ''}${item.disabled ? ' [disabled]' : ''}`)
+      .join(', ')
+    throw new Error(`button not found: ${label}; available buttons: ${labels}`)
+  }
+  button.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  await flushPromises()
 }

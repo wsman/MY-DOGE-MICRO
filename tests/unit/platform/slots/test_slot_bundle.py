@@ -49,3 +49,4 @@ def test_policy_from_bundle_uses_bundle_slot_sets() -> None:
 
     assert policy.enabled_slots == ("market.core",)
     assert policy.disabled_slots == ("other.slot",)
+    assert policy.installed_slots == ()

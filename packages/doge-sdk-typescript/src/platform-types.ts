@@ -188,6 +188,71 @@ export interface CapabilitySnapshot {
   capabilities: Capability[]
 }
 
+export interface SlotStatusRow {
+  id: string
+  name: string
+  version: string
+  type: string
+  owner: string
+  maturity: string
+  description: string
+  entrypoint: string
+  status: string
+  feature_flags: string[]
+  provides: {
+    tools: string[]
+    capabilities: string[]
+    metadata: JsonObject
+  }
+  requires: Array<{
+    kind: string
+    id: string
+    optional: boolean
+  }>
+  permissions: {
+    filesystem: string
+    network: string
+    shell: string
+    database: string
+    secrets: string[]
+    risk_level: string
+  }
+  health: {
+    status: string
+    notes: string
+  }
+  compatibility: {
+    runtime_min: string
+    replaces: string[]
+    breaking: boolean
+  }
+  counts: {
+    tools: number
+    capabilities: number
+  }
+}
+
+export interface SlotInstallSignature {
+  status: string
+  signer: string
+  key_id: string
+  algorithm: string
+  manifest_sha256: string
+  package_digest: JsonObject | null
+  signature_path: string
+  reason: string
+  revocation_checked: boolean
+}
+
+export interface SlotInstallResponse {
+  slot_id: string
+  status: string
+  installed_path: string
+  source_path: string
+  signature: SlotInstallSignature
+  warnings: string[]
+}
+
 export interface RunSummary {
   summary_id: string
   run_id: string
@@ -340,6 +405,10 @@ export interface CreateWorkflowTemplatePayload {
   eval_policy?: string[] | null
   approval_policy?: JsonObject | null
   ui_schema?: JsonObject | null
+}
+
+export interface InstallSlotPayload {
+  source: string
 }
 
 export interface ListProjectsOptions {

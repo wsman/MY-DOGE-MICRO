@@ -490,6 +490,47 @@ describe('DogeClient', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(13, '/v1/capabilities', expect.objectContaining({ method: 'GET' }))
   })
 
+  it('uses platform slot resources', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ slots: [{ id: 'market.core', status: 'resolved' }] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 'market.core', status: 'resolved' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          slot_id: 'local.installed',
+          status: 'installed',
+          signature: { status: 'verified' },
+          warnings: [],
+        }),
+      })
+    vi.stubGlobal('fetch', fetchMock)
+    const client = new DogeClient()
+
+    const slots = await client.platform.listSlots()
+    const slot = await client.platform.getSlot('market.core')
+    const install = await client.platform.installSlot('C:\\slots\\local.installed')
+
+    expect(slots[0].id).toBe('market.core')
+    expect(slot.id).toBe('market.core')
+    expect(install.slot_id).toBe('local.installed')
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/v1/slots', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/v1/slots/market.core', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      '/v1/slots/install',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ source: 'C:\\slots\\local.installed' }),
+      }),
+    )
+  })
+
   it('uploads documents as multipart form data without forcing json headers', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

@@ -226,6 +226,15 @@ class PlatformResource:
     def get_workflow_template(self, template_id: str) -> dict[str, Any]:
         return self._root._request("GET", f"/v1/workflow-templates/{template_id}")
 
+    def list_slots(self) -> list[dict[str, Any]]:
+        return self._root._request("GET", "/v1/slots")["slots"]
+
+    def get_slot(self, slot_id: str) -> dict[str, Any]:
+        return self._root._request("GET", f"/v1/slots/{slot_id}")
+
+    def install_slot(self, source: str) -> dict[str, Any]:
+        return self._root._request("POST", "/v1/slots/install", json={"source": source})
+
 
 class CapabilitiesResource:
     def __init__(self, root: Any) -> None:
@@ -460,6 +469,15 @@ class AsyncPlatformResource:
 
     async def get_workflow_template(self, template_id: str) -> dict[str, Any]:
         return await self._root._request("GET", f"/v1/workflow-templates/{template_id}")
+
+    async def list_slots(self) -> list[dict[str, Any]]:
+        return (await self._root._request("GET", "/v1/slots"))["slots"]
+
+    async def get_slot(self, slot_id: str) -> dict[str, Any]:
+        return await self._root._request("GET", f"/v1/slots/{slot_id}")
+
+    async def install_slot(self, source: str) -> dict[str, Any]:
+        return await self._root._request("POST", "/v1/slots/install", json={"source": source})
 
 
 class AsyncCapabilitiesResource:

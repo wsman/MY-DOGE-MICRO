@@ -83,6 +83,7 @@ from doge.platform.slots.lifecycle import (
 from doge.platform.slots.loader import ManifestOnlySlot, SlotLoader
 from doge.platform.slots.install import (
     canonical_manifest_bytes,
+    inspect_slot_install_source,
     package_tree_digest,
     sign_slot_manifest,
     SlotInstaller,
@@ -176,6 +177,7 @@ __all__ = [
     "guard_database_port",
     "guard_network_port",
     "guard_secret_provider",
+    "inspect_slot_install_source",
     "load_slot_manifest",
     "policy_for_activation",
     "sign_slot_manifest",

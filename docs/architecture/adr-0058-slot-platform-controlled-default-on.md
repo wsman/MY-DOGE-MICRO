@@ -44,6 +44,12 @@ defaults off and requires installed trusted-provider gates. ADR-0058 remains
 controlling for the default local path: provider execution is not default-on and
 does not imply production plugin readiness.
 
+Status Update - 2026-07-09: ADR-0067 supersedes ADR-0058's "no SDK install APIs"
+and "no HTTP install APIs" statement only for the new default-off local install
+surfaces. `DOGE_FEATURE_SLOT_INSTALL` still defaults off, provider execution
+still defaults off, YAML manifests and marketplace behavior remain deferred, and
+this does not promote production readiness.
+
 ## Technology Compatibility
 
 | Field | Value |

@@ -27,6 +27,45 @@ current_pushed_head_local_evidence:
     - "P0-P5 Slot Platform local evidence remains unchanged; P6 promotes only latest_remotely_verified_sha and current pushed-head evidence."
     - "External/operator gates remain open and are not closed by this remote CI result."
 
+slot_install_surfaces_p9_2026_07_09:
+  status: local_acceptance_passed_external_gates_open
+  label: "Slot Install Surfaces and Operator Controls"
+  scope:
+    - "P9 adds default-off HTTP, Python SDK, TypeScript SDK, and Web Slot Center install surfaces for the existing local slot install workflow."
+    - "POST /v1/slots/install accepts local JSON source paths only, is gated by DOGE_FEATURE_SLOT_INSTALL, reads the manifest id before mutation, applies enterprise resource_type=slot write ACL, and delegates to server-side install policy."
+    - "SlotInstaller now stages new installs and cleans staged state on copy failure before final promotion."
+    - "Successful bootstrap installs append slot_install audit metadata."
+    - "Active built-in bundle policy now allows explicit installed slot ids while still filtering unrelated built-in slots."
+    - "YAML manifests, URL install, upload install, marketplace/catalog behavior, client-side provider import, and production plugin readiness remain deferred."
+  evidence:
+    - docs/architecture/adr-0067-slot-install-surfaces.md
+    - design/cdd/p9-install-surfaces.md
+    - production/qa/evidence/slot-install-surfaces-local-acceptance-2026-07-09.md
+    - src/doge/interfaces/gateway/routers/slots.py
+    - src/doge/platform/slots/install.py
+    - src/doge/platform/slots/policy.py
+    - packages/doge-sdk-python/doge_sdk/platform.py
+    - packages/doge-sdk-typescript/src/platform.ts
+    - web/src/views/AdminCenterView.vue
+  focused_tests:
+    - "py -3 -m pytest tests\\unit\\platform\\slots\\test_slot_install.py tests\\unit\\platform\\slots\\test_slot_policy.py tests\\unit\\platform\\slots\\test_slot_bundle.py tests\\unit\\platform\\slots\\test_builtin_gateway_slot.py tests\\contract\\test_slot_kernel_bundle_rows.py tests\\contract\\test_slot_api.py tests\\contract\\test_api_doc_route_coverage.py tests\\unit\\governance\\test_s017_planning_docs.py -q => 101 passed, 2 warnings"
+    - "py -3 tools\\ci\\sdk-contract-check.py => sdk-contract-check passed (18 surfaces, 15 entity parity checks)"
+    - "npm test -- src\\__tests__\\client.spec.ts => 18 passed"
+    - "npm test -- src\\stores\\platform.spec.ts src\\views\\AdminCenterView.spec.ts => 12 passed"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+  notes:
+    - "P9 releases only the prior no-HTTP-install and no-SDK-install deferrals; it does not promote slot_install, slot_provider_execution, slot_code_string_isolation, or Web install UI to default-on."
+    - "Provider execution remains governed by ADR-0064/0065 and still requires separate default-off gates, verified v3 package-aware signatures, revocation check, runtime interception, enterprise allowlist when applicable, and SlotKernel admission."
+    - "P9 local work has not been pushed and has no exact-SHA remote CI evidence; latest_remotely_verified_sha remains a1da266a134ab6e6d2711fab6430c26616210191."
+
 slot_platform_remote_ci_p6_2026_07_08:
   status: remote_ci_verified_external_gates_open
   scope:
@@ -55,6 +94,85 @@ slot_platform_remote_ci_p6_2026_07_08:
     - "Remote CI run 28936342646 completed successfully for workflow CI, event push, exact head SHA a1da266a134ab6e6d2711fab6430c26616210191."
     - "The GitHub run URL is https://github.com/Negentropy-Laby/OpenDoge/actions/runs/28936342646 because GitHub returns the transferred canonical repository path for the historical wsman/MY-DOGE-MICRO API query."
     - "P6 closes no external/operator gate: S017-003, W3-live, AUTH-prod, and S017-007 remain open."
+
+slot_provider_package_identity_p7_2026_07_08:
+  status: local_acceptance_passed_external_gates_open
+  scope:
+    - "P7 adds provider package identity for local installed provider execution: v3 slot.signature.json sidecars bind canonical SlotManifest JSON plus a deterministic sha256_tree_v1 provider package digest."
+    - "Provider execution now requires v3 package-aware signatures; v2 sidecars remain manifest-only install/discovery compatibility evidence and do not unlock provider import."
+    - "Installed provider imports are path-confined to <install_dir>/<slot_dir_name>/package/ and rechecked at resolve time; SlotLoader and DOGE_SLOT_MANIFEST_DIRS remain manifest-only."
+    - "Key revocation records can include optional successor_key_id metadata for local rotation traceability."
+  evidence:
+    - docs/architecture/adr-0065-provider-package-identity.md
+    - design/cdd/p7-provider-package-identity.md
+    - production/qa/evidence/slot-provider-package-identity-local-acceptance-2026-07-08.md
+    - src/doge/platform/slots/install.py
+    - src/doge/bootstrap/runtime_factories/provider_slot.py
+    - src/doge/infrastructure/database/slot_signing_repository.py
+    - tests/unit/platform/slots/test_slot_install.py
+    - tests/unit/platform/slots/test_slot_provider_execution.py
+    - tests/unit/infrastructure/test_slot_signing_repository.py
+    - tests/cli/test_cli_slots.py
+  focused_tests:
+    - "py -3 -m pytest tests\\unit\\platform\\slots\\test_slot_install.py tests\\unit\\platform\\slots\\test_slot_provider_execution.py tests\\unit\\infrastructure\\test_slot_signing_repository.py tests\\cli\\test_cli_slots.py -q => 57 passed"
+    - "py -3 -m pytest tests\\unit\\infrastructure\\test_migration_runner.py -q => 7 passed"
+    - "py -3 -m pytest tests\\unit\\architecture\\test_slot_boundary.py tests\\contract\\test_slot_api.py tests\\contract\\test_slot_kernel_bundle_rows.py -q => 44 passed, 2 known FastAPI deprecation warnings"
+    - "py -3 -m pytest tests\\unit\\governance\\test_docs_consistency.py -q => 7 passed"
+    - "validate_import_boundaries, alpha maturity honesty, plan closure, docs links, docs maturity claims, governance YAML, ADR index, and Windows/WSL diff checks passed"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+  notes:
+    - "P7 closes the local package identity gap that remained after ADR-0064: a signed manifest alone is no longer sufficient for provider execution."
+    - "Local acceptance passed, but this local work has not been pushed and has no exact-SHA remote CI evidence; latest_remotely_verified_sha remains a1da266a134ab6e6d2711fab6430c26616210191."
+    - "P7 is still in-process execution and does not provide malicious-code containment, filesystem mediation, raw network denial, OS/container/WASM sandboxing, transitive dependency signing, marketplace behavior, HTTP install APIs, SDK install APIs, remote CI promotion, or external/operator gate closure."
+    - "Sigstore/cosign, validity windows, grace periods, and full key lifecycle policy remain deferred."
+
+slot_code_string_isolation_p8_2026_07_08:
+  status: local_acceptance_passed_external_gates_open
+  label: "Code-String Isolation Prototype"
+  scope:
+    - "P8 adds DOGE_FEATURE_SLOT_CODE_STRING_ISOLATION as a default-off feature flag for run_python_analysis code strings executed through ICodeExecutor.execute(code, timeout)."
+    - "The P8 flag does not enable Python analysis by itself; operators must also enable DOGE_FEATURE_PYTHON_ANALYSIS_ENABLED and select DOGE_PYTHON_ANALYSIS_EXECUTOR=subprocess."
+    - "On Windows, SubprocessCodeExecutor(isolation_enabled=True) uses stdlib ctypes Job Objects for process memory, job memory, per-process CPU-time, kill-on-job-close, scratch cwd, scrubbed environment, timeout clamp, and deterministic cleanup."
+    - "On non-Windows hosts, requested P8 isolation fails closed instead of silently running unisolated."
+    - "Provider contribution objects remain in-process under ADR-0064/0065; provider_contribution_isolation=not_provided and real provider isolation remains deferred to enterprise/container/WASM work."
+    - "The current Windows Job Object assignment happens after process creation through subprocess.Popen; this is resource-limit isolation, not pre-instruction malicious-code containment. Suspended-process create/assign/resume is deferred to a later hardening ADR or sprint."
+  evidence:
+    - docs/architecture/adr-0066-code-string-isolation-prototype.md
+    - design/cdd/p8-code-string-isolation.md
+    - production/qa/evidence/slot-code-string-isolation-local-acceptance-2026-07-08.md
+    - src/doge/infrastructure/code_execution/python.py
+    - src/doge/bootstrap/gateway_factories/tools.py
+    - src/doge/application/capabilities/registry.py
+    - tests/unit/capabilities/test_code_executor.py
+    - tests/test_settings.py
+    - tests/unit/use_cases/test_capability_registry.py
+  focused_tests:
+    - "py -3 -m pytest tests\\unit\\capabilities\\test_code_executor.py tests\\test_settings.py tests\\unit\\use_cases\\test_capability_registry.py -q => 55 passed"
+    - "py -3 -m pytest tests\\unit\\platform\\slots\\test_slot_runtime_access.py tests\\unit\\platform\\slots\\test_slot_provider_execution.py tests\\cli\\test_cli_slots.py -q => 53 passed"
+    - "py -3 -c \"from doge.infrastructure.code_execution.python import SubprocessCodeExecutor; r=SubprocessCodeExecutor(isolation_enabled=True).execute('print(123)', 1.0); print(r.ok, r.returncode, r.stdout.strip(), r.error)\" => True 0 123 None"
+    - "validate_alpha_maturity_honesty, validate_docs_maturity_claims, validate_docs_links, validate_docs_authority, validate_governance_yaml_shape, validate_adr_index_completeness, acceptable-open plan closure, and Windows/WSL whitespace checks passed"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+  notes:
+    - "P8 improves only the code-string subprocess path and must not be cited as full provider contribution-object isolation."
+    - "P8 does not provide filesystem mediation, raw network denial, malicious-code containment, transitive dependency signing, marketplace behavior, HTTP install APIs, SDK install APIs, remote CI promotion, external/operator gate closure, or maturity promotion."
+    - "P7/ADR-0065 provides package identity for installed provider code; P8 does not turn package identity into runtime containment."
+    - "P8 local work has not been pushed and has no exact-SHA remote CI evidence; latest_remotely_verified_sha remains a1da266a134ab6e6d2711fab6430c26616210191."
 
 maturity_labels:
   level_1_embedded_cli_session: alpha
@@ -955,7 +1073,7 @@ slot_cryptographic_signing_2026_07_08:
     - "SQLite slot_signer_revocations stores revoked key ids; verification reports revoked before accepting a trusted key."
     - "CLI adds doge slots sign and doge slots revoke-key, both gated by DOGE_FEATURE_SLOT_INSTALL."
     - "v1 metadata sidecars are still readable as legacy and do not satisfy enterprise verified-signature policy."
-    - "This releases only the no-cryptographic-manifest-signing invariant; slot_install remains default off and installed slots remain manifest-only."
+    - "This releases only the no-cryptographic-manifest-signing invariant; at P3 acceptance slot_install remained default off and installed slots remained manifest-only. ADR-0064/0065 later add default-off provider execution and package-aware v3 sidecars."
     - "No provider execution, OS/container/WASM sandboxing, YAML manifest parser, HTTP install API, SDK install API, marketplace, external-gate closure, remote CI assertion, latest_remotely_verified_sha promotion, or maturity promotion is part of P3."
   evidence:
     - docs/architecture/adr-0062-slot-cryptographic-signing.md
@@ -1035,7 +1153,7 @@ slot_provider_execution_2026_07_08:
     - "SlotLoader and DOGE_SLOT_MANIFEST_DIRS remain manifest-only discovery paths and never import provider entrypoints."
     - "Allowed installed-provider facets are tools, model_backends, workflows, data_sources, and document_parsers; gateway routes, UI panels, watchers, eval suites, and governance policies are restricted."
     - "Status rows now report execution_eligible, execution_blockers, and signature metadata without importing provider code."
-    - "No filesystem mediation, OS/container/WASM sandboxing, malicious-code containment, provider package signing, YAML manifest parser, HTTP install API, SDK install API, marketplace, external-gate closure, remote CI assertion, latest_remotely_verified_sha promotion, or maturity promotion is part of P5."
+    - "No filesystem mediation, OS/container/WASM sandboxing, malicious-code containment, provider package signing, YAML manifest parser, HTTP install API, SDK install API, marketplace, external-gate closure, remote CI assertion, latest_remotely_verified_sha promotion, or maturity promotion is part of P5; ADR-0065 later closes only the local provider package identity gap."
   evidence:
     - docs/architecture/adr-0064-slot-provider-execution.md
     - design/cdd/p5-slot-provider-execution.md

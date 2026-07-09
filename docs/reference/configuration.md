@@ -30,8 +30,8 @@ Five local Slot Platform flags now default on for the controlled built-in path:
 `DOGE_FEATURE_SLOT_PLATFORM`, `DOGE_FEATURE_SLOT_GOVERNANCE`,
 `DOGE_FEATURE_SLOT_WATCHER`, `DOGE_FEATURE_WORKFLOW_TEMPLATES`, and
 `DOGE_FEATURE_SLOT_LOADER`. Operators can opt out with `=0` / `false`.
-Higher-risk install, enforcement, runtime interception, UI-slot, and provider
-execution surfaces remain default off.
+Higher-risk install, enforcement, runtime interception, UI-slot, provider
+execution, code-string isolation, and Web install UI surfaces remain default off.
 
 | Variable | Default | Meaning |
 |----------|---------|---------|
@@ -43,8 +43,9 @@ execution surfaces remain default off.
 | `DOGE_FEATURE_SLOT_UI` | off | Enables experimental UI panel slot contribution resolution and read-only `/v1/ui-panels` discovery. Requires `DOGE_FEATURE_SLOT_PLATFORM=1` for live slot resolution. |
 | `DOGE_FEATURE_SLOT_ENFORCEMENT` | off | Enables experimental SlotKernel permission and active-health enforcement. Requires `DOGE_FEATURE_SLOT_PLATFORM=1` for live slot resolution. |
 | `DOGE_FEATURE_SLOT_RUNTIME_INTERCEPTION` | off | Enables experimental in-process runtime guards for built-in slot db/secret/network port access. Requires slot-aware execution paths; does not provide filesystem mediation or OS/container/WASM isolation. |
-| `DOGE_FEATURE_SLOT_INSTALL` | off | Enables experimental manifest-only local third-party slot install preview. Requires `DOGE_FEATURE_SLOT_PLATFORM=1` and `DOGE_FEATURE_SLOT_LOADER=1`. |
-| `DOGE_FEATURE_SLOT_PROVIDER_EXECUTION` | off | Enables experimental local installed-provider importlib execution only after slot platform, loader, install, runtime interception, trusted Ed25519 signature, revocation check, and SlotKernel admission gates pass. This is not OS/container/WASM sandboxing. |
+| `DOGE_FEATURE_SLOT_INSTALL` | off | Enables experimental local slot install surfaces: `doge slots install` and `POST /v1/slots/install`. Requires `DOGE_FEATURE_SLOT_PLATFORM=1` and `DOGE_FEATURE_SLOT_LOADER=1`; install never imports provider code by itself. |
+| `DOGE_FEATURE_SLOT_PROVIDER_EXECUTION` | off | Enables experimental local installed-provider importlib execution only after slot platform, loader, install, runtime interception, trusted v3 package-aware Ed25519 signature, revocation check, and SlotKernel admission gates pass. This is not OS/container/WASM sandboxing. |
+| `DOGE_FEATURE_SLOT_CODE_STRING_ISOLATION` | off | Enables the P8 code-string isolation prototype for `run_python_analysis` only. Requires `DOGE_FEATURE_PYTHON_ANALYSIS_ENABLED=1` and `DOGE_PYTHON_ANALYSIS_EXECUTOR=subprocess`; Windows uses Job Object resource limits, and non-Windows requests fail closed. |
 | `DOGE_FEATURE_CAPABILITY_REGISTRY` | off | Enables experimental capability discovery APIs. |
 | `DOGE_FEATURE_PYTHON_ANALYSIS_ENABLED` | off | Enables the high-risk Python analysis feature only when paired with a non-disabled executor. |
 
@@ -55,19 +56,24 @@ Runtime interception is P4 in-process mediation for guarded db/secret/network
 ports after a built-in slot call is executing. Runtime interception is not a
 malicious-code boundary: direct filesystem, socket, sqlite, or process access
 outside guarded ports remains future sandbox work. The Python analysis subprocess is
-also hardened with secret env scrub and a scratch cwd, but Windows remains a
-soft boundary without rlimit/seccomp/chroot-style isolation.
+also hardened with secret env scrub and a scratch cwd. If
+`DOGE_FEATURE_SLOT_CODE_STRING_ISOLATION=1` is added on Windows, that
+code-string subprocess is assigned to a Job Object for process memory, job
+memory, CPU-time, and kill-on-job-close limits. Off Windows, requesting P8
+isolation fails closed instead of silently running unisolated. This applies only
+to `run_python_analysis` code strings; provider contribution objects remain
+in-process and are not OS/container/WASM isolated.
 
 ## Slot Platform Install Preview
 
 | Variable | Meaning |
 |----------|---------|
 | `DOGE_SLOT_MANIFEST_DIRS` | CSV list of JSON manifest files or directories loaded as manifest-only slots when `DOGE_FEATURE_SLOT_LOADER=1`. |
-| `DOGE_SLOT_INSTALL_DIR` | Local directory where `doge slots install` copies validated manifest-only slot previews. |
+| `DOGE_SLOT_INSTALL_DIR` | Local directory where `doge slots install` and `POST /v1/slots/install` copy validated installed slot records and verified v3 package directories when present. |
 | `DOGE_SLOT_ENTERPRISE_ALLOWLIST` | CSV slot-id allowlist required for install preview in `DOGE_AUTH_MODE=enterprise`. |
-| `DOGE_SLOT_TRUSTED_PUBLISHER_KEYS` | CSV `key_id=base64_ed25519_public_key` pairs trusted for v2 `slot.signature.json` Ed25519 manifest signatures. |
-| `DOGE_SLOT_TRUSTED_SIGNERS` | Deprecated legacy v1 metadata signer names. Kept only so old sidecars can be reported as `legacy`; enterprise install requires verified v2 signatures. |
-| `DOGE_SLOT_ALLOW_UNSIGNED_LOCAL` | Allows unsigned local-demo manifest installs when true; enterprise mode still requires allowlist and verified v2 Ed25519 signature. |
+| `DOGE_SLOT_TRUSTED_PUBLISHER_KEYS` | CSV `key_id=base64_ed25519_public_key` pairs trusted for v2 manifest signatures and v3 package-aware `slot.signature.json` signatures. |
+| `DOGE_SLOT_TRUSTED_SIGNERS` | Deprecated legacy v1 metadata signer names. Kept only so old sidecars can be reported as `legacy`; enterprise install requires verified Ed25519 signature metadata. |
+| `DOGE_SLOT_ALLOW_UNSIGNED_LOCAL` | Allows unsigned local-demo manifest installs when true; enterprise mode still requires allowlist and verified Ed25519 signature metadata. |
 
 `DOGE_SLOT_TRUSTED_PUBLISHER_KEYS` may also be supplied through the canonical
 secret name `slot.trusted_publisher_keys` when `DOGE_SECRET_PROVIDER=process`.
@@ -77,10 +83,31 @@ Slot signing-key revocations are stored in the local agent database table
 `slot_signer_revocations` and are managed by `doge slots revoke-key`. There is
 no separate revocation environment variable.
 
-v2 sidecars are Ed25519 signatures over canonical SlotManifest JSON bytes. v1
-sidecars from Sprint 047 remain readable as `legacy` but are not cryptographic,
-do not satisfy enterprise verified-signature policy, and do not make a slot
-execution eligible.
+v2 sidecars are Ed25519 signatures over canonical SlotManifest JSON bytes. v3
+sidecars extend v2 by also signing a canonical deterministic `sha256_tree_v1`
+digest of the provider `package/` directory. v1 sidecars from Sprint 047 remain
+readable as `legacy` but are not cryptographic, do not satisfy enterprise
+verified-signature policy, and do not make a slot execution eligible. Provider
+execution requires verified v3 package-aware sidecars; v2 remains
+manifest-only install/discovery compatibility evidence.
+
+`POST /v1/slots/install` accepts only local filesystem sources:
+
+```json
+{ "source": "C:\\path\\to\\slot-or-slot-json" }
+```
+
+The HTTP route is unavailable unless `DOGE_FEATURE_SLOT_INSTALL=1`. In
+enterprise mode it also requires the slot id to be present in
+`DOGE_SLOT_ENTERPRISE_ALLOWLIST` and an `enterprise_acl_grants` write grant for
+`resource_type=slot`. The route delegates to the same server-side install policy
+as CLI and does not fetch URLs, accept uploads, parse YAML, or import provider
+code.
+
+The Web Slot Center install modal is controlled by frontend flag
+`VITE_DOGE_FEATURE_SLOT_INSTALL_UI`, default off. Enabling the Web flag only
+shows the button; the backend `DOGE_FEATURE_SLOT_INSTALL` gate and server policy
+still decide whether an install can run.
 
 ## Slot Provider Execution
 
@@ -95,15 +122,18 @@ Execution eligibility requires:
 - `DOGE_FEATURE_SLOT_INSTALL=1`
 - `DOGE_FEATURE_SLOT_RUNTIME_INTERCEPTION=1`
 - `DOGE_FEATURE_SLOT_PROVIDER_EXECUTION=1`
-- a v2 Ed25519 signature with a trusted `DOGE_SLOT_TRUSTED_PUBLISHER_KEYS`
+- a v3 package-aware Ed25519 signature with a trusted `DOGE_SLOT_TRUSTED_PUBLISHER_KEYS`
   key id
 - signing-key revocation lookup in `slot_signer_revocations`
 - `DOGE_SLOT_ENTERPRISE_ALLOWLIST` in enterprise mode
 - SlotKernel policy/enforcement admission
 
-P5 provider execution is in-process importlib execution. It is not filesystem
-mediation, malicious-code containment, provider package signing, marketplace
-install, or OS/container/WASM sandboxing.
+Provider execution is in-process importlib execution from the installed signed
+`package/` directory. P7 package identity binds manifest bytes and local package
+bytes, but it is not filesystem mediation, malicious-code containment,
+transitive dependency signing, marketplace install, or OS/container/WASM
+sandboxing. P8 code-string isolation does not isolate provider contribution
+objects.
 
 ## Enterprise ACL Resource Types
 
@@ -113,8 +143,10 @@ not `DOGE_SLOT_ENTERPRISE_ALLOWLIST`. Grant `resource_type=slot_bundle`,
 `enterprise_acl_grants` to authorize `POST /v1/slot-bundles/{bundle_id}/activate`
 and `POST /v1/slot-bundles/active/deactivate`.
 
-`DOGE_SLOT_ENTERPRISE_ALLOWLIST` remains scoped to the manifest-only install
-preview path.
+Enterprise HTTP slot install also uses database ACL grants. Grant
+`resource_type=slot`, `resource_id=<slot id>` or `*`, and `permission=write` or
+`*` to authorize `POST /v1/slots/install`. `DOGE_SLOT_ENTERPRISE_ALLOWLIST`
+still applies to slot install in addition to ACL and verified signature policy.
 
 A high-level overview of Slot Platform status, default-on/default-off flags,
 and built-in slot consumers is in the repository README:

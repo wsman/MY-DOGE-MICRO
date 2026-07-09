@@ -244,6 +244,29 @@ def deactivate_slot_bundle(
     )
 
 
+def install_slot(
+    source: str,
+    settings: Settings | None = None,
+    *,
+    actor_hash: str = "local-api",
+    tenant_id: str = "local",
+    request_id: str | None = None,
+    governance_repo=None,
+):
+    """Install a slot manifest through the server-side slot installer."""
+
+    from doge.bootstrap.runtime_factories.slots import install_slot
+
+    return install_slot(
+        source,
+        settings if settings is not None else get_settings(),
+        governance_repo=governance_repo or get_enterprise_governance_repository(),
+        actor_hash=actor_hash,
+        tenant_id=tenant_id,
+        request_id=request_id,
+    )
+
+
 def get_slot_ui_panel_rows(
     settings: Settings | None = None,
     *,

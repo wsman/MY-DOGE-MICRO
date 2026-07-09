@@ -41,6 +41,28 @@ def test_policy_enabled_list_excludes_other_slots(stub_slot, slot_context_factor
     )
 
 
+def test_policy_enabled_list_allows_explicit_installed_slot(stub_slot, slot_context_factory) -> None:
+    policy = SlotPolicy(enabled_slots=("other.slot",), installed_slots=("market.core",))
+
+    assert policy.allows(
+        stub_slot.manifest(),
+        slot_context_factory({"slot_platform": True}),
+    )
+
+
+def test_policy_disabled_list_wins_over_installed_slot(stub_slot, slot_context_factory) -> None:
+    policy = SlotPolicy(
+        enabled_slots=("other.slot",),
+        disabled_slots=("market.core",),
+        installed_slots=("market.core",),
+    )
+
+    assert not policy.allows(
+        stub_slot.manifest(),
+        slot_context_factory({"slot_platform": True}),
+    )
+
+
 def test_policy_can_ignore_feature_flags_for_static_diagnostics(
     stub_slot,
     slot_context_factory,

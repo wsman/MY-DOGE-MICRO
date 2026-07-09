@@ -19,6 +19,7 @@ import {
   getResearchCase,
   getWorkflowTemplate,
   getWorkspace,
+  installSlot,
   linkResearchCaseRun,
   listCaseAssets,
   listCaseDecisions,
@@ -61,6 +62,7 @@ vi.mock('../api/platform', () => ({
   createResearchCase: vi.fn(),
   createResearchCaseRunFromTemplate: vi.fn(),
   createWorkflowTemplate: vi.fn(),
+  installSlot: vi.fn(),
   linkResearchCaseRun: vi.fn(),
   preflightCaseExecution: vi.fn(),
   executeCaseTemplate: vi.fn(),
@@ -124,6 +126,7 @@ describe('platform store', () => {
     vi.mocked(createProject).mockResolvedValue(project('prj-2', 'wsp-2', 'Second Research'))
     vi.mocked(createResearchCase).mockResolvedValue(researchCase('case-2', 'prj-2'))
     vi.mocked(createWorkflowTemplate).mockResolvedValue(workflowTemplate('tpl-2'))
+    vi.mocked(installSlot).mockResolvedValue(slotInstallResponse('local.installed'))
     vi.mocked(createResearchCaseRunFromTemplate).mockResolvedValue({
       case_id: 'case-2',
       run_id: 'run-template',
@@ -337,6 +340,19 @@ describe('platform store', () => {
     expect(store.slotBundlesById['bundle.research_workspace'].active).toBe(false)
   })
 
+  it('installs a slot and refreshes slot center snapshots', async () => {
+    vi.mocked(listSlots).mockResolvedValueOnce([slotRow('local.installed', 'resolved')])
+    vi.mocked(listSlotBundles).mockResolvedValueOnce([slotBundle('bundle.research_workspace', false)])
+    const store = usePlatformStore()
+
+    const payload = await store.installSlot({ source: 'C:\\slots\\local.installed' })
+
+    expect(installSlot).toHaveBeenCalledWith({ source: 'C:\\slots\\local.installed' })
+    expect(payload.slot_id).toBe('local.installed')
+    expect(store.slotRowsById['local.installed'].status).toBe('resolved')
+    expect(store.slotBundlesById['bundle.research_workspace'].active).toBe(false)
+  })
+
   it('surfaces request errors and clears loading state', async () => {
     vi.mocked(listWorkspaces).mockRejectedValueOnce(new Error('platform disabled'))
     const store = usePlatformStore()
@@ -490,6 +506,27 @@ function slotBundle(bundleId: string, active = false) {
       disabled: 1,
       missing: 0,
     },
+  }
+}
+
+function slotInstallResponse(slotId: string) {
+  return {
+    slot_id: slotId,
+    status: 'installed',
+    installed_path: `data/slots/${slotId}/slot.json`,
+    source_path: `fixtures/${slotId}/slot.json`,
+    signature: {
+      status: 'verified',
+      signer: 'ops-key',
+      key_id: 'ops-key',
+      algorithm: 'ed25519',
+      manifest_sha256: 'abc',
+      package_digest: null,
+      signature_path: `fixtures/${slotId}/slot.signature.json`,
+      reason: '',
+      revocation_checked: true,
+    },
+    warnings: ['local warning'],
   }
 }
 

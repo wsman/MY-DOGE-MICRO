@@ -19,6 +19,7 @@ import {
   getResearchCase,
   getWorkflowTemplate,
   getWorkspace,
+  installSlot as installSlotApi,
   linkResearchCaseRun as linkResearchCaseRunApi,
   listCaseAssets,
   listCaseDecisions,
@@ -33,6 +34,8 @@ import {
   preflightCaseExecution as preflightCaseExecutionApi,
   recordCaseDecision as recordCaseDecisionApi,
   type SlotBundleRow,
+  type InstallSlotPayload,
+  type SlotInstallResponse,
   type SlotStatusRow,
   type UiPanel,
 } from '../api/platform'
@@ -157,6 +160,16 @@ export const usePlatformStore = defineStore('platform', () => {
       slotRows.value = slots
       slotBundles.value = bundles
       return payload
+    })
+  }
+
+  async function installSlot(payload: InstallSlotPayload): Promise<SlotInstallResponse> {
+    return await runTracked(async () => {
+      const result = await installSlotApi(payload)
+      const [slots, bundles] = await Promise.all([listSlots(), listSlotBundles()])
+      slotRows.value = slots
+      slotBundles.value = bundles
+      return result
     })
   }
 
@@ -403,6 +416,7 @@ export const usePlatformStore = defineStore('platform', () => {
     loadSlotBundles,
     activateSlotBundle,
     deactivateSlotBundle,
+    installSlot,
     loadWorkspaces,
     loadWorkspace,
     loadProjects,

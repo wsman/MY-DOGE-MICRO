@@ -13,6 +13,7 @@ import type {
   CreateResearchCaseRunFromTemplatePayload,
   CreateWorkflowTemplatePayload,
   CreateWorkspacePayload,
+  InstallSlotPayload,
   LinkResearchCaseRunPayload,
   ListProjectsOptions,
   ListResearchCasesOptions,
@@ -25,11 +26,15 @@ import type {
   RunEval,
   RunSummary,
   RunSummaryResources,
+  SlotInstallResponse,
+  SlotStatusRow,
   TemplatePreflightResult,
   WorkflowExecution,
   WorkflowTemplate,
   Workspace,
 } from 'doge-sdk'
+
+export type { InstallSlotPayload, SlotInstallResponse, SlotStatusRow }
 
 export interface UiPanel {
   panel_id: string
@@ -44,50 +49,6 @@ export interface UiPanel {
 
 export interface UiPanelListResponse {
   panels: UiPanel[]
-}
-
-export interface SlotStatusRow {
-  id: string
-  name: string
-  version: string
-  type: string
-  owner: string
-  maturity: string
-  description: string
-  entrypoint: string
-  status: string
-  feature_flags: string[]
-  provides: {
-    tools: string[]
-    capabilities: string[]
-    metadata: Record<string, unknown>
-  }
-  requires: Array<{
-    kind: string
-    id: string
-    optional: boolean
-  }>
-  permissions: {
-    filesystem: string
-    network: string
-    shell: string
-    database: string
-    secrets: string[]
-    risk_level: string
-  }
-  health: {
-    status: string
-    notes: string
-  }
-  compatibility: {
-    runtime_min: string
-    replaces: string[]
-    breaking: boolean
-  }
-  counts: {
-    tools: number
-    capabilities: number
-  }
 }
 
 export interface SlotListResponse {
@@ -138,8 +99,7 @@ export async function listUiPanels(workspace = 'research_workspace'): Promise<Ui
 }
 
 export async function listSlots(): Promise<SlotStatusRow[]> {
-  const payload = await dogeClient.request<SlotListResponse>('GET', '/v1/slots')
-  return payload.slots
+  return await dogeClient.platform.listSlots()
 }
 
 export async function listSlotBundles(): Promise<SlotBundleRow[]> {
@@ -153,6 +113,10 @@ export async function activateSlotBundle(bundleId: string): Promise<SlotBundleAc
 
 export async function deactivateSlotBundle(): Promise<SlotBundleActivationResponse> {
   return await dogeClient.request<SlotBundleActivationResponse>('POST', '/v1/slot-bundles/active/deactivate')
+}
+
+export async function installSlot(payload: InstallSlotPayload): Promise<SlotInstallResponse> {
+  return await dogeClient.platform.installSlot(payload.source)
 }
 
 export async function listWorkspaces(limit = 100): Promise<Workspace[]> {

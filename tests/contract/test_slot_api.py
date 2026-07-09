@@ -1,17 +1,23 @@
 from __future__ import annotations
 
+import base64
+import json
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from doge.core.ports.enterprise_auth import AuthenticatedPrincipal
 from doge.core.ports.enterprise_governance import EnterpriseAclGrant
 from doge.core.ports.slot_activation_repository import SlotActivationRecord
 from doge.config import Settings
-from doge.config.settings import FeatureConfig
+from doge.config.settings import AuthConfig, DBConfig, FeatureConfig, SlotConfig
 from doge.bootstrap.runtime_factories.slots import clear_slot_bundle_activation
 from doge.interfaces.api import deps
 from doge.interfaces.api.middleware.tenant_context import TenantContextMiddleware
 from doge.interfaces.gateway.routers import slots
+from doge.platform.slots import sign_slot_manifest
 
 
 class _Provider:
@@ -257,6 +263,131 @@ def test_slot_bundle_activation_api_is_feature_flagged() -> None:
     assert deactivate_response.json()["detail"] == "slot loader API disabled"
 
 
+def test_slot_install_api_is_feature_flagged(tmp_path) -> None:
+    manifest = _write_manifest(tmp_path / "source", "local.api")
+    app = _app(
+        slot_platform=True,
+        slot_install=False,
+        install_dir=tmp_path / "installed",
+        db_dir=tmp_path / "db",
+    )
+
+    with TestClient(app) as client:
+        response = client.post("/v1/slots/install", json={"source": str(manifest.parent)})
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "slot install API disabled"
+
+
+def test_slot_install_api_installs_local_manifest_and_audits(tmp_path) -> None:
+    manifest = _write_manifest(tmp_path / "source", "local.api")
+    install_dir = tmp_path / "installed"
+    governance = _MemoryGovernanceRepository()
+    app = _app(
+        slot_platform=True,
+        slot_install=True,
+        install_dir=install_dir,
+        db_dir=tmp_path / "db",
+        governance_repo=governance,
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/v1/slots/install",
+            json={"source": str(manifest.parent)},
+            headers={"X-Request-ID": "req-install"},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["slot_id"] == "local.api"
+    assert payload["status"] == "installed"
+    assert payload["signature"]["status"] == "missing"
+    assert payload["warnings"] == ["unsigned local slot manifest"]
+    assert (install_dir / "local_api" / "slot.json").exists()
+    assert governance.events[-1]["event_type"] == "slot_install"
+    assert governance.events[-1]["resource_type"] == "slot"
+    assert governance.events[-1]["resource_id"] == "local.api"
+    assert governance.events[-1]["request_id"] == "req-install"
+
+
+def test_slot_install_api_maps_bad_source_to_400(tmp_path) -> None:
+    app = _app(
+        slot_platform=True,
+        slot_install=True,
+        install_dir=tmp_path / "installed",
+        db_dir=tmp_path / "db",
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/v1/slots/install",
+            json={"source": str(tmp_path / "missing")},
+        )
+
+    assert response.status_code == 400
+    assert "slot install source does not exist" in response.json()["detail"]
+
+
+def test_enterprise_slot_install_requires_slot_write_acl_before_mutation(tmp_path) -> None:
+    _write_manifest(tmp_path / "source", "local.api")
+    install_dir = tmp_path / "installed"
+    governance = _MemoryGovernanceRepository()
+    app = _app(
+        slot_platform=True,
+        slot_install=True,
+        install_dir=install_dir,
+        db_dir=tmp_path / "db",
+        governance_repo=governance,
+        enterprise=True,
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/v1/slots/install",
+            json={"source": str(tmp_path / "source")},
+            headers=_headers(),
+        )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "slot access denied"
+    assert not (install_dir / "local_api").exists()
+    assert governance.events == []
+
+
+def test_enterprise_slot_install_allows_signed_allowlisted_slot_with_acl(tmp_path) -> None:
+    manifest = _write_manifest(tmp_path / "source", "local.signed")
+    public_key = _sign_manifest(manifest, key_id="ops-key")
+    install_dir = tmp_path / "installed"
+    governance = _MemoryGovernanceRepository()
+    governance.grant(_grant("slot", "local.signed", "write"))
+    app = _app(
+        slot_platform=True,
+        slot_install=True,
+        install_dir=install_dir,
+        db_dir=tmp_path / "db",
+        governance_repo=governance,
+        enterprise=True,
+        enterprise_allowlist=("local.signed",),
+        trusted_publisher_keys={"ops-key": public_key},
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/v1/slots/install",
+            json={"source": str(manifest.parent)},
+            headers=_headers("req-slot-allow"),
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "installed"
+    assert payload["signature"]["status"] == "verified"
+    assert (install_dir / "local_signed" / "slot.signature.json").exists()
+    assert governance.events[-1]["event_type"] == "slot_install"
+    assert governance.events[-1]["request_id"] == "req-slot-allow"
+
+
 def test_slot_bundle_activation_api_marks_active_bundle() -> None:
     clear_slot_bundle_activation()
     governance = _MemoryGovernanceRepository()
@@ -466,6 +597,11 @@ def _app(
     slot_watcher: bool = False,
     slot_ui: bool = False,
     slot_loader: bool = True,
+    slot_install: bool = False,
+    install_dir=None,
+    db_dir=None,
+    enterprise_allowlist: tuple[str, ...] = (),
+    trusted_publisher_keys: dict[str, str] | None = None,
     activation_repo=None,
     governance_repo=None,
     enterprise: bool = False,
@@ -496,7 +632,15 @@ def _app(
             slot_watcher=slot_watcher,
             slot_ui=slot_ui,
             slot_loader=slot_loader,
-        )
+            slot_install=slot_install,
+        ),
+        auth=AuthConfig(mode="enterprise" if enterprise else "local_demo"),
+        db=DBConfig(dir=db_dir) if db_dir is not None else DBConfig(),
+        slots=SlotConfig(
+            install_dir=install_dir if install_dir is not None else SlotConfig().install_dir,
+            enterprise_allowlist=enterprise_allowlist,
+            trusted_publisher_keys=trusted_publisher_keys or {},
+        ),
     )
     app.dependency_overrides[deps.get_slot_activation_repository] = lambda: activation_repo
     app.dependency_overrides[deps.get_enterprise_governance_repository] = lambda: governance_repo
@@ -587,3 +731,49 @@ def _grant(
 
 def _headers(request_id: str = "req-test") -> dict[str, str]:
     return {"Authorization": "Bearer token", "X-Request-ID": request_id}
+
+
+def _write_manifest(directory, slot_id: str):
+    directory.mkdir(parents=True, exist_ok=True)
+    manifest_path = directory / "slot.json"
+    manifest_path.write_text(json.dumps(_manifest(slot_id)), encoding="utf-8")
+    return manifest_path
+
+
+def _manifest(slot_id: str) -> dict:
+    return {
+        "schema_version": 1,
+        "id": slot_id,
+        "name": "Local API Slot",
+        "version": "0.1.0",
+        "type": "workflow",
+        "owner": "doge.local",
+        "maturity": "experimental",
+        "description": "Local slot install API test manifest.",
+        "entrypoint": "doge.local.preview",
+        "provides": {"capabilities": ["local_preview"]},
+        "permissions": {},
+        "feature_flags": ["slot_platform"],
+    }
+
+
+def _sign_manifest(manifest_path, *, key_id: str) -> str:
+    private_key = Ed25519PrivateKey.generate()
+    private_key_path = manifest_path.parent / f"{key_id}.pem"
+    private_key_path.write_bytes(
+        private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+    )
+    sign_slot_manifest(
+        manifest_path,
+        private_key_path=private_key_path,
+        key_id=key_id,
+    )
+    public_key = private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
+    return base64.b64encode(public_key).decode("ascii")

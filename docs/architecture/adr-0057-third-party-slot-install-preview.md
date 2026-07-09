@@ -18,6 +18,18 @@ executed" statement only for an explicit, default-off, installed,
 trusted-publisher, revocation-checked, runtime-intercepted local alpha path.
 ADR-0057 remains accurate for install preview and manifest-only discovery.
 
+## Status Update - 2026-07-09
+
+ADR-0067 supersedes this ADR's "no HTTP install route" and "no SDK slot client"
+deferrals. The same local-path install workflow is now available through
+`POST /v1/slots/install`, Python SDK platform methods, TypeScript SDK platform
+methods, and a default-off Web Slot Center install modal.
+
+The P9 surfaces still delegate to server-side install policy. They do not add
+URL install, upload install, YAML manifests, marketplace behavior, client-side
+provider import, default-on install, external gate closure, or production
+readiness.
+
 ## Date
 
 2026-07-07
