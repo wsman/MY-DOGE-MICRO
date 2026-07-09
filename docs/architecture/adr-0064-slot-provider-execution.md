@@ -36,7 +36,8 @@ Gateway routes, UI panels, watchers, eval suites, and governance policies were
 not executable from installed third-party providers in P5. ADR-0068 later
 releases `eval_suites`; ADR-0069 later releases static `ui_panels` metadata.
 ADR-0070 later releases slot-scoped `watchers`. The other restricted facets
-remain blocked.
+remained blocked at ADR-0070 acceptance; ADR-0071 later releases
+`governance_policies`. `routes` remains blocked.
 
 This ADR does not add OS/container/WASM sandboxing, filesystem mediation,
 provider package signing, malicious-code containment, marketplace behavior,
@@ -72,6 +73,11 @@ governance policies remain restricted.
 Status Update - 2026-07-09: ADR-0070 releases only the `watchers` restricted
 facet for installed, v3 package-signed, operator-gated providers. Gateway
 routes and governance policies remain restricted.
+
+Status Update - 2026-07-09: ADR-0071 releases only the `governance_policies`
+restricted facet for installed, v3 package-signed, operator-gated providers.
+Provider policies use monotonic tool-entitlement composition and slot-scoped
+factory/checker execution. Gateway routes remain restricted.
 
 ## Technology Compatibility
 

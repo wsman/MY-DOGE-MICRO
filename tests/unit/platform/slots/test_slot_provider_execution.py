@@ -16,12 +16,14 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from doge.bootstrap.runtime_factories.slots import (
     build_builtin_slot_kernel,
     build_slot_aware_eval_suites,
+    build_slot_aware_entitlement_checker,
     build_slot_aware_runtime_event_watcher,
     build_slot_aware_ui_panels,
     build_slot_status_rows,
 )
 from doge.config.settings import AuthConfig, DBConfig, FeatureConfig, Settings, SlotConfig
 from doge.core.domain.agent_models import AgentEvent, EventType
+from doge.core.domain.tool_policy import ToolCategory
 from doge.infrastructure.database.slot_signing_repository import SQLiteSlotSigningRepository
 from doge.platform.slots import (
     SlotConfigurationError,
@@ -136,6 +138,22 @@ def test_provider_execution_allows_scoped_watcher_facets_after_p10_gate(
     decision = decisions["provider.watcher.allow"]
     assert decision.action == "allow"
     assert decision.reason == f"{installed.slot_id}:True"
+    assert installed.import_marker.read_text(encoding="utf-8") == "imported"
+
+
+def test_provider_execution_allows_scoped_governance_policy_facets_after_p10_gate(
+    tmp_path, monkeypatch
+) -> None:
+    installed = _installed_provider(tmp_path, monkeypatch, slot_type="governance")
+    settings = _settings(tmp_path, installed, provider_execution=True, slot_governance=True)
+
+    checker = build_slot_aware_entitlement_checker(settings=settings)
+
+    assert checker.can_execute(object(), "dangerous_tool", ToolCategory.FORBIDDEN) is False
+    assert checker.can_execute(object(), "query_stock", ToolCategory.READ_ONLY) is True
+    assert installed.lifecycle_marker.read_text(encoding="utf-8") == (
+        f"can_execute:{installed.slot_id}:True:query_stock"
+    )
     assert installed.import_marker.read_text(encoding="utf-8") == "imported"
 
 
@@ -552,6 +570,7 @@ def _settings(
     trusted_publisher_keys: dict[str, str] | None = None,
     slot_ui: bool = False,
     slot_watcher: bool = False,
+    slot_governance: bool = False,
 ) -> Settings:
     return Settings(
         db=DBConfig(dir=tmp_path / "db"),
@@ -564,6 +583,7 @@ def _settings(
             slot_provider_execution=provider_execution,
             slot_ui=slot_ui,
             slot_watcher=slot_watcher,
+            slot_governance=slot_governance,
         ),
         slots=SlotConfig(
             manifest_dirs=manifest_dirs,
@@ -666,6 +686,24 @@ def _manifest(
             "permissions": {"risk_level": "low"},
             "feature_flags": ["slot_platform", "slot_watcher"],
         }
+    if slot_type == "governance":
+        return {
+            "schema_version": 1,
+            "id": slot_id,
+            "name": "Third-party Governance Policy",
+            "version": "0.1.0",
+            "type": "governance",
+            "owner": "vendor",
+            "maturity": "experimental",
+            "description": "Trusted local governance policy provider fixture.",
+            "entrypoint": entrypoint,
+            "provides": {
+                "capabilities": ["tool_entitlement", "provider_governance_policy"],
+                "metadata": {"policy": "read_only"},
+            },
+            "permissions": {"risk_level": "low"},
+            "feature_flags": ["slot_platform", "slot_governance"],
+        }
     if slot_type != "workflow":
         raise ValueError(f"unsupported provider fixture slot_type: {slot_type}")
     return {
@@ -705,6 +743,8 @@ def _provider_module(
         return _ui_provider_module(slot_id)
     if slot_type == "watcher":
         return _watcher_provider_module(slot_id)
+    if slot_type == "governance":
+        return _governance_provider_module(slot_id)
     if slot_type != "workflow":
         raise ValueError(f"unsupported provider fixture slot_type: {slot_type}")
     return f"""
@@ -958,6 +998,87 @@ def _allow_event(event, context):
     if active is None:
         return WatcherDecision(action="allow", reason="none")
     return WatcherDecision(action="allow", reason=f"{{active.slot_id}}:{{active.enforce}}")
+"""
+
+
+def _governance_provider_module(slot_id: str) -> str:
+    return f"""
+import os
+from pathlib import Path
+
+from .helper import MARKER_TEXT
+
+from doge.core.domain.tool_policy import ToolCategory
+from doge.platform.slots import (
+    GovernancePolicyContribution,
+    ISlot,
+    SlotContribution,
+    SlotHealth,
+    SlotManifest,
+    SlotProvides,
+    SlotType,
+    current_slot_permission_context,
+)
+
+marker = os.environ.get("P5_PROVIDER_IMPORT_MARKER")
+if marker:
+    Path(marker).write_text(MARKER_TEXT, encoding="utf-8")
+
+
+class ProviderSlot(ISlot):
+    def manifest(self):
+        return SlotManifest(
+            schema_version=1,
+            id={slot_id!r},
+            name="Third-party Governance Policy",
+            version="0.1.0",
+            type=SlotType.GOVERNANCE,
+            owner="vendor",
+            maturity="experimental",
+            description="Trusted local governance policy provider fixture.",
+            entrypoint=__name__ + ".ProviderSlot",
+            provides=SlotProvides(
+                capabilities=("tool_entitlement", "provider_governance_policy"),
+                metadata={{"policy": "read_only"}},
+            ),
+            health=SlotHealth(status="experimental"),
+            feature_flags=("slot_platform", "slot_governance"),
+        )
+
+    def resolve(self, context):
+        return SlotContribution(
+            slot_id={slot_id!r},
+            governance_policies=(
+                GovernancePolicyContribution(
+                    policy_id="provider.governance.read_only",
+                    kind="tool_entitlement",
+                    payload={{"allow": "read_only"}},
+                    entitlement_checker_factory=lambda context: ProviderChecker(),
+                ),
+            ),
+        )
+
+
+class ProviderChecker:
+    def can_execute(self, context, tool_name, category):
+        active = current_slot_permission_context()
+        slot_id = active.slot_id if active is not None else "none"
+        enforce = active.enforce if active is not None else "none"
+        lifecycle_marker = os.environ.get("P5_PROVIDER_LIFECYCLE_MARKER")
+        if lifecycle_marker:
+            Path(lifecycle_marker).write_text(
+                f"can_execute:{{slot_id}}:{{enforce}}:{{tool_name}}",
+                encoding="utf-8",
+            )
+        return category == ToolCategory.READ_ONLY and slot_id == {slot_id!r} and enforce is True
+
+    def requires_approval(self, context, tool_name, category):
+        return category == ToolCategory.HIGH_RISK
+
+    def redact_schema(self, context, schema, category):
+        if not self.can_execute(context, schema.get("function", {{}}).get("name", ""), category):
+            return None
+        return schema
 """
 
 

@@ -610,7 +610,10 @@ def build_slot_aware_entitlement_checker(
         checkers.append(entitlement_checker)
 
     seen_policy_ids: set[str] = set()
+    interception_enabled = _slot_runtime_interception_enabled(resolved_settings)
+    audit_sink = _slot_runtime_audit_sink(resolved_settings) if interception_enabled else None
     for contribution in contributions:
+        manifest = _slot_manifest_for_contribution(slot_kernel, contribution)
         for policy in contribution.governance_policies:
             if policy.policy_id in seen_policy_ids:
                 raise SlotConfigurationError(
@@ -619,12 +622,29 @@ def build_slot_aware_entitlement_checker(
             seen_policy_ids.add(policy.policy_id)
             if policy.entitlement_checker_factory is None:
                 continue
-            checker = policy.entitlement_checker_factory(slot_context)
+            if interception_enabled:
+                with slot_permission_context(
+                    contribution.slot_id,
+                    manifest.permissions,
+                    enforce=True,
+                    audit_sink=audit_sink,
+                ):
+                    checker = policy.entitlement_checker_factory(slot_context)
+            else:
+                checker = policy.entitlement_checker_factory(slot_context)
             if checker is None:
                 raise SlotConfigurationError(
                     f"governance policy {policy.policy_id} returned no entitlement checker"
                 )
-            checkers.append(checker)
+            checkers.append(
+                _slot_scoped_entitlement_checker(
+                    checker,
+                    contribution.slot_id,
+                    manifest.permissions,
+                    enabled=interception_enabled,
+                    audit_sink=audit_sink,
+                )
+            )
 
     if not checkers:
         return entitlement_checker
@@ -1084,6 +1104,48 @@ def _slot_scoped_watcher(
         return on_event(event, context)
 
     return _on_event
+
+
+def _slot_scoped_entitlement_checker(
+    checker: Any,
+    slot_id: str,
+    permissions: Any,
+    *,
+    enabled: bool,
+    audit_sink: Any,
+) -> Any:
+    if not enabled:
+        return checker
+
+    class _SlotScopedEntitlementChecker:
+        def can_execute(self, context: Any, tool_name: str, category: Any) -> bool:
+            with slot_permission_context(
+                slot_id,
+                permissions,
+                enforce=True,
+                audit_sink=audit_sink,
+            ):
+                return checker.can_execute(context, tool_name, category)
+
+        def requires_approval(self, context: Any, tool_name: str, category: Any) -> bool:
+            with slot_permission_context(
+                slot_id,
+                permissions,
+                enforce=True,
+                audit_sink=audit_sink,
+            ):
+                return checker.requires_approval(context, tool_name, category)
+
+        def redact_schema(self, context: Any, schema: dict[str, Any], category: Any) -> dict[str, Any] | None:
+            with slot_permission_context(
+                slot_id,
+                permissions,
+                enforce=True,
+                audit_sink=audit_sink,
+            ):
+                return checker.redact_schema(context, schema, category)
+
+    return _SlotScopedEntitlementChecker()
 
 
 def _slot_install_policy(

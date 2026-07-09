@@ -629,6 +629,14 @@ api_decisions:
     reason: "P10 opens watchers only after preserving fail-closed watcher behavior and wrapping provider watcher callables in slot permission context."
     added: "2026-07-09"
 
+  - purpose: slot_governance_policy_provider_facet
+    status: active
+    api: "Installed, package-signed, operator-gated governance providers may contribute monotonic tool entitlement policies through SlotKernel and CompositeToolEntitlementChecker"
+    not: "Gateway route facets, replacement entitlement checkers, tenant-isolation expansion, marketplace install, YAML manifests, URL/upload install, provider sandboxing, or production plugin runtime"
+    adr: docs/architecture/adr-0071-slot-governance-policy-provider-facet.md
+    reason: "P10 opens governance policies only after preserving monotonic can_execute/requires_approval composition and wrapping provider policy factories/checkers in slot permission context."
+    added: "2026-07-09"
+
 # ============================================================================
 # PERFORMANCE BUDGETS
 # ============================================================================
@@ -1232,3 +1240,11 @@ adr_index:
     path: docs/architecture/adr-0070-slot-watcher-provider-facet.md
     governs: "installed package-signed provider watcher facet expansion with slot-scoped on_event callables while routes and governance policies remain restricted"
     depends_on: [ADR-0043, ADR-0047, ADR-0064, ADR-0065, ADR-0066, ADR-0067, ADR-0068, ADR-0069]
+
+  - id: ADR-0071
+    title: "Slot Governance Policy Provider Facet"
+    status: Accepted
+    date: "2026-07-09"
+    path: docs/architecture/adr-0071-slot-governance-policy-provider-facet.md
+    governs: "installed package-signed provider governance policy facet expansion with monotonic tool entitlement composition while routes remain restricted"
+    depends_on: [ADR-0043, ADR-0046, ADR-0064, ADR-0065, ADR-0066, ADR-0067, ADR-0068, ADR-0069, ADR-0070]

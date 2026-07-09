@@ -130,7 +130,7 @@ slot_watcher_provider_facet_p10_2026_07_09:
     - "P10 opens only watchers for installed, v3 package-signed, operator-gated providers."
     - "Provider execution still requires slot_platform, slot_loader, slot_install, slot_runtime_interception, slot_provider_execution, verified package-aware v3 signatures, revocation checks, SlotKernel admission, DOGE_FEATURE_SLOT_WATCHER for watcher resolution, and enterprise allowlist when applicable."
     - "Watcher on_event callables are wrapped in slot permission context when runtime interception is enabled."
-    - "Gateway routes and governance policies remain restricted provider facets."
+    - "At ADR-0070 acceptance, gateway routes and governance policies remained restricted provider facets; ADR-0071 later opens governance policies only."
     - "P10 watchers are local-only in this ledger; latest_remotely_verified_sha remains 030ff9b until a later pushed SHA gets its own exact-SHA remote CI evidence."
   evidence:
     - docs/architecture/adr-0070-slot-watcher-provider-facet.md
@@ -155,6 +155,40 @@ slot_watcher_provider_facet_p10_2026_07_09:
     - "ADR-0070 supersedes only ADR-0064's watcher restricted-facet statement for the default-off local provider path."
     - "Routes remain restricted and are still last in the P10 facet order because FastAPI route injection is the broadest in-process attack surface."
     - "No marketplace, YAML manifest parser, URL/upload install, filesystem mediation, malicious-code containment, external gate closure, or maturity promotion is included."
+
+slot_governance_policy_provider_facet_p10_2026_07_09:
+  status: local_acceptance_passed_external_gates_open
+  label: "Slot Governance Policy Provider Facet"
+  scope:
+    - "P10 opens only governance_policies for installed, v3 package-signed, operator-gated providers."
+    - "Provider execution still requires slot_platform, slot_loader, slot_install, slot_runtime_interception, slot_provider_execution, verified package-aware v3 signatures, revocation checks, SlotKernel admission, DOGE_FEATURE_SLOT_GOVERNANCE for governance resolution, and enterprise allowlist when applicable."
+    - "Provider governance policy factories and returned checker methods are wrapped in slot permission context when runtime interception is enabled."
+    - "Composite tool entitlement remains monotonic: can_execute uses all checkers and requires_approval uses any checker, so provider policies can restrict or require more approval but cannot re-enable forbidden tools or remove built-in high-risk approval."
+    - "Gateway routes remain the only restricted provider facet after ADR-0071."
+    - "P10 governance policies are local-only in this ledger; latest_remotely_verified_sha remains 030ff9b until a later pushed SHA gets its own exact-SHA remote CI evidence."
+  evidence:
+    - docs/architecture/adr-0071-slot-governance-policy-provider-facet.md
+    - design/cdd/p10-governance-policy-provider-facet.md
+    - production/qa/evidence/slot-governance-policy-provider-facet-local-acceptance-2026-07-09.md
+    - src/doge/bootstrap/runtime_factories/provider_slot.py
+    - src/doge/bootstrap/runtime_factories/slots.py
+    - tests/unit/platform/slots/test_slot_provider_execution.py
+  focused_tests:
+    - "py -3 -m pytest tests\\unit\\platform\\slots\\test_slot_provider_execution.py tests\\unit\\platform\\slots\\test_builtin_governance_slot.py tests\\contract\\test_governance_slot_parity.py -q => 28 passed"
+    - "py -3 -m pytest tests\\unit\\platform\\slots\\test_slot_provider_execution.py tests\\unit\\platform\\slots\\test_builtin_governance_slot.py tests\\contract\\test_governance_slot_parity.py tests\\contract\\test_slot_api.py tests\\cli\\test_cli_slots.py -q => 76 passed, 2 warnings"
+  open_gates:
+    - S017-003
+    - W3-live
+    - AUTH-prod
+    - S017-007
+  posture:
+    production_ready: false
+    stable_declaration: forbidden
+    level_3_sdk_platform: experimental
+  notes:
+    - "ADR-0071 supersedes only ADR-0064's governance_policies restricted-facet statement for the default-off local provider path."
+    - "Routes remain restricted and are still last in the P10 facet order because FastAPI route injection is the broadest in-process attack surface."
+    - "No marketplace, YAML manifest parser, URL/upload install, tenant-isolation expansion, filesystem mediation, malicious-code containment, external gate closure, or maturity promotion is included."
 
 slot_install_surfaces_p9_2026_07_09:
   status: local_acceptance_passed_external_gates_open
