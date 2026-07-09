@@ -10,7 +10,6 @@
 - **Secondary Language**: TypeScript for Vue/Vite web UI
 - **Backend/API Framework**: FastAPI 0.123.8, Uvicorn 0.38.0, Pydantic 2.12.4
 - **MCP Framework**: mcp 1.25.0 with stdio and SSE transports
-- **Desktop UI**: PyQt6
 - **Web UI**: Vue 3.5.32, Vite 8.0.10, Pinia 3.0.4, Naive UI 2.44.1
 - **Data Stack**: SQLite local databases and DuckDB 1.4.4 analytical views
 - **Market/AI Integrations**: yfinance 0.2.66, opentdx, akshare, OpenAI SDK 1.62.0
@@ -64,7 +63,6 @@
 - yfinance, opentdx, akshare
 - openai, PyJWT, cryptography
 - mcp, fastapi, uvicorn, sse-starlette, pydantic, httpx
-- PyQt6
 - pytest, pytest-asyncio
 - Vue, Vite, Pinia, Naive UI, axios, lightweight-charts, markdown-it, highlight.js
 

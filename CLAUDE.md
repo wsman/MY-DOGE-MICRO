@@ -8,7 +8,7 @@ into a studio hierarchy, each owning a specific domain.
 
 **[通用产品]** MY-DOGE-MICRO metadata import:
 - **Language**: Python 3.10+ for backend/domain tooling; TypeScript for web UI
-- **Framework**: FastAPI, MCP, PyQt6, Vue 3 + Vite
+- **Framework**: FastAPI, MCP, Vue 3 + Vite
 - **Data Stack**: SQLite for persisted local databases; DuckDB for analytical reads/views
 - **AI/Market Integrations**: OpenAI-compatible API clients, yfinance, TDX/opentdx, akshare
 

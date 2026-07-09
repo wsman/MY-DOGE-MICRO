@@ -121,7 +121,7 @@ Ready while those values remain unchanged. See
 
 ## Slot Platform Status
 
-The Slot Platform (ADR-0042 through ADR-0064) is an experimental, built-in
+The Slot Platform (ADR-0042 through ADR-0067) is an experimental, built-in
 extension mechanism. It contributes tools, models, data sources, workflows,
 documents, gateway routes, UI panels, watchers, eval suites, and governance
 policies as slot facets.
