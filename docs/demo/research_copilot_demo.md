@@ -1,4 +1,4 @@
-# MY-DOGE Enterprise Research Copilot Demo
+# OpenDoge Enterprise Research Copilot Demo
 
 ## Eight-minute script
 

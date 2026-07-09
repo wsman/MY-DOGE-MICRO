@@ -1,6 +1,6 @@
-# MY-DOGE CLI 命令参考
+# OpenDoge CLI 命令参考
 
-MY-DOGE 提供统一的 `doge` 命令行入口，覆盖「只读行情查询」、「LLM 宏观报告生成」与「Research Copilot 本地会话」三类本地操作。本文档为操作者的命令参考，所有命令均基于本地 DuckDB / SQLite 数据与（可选）DeepSeek/Kimi API。
+OpenDoge 提供统一的 `doge` 命令行入口，覆盖「只读行情查询」、「LLM 宏观报告生成」与「Research Copilot 本地会话」三类本地操作。本文档为操作者的命令参考，所有命令均基于本地 DuckDB / SQLite 数据与（可选）DeepSeek/Kimi API。
 
 > **适用范围**：本文档仅描述产品 CLI。Claude Code / MCP 客户端通过 `doge_mcp.py` 调用工具的方式，参见 [docs/MCP_SERVER.md](MCP_SERVER.md)。
 

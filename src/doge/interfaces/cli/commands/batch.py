@@ -34,7 +34,7 @@ def cmd_batch(args) -> None:
 
 def _render_markdown(result: dict[str, Any]) -> str:
     lines = [
-        "# MY-DOGE Batch Results",
+        "# OpenDoge Batch Results",
         "",
         f"- Cases: {result['case_count']}",
         f"- Passed: {result['passed']}",

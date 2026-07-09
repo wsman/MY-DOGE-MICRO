@@ -151,7 +151,7 @@ def _algorithm_set(value: str) -> set[str]:
 
 def env_template(args: argparse.Namespace) -> int:
     lines = [
-        "# Operator-controlled MY-DOGE live IdP/JWKS smoke environment.",
+        "# Operator-controlled OpenDoge live IdP/JWKS smoke environment.",
         "# Keep token files outside the repository and never paste token values into this template.",
         f"$env:DOGE_AUTH_OIDC_ISSUER = {_ps(args.issuer)}",
         f"$env:DOGE_AUTH_OIDC_AUDIENCE = {_ps(args.audience)}",

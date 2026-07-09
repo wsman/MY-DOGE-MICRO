@@ -148,7 +148,7 @@ class TestDemoCommand:
                             lambda: MagicMock(query=lambda _t, _m, days=0: [{"date": "x", "close": 1.0}]))
         demo_cmd.cmd_demo(_ns(market="cn", top=5))
         out = capsys.readouterr().out
-        assert "MY-DOGE-MICRO 5-Minute Demo" in out
+        assert "OpenDoge 5-Minute Demo" in out
         assert "Demo complete" in out
 
 

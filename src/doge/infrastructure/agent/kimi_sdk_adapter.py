@@ -1,4 +1,4 @@
-"""Adapters from Kimi Agent SDK events into MY-DOGE runtime contracts."""
+"""Adapters from Kimi Agent SDK events into OpenDoge runtime contracts."""
 
 from __future__ import annotations
 

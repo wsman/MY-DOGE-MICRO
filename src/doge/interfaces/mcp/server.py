@@ -801,7 +801,7 @@ def create_mcp_server():
 
 # ── Entry point ──────────────────────────────────────
 def main():
-    parser = argparse.ArgumentParser(description="MY-DOGE MCP Server")
+    parser = argparse.ArgumentParser(description="OpenDoge MCP Server")
     parser.add_argument("--transport", choices=["stdio", "sse"], default="stdio")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8902)

@@ -17,5 +17,5 @@ set "PYTHONIOENCODING=utf-8"
 if not defined MCP_HOST set "MCP_HOST=127.0.0.1"
 if not defined MCP_PORT set "MCP_PORT=8902"
 
-echo Starting MY-DOGE MCP Server ^(SSE^) on %MCP_HOST%:%MCP_PORT%
+echo Starting OpenDoge MCP Server ^(SSE^) on %MCP_HOST%:%MCP_PORT%
 "%PYTHON%" "%PROJECT_ROOT%\doge_mcp.py" --transport sse --host %MCP_HOST% --port %MCP_PORT%

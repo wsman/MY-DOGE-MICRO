@@ -27,5 +27,5 @@ def test_cli_batch_prints_markdown(capsys):
     main(["batch", "--cases", "tests/eval/cases_expanded.json", "--format", "markdown"])
 
     out = capsys.readouterr().out
-    assert "# MY-DOGE Batch Results" in out
+    assert "# OpenDoge Batch Results" in out
     assert "`task_completion`" in out

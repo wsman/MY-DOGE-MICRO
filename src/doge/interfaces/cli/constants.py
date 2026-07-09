@@ -3,7 +3,7 @@
 EXIT_NO_DATA = 1
 
 # Bilingual strings preserved from legacy macro CLI.
-MACRO_START_MSG = "🚀 启动 MY-DOGE 宏观战略分析 (Verbose Mode)..."
+MACRO_START_MSG = "🚀 启动 OpenDoge 宏观战略分析 (Verbose Mode)..."
 MACRO_CONFIG_OK_MSG = "✅ 配置加载成功"
 MACRO_MARKET_SUMMARY_PREFIX = "📊 市场数据摘要:"
 MACRO_NO_DATA_MSG = "❌ 无法获取市场数据，请检查网络连接"

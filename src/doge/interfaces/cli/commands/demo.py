@@ -16,7 +16,7 @@ def cmd_demo(args) -> None:
     sample_ticker = "600000.SH" if market == "cn" else "AAPL"
 
     print("=" * 60)
-    print("MY-DOGE-MICRO 5-Minute Demo — using bundled sample data")
+    print("OpenDoge 5-Minute Demo — using bundled sample data")
     print("=" * 60)
 
     ranking = build_ranking_service().rsrs(market, top)

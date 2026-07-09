@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Performance baseline profiler for MY-DOGE-MICRO (story S003-012).
+"""Performance baseline profiler for OpenDoge (story S003-012).
 
 Standalone, re-runnable harness that measures the latency of the major query
 surfaces against the declared performance budgets
@@ -307,7 +307,7 @@ def _print_table(rows: list[dict]) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="MY-DOGE-MICRO performance baseline profiler (S003-012).",
+        description="OpenDoge performance baseline profiler (S003-012).",
     )
     parser.add_argument(
         "--runs", type=int, default=DEFAULT_RUNS,
@@ -319,7 +319,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    print("MY-DOGE-MICRO performance baseline profile")
+    print("OpenDoge performance baseline profile")
     print(f"date={date.today().isoformat()}  python={platform.python_version()}")
     print(f"platform={platform.platform()}")
     print(f"inputs: ticker={TICKER} market={MARKET} days={DAYS} top={TOP} "

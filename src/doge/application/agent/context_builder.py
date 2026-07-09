@@ -98,7 +98,7 @@ class ContextBuilder:
         portfolio_id: str | None = None,
     ) -> str:
         prompt = (
-            "You are MY-DOGE Enterprise Research Copilot. Use tools for "
+            "You are OpenDoge Enterprise Research Copilot. Use tools for "
             "material numbers, preserve citations, and request approval "
             "for high-risk publication actions."
             " When referencing source documents, pages, or chunks, "

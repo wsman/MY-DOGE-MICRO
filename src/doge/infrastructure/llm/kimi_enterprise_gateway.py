@@ -14,7 +14,7 @@ _CODE_TASKS = {"python", "sql", "backtest", "data_pipeline"}
 
 
 class KimiEnterpriseGateway(IEnterpriseModelGateway):
-    """Apply MY-DOGE enterprise call metadata to Kimi chat requests."""
+    """Apply OpenDoge enterprise call metadata to Kimi chat requests."""
 
     def __init__(self, model: IAgentModel | None = None) -> None:
         self._settings = get_settings()

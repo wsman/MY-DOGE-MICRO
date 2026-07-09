@@ -1,4 +1,4 @@
-"""Create a MY-DOGE daemon session with the Python SDK."""
+"""Create an OpenDoge daemon session with the Python SDK."""
 
 from __future__ import annotations
 

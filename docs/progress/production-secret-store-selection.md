@@ -13,7 +13,7 @@ and provide a command template in `DOGE_SECRET_PROCESS_COMMAND_JSON`. The comman
 is executed without a shell, receives the canonical secret name as an argument
 or `{name}` placeholder, and returns the secret value on stdout.
 
-This keeps the MY-DOGE runtime vendor-neutral while allowing operators to back
+This keeps the OpenDoge runtime vendor-neutral while allowing operators to back
 the command with a cloud KMS, HashiCorp Vault, Kubernetes External Secrets,
 Sealed Secrets, a local secret-agent sidecar, or another approved enterprise
 secret manager.

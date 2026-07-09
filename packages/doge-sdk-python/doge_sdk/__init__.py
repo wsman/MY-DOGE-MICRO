@@ -1,4 +1,4 @@
-"""Python SDK for the MY-DOGE daemon gateway."""
+"""Python SDK for the OpenDoge daemon gateway."""
 
 from doge_sdk.client import AsyncDogeClient, DogeClient
 from doge_sdk.run import DogeApiError, DogeEvent

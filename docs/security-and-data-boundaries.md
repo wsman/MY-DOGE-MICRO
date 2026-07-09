@@ -27,7 +27,7 @@ Kimi Organization/Project controls isolate API resources:
 These controls do not decide which internal user can see a document, portfolio,
 client, or approval workflow.
 
-## MY-DOGE Business Boundary
+## OpenDoge Business Boundary
 
 `EnterpriseContext` models application-level authorization:
 

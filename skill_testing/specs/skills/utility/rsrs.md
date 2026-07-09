@@ -2,7 +2,7 @@
 
 ## Scope
 
-Validate `/rsrs` as a read-only MY-DOGE product query skill.
+Validate `/rsrs` as a read-only OpenDoge product query skill.
 
 ## Expected Behavior
 

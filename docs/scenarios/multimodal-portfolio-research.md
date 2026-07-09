@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This is the single primary demo scenario for the current MY-DOGE Agent track.
+This is the single primary demo scenario for the current OpenDoge Agent track.
 It validates a source-grounded financial research workflow instead of expanding
 the product into unrelated assistants.
 

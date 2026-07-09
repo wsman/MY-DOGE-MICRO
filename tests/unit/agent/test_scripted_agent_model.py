@@ -15,7 +15,7 @@ async def _first_response(messages: list[AgentMessage]):
 @pytest.mark.asyncio
 async def test_scripted_model_skips_portfolio_tool_without_explicit_portfolio():
     response = await _first_response([
-        AgentMessage(role="system", content="You are MY-DOGE Enterprise Research Copilot."),
+        AgentMessage(role="system", content="You are OpenDoge Enterprise Research Copilot."),
         AgentMessage(role="tool", name="stock_overview", tool_call_id="call-stock-overview", content="{}"),
     ])
 
@@ -29,7 +29,7 @@ async def test_scripted_model_uses_explicit_portfolio_id_from_context_marker():
         AgentMessage(
             role="system",
             content=(
-                "You are MY-DOGE Enterprise Research Copilot. "
+                "You are OpenDoge Enterprise Research Copilot. "
                 "Authorized run portfolio_id: portfolio-explicit.v1. "
                 "Use this exact portfolio_id when portfolio tools are needed."
             ),

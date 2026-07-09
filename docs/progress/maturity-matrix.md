@@ -1,4 +1,4 @@
-# MY-DOGE Runtime Maturity Matrix
+# OpenDoge Runtime Maturity Matrix
 
 Generated: 2026-06-30
 

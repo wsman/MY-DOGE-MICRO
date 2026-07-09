@@ -1,4 +1,4 @@
-"""Evaluation helpers for MY-DOGE financial research workflows."""
+"""Evaluation helpers for OpenDoge financial research workflows."""
 
 from doge.eval.metrics import (
     EvaluationScore,

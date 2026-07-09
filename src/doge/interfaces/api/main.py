@@ -1,5 +1,5 @@
 """
-MY-DOGE-MICRO FastAPI Backend
+OpenDoge FastAPI Backend
 Tauri sidecar - runs on localhost:8901
 """
 

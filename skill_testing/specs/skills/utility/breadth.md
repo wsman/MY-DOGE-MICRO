@@ -2,7 +2,7 @@
 
 ## Scope
 
-Validate `/breadth` as a read-only MY-DOGE product query skill.
+Validate `/breadth` as a read-only OpenDoge product query skill.
 
 ## Expected Behavior
 

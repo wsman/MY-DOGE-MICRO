@@ -1,5 +1,5 @@
 /**
- * Naive UI theme bridge for MY-DOGE-MICRO.
+ * Naive UI theme bridge for OpenDoge.
  *
  * Mirrors the dark-first design tokens declared in tokens.css into Naive's
  * GlobalThemeOverrides so the component library renders the sanctioned palette.

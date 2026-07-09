@@ -1,4 +1,4 @@
-"""MY-DOGE — Modular Stock Analysis System.
+"""OpenDoge — local-first slot-based financial research agent runtime.
 
 Usage:
     from doge.config import settings

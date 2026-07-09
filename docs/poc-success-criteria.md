@@ -16,7 +16,7 @@ Generated: 2026-06-21
 
 ## Must Explain
 
-- Kimi Project budget/IP controls do not replace MY-DOGE business ACLs.
+- Kimi Project budget/IP controls do not replace OpenDoge business ACLs.
 - K2.7 Code thinking must remain enabled or omitted.
 - Kimi understands/explains multimodal evidence; deterministic tools calculate
   and verify material numbers.

@@ -295,6 +295,8 @@ def _inline_context_allows(context: EnterpriseContext, resource_type: str, resou
         return resource_id in context.portfolio_permission
     if resource_type == "tool":
         return resource_id in context.tool_entitlement
+    if resource_type == "slot":
+        return resource_id in context.tool_entitlement
     if resource_type == "approval":
         return resource_id in context.approval_authority
     return False

@@ -64,7 +64,7 @@ class TestDemoCommand:
         demo_cmd.cmd_demo(_make_args())
 
         captured = capsys.readouterr()
-        assert "MY-DOGE-MICRO 5-Minute Demo" in captured.out
+        assert "OpenDoge 5-Minute Demo" in captured.out
         assert "A" in captured.out
         assert "Demo complete" in captured.out
 

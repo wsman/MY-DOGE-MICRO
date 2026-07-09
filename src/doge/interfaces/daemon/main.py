@@ -22,7 +22,7 @@ _PROCESS_ROLES = ("api", "worker", "all")
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="doged", description="MY-DOGE daemon gateway")
+    parser = argparse.ArgumentParser(prog="doged", description="OpenDoge daemon gateway")
     sub = parser.add_subparsers(dest="cmd")
     serve = sub.add_parser("serve", help="start the loopback daemon")
     serve.add_argument("--port", type=int, default=None)

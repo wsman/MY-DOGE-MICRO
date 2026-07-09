@@ -73,7 +73,7 @@ The non-direct backend path now passes runtime routing context into
 `IAgentBackend` instead of reducing the SDK call to a plain prompt only.
 `KimiAgentSdkBackend` builds a structured prompt request containing:
 
-- serialized MY-DOGE messages, including multimodal content parts;
+- serialized OpenDoge messages, including multimodal content parts;
 - visible tool schemas, tool choice, max token budget, and selected model;
 - request metadata such as run/session/profile context and prompt cache key;
 - SDK event metadata for raw trace preservation.

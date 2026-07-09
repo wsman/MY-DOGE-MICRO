@@ -14,7 +14,7 @@ Constitution Driven Development turns a Claude Code workspace into a governed
 development team:
 
 - 53 specialized agents for design, engineering, QA, release, and operations.
-- 78 slash-command skills for planning, implementation, review, release, and MY-DOGE product queries.
+- 78 slash-command skills for planning, implementation, review, release, and OpenDoge product queries.
 - A 7-phase workflow catalog read by `/help`, `/cdd-status`, and gate checks.
 - Templates for concepts, CDDs, ADRs, UX specs, test plans, release notes, and
   acceptance evidence.

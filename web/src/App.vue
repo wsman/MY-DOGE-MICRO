@@ -159,7 +159,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
       <div class="app-root">
         <!-- Top toolbar -->
         <div class="toolbar">
-          <n-text strong class="app-title">MY-DOGE</n-text>
+          <n-text strong class="app-title">OpenDoge</n-text>
           <n-space size="small" align="center" class="primary-nav">
             <template v-if="platformShellEnabled">
               <n-button

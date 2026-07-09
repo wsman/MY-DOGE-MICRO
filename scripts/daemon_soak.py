@@ -288,7 +288,7 @@ def _request(client: httpx.Client, method: str, path: str, **kwargs) -> dict:
 
 
 def _parse_args() -> SoakConfig:
-    parser = argparse.ArgumentParser(description="Run the MY-DOGE daemon soak workload.")
+    parser = argparse.ArgumentParser(description="Run the OpenDoge daemon soak workload.")
     parser.add_argument("--base-url", default="http://127.0.0.1:8901")
     parser.add_argument("--duration-seconds", type=float, default=3600.0)
     parser.add_argument("--interval-seconds", type=float, default=5.0)

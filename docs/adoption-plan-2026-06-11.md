@@ -158,7 +158,7 @@ Problem: Most clean architecture migration files are untracked in the source rep
 
 Manual decision:
 
-- Commit source work in `MY-DOGE-MICRO` before cleanup, or
+- Commit source work in `OpenDoge` before cleanup, or
 - Create a source backup branch/stash strategy before further migration.
 
 **Time**: 5-30 min.

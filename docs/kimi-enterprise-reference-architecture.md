@@ -2,7 +2,7 @@
 
 Generated: 2026-06-21
 
-MY-DOGE is a Kimi-backed financial research copilot reference implementation,
+OpenDoge is a Kimi-backed financial research copilot reference implementation,
 not a production SLA. Runtime maturity remains governed by
 `docs/progress/runtime-maturity.yaml`, where `production_ready: false`.
 
@@ -62,7 +62,7 @@ providers, not a second strategy stack.
 ## Enterprise Controls
 
 Kimi Organization/Project features cover API resource isolation: project keys,
-project budget, TPM limits, IP whitelist, and member management. MY-DOGE still
+project budget, TPM limits, IP whitelist, and member management. OpenDoge still
 owns business authorization:
 
 - tenant identity

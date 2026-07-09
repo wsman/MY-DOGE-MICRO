@@ -1,6 +1,6 @@
 # doge-db MCP 服务器
 
-doge-db 是 MY-DOGE 量化系统的 MCP (Model Context Protocol) 数据服务层，通过 DuckDB 零拷贝读取本地 SQLite 数据库，为 Claude Code 和其他 MCP 客户端提供 A 股/美股行情查询、RSRS 动量排名、市场宽度分析、成交量异动检测等 6 个工具。
+doge-db 是 OpenDoge 量化系统的 MCP (Model Context Protocol) 数据服务层，通过 DuckDB 零拷贝读取本地 SQLite 数据库，为 Claude Code 和其他 MCP 客户端提供 A 股/美股行情查询、RSRS 动量排名、市场宽度分析、成交量异动检测等 6 个工具。
 
 ## 目录
 

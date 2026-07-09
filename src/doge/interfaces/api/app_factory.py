@@ -17,7 +17,7 @@ def create_app(settings=None) -> FastAPI:
     auth_provider = _build_api_auth_provider(settings)
     _validate_api_auth_startup(settings, auth_provider)
 
-    app = FastAPI(title="MY-DOGE API", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title="OpenDoge API", version="0.1.0", lifespan=lifespan)
     register_middleware(app, settings, auth_provider)
     register_exception_handlers(app)
     register_routes(app, settings)
